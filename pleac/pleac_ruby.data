@@ -2415,7 +2415,23 @@ str.scan(/\G,?(\d+)/).each do |num|
 end
 #-----------------------------
 # Ruby doesn't have the String.pos or a /c re modifier like Perl 
-# @@INCOMPLETE@@
+# But it does have StringScanner in the standard library (strscn)
+# which allows similar functionality:
+
+require 'strscan'
+text = 'the year 1752 lost 10 days on the 3rd of September'
+sc = StringScanner.new(text)
+while sc.scan(/.*?(\d+)/)
+    print "found: #{sc[1]}\n"   
+end
+if sc.scan(/\S+/)
+    puts "Found #{sc[0]} after last number"
+end
+#-----------------------------
+# assuming continuing from above:
+puts "The position in 'text' is: #{sc.pos}"
+sc.pos = 30
+puts "The position in 'text' is: #{sc.pos}"
 
 
 #@@PLEAC@@_6.15
@@ -3112,10 +3128,97 @@ while old.gets do
 end
 
 
+# @@PLEAC@@_7.9
+#% ruby -i.orig -pe 'FILTER COMMAND' file1 file2 file3 ...
+#
+#-----------------------------
+##!/usr/bin/ruby -i.orig -p
+# filter commands go here
+#-----------------------------
+
+#% ruby -pi.orig -e 'gsub!(/DATE/){Time.now)'
+
+# effectively becomes:
+ARGV << 'I'
+oldfile = ""
+while gets
+    if ARGF.filename != oldfile
+        newfile = ARGF.filename
+        File.rename(newfile, newfile + ".orig")
+        $stdout = File.open(newfile,'w')
+        oldfile = newfile
+    end
+    gsub!(/DATE/){Time.now}
+    print 
+end
+$stdout = STDOUT
+#-----------------------------
+#% ruby -i.old -pe 'gsub!(%r{\bhisvar\b}, 'hervar')' *.[Cchy]
+
+#-----------------------------
+# set up to iterate over the *.c files in the current directory,
+# editing in place and saving the old file with a .orig extension
+$-i = '.orig'                       # set up -i mode
+ARGV.replace(Dir['*.[Cchy]'])
+while gets
+    if $. == 1
+        print "This line should appear at the top of each file\n"
+    end
+    gsub!(/\b(p)earl\b/i, '\1erl')    # Correct typos, preserving case
+    print
+    ARGF.close if ARGF.eof
+end
+
+
+# @@PLEAC@@_7.10
+File.open('itest', 'r+') do |f|   # open file for update
+    lines = f.readlines           # read into array of lines
+    lines.each do |it|            # modify lines
+        it.gsub!(/foo/, 'QQQ')
+    end
+    f.pos = 0                     # back to start
+    f.print lines                 # write out modified lines
+    f.truncate(f.pos)             # truncate to new length
+end                               # file is automatically closed
+#-----------------------------
+File.open('itest', 'r+') do |f|   
+    out = ""
+    f.each do |line|
+        out << line.gsub(/DATE/) {Time.now}
+    end
+    f.pos = 0                     
+    f.print out
+    f.truncate(f.pos)             
+end
+
+# @@PLEAC@@_7.11
+File.open('infile', 'r+') do |f|
+    f.flock File::LOCK_EX
+    # update file
+end
+#-----------------------------
+File::LOCK_SH     # shared lock (for reading)
+File::LOCK_EX     # exclusive lock (for writing)
+File::LOCK_NB     # non-blocking request
+File::LOCK_UN     # free lock
+#-----------------------------
+unless f.flock File::LOCK_EX | File::LOCK_NB
+    warn "can't get immediate lock: blocking ..."
+    f.flock File::LOCK_EX 
+end
+#-----------------------------
+File.open('numfile', File::RDWR|File::CREAT) do |f|
+    f.flock(File::LOCK_EX)
+    num = f.gets.to_i || 0
+    f.pos = 0
+    f.truncate 0
+    f.puts num + 1q
+end
+
+
 # @@PLEAC@@_7.12
 output_handle.sync = true
 # Please note that like in Perl, $stderr is already unbuffered
-
 #-----------------------------
 #!/usr/bin/ruby -w
 # seeme - demo stdio output buffering
@@ -3124,8 +3227,43 @@ print "Now you don't see it..."
 sleep 2
 puts "now you do"
 #-----------------------------
+$stderr.sync = true
+afile.sync = false
+#-----------------------------
+# assume 'remote_con' is an interactive socket handle,
+# but 'disk_file' is a handle to a regular file.
+remote_con.sync = true       # unbuffer for clarity
+disk_file.sync = false       # buffered for speed
+#-----------------------------
+require 'socket'
+sock = TCPSocket.new('www.ruby-lang.org', 80)
+sock.sync = true
+sock.puts "GET /en/ HTTP/1.0 \n\n"
+resp = sock.read
+print "DOC IS: #{resp}\n"
 
-# @@INCOMPLETE@@
+
+# @@PLEAC@@_7.13
+#-----------------------------
+# assumes fh1, fh2, fh2 are oen IO objects
+nfound = select([$stdin, fh1, fh2, fh3], nil, nil, 0)
+nfound[0].each do |file|
+    case file
+        when fh1
+            # do something with fh1
+        when fh2
+            # do something with fh2
+        when fh3
+            # do something with fh3
+    end
+end
+#-----------------------------
+input_files = []
+# repeat next line for all in-files to poll
+input_files << fh1
+if nfound = select(input_files, nil, nil, 0)
+    # input ready on files in nfound[0]
+end
 
 
 # @@PLEAC@@_8.0
