@@ -407,6 +407,63 @@ __END__
 # turnkey         => turn-key
 
 
+# @@PLEAC@@_1.18
+#!/usr/bin/ruby -w
+# 
+# psgrep - print selected lines of ps output by
+#          compiling user queries into code
+#-----------------------------
+#% psgrep '~/sh\b/'
+#-----------------------------
+#% psgrep 'command =~ /sh$/'
+#-----------------------------
+#% psgrep 'uid < 10'
+#-----------------------------
+#% psgrep 'command =~ /^-/' 'tty ne "?"'
+#-----------------------------
+#% psgrep 'tty =~ /^[p-t]/'
+#-----------------------------
+#% psgrep 'uid && tty eq "?"'
+#-----------------------------
+#% psgrep 'size > 10 * 2**10' 'uid != 0'
+#-----------------------------
+
+class PS
+    PS::Names = %w-flags uid pid ppid pri nice size
+                   rss wchan stat tty time command-
+    PS::Names.each {|sym| attr_accessor sym}
+    attr_accessor :line
+    def set_fields
+        fields = line.split(" ",13)
+        PS::Names.each_with_index do |sym,i|
+            eval "self.#{sym} = " + 
+                ((0..7).include?(i) ? fields[i] : "'#{fields[i]}'")
+        end
+    end
+end
+
+raise <<USAGE unless ARGV.size > 0
+    usage: $0 criterion ...
+     #{PS::Names.join(" ")}
+    All criteria must be met for a line to be printed
+USAGE
+
+PS.class_eval <<CRITERIA 
+    def is_desirable
+        $_ = line
+        #{ARGV.join(" and ")}
+     end
+CRITERIA
+
+ps = PS.new
+File.popen("ps wwaxl") do |f|
+    puts f.gets
+    f.each do |ps.line|
+        ps.set_fields
+        print ps.line if ps.is_desirable
+    end
+end
+
 # @@PLEAC@@_2.1
 # Matz tells that you can use Integer() for strict checked conversion.
 Integer("abc")
@@ -564,9 +621,37 @@ srand(val)   # for repeatable behaviour
 
 
 # @@PLEAC@@_2.9
-# uses a Perl module..
-# @@INCOMPLETE@@
-# @@INCOMPLETE@@
+# from the randomr lib: 
+# http://raa.ruby-lang.org/project/randomr/
+----> http://raa.ruby-lang.org/project/randomr/
+
+require 'random/mersenne_twister'
+mers = Random::MersenneTwister.new 123456789
+puts mers.rand(0)    # 0.550321932544541
+puts mers.rand(10)   # 2
+
+# using online sources of random data via the realrand package:
+# http://raa.ruby-lang.org/project/realrand/
+# **Note**
+# The following online services are used in this package:
+#   http://www.random.org - source: atmospheric noise 
+#   http://www.fourmilab.ch/hotbits - source: radioactive decay timings
+#   http://random.hd.org - source: entropy from local and network noise
+# Please visit the sites and respect the rules of each service.
+
+require 'random/online'
+
+generator1 = Random::RandomOrg.new
+puts generator1.randbyte(5).join(",")
+puts generator1.randnum(10, 1, 6).join(",")  # Roll dice 10 times.
+
+generator2 = Random::FourmiLab.new
+puts generator2.randbyte(5).join(",")
+# randnum is not supported.
+
+generator3 = Random::EntropyPool.new
+puts generator3.randbyte(5).join(",")
+# randnum is not supported.
 
 
 # @@PLEAC@@_2.10
@@ -870,6 +955,64 @@ printf "On average, sorting %d random numbers takes %.5f seconds\n",
 # @@PLEAC@@_3.10
 sleep(0.005)                      # Ruby is definitely not as broken as Perl :)
 # (may be interrupted by sending the process a SIGALRM)
+
+
+# @@PLEAC@@_3.11
+#!/usr/bin/ruby -w
+# hopdelta - feed mail header, produce lines
+#            showing delay at each hop.
+require 'time'
+class MailHopDelta
+
+    def initialize(mail)
+        @head = mail.gsub(/\n\s+/,' ')
+        @topline = %w-Sender Recipient Time Delta-
+        @start_from = mail.match(/^From.*\@([^\s>]*)/)[1]
+        @date = Time.parse(mail.match(/^Date:\s+(.*)/)[1])
+    end
+
+    def out(line)
+         "%-20.20s %-20.20s %-20.20s  %s" % line
+    end
+
+    def hop_date(day)
+        day.strftime("%I:%M:%S %Y/%m/%d")
+    end
+
+    def puts_hops
+        puts out(@topline) 
+        puts out(['Start', @start_from, hop_date(@date),''])
+        @head.split(/\n/).reverse.grep(/^Received:/).each do |hop|
+            hop.gsub!(/\bon (.*?) (id.*)/,'; \1')
+            whence = hop.match(/;\s+(.*)$/)[1]
+            unless whence
+                warn "Bad received line: #{hop}"
+                next
+            end
+            from = $+ if hop =~ /from\s+(\S+)|\((.*?)\)/
+            by   = $1 if hop =~ /by\s+(\S+\.\S+)/
+            next unless now = Time.parse(whence).localtime
+            delta = now - @date
+            puts out([from, by, hop_date(now), hop_time(delta)])
+            @date = now
+        end
+    end
+
+    def hop_time(secs)
+        sign = secs < 0 ? -1 : 1
+        days, secs = secs.abs.divmod(60 * 60 * 24)
+        hours,secs = secs.abs.divmod(60 * 60)
+        mins, secs = secs.abs.divmod(60)
+        rtn =  "%3ds" % [secs  * sign]
+        rtn << "%3dm" % [mins  * sign] if mins  != 0
+        rtn << "%3dh" % [hours * sign] if hours != 0
+        rtn << "%3dd" % [days  * sign] if days  != 0 
+        rtn
+    end
+end
+
+$/ = ""
+mail = MailHopDelta.new(ARGF.gets).puts_hops
 
 
 # @@PLEAC@@_4.0
