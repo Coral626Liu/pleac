@@ -2976,6 +2976,85 @@ puts a.length # method from the superclass, String
 #=> 5
 
 
+# @@PLEAC@@_14.1
+#
+# There are dbm, sdbm, gdbm modules
+# and the bdb module for accessing the berkeley db
+# sdbm seem to be available on the most systems,
+# so we use it here
+#
+require "sdbm"
+SDBM.open("filename", 0666) { |dbobj|
+    # raises exception if open error
+    
+    # the returned sdbm-dbobj has most of the methods of a hash
+    v = dbobj["key"]
+    dbobj["key"] = "newvalue"
+    if dbobj.has_key?("key")
+        # ...
+    end
+    dbobj.delete("key2")
+}
+# database is open only inside the block.
+
+# It is also possible to use a open .. close pair:
+dbobj = SDBM.open("filename", 0666)
+#.. do something with dbobj
+dbobj.close
+
+#!/usr/bin/ruby -w
+# userstats - generate statistics on who is logged in
+# call with usernames as argument to display the totals
+# for the given usernames, call with "ALL" to display all users
+
+require "sdbm"
+filename = '/tmp/userstats.db'
+SDBM.open(filename, 0666) { |dbobj|
+    if ARGV.length > 0
+        if ARGV[0] == "ALL"
+            # ARGV is constant, so we need the variable userlist
+            userlist = dbobj.keys().sort()
+        else
+            userlist = ARGV
+        end
+        userlist.each { |user|
+            print "#{user}\t#{dbobj[user]}\n"
+        }
+    else
+        who = `who`
+        who.split("\n").each { |line|
+            md = /^(\S+)/.match(line)
+            raise "Bad line from who: #{line}" unless md
+            # sdbm stores only strings, so "+=" doesn't work,
+            # we need to convert them expicitly back to integer.
+            if dbobj.has_key?(md[0])
+                dbobj[md[0]] = dbobj[md[0]].to_i + 1
+            else
+                dbobj[md[0]] = "1"
+            end
+        }
+    end
+}
+
+
+# @@PLEAC@@_14.2
+# using open and clear
+dbobj = SDBM.open("filename", 0666)
+dbobj.clear()
+dbobj.close()
+# deleting file and recreating it
+# the filenames depend on the flavor of dbm you use,
+# for example sdbm has two files named filename.pag and filename.dir,
+# so you need to delete both files
+begin
+    File.delete("filename")
+    # raises Exception if not exist
+    dbobj = SDBM.open("filename", 0666)
+rescue
+    # add error handling here
+end
+
+
 # @@PLEAC@@_15.4
 buf = "\0" * 8
 $stdout.ioctl(0x5413, buf)
