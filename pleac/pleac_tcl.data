@@ -1,7 +1,7 @@
  # -*- tcl -*-
  
 # @@PLEAC@@_NAME
-Tcl 8.3
+Tcl
  
 # @@PLEAC@@_WEB
 http://purl.oclc.org/NET/tclhome
@@ -269,6 +269,12 @@ if {![catch {string length $env(USER)}]} {
 } else {
     set user "Unknown user"
 }
+# The catch command intercepts errors raised.  In this
+# case catch is used as an alternative idiom to 
+# info exists <var>.
+# The pros and cons of the different idioms is 
+# discussed at <URL: http://mini.net/tcl/1322.html>.
+
 # needs extension to check getlogin() and getpwuid()
  
 #-----------------------------
@@ -510,11 +516,372 @@ set is_palindrome [string equal $word [reverse $word]]
 set word revive
 set is_palindrome [string equal $word [reverse $word]]
 # => 0
+#-----------------------------
  
 # @@PLEAC@@_1.7
 #-----------------------------
+# substitute spaces for tabs
 while {[regexp -indices {\t+} $string where]} {
     foreach {first last} $where break
     regsub {\t+} $string \
         [string repeat { } [expr {8*($last-$first+1)-$first%8}]] string
 }
+ 
+#-----------------------------
+# There is a standard module for exanding/collapsing
+# tabs, but all it does is straight substitution;
+# tabs <-> N spaces. (tcllib 1.0)
+package require textutil
+
+set expandedText [::textutil::tabify::untabify $collapsedText]
+set collapsedText [::textutil::tabify::tabify $expandedText]
+ 
+#-----------------------------
+package require textutil
+
+while {[gets stdin line] >= 0} {
+    puts [::textutil::tabify::untabify $line 4]
+}
+ 
+package require textutil
+
+while {[gets stdin line] >= 0} {
+    puts [::textutil::tabify::tabify $line]
+}
+#-----------------------------
+ 
+# @@PLEAC@@_1.8
+#-----------------------------
+#You owe $debt to me.
+#-----------------------------
+ 
+# Use subst if all variables are expected to be in scope:
+puts [subst $string]
+ 
+#-----------------------------
+# uplevel the command as required if the variables 
+# exist in an enclosing scope:
+uplevel puts [list [subst $string]]
+ 
+#-----------------------------
+foreach {rows cols} {24 80} break
+set text {I am $rows high and $cols long} ;# braces prevent substitution
+set text [subst $text]
+puts $text
+# => I am 24 high and 80 long
+ 
+#-----------------------------
+set string "I am 17 years old"
+regsub -all {(\d+)} $string {[expr {\1*2}]} string
+subst $string
+# => I am 34 years old
+ 
+#-----------------------------
+# expand variables in $text, but put an error message in
+# if the variable isn't defined.
+# This code assumes that the variables exist in an 
+# enclosing scope; if not, remove the [uplevel]s.
+while {[regexp {\$(\w+)} $text match var]} {
+    if {[uplevel info exists $var]} {
+        regsub \\$match $text [uplevel set $var] text
+    } else {
+        regsub \\$match $text "\[NO VARIABLE: $var\]" text
+    }
+}
+#-----------------------------
+ 
+# @@PLEAC@@_1.9
+#-----------------------------
+set big [string toupper $little]
+# "bo peep" -> "BO PEEP"
+set little [string tolower $big]
+# "BO PEEP" -> "bo peep"
+set Title [string totitle $little]
+# "bo peep" -> "Bo peep"
+ 
+#-----------------------------
+set big [string toupper $little 0]
+# "bo peep" -> "Bo peep"
+set little [string tolower $big 0]
+# "Bo Peep" -> "bo Peep"
+ 
+#-----------------------------
+# capitalize each word's first character, downcase the rest
+set text "thIS is a loNG liNE"
+set text [string tolower $text]
+set pos 0
+while {[regexp -indices -start $pos {(\w+)} $text where]} {
+    foreach {first last} $where break
+    set text [string toupper $text $first]
+    set pos $last
+    incr pos
+}
+# => This Is A Long Line
+ 
+#-----------------------------
+# case insensitive string comparison
+string equal -nocase $a $b
+ 
+#-----------------------------
+# randcap: filter to randomly capitalize 20% of the letters
+set pos 0
+while {[regexp -indices -start $pos {(\w)} $text where]} {
+    foreach {first last} $where break
+    if {rand()<=0.2} {
+        set text [string toupper $text $first]
+    } else {
+        set text [string tolower $text $first]
+    }
+    set pos $last
+    incr pos
+}
+# =>
+# 001:001 in the bEginnInG God CreatEd the Heaven aNd The eaRth.
+# 
+# 001:002 and ThE earth wAs wIthout form, aNd voId; aNd darkness was
+#         uPoN The faCE Of the deEP. aNd the spirIt of god moved uPon
+#         the facE of thE wATers.
+#
+# 001:003 AnD god SAiD, let tHere be lIght: and TheRe was light.
+#-----------------------------
+ 
+# @@PLEAC@@_1.10
+#-----------------------------
+# Interpolating functions and expressions within strings
+set answer $var1[func]$var2
+#-----------------------------
+set phrase "I have [expr {$n + 1}] guanacos."
+ 
+#-----------------------------
+some_cmd "What you want is [llength [split $rec :]] items"
+ 
+#-----------------------------
+set text {
+To: $naughty
+From: Your Bank
+Cc: [get_manager_list $naughty]
+Date: [clock format [clock seconds]] (today)
+ 
+Dear $naughty,
+ 
+Today, you bounced check number [expr {500 + int(rand()*100)}] to us.
+Your account is now closed.
+ 
+Sincerely,
+the management
+}
+if {![send_mail $text $target]} {
+    error "Couldn't send mail"
+}
+#-----------------------------
+ 
+# @@PLEAC@@_1.11
+#-----------------------------
+# all in one
+regsub -line -all {^\s+} {
+    your text
+    goes here
+} {} var
+ 
+# or with two steps
+set var {
+    your text
+    goes here
+}
+regsub -line -all {^\s+} $var {} var
+ 
+#-----------------------------
+regsub -line -all {^\s+} {
+    The five varieties of camelids
+    are the familiar camel, his friends
+    the llama and the alpaca, and the
+    rather less well-known guanaco
+    and vicuña.
+} {} definition
+ 
+#-----------------------------
+proc fix {string} {
+    regsub -line -all {^\s+} $string {} string
+    return $string
+}
+puts [fix {
+    My stuff goes here
+}]
+ 
+#-----------------------------
+regsub -line -all {^\s+} {
+    ...we will have peace, when you and all your works have
+    perished--and the works of your dark master to whom you would
+    deliver us. You are a liar, Saruman, and a corrupter of men's
+    hearts.  --Theoden in /usr/src/perl/taint.c
+} {} quote
+# move attribution to line of its own
+regsub {\s+--} $quote \n-- quote
+ 
+#-----------------------------
+dequote {
+    @@@ int
+    @@@ runops() {
+    @@@     SAVEI32(runlevel);
+    @@@     runlevel++;
+    @@@     while ( op = (*op->op_ppaddr)() ) ;
+    @@@     TAINT_NOT;
+    @@@     return 0;
+    @@@ }
+}
+# add more code here if you want
+ 
+#-----------------------------
+dequote {
+   Now far ahead the Road has gone,
+      And I must follow, if I can,
+   Pursuing it with eager feet,
+      Until it joins some larger way
+   Where many paths and errands meet.
+      And whither then? I cannot say.
+            --Bilbo in /usr/src/perl/pp_ctl.c
+}
+ 
+#-----------------------------
+proc quotemeta {string} {
+    regsub -all {(\W)} $string {\\\1} string
+    return $string
+}
+ 
+proc dequote {text} {
+    if {[regexp -line {^\s*(?:([^\w\s]+)(\s*).*\n)(?:\s*\1\2?.*\n)+(?:\s*)$} $text m 1 2]} {
+        set white $2
+        set leader [quotemeta $1]
+    } else {
+        regexp -line {^\n?(\s+)} $text m white
+        set leader {}
+    }
+    regsub -line -all ^\\s*?$leader\(?:$white\) $text {} text
+    return [string trimright $text]\n
+}
+#-----------------------------
+ 
+# @@PLEAC@@_1.12
+#-----------------------------
+# The tcllib 1.0 textutil module can adjust text
+# to a specified line length, justify left, right,
+# and plain, and fill lines to the right margin.
+# However, it can't add indentation.
+ 
+# A naive implementation of wrap.  Arguments:
+# text	the text
+# col	the line length (default 72)
+# lead	first line indentation (def empty string)
+# follow	indentation for following lines (def empty string)
+proc wrap {text {col 72} {lead {}} {follow {}}} {
+    set newtext {}
+    set text $lead[string trimleft $text]
+    set upto $col
+    while {![string is wordchar [string index $text $upto]]} {incr upto -1}
+    set upto [string wordstart $text $upto]
+    if {$upto == 0} {
+        set upto [string wordend $text $upto]
+    } else {
+        incr upto -1
+    }
+    append newtext [string range $text 0 $upto]\n
+    set text [string replace $text 0 $upto]
+    while {[string length $text]} {
+        set text $follow[string trimleft $text]
+        if {[string length $text] > $col} {
+            set upto $col
+            while {![string is wordchar [string index $text $upto]]} {incr upto -1}
+            set upto [string wordstart $text $upto]
+            if {$upto == 0} {
+                set upto [string wordend $text $upto]
+            } else {
+                incr upto -1
+            }
+            append newtext [string range $text 0 $upto]\n
+            set text [string replace $text 0 $upto]
+        } else {
+            append newtext $text
+            set text {}
+        }       
+    }
+    return $newtext
+}
+ 
+set input [concat "Folding and splicing is the work of an editor," \
+      "not a mere collection of silicon" \
+      "and" \
+      "mobile electrons!"]
+puts [string repeat 0123456789 2]
+puts [wrap $input 20 {    } {  }]
+# =>
+# 01234567890123456789
+#     Folding and 
+#   splicing is the 
+#   work of an 
+#   editor, not a 
+#   mere collection 
+#   of silicon and 
+#   mobile electrons!
+return [wrap $input 20 {    } {  }]
+#-----------------------------
+ 
+# @@PLEAC@@_1.13
+#-----------------------------
+# backslash
+set pattern {}
+append pattern {([} $charlist {])}
+regsub -all $pattern $var {\\\1} var
+ 
+# double
+set pattern {}
+append pattern {([} $charlist {])}
+regsub -all $pattern $var {\1\1} var
+ 
+#-----------------------------
+set string {Mom said, "Don't do that."}
+regsub -all {(['"])} $string {\\\1} string
+ 
+#-----------------------------
+set string {Mom said, "Don't do that."}
+regsub -all {(['"])} $string {\1\1} string
+ 
+#-----------------------------
+regsub -all {([^A-Z])} $string {\\\1} string
+# equivalent to:
+regsub -all {([^[:upper:]])} $string {\\\1} string
+ 
+#-----------------------------
+regsub -all {([^[:alnum:]])} "is a test!" {\\\1} string
+set string "this $string"
+# => this is\ a\ test\!
+#-----------------------------
+ 
+# @@PLEAC@@_1.14
+#-----------------------------
+regsub {^\s+} $string {} string
+regsub {\s+$} $string {} string
+set string [string trim $string]
+ 
+#-----------------------------
+# The input command, gets, automatically
+# strips off newlines.
+#-----------------------------
+ 
+# @@PLEAC@@_1.15
+#-----------------------------
+package require csv
+ 
+set line {XYZZY,,"O'Reilly, Inc","Wall, Larry","a ""glug"" bit",5,"Error, Core Dumped"}
+set fields [::csv::split $line]
+for {set i 0} {$i < [llength $fields]} {incr i} {
+    puts "$i : [lindex $fields $i]"
+}
+# =>
+# 0 : XYZZY
+# 1 : 
+# 2 : O'Reilly, Inc
+# 3 : Wall, Larry
+# 4 : a "glug" bit
+# 5 : 5
+# 6 : Error, Core Dumped
+#-----------------------------
