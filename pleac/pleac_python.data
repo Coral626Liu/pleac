@@ -190,6 +190,48 @@ sub("\w+", lambda i: i.group(0).capitalize(), "thIS is a loNG liNE")
 print "I have", n+1, "guanacos."
 
 
+# @@PLEAC@@_1.11
+
+# indenting here documents
+#
+# in python multiline strings can be used as here documents
+
+var = """
+      your text
+      goes here
+      """
+
+# using regular expressions
+import re
+re_leading_blanks = re.compile("^\s+",re.MULTILINE)
+var1 = re_leading_blanks.sub("",var)
+
+# using string: 
+# split into lines, use every line excpet first and last, left strip and rejoin.
+import string
+var2 = "\n".join(map(string.lstrip,var.split("\n")[1:-1]))
+
+poem = """
+       Here's your poem:
+       Now far ahead the Road has gone,
+          And I must follow, if I can,
+       Pusrsuing it with eager feet,
+          Until it joins some larger way
+       Where many paths and errand meet.
+          And wither then? I cannot say.
+               --Bilbo in /usr/src/perl/pp_ctl.c  
+       """
+
+def deindent_blanks(s):
+    # deindent by minimum indentation.
+    # does *not* remove first and last blank line.
+    re_leading_blanks = re.compile("^( +)",re.MULTILINE)
+    white = " "*min(map(len, re_leading_blanks.findall(s)))
+    return s.replace("\n"+white,"\n")
+
+print deintend_blanks(poem)
+    
+
 # @@PLEAC@@_1.12
 #-----------------------------
 # textwrap is a standard library, new in version 2.3.
@@ -287,7 +329,10 @@ sub("\W", lambda i: "\\" + i.group(0), "is a test!") # no function like quotemet
 
 
 # @@PLEAC@@_1.14
-string = string.strip
+string = string.lstrip() # left
+string = string.rstrip() # right
+string = string.strip()  # both ends
+
 
 
 # @@PLEAC@@_1.15
@@ -328,6 +373,49 @@ fields = parse_csv(line)
 
 for i in range(len(fields)):
     print "%d : %s" % (i, fields[i])
+
+
+# @@PLEAC@@_1.16
+import sys, fileinput
+
+def soundex(name, len=4):
+    """ soundex module conforming to Knuth's algorithm
+        implementation 2000-12-24 by Gregory Jorgensen
+        public domain
+    """
+
+    # digits holds the soundex values for the alphabet
+    digits = '01230120022455012623010202'
+    sndx = ''
+    fc = ''
+
+    # translate alpha chars in name to soundex digits
+    for c in name.upper():
+        if c.isalpha():
+            if not fc: fc = c   # remember first letter
+            d = digits[ord(c)-ord('A')]
+            # duplicate consecutive soundex digits are skipped
+            if not sndx or (d != sndx[-1]):
+                sndx += d
+
+    # replace first digit with first alpha character
+    sndx = fc + sndx[1:]
+
+    # remove all 0s from the soundex code
+    sndx = sndx.replace('0','')
+
+    # return soundex code padded to len characters
+    return (sndx + (len * '0'))[:len]
+
+user = raw_input("Lookup user: ")
+if user == "":
+    sys.exit()
+name_code = soundex(user)
+for line in fileinput.input("/etc/passwd"):
+    for piece in line.split(":")[4].split():
+        if name_code == soundex(piece):
+            print "%s: %s\n" % (line.split(":")[0], line.split(":")[4])
+
 
 
 # @@PLEAC@@_1.17
