@@ -217,14 +217,6 @@ fields.each_index { |i|
 # uses a Perl module..
 
 
-@@@1.17
-# tis a program -> to come later..
-
-
-@@@1.18
-# tis a program -> to come later..
-
-
 @@@2.1
 # (can't use String#to_i or #to_f directly)
 
@@ -422,10 +414,6 @@ printf "It took %d hour%s\n", time, time == 1 ? "" : "s"
 # dunno if an equivalent to Lingua::EN::Inflect exists...
 
 
-@@@2.19
-# tis a program -> to come later..
-
-
 @@@3.0
 puts Time.now
 
@@ -434,8 +422,9 @@ puts "Today is day ", Time.now.day, " of the current month.\n"
 
 
 @@@3.1
-t = Time.now
-day, month, year = t.day, t.month, t.year
+day, month, year = Time.now.day, Time.now.month, Time.now.year
+# or
+day, month, year = Time.now.to_a[3..5]
 
 tl = Time.now.localtime
 printf("The current date is %04d %02d %02d\n", tl.year, tl.month, tl.day)
@@ -443,8 +432,17 @@ printf("The current date is %04d %02d %02d\n", tl.year, tl.month, tl.day)
 Time.now.localtime.strftime("%Y-%m-%d")
 
 
+@@@3.2
+Time.local(year, month, day, hour, minute, second).tv_sec
+Time.gm(year, month, day, hour, minute, second).tv_sec
+
+
+@@@3.3
+sec, min, hour, day, month, year, wday, yday, isdst, zone = Time.at(epoch_secs).to_a
+
+
 @@@3.4
-when_ = now + difference
+when_ = now + difference         # now -> Time ; difference -> Numeric (delta in seconds)
 then_ = now - difference
 
 
@@ -467,16 +465,229 @@ weeks      = (difference - days)    /  7
 puts "(#{weeks} weeks, #{days} days, #{hours}:#{minutes}:#{seconds})"
 
 
+@@@3.6
+monthday, weekday, yearday = date.mday, date.wday, date.yday
+
+# AFAIK the week number is not just a division since week boundaries are on sundays
+def date_to_weeknum(d)
+    weeknum = 1
+    t = Time.mktime(d.year)
+    while t < d
+        t += 24*60*60             # add a day
+        weeknum +=1 if t.wday == 0
+    end
+    weeknum
+end
+
+year  = 1981
+month = "jun"                     # or `6' if you want to emulate a broken language
+day   = 16
+t = Time.mktime(year, month, day)
+print "#{month}/#{day}/#{year} was a ", t.strftime("%A"), "\n"
+
+
+@@@3.7
+yyyy, mm, dd = $1, $2, $3 if "1998-06-25" =~ /(\d+)-(\d+)-(\d+)/
+
+epoch_seconds = Time.mktime(yyyy, mm, dd).tv_sec
+
+# dunno an equivalent to Date::Manip#ParseDate
+
+
 @@@3.8
 string = Time.at(epoch_secs)
-Time.at(1234567890).gmtime       # gives: Fri Feb 13 23:31:30 UTC 2009
+Time.at(1234567890).gmtime        # gives: Fri Feb 13 23:31:30 UTC 2009
 
-time = Time.mktime(1973, "jan", 18, 3, 45, 50)  # Month: "jan" (better :) or 1
+time = Time.mktime(1973, "jan", 18, 3, 45, 50)
 print "In localtime it gives: ", time.localtime, "\n"
 
 
+@@@3.9
+# Ruby provides micro-seconds in Time object
+Time.now.usec
+
+# Ruby gives the seconds in floating format when substracting two Time objects
+before = Time.now
+line = gets
+elapsed = Time.now - before
+puts "You took #{elapsed} seconds."
+
+# On my Celeron-400 with Linux-2.2.19-14mdk, average for three execs are:
+#   This Ruby version:       average 0.00321 sec
+#   Cookbook's Perl version: average 0.00981 sec
+size = 500
+number_of_times = 100
+total_time = 0
+number_of_times.times {
+    # populate array
+    array = []
+    size.times { array.push(rand) }
+    # sort it
+    begin_ = Time.now
+    array.sort!
+    time = Time.now - begin_
+    total_time += time
+}
+printf "On average, sorting %d random numbers takes %.5f seconds\n",
+    size, (total_time/Float(number_of_times))
+
+
 @@@3.10
-sleep(0.005)              # Ruby is not a broken language :)
+sleep(0.005)                      # Ruby is definitely not as broken as Perl :)
+
+
+@@@4.0
+single_level = [ "this", "that", "the", "other" ]
+
+# Ruby directly supports nested arrays
+double_level = [ "this", "that", [ "the", "other" ] ]
+still_single_level = [ "this", "that", [ "the", "other" ] ].flatten
+
+
+@@@4.1
+a = [ "quick", "brown", "fox" ]
+a = %w(Why are you teasing me?)
+
+lines = <<"END_OF_HERE_DOC".gsub(/^\s*(.+)/, '\1')
+    The boy stood on the burning deck,
+    It was as hot as glass.
+END_OF_HERE_DOC
+
+bigarray = IO.readlines("mydatafile").collect {|l| l.chomp }
+
+banner = %Q(Speak, $name, and welcome!)
+
+host_info  = `host #{his_host}`
+
+%x(ps #{$$})
+
+banner = 'Costs only $4.95'.split(' ')
+
+rax = %w! ( ) < > { } [ ] !
+
+
+@@@4.2
+def commify_series(a)
+    a.size == 0 ? '' :
+        a.size == 1 ? a[0] :
+        a.size == 2 ? a.join(' and ') :
+        a[0..-2].join(', ') + ', and ' + a[-1]
+end
+
+array = [ "red", "yellow", "green" ]
+
+print "I have ", array, " marbles\n"
+# -> I have redyellowgreen marbles
+
+# But unlike Perl:
+print "I have #{array} marbles\n"
+# -> I have redyellowgreen marbles
+# So, needs:
+print "I have #{array.join(' ')} marbles\n"
+# -> I have red yellow green marbles
+
+def commify_series(a)
+    sepchar = a.select { |p| p =~ /,/ } != [] ? '; ' : ', '
+    a.size == 0 ? '' :
+        a.size == 1 ? a[0] :
+        a.size == 2 ? a.join(' and ') :
+        a[0..-2].join(sepchar) + sepchar + 'and ' + a[-1]
+end
+
+
+@@@4.3
+#   (note: AFAIK Ruby doesn't allow gory change of Array length)
+# grow the array by assigning nil to past the end of array
+ary[new_size-1] = nil
+# shrink the array by slicing it down
+ary.slice!(new_size..-1)
+# init the array with given size
+Array.new(number_of_elems)
+# assign to an element past the original end enlarges the array
+ary[index_new_last_elem] = value
+
+def what_about_that_array(a)
+    print "The array now has ", a.size, " elements.\n"
+    # Index of last element is not really interesting in Ruby
+    print "Element #3 is `#{a[3]}'.\n"
+end
+people = %w(Crosby Stills Nash Young)
+what_about_that_array(people)
+
+
+@@@4.4
+# OO style
+bad_users.each { |user|
+    complain(user)
+}
+# or, functional style
+for user in bad_users
+    complain(user)
+end
+
+for var in ENV.keys.sort
+    puts "#{var}=#{ENV[var]}"
+end
+
+for user in all_users
+    disk_space = get_usage(user)
+    if (disk_space > MAX_QUOTA)
+        complain(user)
+    end
+end
+
+for l in IO.popen("who").readlines
+    print l if l =~ /^gc/ 
+end
+
+# we can mimic the obfuscated Perl way
+while fh.gets               # $_ is set to the line just read
+    chomp                   # $_ has a trailing \n removed, if it had one
+    split.each { |w|        # $_ is split on whitespace
+                            # but $_ is not set to each chunk as in Perl
+        print w.reverse
+    }
+end
+# ...or use a cleaner way
+for l in fh.readlines
+    l.chomp.split.each { |w| print w.reverse }
+end
+
+# same drawback as in problem 1.4, we can't mutate a Numeric...
+array.collect! { |v| v - 1 }
+
+a = [ .5, 3 ]; b = [ 0, 1 ]
+for ary in [ a, b ]
+    ary.collect! { |v| v * 7 }
+end
+puts "#{a.join(' ')} #{b.join(' ')}"
+
+# we can mutate Strings, cool; we need a trick for the scalar
+for ary in [ [ scalar ], array, hash.values ]
+    ary.each { |v| v.strip! }     # String#strip rules :)
+end
+
+
+@@@4.5
+# not relevant in Ruby since we have always references
+for item in array
+    # do somethingh with item
+end
+
+
+@@@4.6
+unique = list.uniq
+
+# generate a list of users logged in, removing duplicates
+users = `who`.collect { |l| l =~ /(\w+)/; $1 }.sort.uniq
+puts("users logged in: #{commify_series(users)}")  # see 4.2 for commify_series
+
+
+@@@4.7
+a - b
+# [ 1, 1, 2, 2, 3, 3, 3, 4, 5 ] - [ 1, 2, 4 ]  ->  [3, 5]
+
+############### merd default_value partial_app
 
 
 @@@8.10
