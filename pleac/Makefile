@@ -38,13 +38,13 @@ skeleton/t1.html: skeleton.sgml
 	db2html $<
 
 %.html: %.data
-	code2html $<
+	./code2html $<
 
 $(HTMLTARGETSDEP): %/t1.html: %.html skeleton/t1.html
 	rm -rf $(@D)
 	cp -a skeleton $(@D)
 	for i in $(@D)/*.html; do ./substitute.rb $$i $(@D).html ; done
-	genpercentages.rb $(@D)/t1.html $(@D).data skeleton.sgml
+	./genpercentages.rb $(@D)/t1.html $(@D).data skeleton.sgml
 
 web:
 	total=`grep "PLEAC:[0-9].*:CAELP" skeleton.sgml | wc -l` ; \

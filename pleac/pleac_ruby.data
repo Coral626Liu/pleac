@@ -194,7 +194,7 @@ end
 
 
 # @@PLEAC@@_1.8
-'You owe #{debt} to me'.gsub(/\#{(\w+)}/) { eval("#{$1}") }
+'You owe #{debt} to me'.gsub(/\#{(\w+)}/) { eval($1) }
 
 rows, cols = 24, 80
 text = %q(I am #{rows} high and #{cols} long)
@@ -394,7 +394,7 @@ def gaussian_rand
         u1 = 2 * rand() - 1
         u2 = 2 * rand() - 1
         w = u1*u1 + u2*u2
-    end while w>=1
+    end while (w >= 1)
     w = Math.sqrt((-2*Math.log(w))/w)
     [ u2*w, u1*w ]
 end
@@ -1068,7 +1068,7 @@ food_color.keys.sort.each { |food|
 # Default value is 0
 from = Hash.new(0)
 while gets
-    if (/^From: (.*)/); from[$1] += 1; end
+    /^From: (.*)/ and from[$1] += 1
 end
 
 # More useful to sort by number of received mail by person
@@ -1236,6 +1236,64 @@ files.each { |f|
 }
 
 include_free = includes.values.flatten.uniq - includes.keys
+
+
+# @@PLEAC@@_6.0
+# The verbose version are match, sub, gsub, sub! and gsub!;
+# pattern needs to be a Regexp object; it yields a MatchData
+# object.
+pattern.match(string)
+string.sub(pattern, replacement)
+string.gsub(pattern, replacement)
+# As usual in Ruby, sub! does the same as sub but also modifies
+# the object, the same for gsub!/gsub.
+
+# Sugared syntax yields the position of the match (or nil if no
+# match). Note that the object at the right of the operator needs
+# not to be a Regexp object (it can be a String). The "dont
+# match" operator yields true or false.
+meadow =~ /sheep/   # position of the match, nil if no match
+meadow !~ /sheep/   # true if doesn't match, false if it does
+# There is no sugared version for the substitution
+
+meadow =~ /\bovines?\b/i and print "Here be sheep!"
+
+string = "good food"
+string.sub!(/o*/, 'e')
+
+# % echo ababacaca | ruby -ne 'puts $& if /(a|ba|b)+(a|ac)+/'
+# ababa
+
+# The "global" (or "multiple") match is handled by String#scan
+scan (/(\d+)/) {
+    puts "Found number #{$1}"
+}
+
+# String#scan yields an Array if not used with a block
+numbers = scan(/(\d+)/)
+
+digits = "123456789"
+nonlap = digits.scan(/(\d\d\d)/)
+yeslap = digits.scan(/(?=(\d\d\d))/)
+puts "Non-overlapping:  #{nonlap.join(' ')}"
+puts "Overlapping:      #{yeslap.join(' ')}";
+# Non-overlapping:  123 456 789
+# Overlapping:      123 234 345 456 567 678 789
+
+string = "And little lambs eat ivy"
+string =~ /l[^s]*s/
+puts "(#$`) (#$&) (#$')"
+# (And ) (little lambs) ( eat ivy)
+
+
+# @@PLEAC@@_6.1
+# Ruby doesn't have the same problem:
+dst = src.sub('this', 'that')
+
+progname = $0.sub('^.*/', '')
+
+bindirs = %w(/usr/bin /bin /usr/local/bin)
+libdirs = bindirs.map { |l| l.sub('bin', 'lib') }
 
 
 # @@PLEAC@@_7.0
@@ -1409,7 +1467,7 @@ diag = hypotenuse(3, 4)
 puts hypotenuse(3, 4)
 
 a = [3, 4]
-print hypotenuse(*a)                  # the star operator will magically convert the Array as a "tuple"
+print hypotenuse(*a)                  # the star operator will magically convert an Array into a "tuple"
 
 both = men + women
 
@@ -1470,9 +1528,9 @@ end
 
 
 # @@PLEAC@@_10.3
-# In Ruby, AFAIK a method cannot access local variables defined
-# upper scope; though most of the time one needs this feature
-# inside objects, when class attributes are appropriate
+# In Ruby, AFAIK a method cannot access "local variables" defined
+# upper scope; mostly because everything is an object, so you'll
+# do the same by defining an attribute or a static attribute
 
 # In Ruby the BEGIN also exists:
 BEGIN { puts "hello from BEGIN" }
@@ -1643,27 +1701,18 @@ colors.each { |c|
 
 
 # @@PLEAC@@_10.15
-# I don't know how to do that elegantly. We can rescue the
-# NameError exception, and then take the name of the method in
-# the message of the exception, but it seems dirty, and also I
-# can't use the original arguments of the failing function :-(.
-# @@INCOMPLETE@@
-begin
-    chartreuse("stuff")
-rescue NameError => msg
-    if msg.message =~ /undefined method `([^']+)' for/
-	puts "<FONT COLOR='#$1'>a</FONT>";
-	p msg.methods
-    else
-	raise
-    end
+def method_missing(name, *args)
+    "<FONT COLOR='#{name}'>" + args.join(' ') + "</FONT>"
 end
+puts chartreuse("stuff")
 
 
 # @@PLEAC@@_10.16
-# I don't know how to do that in Ruby.
-# @@INCOMPLETE@@
-# @@INCOMPLETE@@
+def outer(arg)
+    x = arg + 35
+    inner = proc { x * 19 }
+    x + inner.call()
+end
 
 
 # @@PLEAC@@_13.0
