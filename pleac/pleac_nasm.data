@@ -1,0 +1,82 @@
+# -*- Nasm for i386 -*-
+
+@@@NAME
+Nasm
+
+@@@WEB
+http://www.web-sites.co.uk/nasm/what.html
+
+
+@@@1.0
+CODE
+; strlen (C calling convention)
+;   input:
+;     s  : pointer to const ASCIIZ string (address at esp+4).
+;   algo:
+;     use formulae "(x-1) & ~x = 2^first_bit(x) - 1" found in glibc code
+;     but used differently. 0xfefefeff allow decrementing all byte of
+;     a dword, the first null byte disable carry so the string must be
+;     checked in little endian only.
+strlen:
+	mov ecx,[esp+4]			; get s value
+.align:	cmp byte [ecx],0		; realign pointer on dword boundaries
+	jz .end
+	inc ecx
+	test cl,3
+	jnz .align
+.loop:	mov eax,[ecx]			; test 4 bytes at one time
+	lea edx,[eax+0xfefefeff]
+	not eax
+	and eax,edx
+	add ecx,byte 4
+	test eax,0x80808080		; if one of the byte is null
+	jz .loop
+	test eax,0x8080			; if the null char is on first word
+	jnz .lo
+	shr eax,16			; prepare to examine 3rd byte and 4th
+	add ecx,byte 2			; byte, as if it was the 1st and 2nd
+.lo:	shl al,1			; check hi bit, if 1, the char was null
+	sbb ecx,byte 3			; use bit7 of AL for removing 4(bit7=1)
+.end:	mov eax,ecx			; or 3(bit7=0)
+	sub eax,[esp+4]			; size is difference of null char
+	ret				; adress and original value of s
+
+
+; strcpy (C calling convention)
+;   input:
+;     dest : pointer to destination ASCIIZ string (address at esp+4).
+;     src  : pointer to source ASCIIZ string (address at esp+8).
+;   algo:
+;     see strlen above for algorithm.
+fast_strcpy:
+	mov ecx,[esp+8]			; get src
+	mov edx,[esp+4]			; get dest
+.align:	mov al,[ecx]
+	inc ecx
+	mov [edx],al			; copy one byte to align source ptr
+	inc edx
+	test al,al
+	jz .ret
+	test cl,3
+	jnz .align
+	mov [esp+8],ebx			; ok save ebx as it may be used by gcc
+	jmp short .start		; start is inside the loop.
+.loop:	mov [edx],ebx
+	add edx,byte 4
+.start:	mov eax,[ecx]			; get dword and search for a null byte
+	lea ebx,[eax+0xfefefeff]
+	not eax
+	and eax,ebx
+	sub ebx,0xfefefeff		; restore ebx to dword read
+	add ecx,byte 4
+	test eax,0x80808080		; one of the byte is null?
+	jz .loop
+.final:	mov [edx],bl			; search thorugh ebx itself
+	ror ebx,8			; slow but compact
+	inc edx
+	test ebx,0xff000000
+	jnz .final
+	mov ebx,[esp+8]			; restore ebx value
+.ret:	mov eax,[esp+4]			; strcpy should return dest
+	ret
+
