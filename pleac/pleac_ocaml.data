@@ -181,6 +181,7 @@ Hashtbl.replace food_color "Raspberry" "pink" ;;
 
 let hashtbl_keys h = Hashtbl.fold (fun key _ l -> key :: l) h []
 let hashtbl_values h = Hashtbl.fold (fun _ value l -> value :: l) h []
+let hashtbl2assoc_list h = Hashtbl.fold (fun key value l -> (key, value) :: l) h []
 ;;
 print_string "Known_foods:\n" ;
 Hashtbl.iter (fun food _ -> print_endline food) food_color ;
@@ -497,9 +498,150 @@ List.iter
   ) (sort_ (uniq (List.map fst ttys)))
 (*-----------------------------*)
 
-(* TODO continue from PLEAC 5.8 *)
+(* @@PLEAC@@_5.8 *)
+(*-----------------------------*)
 
+(* in OCaml does not exists a builtin function like "reverse", here is
+an equivalent one: *)
+let hashtbl_reverse h =
+  assoc_list2hashtbl (List.combine (hashtbl_values h) (hashtbl_keys h))
+(* or *)
+let hashtbl_reverse h =
+  assoc_list2hashtbl (List.map (fun (a,b) -> (b,a)) (hashtbl2assoc_list h))
+;;
+(* note that these implementations maintain also multiple binding for the
+same key, see Hashtbl.add in the standard OCaml library for more info *)
 
+(*-----------------------------*)
+(* example of hashtbl_reverse *)
 
+let reverse = hashtbl_reverse lookup;;
+(*-----------------------------*)
+let surname = assoc_list2hashtbl ["Mickey", "Mantle"; "Babe", "Ruth"] in
+let firstname = hashtbl_reverse surname in
+print_endline (Hashtbl.find firstname "Mantle");;
+(*
+> Mickey
+*)
+
+(*-----------------------------*)
+(* foodfind - find match for food or color *)
+
+let given = Sys.argv.(1) in
+let color = assoc_list2hashtbl
+  ["Apple", "red";
+   "Banana", "yellow";
+   "Lemon", "yellow";
+   "Carrot", "orange"] in
+let food = hashtbl_reverse color in
+(try
+  printf "%s is a food with color %s.\n" given (Hashtbl.find color given);
+with Not_found -> ());
+(try
+  printf "%s is a food with color %s.\n" (Hashtbl.find food given) given
+with Not_found -> ())
+;;
+(*-----------------------------*)
+(* food_color defined as previous *)
+
+let foods_with_color = hashtbl_reverse food_color in
+List.iter (printf "%s ") (Hashtbl.find_all foods_with_color "yellow");
+print_endline "were yellow foods."
+;;
+(*-----------------------------*)
+
+(* @@PLEAC@@_5.9 *)
+(*-----------------------------*)
+
+(* you may define your own compare function to be used in sorting *)
+let keys = List.sort compare_function (hashtbl_keys hash) in
+List.iter
+  (fun key ->
+    let value = Hashtbl.find hash key in
+    (* do something with key and value *)
+    ()
+  )
+  keys ;
+(* or use this one if you want to compare not only on keys *)
+Hashtbl.iter
+  (fun (key, value) ->
+    (* do something with key and value *)
+    ()
+  ) (List.sort compare_function (hashtbl2assoc_list hash)) ;
+(*-----------------------------*)
+List.iter
+  (fun food ->
+    printf "%s is %s.\n" food (Hashtbl.find food_color food)
+  )
+  (List.sort (hashtbl_keys food_color))
+;;
+(*-----------------------------*)
+(* examples of "compare_function": *)
+
+(* alphabetical sort on the hash value *)
+let compare_function (_,color1) (_,color2) = compare color1 color2
+
+(* length sort on the hash value *)
+let compare_function (_,color1) (_,color2) = compare (String.length color1) (String.length color2)
+
+(*-----------------------------*)
+
+(* @@PLEAC@@_5.10 *)
+(*-----------------------------*)
+(* definition of merge function on hashes: *)
+let hashtbl_merge h1 h2 = assoc_list2hashtbl (hashtbl2assoc_list h1 @ hashtbl2assoc_list h2)
+
+(* usage: *)
+let merged = hashtbl_merge a b;;
+(*-----------------------------*)
+let merged = Hashtbl.create 0 in
+List.iter
+  (Hashtbl.iter (fun k v -> Hashtbl.add merged k v))
+  [a;b]
+;;
+(*-----------------------------*)
+let drink_color = assoc_list2hashtbl
+    ["Galliano", "yellow";
+     "Mai Tai", "blue"]
+;;
+
+let ingested_color = hashtbl_merge drink_color food_color;;
+(*-----------------------------*)
+let substance_color = Hashtbl.create 0 in
+List.iter
+  (Hashtbl.iter (fun k v -> Hashtbl.add merged k v))
+  [food_color; drink_color]
+;;
+
+(* @@PLEAC@@_5.11 *)
+(*-----------------------------*)
+let common =
+  List.filter
+    (fun key -> Hashtbl.mem hash2 key)
+    (hashtbl_keys hash1)
+;;
+(* common now contains commne keys, note that a key may appear multiple
+times in this list due tu multiple bindings allowed in Hashtbl
+implementation *)
+
+let this_not_that =
+  List.filter
+    (fun key -> not (Hashtbl.mem hash2 key))
+    (hashtbl_keys hash1)
+;;
+(*-----------------------------*)
+let citrus_color = assoc_list2hashtbl
+                      ["Lemon", "yellow";
+                       "Orange", "orange";
+                       "Lime", "green"]
+in
+let non_citrus = Hashtbl.create 3 in
+List.filter
+  (fun key -> not (Hashtbl.mem citrus_color key))
+  (hashtbl_keys food_color)
+;;
+(*-----------------------------*)
+
+(* TODO continue from here *)
 
 
