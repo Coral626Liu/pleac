@@ -1388,6 +1388,284 @@ rescue SystemCallError
 end
 
 
+# @@PLEAC@@_10.0
+def hello
+    $greeted += 1      # in Ruby, a variable beginning with $ is global (can be any type of course)
+    puts "hi there!"
+end
+
+# We need to initialize $greeted before it can be used, because "+=" is waiting a Numeric object
+$greeted = 0
+hello                  # note that appending () is optional to function calls with no parameters
+
+
+# @@PLEAC@@_10.1
+# In Ruby, parameters are named anyway
+def hypotenuse(side1, side2)
+    Math.sqrt(side1**2 + side2**2)    # the sqrt function comes from the Math module
+end
+diag = hypotenuse(3, 4)
+
+puts hypotenuse(3, 4)
+
+a = [3, 4]
+print hypotenuse(*a)                  # the star operator will magically convert the Array as a "tuple"
+
+both = men + women
+
+# In Ruby, all objects are references, so the same problem arises; we then return a new object
+nums = [1.4, 3.5, 6.7]
+def int_all(n)
+    n.collect { |v| v.to_i }
+end
+ints = int_all(nums)
+
+nums = [1.4, 3.5, 6.7]
+def trunc_em(n)
+    n.collect! { |v| v.to_i }         # the bang-version of collect modifies the object
+end
+trunc_em(nums)
+
+# Ruby has two chomp version:
+# ``chomp'' chomps the record separator and returns what's expected
+# ``chomp!'' does the same but also modifies the parameter object
+
+
+# @@PLEAC@@_10.2
+def somefunc
+    variable = something  # variable is local by default
+end
+
+name, age = ARGV
+start     = fetch_time
+
+a, b = pair               # will succeed if pair is an Array object (like ARGV is)
+c = fetch_time
+
+# In ruby, run_check can't access a, b, or c until they are
+# explicitely defined global (using leading $), even if they are
+# both defined in the same scope
+
+def check_x(x)
+    y = "whatever"
+    run_check
+    if $condition
+	puts "got $x"
+    end
+end
+
+# The following will keep a reference to the array, though the
+# results will be slightly different from perl: the last element
+# of $global_array will be itself an array
+def save_array(ary)
+    $global_array << ary
+end
+
+# The following gives the same results as in Perl for $global_array,
+# though it doesn't illustrate anymore the way to keep a reference
+# to an object: $global_array is extended with the elements of ary
+def save_array(ary)
+    $global_array += ary
+end
+
+
+# @@PLEAC@@_10.3
+# In Ruby, AFAIK a method cannot access local variables defined
+# upper scope; though most of the time one needs this feature
+# inside objects, when class attributes are appropriate
+
+# In Ruby the BEGIN also exists:
+BEGIN { puts "hello from BEGIN" }
+puts "hello from main"
+BEGIN { puts "hello from 2nd BEGIN" }
+# gives:
+#   hello from BEGIN
+#   hello from 2nd BEGIN
+#   hello from main
+
+# In Ruby, it can be written as a static method and a static
+# variable
+class Counter
+    @@counter = 0
+    def Counter.next_counter; @@counter += 1; end
+end
+
+# There is no need of BEGIN since the variable will get
+# initialized when parsing
+class Counter
+    @@counter = 42
+    def Counter.next_counter; @@counter += 1; end
+    def Counter.prev_counter; @@counter -= 1; end
+end
+
+
+# @@PLEAC@@_10.4
+# You can either get the whole trace as an array of strings, each
+# string telling which file, line and method is calling:
+caller
+
+# ...or only the last caller
+caller[0]
+
+# We need to extract just the method name of the backtrace:
+def whoami;  caller()[0] =~ /in `([^']+)'/ ? $1 : '(anonymous)'; end
+def whowasi; caller()[1] =~ /in `([^']+)'/ ? $1 : '(anonymous)'; end
+
+
+# @@PLEAC@@_10.5
+# In Ruby, every value is a reference on an object, thus there is
+# no such problem
+array_diff(array1, array2)
+
+def add_vecpair(a1, a2)
+    results = []
+    a1.each_index { |i| results << (a1[i] + a2[i]) }
+    results
+end
+a = [1, 2]
+b = [5, 8]
+c = add_vecpair(a, b)
+p c
+
+# Add this to the beginning of the function to check if we were
+# given two arrays
+a1.type == Array && a2.type == Array or
+    raise "usage: add_vecpair array1 array2 (was used with: #{a1.type} #{a2.type})"
+
+
+# @@PLEAC@@_10.6
+# There is no return context in Ruby
+
+
+# @@PLEAC@@_10.7
+# Like in Perl, we need to fake with a hash, but it's dirty :-(
+def thefunc(param_args)
+    args = { 'INCREMENT' => '10s', 'FINISH' => '0', 'START' => 0 }
+    args.update(param_args)
+    if (args['INCREMENT']  =~ /m$/ )
+	.....
+    end
+end
+
+thefunc({ 'INCREMENT' => '20s', 'START' => '+5m', 'FINISH' => '+30m' })
+thefunc({})
+
+
+# @@PLEAC@@_10.8
+# I don't know how to drop a value (except by assigning to a
+# dummy variable of course)
+# @@INCOMPLETE@@
+# @@INCOMPLETE@@
+
+
+# @@PLEAC@@_10.9
+# Ruby has no such limitation:
+def somefunc
+    ary = []
+    hash = {}
+    # ...
+    return ary, hash
+end
+arr, dict = somefunc
+
+array_of_hashes = fn
+h1, h2, h3      = fn
+
+
+# @@PLEAC@@_10.10
+return
+# or (equivalent)
+return nil
+
+
+# @@PLEAC@@_10.11
+# You can't prototype in Ruby regarding types :-(
+# Though, you can force the number of arguments:
+def func_with_no_arg; end
+def func_with_no_arg(); end
+def func_with_one_arg(a1); end
+def func_with_two_args(a1, a2); end
+def func_with_any_number_of_args(*args); end
+
+
+# @@PLEAC@@_10.12
+raise "some message"        # raise exception
+
+begin
+    val = func
+rescue Exception => msg
+    $stderr.puts "func raised an exception: #{msg}"
+end
+
+# In Ruby the rescue statement uses an exception class, every
+# exception which is not matched is still continuing
+begin
+    val = func
+rescue FullMoonError
+    ...
+end
+
+
+# @@PLEAC@@_10.13
+# I don't know how to imitate Perl's "local"
+# @@INCOMPLETE@@
+# @@INCOMPLETE@@
+
+
+# @@PLEAC@@_10.14
+# In Ruby you may derefine a method [but not overload it :-(]
+# just by defining again with the same name.
+def foo; puts 'foo'; end
+def foo; puts 'bar'; end
+foo
+# => bar
+
+# You can also take a reference to an existing method before
+# redefining a new one, using the `alias' keyword
+def foo; puts 'foo'; end
+alias foo_orig foo
+def foo; puts 'bar'; end
+foo_orig
+foo
+# => foo
+# => bar
+
+# AFAIK, there is no direct way to create a new method whose name
+# comes from a variable, so use "eval"
+colors = %w(red blue green yellow orange purple violet)
+colors.each { |c|
+    eval <<-EOS
+    def #{c}(*a)
+        "<FONT COLOR='#{c}'>" + a.to_s + "</FONT>"
+    end
+    EOS
+} 
+
+
+# @@PLEAC@@_10.15
+# I don't know how to do that elegantly. We can rescue the
+# NameError exception, and then take the name of the method in
+# the message of the exception, but it seems dirty, and also I
+# can't use the original arguments of the failing function :-(.
+# @@INCOMPLETE@@
+begin
+    chartreuse("stuff")
+rescue NameError => msg
+    if msg.message =~ /undefined method `([^']+)' for/
+	puts "<FONT COLOR='#$1'>a</FONT>";
+	p msg.methods
+    else
+	raise
+    end
+end
+
+
+# @@PLEAC@@_10.16
+# I don't know how to do that in Ruby.
+# @@INCOMPLETE@@
+# @@INCOMPLETE@@
+
+
 # @@PLEAC@@_13.0
 # Classes and objects in Ruby are rather straigthforward
 class Person
