@@ -1913,6 +1913,71 @@ else
 end
 
 
+# @@PLEAC@@_6.6
+#-----------------------------
+#!/usr/bin/ruby -w
+# killtags - very bad html killer
+$/ = nil;                              # each read is whole file
+while file = gets() do
+    file.gsub!(/<.*?>/m,'');           # strip tags (terribly)
+    puts file                          # print file to STDOUT
+end
+#-----------------------------
+#!/usr/bin/ruby -w
+#headerfy - change certain chapter headers to html
+$/ = ''
+while file = gets() do
+    pattern = /
+                  \A                   # start of record
+                  (                    # capture in $1
+                      Chapter          # text string
+                      \s+              # mandatory whitespace
+                      \d+              # decimal number
+                      \s*              # optional whitespace
+                      :                # a real colon
+                      . *              # anything not a newline till end of line
+                  )
+               /x
+    puts file.gsub(pattern,'<H1>\1</H1>')
+end
+#-----------------------------
+#% ruby -00pe "gsub!(/\A(Chapter\s+\d+\s*:.*)/,'<H1>\1</H1>')" datafile
+
+#!/usr/bin/ruby -w
+#-----------------------------
+for file in ARGV
+    file = File.open(ARGV.shift)
+    while file.gets('') do             # each read is a paragraph
+        print "chunk #{$.} in $ARGV has <<#{$1}>>\n" while /^START(.*?)^END/m
+    end                                # /m activates the multiline mode
+end
+#-----------------------------
+
+# @@PLEAC@@_6.7
+#-----------------------------
+$/ = nil;
+file = File.open("datafile")
+chunks = file.gets.split(/pattern/)
+#-----------------------------
+# .Ch, .Se and .Ss divide chunks of STDIN
+chunks = gets(nil).split(/^\.(Ch|Se|Ss)$/)
+print "I read #{chunks.size} chunks.\n"
+#-----------------------------
+
+
+# @@PLEAC@@_6.9
+def glob2pat(globstr)
+    patmap = {
+        '*' => '.*',
+        '?' => '.',
+        '[' => '[',
+        ']' => ']',
+    }
+    globstr.gsub!(/(.)/) { |c| patmap[c] || Regexp::escape(c) }
+    '^' + globstr + '$'
+end
+
+
 # @@PLEAC@@_7.0
 # An IO object being Enumerable, we can use 'each' directly on it
 File.open("/usr/local/widgets/data").each { |line|
