@@ -2964,6 +2964,100 @@ def outer(arg)
     x + inner.call()
 end
 
+
+# @@PLEAC@@_10.17
+#!/usr/bin/ruby -w
+# mailsort - sort mbox by different criteria
+require 'English'
+require 'Date'
+
+# Objects of class Mail represent a single mail.
+class Mail
+    attr_accessor :no
+    attr_accessor :subject
+    attr_accessor :fulltext
+    attr_accessor :date
+
+    def initialize
+        @fulltext = ""
+        @subject = ""
+    end
+
+    def append(para)
+        @fulltext << para
+    end
+
+    # this is called if you call puts(mail)
+    def to_s
+        @fulltext
+    end
+end
+
+# represents a list of mails.
+class Mailbox < Array
+
+    Subjectpattern = Regexp.new('Subject:\s*(?:Re:\s*)*(.*)\n')
+    Datepattern = Regexp.new('Date:\s*(.*)\n')
+
+    # reads mails from open file and stores them
+    def read(file)
+        $INPUT_RECORD_SEPARATOR = ''  # paragraph reads
+        msgno = -1
+        file.each { |para|
+            if para =~ /^From/
+                mail = Mail.new
+                mail.no = (msgno += 1)
+                md = Subjectpattern.match(para)
+                if md
+                    mail.subject = md[1]
+                end
+                md = Datepattern.match(para)
+                if md
+                    mail.date = DateTime.parse(md[1])
+                else
+                    mail.date = DateTime.now
+                end
+                self.push(mail)
+            end
+            mail.append(para) if mail
+        }
+    end
+
+    def sort_by_subject_and_no
+        self.sort_by { |m|
+            [m.subject, m.no]
+        }
+    end
+
+    # sorts by a list of attributs of mail, given as symbols
+    def sort_by_attributs(*attrs)
+        # you can sort an Enumerable by an array of
+        # values, they would be compared
+        # from ary[0] to ary[n]t, say:
+        # ['b',1] > ['a',10] > ['a',9]
+        self.sort_by { |elem|
+            attrs.map { |attr|
+                elem.send(attr)
+            }
+        }
+    end
+
+end
+
+mailbox = Mailbox.new
+mailbox.read(ARGF)
+
+# print only subjects sorted by subject and number
+for m in mailbox.sort_by_subject_and_no
+    puts(m.subject)
+end
+
+# print complete mails sorted by date, then subject, then number
+for m in mailbox.sort_by_attributs(:date, :subject)
+    puts(m)
+end
+
+
 # @@PLEAC@@_11.15
 class Binary_tree
     def initialize(val)
