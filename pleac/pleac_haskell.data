@@ -1,0 +1,281 @@
+-- @@PLEAC@@_NAME
+Haskell
+
+-- @@PLEAC@@_WEB
+http://www.haskell.org/
+
+-- @@PLEAC@@_APPENDIX
+module Test where
+
+import Prelude hiding (($))
+import Regexp
+import List
+import Random hiding (split)
+import Monad hiding (join)
+
+-- to allow s![1..]
+-- note: a 'try (...) with' would be more efficient that constantly check for array bound
+-- note: we stop as soon as we have a big index => xs ! [1000, 2,3] if length xs < 1000 will give [] 
+--   (to handle infinite list)
+(!) :: [b] -> [Int] -> [b]
+(!) xs [] = []
+(!) xs (i:is) | i >= length xs = [] -- handle infinite list
+	      | i < 0          = xs!!(length xs + i) : xs!is
+	      | otherwise      = xs!!i : xs!is
+
+-- less expressive, more efficient
+(!!!) :: [b] -> [Int] -> [b]
+(!!!) xs = map (xs !!) -- (!!!) xs is = map (xs !!) is
+
+
+-- use http://www.dcs.gla.ac.uk/~meurig/regexp/ for substS, ...
+subst re f s = let matchresult = searchS re [] s in
+		   if matchedAny matchresult then 
+		      beforeMatch matchresult ++ 
+		      f (wholeMatch matchresult) ++ 
+		      afterMatch matchresult
+		   else s
+(=~) s re = let matchresult = searchS re [] s in
+	    matchedAny matchresult
+
+pattern_matches ((re, v):xs) s = if s =~ re then v else pattern_matches xs s
+
+next_char c = chr (ord c + 1)
+
+(#) o f = f o -- object notation for object fan
+
+(f $ g) x = (g . f) x
+
+(>>>) monad f = monad >>= (return . f)
+eval x = x >>= (putStrLn . show)
+
+cat file = readFile file >>> lines
+
+fixpoint f d | f d == d  = d
+	     | otherwise = fixpoint f (f d)
+times = replicate
+
+join e [] = []
+join e xs = foldr1 (\a x -> a ++ e ++ x) xs 
+-- join e []     = []
+-- join e [x]    = x
+-- join e (x:xs) = x ++ e ++ join e xs
+-- ex: join " " ["bi","te","di","ck"] == "bi te di ck"
+
+split e xs = splitaux e [] xs
+splitaux e a xs | xs#length < e#length     = [a ++ xs]
+		| take (e#length) xs == e  = a:(splitaux e [] (drop (e#length) xs))
+		| otherwise                = splitaux e (a++[head xs]) (tail xs)
+-- split " " "toto titi  tia to"
+
+break_char c f s = let (a,b) = break (== c) s in
+		   if b == [] then a else f a (tail b)
+
+upcase      = map toUpper
+downcase    = map toLower
+capitalize (x:xs) = toUpper x : xs
+
+rand :: (Int, Int) -> IO Int -- force to do that to resolve overloading :(
+rand = getStdRandom . randomR
+
+hex ('0':('x':s)) = fst (head (readHex s)) -- TODO do some check
+oct ('0':('o':s)) = fst (head (readOct s)) -- TODO do some check
+tohex i = "0x"++aux i where aux i = if i == 0 then "" else aux (i `div` 16)++((['0'..'9']++['A'..'F'])![i `mod` 16])
+tooct i = "0o"++aux i where aux i = if i == 0 then "" else aux (i `div` 8)++(['0'..'7']![i `mod` 8])
+
+difference                    :: (Eq a) => [a] -> [a] -> [a] -- dont know why but forced to put the type
+difference = (\\)
+
+insert_at :: Int -> [a] -> [a] -> [a]
+insert_at i toadd xs = let (a,b) = splitAt i xs in
+			   a++toadd++b
+
+replace :: [(Int, a)] -> [a] -> [a]
+replace assoc xs = assoc#foldl (\a (i,e) -> let (x,y) = splitAt i a in x++[e]++y ) xs
+
+shift (x:xs) = (x,xs)
+pop xs = (init xs, last xs) -- more efficient let (a,[b]) = splitAt (xs#length - 1) xs in (a,b)
+
+
+-- @@PLEAC@@_1.1
+
+s     = "This is what you have"
+first = s![0]                            -- "T"
+start = s![5..7]                         -- "is"
+rest  = s![13..]                         -- "you have"
+las   = s![-1]                           -- "e"
+end   = s![-4 .. -1]                     -- "have"
+piece = s![-8 .. -5]                     -- "you"
+
+-- can't modify string in haskell
+news = s#(substS "is" "at" [Global_Match]) -- "That at what you have"
+
+-- @@PLEAC@@_1.3
+-- no side effect in haskell
+
+-- @@PLEAC@@_1.4
+i1 = ord('a')
+c1 = chr(97)
+
+ibm = "HAL"#(map next_char)                   -- "IBM"
+
+-- @@PLEAC@@_1.5
+s1 = "unique chars are: " ++ ("an apple a day"#nub#sort)
+
+-- @@PLEAC@@_1.6
+s2 = s1#reverse
+s3 = s1#words#reverse#unwords -- s3 = (unwords . reverse . words) s1; s3 = (words $ reverse $ unwords) s1
+
+long_palindromes = cat "/usr/share/dict/words" >>> filter(\s -> s == s#reverse && s#length > 4) 
+-- eval long_palindromes or long_palindromes >>= (mapM putStrLn)
+
+-- @@PLEAC@@_1.7
+-- TODO, must do: \s if s == [] then [] else foldr1 .... ? must make a foldr1sure
+expand_tabs = split "\t" $ (foldr1 (\a b -> a ++ (times (8 - a#length `mod` 8) ' ') ++ b)) -- more efficient
+-- expand_tabs = fixpoint (break_char '\t' (\a b -> a ++ (times (8 - a#length `mod` 8) ' ') ++ b))
+-- expand_tabs "to		andd	audela"
+				
+-- @@PLEAC@@_1.8
+-- cant do that in haskell, too meta, too reflexif
+
+s4 = "I am 17 years old"#(subst "\\d+" (\n -> show ((read n) * 2)))
+
+-- @@PLEAC@@_1.9
+s5 = "bo beep"#upcase
+s6 = s5#downcase
+s7 = s6#capitalize
+
+s8 = "thIS is a loNG liNE"#words#map capitalize
+
+-- @@PLEAC@@_1.10
+s9 = "I have " ++ (show (10+1)) ++ " guanacos."
+
+
+-- @@PLEAC@@_1.12
+-- in fact this fonction is wrong, cos it insert a space at the front of the sentence (must use a foldl1)
+wrap width s = let (ls, s') = (words s)#foldl (\ (ls, s) w -> 
+					    if (s++" "++w)#length > width 
+					    then (ls++[s], w)
+					    else (ls, s++" "++w)
+					    ) ([],"") in
+	       join "\n" (ls++[s'])
+-- putStrLn (wrap 7 "titititi titititttitit tititit titto eot eti fr")
+
+-- @@PLEAC@@_1.14
+s10 = "    titi"#substS "^\\s+" "" []
+s11 = "  titi  "#substS "\\s+$" "" []
+
+trim = substS "^\\s+" "" [] . substS "\\s+$" "" []
+
+
+-- @@PLEAC@@_2.5
+m1 = putStr "Infancy is: " >> [0..2]#mapM(\e -> putStr (show e ++ " "))
+m2 = putStr "Infancy is: " >> [0..2]#map show#unwords#putStr
+
+
+-- @@PLEAC@@_2.7
+ran = rand (25, 75)
+
+chars = concat [['A'..'Z'],['a'..'z'],['0'..'9'],"!@$%^&*"]
+
+--password = [1..8]#foldM (\a _ -> rand (0, chars#length) >>= (\i -> return (a++chars![i]))) "" 
+--password = [1..8]#mapM (\_ -> rand (0, chars#length) >>= (\i -> return (chars!!i)))
+password = [1..8]#mapM (\_ -> rand (0, chars#length) >>> (chars!!)) -- no join, string = [Char] :) hihi section :)
+
+-- @@PLEAC@@_2.16
+i2 = hex "0x45"
+i3 = oct "0o45"
+
+m3 = do putStrLn "Gimme a number in decimal, octal, or hex: "
+	s <- getLine
+	let i = s#pattern_matches [("^0x", hex s),("^0o", oct s),("", read s)] in
+		putStrLn (concat [show i," ",tohex i," ", tooct i,"\n"])
+
+-- no printf :((
+
+
+-- @@PLEAC@@_2.17
+commify s = if s#length <= 3 then s else 
+	    let (a,b) = splitAt (s#length -3) s in commify a ++ "," ++ b
+
+
+-- @@PLEAC@@_4.1
+a  = ["quick", "brown", "fox"]
+a2 = "Why are you teasing me?"#words
+
+big_array = cat "test.hs" 
+
+-- @@PLEAC@@_4.2
+commify_series :: [String] -> String
+commify_series []  = ""
+commify_series [x] = x
+commify_series xs  = join ", " (init xs)  ++ " and " ++ (last xs)
+-- commify_series ["cava", "etoi","ouais"]
+
+array = ["red", "yellow", "green"]
+s12 = "I have "++commify_series array++" marbles"
+
+
+-- @@PLEAC@@_4.3
+what_about_that_array x = 
+    "The array now has "++show (length x)++"elements.\n"++
+    "The index of the last element is "++show (length x - 1)++".\n"++
+    "Element #3 is`"++show (x!!3)++"'.\n" -- show (x!!3) or x!!3 (but no more polymorphic)
+
+s13 = "Crosby Stills Nash Young"#words#what_about_that_array
+
+-- @@PLEAC@@_4.4
+-- cant have access to %ENV in hugs :)))))) no seriously :((((((((((
+
+-- @@PLEAC@@_4.6
+unique                     :: (Eq a) => [a] -> [a] -- dont know why but forced to put the type
+unique = nub
+
+-- @@PLEAC@@_4.7
+l1 = [1..5] `difference` [2,5]
+
+-- @@PLEAC@@_4.8
+l2 = [1..5]
+l3 = [2,5,7]
+l4 = l2 `union` l3
+l5 = l2 `intersect` l3
+l6 = difference (union l2 l3) (intersect l2 l3)
+
+-- @@PLEAC@@_4.9
+members = ["Times","Flies"]
+initiates = ["An", "Arrow"]
+newmembers  = members ++ initiates
+newmembers2 = members#insert_at 2 ("Like":initiates)
+
+newmembers3 = members#replace [(0, "Fruit")]
+newmembers4 = members#replace [(2, "Fruit"),(3,"Banana")]
+
+-- @@PLEAC@@_4.10
+
+reversed = [1..5]#reverse
+
+-- @@PLEAC@@_4.11
+shift2 (x:y:ys) = ((x,y),ys) -- shift2 = zip ... shift ... TODO
+pop2 xs = let (a,[x,y]) = splitAt (xs#length -2) xs in ((x,y),a)
+
+
+friends = "Peter Paul Mary Jim Tim"#words
+((this, that), newfriends) = friends#shift2
+
+beverages = "Dew Jolt Cola Sprite Fresca"#words
+(pair,newbeverages) = beverages#pop2
+
+-- @@PLEAC@@_4.12
+employees = [("ben","neuneu1"),("pixel","neuneu2"),("pad","engineer"),("guit","neuneu3")]
+category = snd
+name = fst
+(Just highest_engineer) = employees#find(\employee -> employee#category == "engineer")
+
+s14 = "Highest paid engineer is: "++ name highest_engineer
+
+
+-- @@PLEAC@@_4.13
+bigs = [5..200]#filter (>50) -- hihi section :)
+
+engineers = [ x | x <- employees, category x == "engineer"]
+

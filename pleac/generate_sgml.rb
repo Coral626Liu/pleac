@@ -24,12 +24,12 @@ end
 
 
 skel_contents = File.open(ARGV[0]).read
-impl_contents = File.open(ARGV[1]).readlines.push("@@@")
+impl_contents = File.open(ARGV[1]).readlines.push("@@PLEAC@@_")
 
 current_key = nil
 current_subst = []
 for i in impl_contents
-    if i =~ /^@@@(.*)/
+    if i =~ /^.*@@PLEAC@@_(.*)/
 	new_key = $1
 	if current_subst.size > 0
 	    while current_subst.last =~ /^$/
@@ -39,6 +39,9 @@ for i in impl_contents
 		current_subst[-1].chop!
 	    end
 	    if current_key
+		if current_key == "APPENDIX"
+		    current_subst = [ "<appendix><title>Helpers</title>\n<screen>\n", current_subst, "\n</screen>\n</appendix>\n" ].flatten
+		end
 		skel_contents.gsub!(Regexp.escape("PLEAC:#{current_key}:CAELP"), current_subst.to_s)
 	    end
 	    current_subst = []
