@@ -38,7 +38,7 @@ skeleton/index.html: skeleton.sgml
 	db2html -d pleac.dsl $<
 
 %.html: %.data
-	cat $< | ruby -pe 'sub(/^@@INCLUDE@@ (\S+)/) { File.open($$1).readlines }' > tmp.data
+	ruby -pe 'sub(/^@@INCLUDE@@ (\S+)/) { File.open($$1).readlines }' $< > tmp.data
 	./code2html tmp.data
 	mv -f tmp.html $@
 
