@@ -515,9 +515,13 @@ List.iter
       ) ttylist
   ) (sort_ (uniq (List.map fst ttys)))
 (*-----------------------------*)
-
 (* @@PLEAC@@_5.8 *)
 (*-----------------------------*)
+
+open Hashtbl
+
+(* size of an hash, i.e. number of bindings *)
+let hashtbl_size h = List.length (hashtbl_keys h);;
 
 (* in OCaml does not exists a builtin function like "reverse", here is
 an equivalent one: *)
@@ -527,7 +531,14 @@ let hashtbl_reverse h =
 let hashtbl_reverse h =
   assoc_list2hashtbl (List.map (fun (a,b) -> (b,a)) (hashtbl2assoc_list h))
 ;;
-(* note that these implementations maintain also multiple binding for the
+(* or *)
+let hashtbl_reverse_multi h =
+  let newhash = Hashtbl.create (hashtbl_size h) in
+  List.iter
+    (fun v -> add newhash (find h v) v)
+    (hashtbl_keys h);
+  newhash
+(* note that the last  implementation maintain also multiple binding for the
 same key, see Hashtbl.add in the standard OCaml library for more info *)
 
 (*-----------------------------*)
@@ -659,6 +670,108 @@ List.filter
   (hashtbl_keys food_color)
 ;;
 (*-----------------------------*)
+(* @@PLEAC@@_5.12 *)
+(*-----------------------------*)
+open Unix
+open Printf
+
+let filenames = ["/etc/printcap"; "/vmlinuz"; "/bin/cat"] in
+let openfiles = Hashtbl.create 3 in
+print_newline();
+List.iter
+  (fun fname ->
+    printf "%s is %d bytes long.\n"
+      fname
+      (stat fname).st_size
+  )
+  filenames
+;;
+  
+(*-----------------------------*)
+(* @@PLEAC@@_5.13 *)
+(*-----------------------------*)
+
+(* presize hash to num elements *)
+let hash = Hashtbl.create num;;
+(* other examples of initial size on hashes *)
+let hash = Hashtbl.create 512;;
+let hash = Hashtbl.create 1000;;
+
+(*-----------------------------*)
+(* @@PLEAC@@_5.14 *)
+(*-----------------------------*)
+
+(* size of an array named "a" *)
+let count = Array.lentgh a;
+
+(* size of a list named "l" *)
+let count = List.length l;
+
+(*-----------------------------*)
+(* @@PLEAC@@_5.15 *)
+(*-----------------------------*)
+
+open Printf
+open Hashtbl
+
+let father = assoc_list2hashtbl
+  [ "Cain", "Adam";
+    "Abel", "Adam";
+    "Seth", "Adam";
+    "Enoch", "Cain";
+    "Irad", "Enoch";
+    "Mehujael", "Irad";
+    "Methusael", "Mehujael";
+    "Lamech", "Methusael";
+    "Jabal", "Lamech";
+    "Jubal", "Lamech";
+    "Tubalcain", "Lamech";
+    "Enos", "Seth"] ;;
+(*-----------------------------*)
+(* recursively print all parents of a given name *)
+let rec parents s =
+  printf "%s " s;
+  if mem father s then
+    parents (find father s)
+  else
+    printf "\n"
+in
+  iter_lines parents stdin
+;;
+(*-----------------------------*)
+let children = hashtbl_reverse_multi father in
+iter_lines 
+  (fun line ->
+    List.iter (printf "%s ") (find_all children);
+    print_newline()
+  )
+  stdin;
+;;
+(*-----------------------------*)
+(* build an hash that map filename to list of included file *)
+open Hashtbl
+open Str
+
+let includes = create (List.length files);;
+let getincludes fname =
+  let includeRE = regexp "^\s*#\s*include\s*<([^>]+)>" in
+  let isincludeline l = string_match includeRE l 0 in
+  let includelines =
+    List.filter isincludeline (readlines (open_in fname))
+  in
+  List.map (replace_first includeRE "\1") includelines
+in
+List.iter
+  (fun fname -> add includes fname (getincludes fname))
+  files
+;;
+(*-----------------------------*)
+let hasnoinclude fname = (find includes fname = []) in
+List.filter hasnoinclude (uniq (hashtbl_keys includes));;
+
+(*-----------------------------*)
+(* @@PLEAC@@_5.16 *)
+(*-----------------------------*)
 
 (* TODO continue from here *)
 
@@ -782,27 +895,26 @@ then
 (****************)
 
 (* @@PLEAC@@_9.3 *)
-Unix.copy oldfile newfile
 (****************)
 
 (* Note : this doesn't use the unix library, only the standard one *)
 
-let infile = open_in oldfile
-and outfile = open_out newfile
-and blksize = 16384 in
-let buf = String.create blksize in
-let rec copy () =
+let rec copy oldfile newfile =
+  let infile = open_in oldfile
+  and outfile = open_out newfile
+  and blksize = 16384 in
+  let buf = String.create blksize in
   let byte_read = input infile buf 0 blksize in
-  if byte_read = 0 then ()
-  else
-    begin
-      (* Handle partialle write : nothing to do *)
-      output outfile buf O byte_read;
-      copy ()
-    end in
-copy ();
-close_in infile;
-close_out outfile;;
+  let real_copy () =
+    if byte_read = 0 then ()
+    else
+      begin
+	(* Handle partialle write : nothing to do *)
+	output outfile buf O byte_read;
+	real_copy ()
+      end in
+  close_in infile;
+  close_out outfile;;
 
 (****************)
 Sys.command ("cp " ^ oldfile ^ " " ^ newfile)	(* Unix *)
