@@ -936,31 +936,35 @@ puts [fixstyle $text]
  
 # @@PLEAC@@_2.1
  
-if "$neg[regexp $pattern $string]" {
-    puts stderr "$string is a number!"
-} else {
-    puts stderr "$string $msg (pattern: /$pattern/)"
+if {[regexp {\D} $string]} {
+    error "$string has nondigits"
+}
+# => -3 has nondigits
+# => 3.0 has nondigits
+# => 3.0e4 has nondigits
+ 
+if {![regexp {^\d+$} $string]} {
+    error "$string is not a natural number"
+}
+# => -3 is not a natural number
+# => 3.0 is not a natural number
+# => 3.0e4 is not a natural number
+ 
+if {![regexp {^[+-]?\d+$} $string]} {
+    error "$string is not an integer"
+}
+# => 3.0 is not an integer
+# => 3.0e4 is not an integer
+ 
+if {![regexp {^-?(?:\d+(?:\.\d*)?|\.\d+)$} $string]} {
+    error "$string is not a real number"
+}
+# => 3.0e4 is not a real number
+ 
+if {![regexp {^([+-]?)(?=\d|\.\d)\d*(\.\d*)?([Ee]([+-]?\d+))?$} $string]} {
+    error "$string is not a C float"
 }
  
-# => 3 is a number! (pattern: /\D/)
-# => -3 has nondigits (pattern: /\D/)
-# => 3.0 has nondigits (pattern: /\D/)
- 
-# => 3 is a number! (pattern: /^\d+$/)
-# => -3 is not a natural number (pattern: /^\d+$/)
-# => 3.0 is not a natural number (pattern: /^\d+$/)
- 
-# => 3 is a number! (pattern: /^[+-]?\d+$/)
-# => -3 is a number! (pattern: /^[+-]?\d+$/)
-# => 3.0 is not an integer (pattern: /^[+-]?\d+$/)
- 
-# => 3 is a number! (pattern: /^-?(?:\d+(?:\.\d*)?|\.\d+)$/)
-# => -3 is a number! (pattern: /^-?(?:\d+(?:\.\d*)?|\.\d+)$/)
-# => 3.0 is a number! (pattern: /^-?(?:\d+(?:\.\d*)?|\.\d+)$/)
-# => 3.0e4 is not a real number (pattern: /^-?(?:\d+(?:\.\d*)?|\.\d+)$/)
- 
-# => 3.0 is a number! (pattern: /^([+-]?)(?=\d|\.\d)\d*(\.\d*)?([Ee]([+-]?\d+))?$/)
-# => 3.0e4 is a number! (pattern: /^([+-]?)(?=\d|\.\d)\d*(\.\d*)?([Ee]([+-]?\d+))?$/)
 
 
 # Regexps like the above are sometimes necessary for making fine
@@ -1168,3 +1172,22 @@ proc logBase {base value} {
 set answer [logBase 10 10000]
 puts "log10(10,000) = $answer"
 # => log10(10,000) = 4
+ 
+# @@PLEAC@@_2.16
+ 
+proc oct {string} {
+    if {[regexp {^0?(.+)$} $string match string]} {
+        return [expr "0$string"]
+    } elseif {[regexp {^0x([[:xdigit:]]+)$} $string match string]} {
+        return [expr "0x$string"]
+    }
+    return 0
+}
+ 
+proc hex {string} {
+    if {[regexp {^(?:0x)?([[:xdigit:]]+)$} $string match string]} {
+        return [expr "0x$string"]
+    }
+    return 0
+}
+ 
