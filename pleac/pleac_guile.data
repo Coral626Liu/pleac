@@ -16,7 +16,7 @@
 (define string "Jon \"Maddog\" Orwant")  ; literal double quotes
 (define string "Jon 'Maddog' Orwant")    ; literal single quotes
 
-(define a = "This is a multiline here document
+(define a "This is a multiline here document
 terminated by a closing double quote")
 
 ;;; @@PLEAC@@_1.1
@@ -92,6 +92,23 @@ terminated by a closing double quote")
 (define num (char->integer char))
 (define char (integer->char num))
 
+(use-modules (srfi srfi-13))
+(let ((str "sample"))
+  (display (string-join
+            (map number->string
+                 (map char->integer (string->list str))) " "))
+  (newline))
+
+(let ((lst '(115 97 109 112 108 101)))
+  (display (list->string (map integer->char lst)))
+  (newline))
+
+(letrec ((next (lambda (c) (integer->char (1+ (char->integer c))))))
+  (let* ((hal "HAL")
+         (ibm (list->string (map next (string->list hal)))))
+    (display ibm)
+    (newline)))
+
 ;;; @@PLEAC@@_1.5
 ;; Convert the string to a list of characters
 (map proc
@@ -113,6 +130,44 @@ terminated by a closing double quote")
        (sum (string-fold (lambda (c acc) (+ acc (char->integer c)))
                          0 str)))
   (format #t "sum is ~A\n" sum))
+
+#!/usr/local/bin/guile -s
+!#
+;; sum - compute 16-bit checksum of all input files
+(use-modules (srfi srfi-13))
+(define (checksum p)
+  (let loop ((line (read-line p 'concat)) (sum 0))
+    (if (eof-object? line)
+      (format #t "~A ~A\n" sum (port-filename p))
+      (let ((line-sum (string-fold (lambda (c acc)
+                                     (+ acc (char->integer c)))
+                                   0 line)))
+        (loop (read-line p 'concat) (modulo (+ sum line-sum)
+                                            (1- (expt 2 16))))))))
+(let ((args (cdr (command-line))))
+  (if (null? args)
+    (checksum (current-input-port))
+    (for-each (lambda (f) (call-with-input-file f checksum)) args)))
+
+#!/usr/local/bin/guile -s
+!#
+;; slowcat - emulate a  s l o w  line printer
+(use-modules (ice-9 regex) (srfi srfi-2) (srfi srfi-13))
+(define args (cdr (command-line)))
+(define delay 1)
+(and-let* ((p (pair? args))
+           (m (string-match "^-([0-9]+)$" (car args))))
+  (set! delay (string->number (match:substring m 1)))
+  (set! args (cdr args)))
+(define (slowcat p)
+  (let loop ((line (read-line p 'concat)))
+    (cond ((not (eof-object? line))
+           (string-for-each
+            (lambda (c) (display c) (usleep (* 5 delay))) line)
+           (loop (read-line p 'concat))))))
+(if (null? args)
+  (slowcat (current-input-port))
+  (for-each (lambda (f) (call-with-input-file f slowcat)) args))
 
 ;;; @@PLEAC@@_1.6
 (define revbytes (list->string (reverse (string->list str))))
@@ -137,7 +192,6 @@ terminated by a closing double quote")
 
 ;;; @@PLEAC@@_1.7
 ;; Use regexp-substitute/global
-
 (regexp-substitute/global
  #f "([^\t]*)(\t+)" str
  (lambda (m)
@@ -160,6 +214,17 @@ terminated by a closing double quote")
                           (current-module)))
    'post))
 
+;; interpolate $abc with error messages:
+(define (safe-varsubst str)
+  (regexp-substitute/global #f "\\$(\\w+)" str
+   'pre (lambda (m)
+          (catch #t
+            (lambda () (eval (string->symbol (match:substring m 1))
+                             (current-module)))
+            (lambda args
+              (format #f "[NO VARIABLE: ~A]" (match:substring m 1)))))
+   'post))
+
 ;; interpolate ${(any (scheme expression))} in strings:
 (define (interpolate str)
   (regexp-substitute/global #f "\\${([^{}]+)}" str
@@ -175,6 +240,25 @@ terminated by a closing double quote")
 
 (string-titlecase "thIS is a loNG liNE")  ; This Is A Long Line
 
+#!/usr/local/bin/guile -s
+!#
+;; randcap: filter to randomly capitalize 20% of the time
+(use-modules (srfi srfi-13))
+(seed->random-state (current-time))
+(define (randcap p)
+  (let loop ((line (read-line p 'concat)))
+    (cond ((not (eof-object? line))
+           (display (string-map (lambda (c)
+                                  (if (= (random 5) 0)
+                                    (char-upcase c)
+                                    (char-downcase c)))
+                                line))
+           (loop (read-line p 'concat))))))
+(let ((args (cdr (command-line))))
+  (if (null? args)
+    (randcap (current-input-port))
+    (for-each (lambda (f) (call-with-input-file f randcap)) args)))
+
 ;;; @@PLEAC@@_1.10
 ;; You can do this with format.  Lisp/Scheme format is a little
 ;; different from what you may be used to with C/Perl style printf
@@ -189,7 +273,31 @@ terminated by a closing double quote")
         your text
         goes here")
 
+(use-modules (ice-9 regexp))
 (set! var (regexp-substitute/global #f "\n +" var 'pre "\n" 'post))
+
+(use-modules (srfi srfi-13))
+(set! var (string-join (map string-trim (string-tokenize var #\newline)) "\n"))
+
+(use-modules (ice-9 regexp) (srfi srfi-13) (srfi srfi-14))
+(define (dequote str)
+  (let* ((str (if (char=? (string-ref str 0) #\newline)
+                (substring str 1) str))
+         (lines (string-tokenize str #\newline))
+         (rx (let loop ((leader (car lines)) (lst (cdr lines)))
+               (cond ((string= leader "")
+                      (let ((pos (or (string-skip (car lines)
+                                                  char-set:whitespace) 0)))
+                        (make-regexp (format #f "^[ \\t]{1,~A}" pos)
+                                     regexp/newline)))
+                     ((null? lst)
+                      (make-regexp (string-append "^[ \\t]*"
+                                                  (regexp-quote leader))
+                                   regexp/newline))
+                     (else
+                      (let ((pos (or (string-prefix-length leader (car lst)) 0)))
+                        (loop (substring leader 0 pos) (cdr lst))))))))
+    (regexp-substitute/global #f rx str 'pre 'post)))
 
 ;;; @@PLEAC@@_1.12
 (use-modules (srfi srfi-13))
@@ -369,7 +477,7 @@ turnkey         => turn-key")
 ;; (approx-equal? num1 num2 accuracy) : returns #t if num1 and num2 are
 ;;   equal to accuracy number of decimal places
 (define (approx-equal? num1 num2 accuracy)
-  (< (- num1 num2) (expt 10.0 (- accuracy))))
+  (< (abs (- num1 num2)) (expt 10.0 (- accuracy))))
 
 (define wage 536)                     ;; $5.36/hour
 (define week (* 40 wage))             ;; $214.40
@@ -549,6 +657,9 @@ turnkey         => turn-key")
 
 (define (radians->degrees rad)
   (* 180.0 (/ rad pi)))
+
+(define (degree-sine deg)
+  (sin (degrees->radians deg)))
 
 ;; @@PLEAC@@_2.12
 
@@ -1794,7 +1905,7 @@ your data goes here
     (for-each
      (lambda (addr)
        (seek p addr SEEK_SET)
-       (format #t "~x ~o ~d ~s\n" addr addr addr
+       (format #t "~X ~O ~D ~S\n" addr addr addr
                (read-delimited delims p)))
      addrs)))
 
@@ -1991,4 +2102,115 @@ your data goes here
                                  (directory-files dir))
                          (lambda (a b)
                            (< (string->number a) (string->number b)))))))
+
+;; @@PLEAC@@_9.7
+(define (find proc . dirs)
+  (cond ((pair? dirs)
+         (for-each proc (map (lambda (x) (string-append (car dirs) "/" x))
+                             (directory-files (car dirs))))
+         (apply find proc (cdr dirs)))))
+
+(find (lambda (x) (format #t "~A~A\n" x
+                          (if (equal? (stat:type (stat x)) 'directory)
+                            "/" ""))) ".")
+
+(define saved-size -1)
+(define saved-name "")
+(define (biggest file)
+  (let ((stats (stat file)))
+    (if (eq? (stat:type stats) 'regular)
+      (let ((size (stat:size (stat file))))
+        (cond ((> size saved-size)
+               (set! saved-size size)
+               (set! saved-name file)))))))
+(apply find biggest (cdr (command-line)))
+(format #t "Biggest file ~A in ~A is ~A bytes long.\n"
+        saved-name (cdr (command-line)) saved-size)
+
+#!/usr/local/bin/guile -s
+!#
+;; fdirs - find all directories
+(define (print-dirs f)
+  (if (eq? (stat:type (stat f)) 'directory)
+    (write-line f)))
+(apply find print-dirs (cdr (command-line)))
+
+;; @@PLEAC@@_9.8
+#!/usr/local/bin/guile -s
+!#
+;; rmtree - remove whole directory trees like rm -f
+(define (finddepth proc . dirs)
+  (cond ((pair? dirs)
+         (apply finddepth proc (cdr dirs))
+         (for-each proc (map (lambda (x) (string-append (car dirs) "/" x))
+                             (directory-files (car dirs)))))))
+(define (zap f)
+  (let ((rm (if (eq? (stat:type (stat f)) 'directory) rmdir delete-file)))
+    (format #t "deleting ~A\n" f)
+    (catch #t
+      (lambda () (rm f))
+      (lambda args (format #t "couldn't delete ~A\n" f)))))
+(let ((args (cdr (command-line))))
+  (if (null? args)
+    (error "usage: rmtree dir ..\n")
+    (apply finddepth zap args)))
+
+;; @@PLEAC@@_9.9
+(for-each
+ (lambda (file)
+   (let ((newname (function-of file)))
+     (catch #t
+       (lambda () (rename-file file newname))
+       (lambda args (format (current-error-port)
+                            "couldn't rename ~A to ~A\n" file newname)))))
+ names)
+
+#!/usr/local/bin/guile -s
+!#
+;; rename - Guile's filename fixer
+(use-modules (ice-9 regex)) ; not needed, but often useful here
+(define args (cdr (command-line)))
+(if (null? args) (error "usage: rename expr [files]\n"))
+(define proc (eval-string (car args)))
+(for-each
+ (lambda (old)
+   (let ((new (proc old)))
+     (if (not (string=? old new))
+       (catch #t
+         (lambda () (rename-file old new))
+         (lambda args (format (current-error-port)
+                              "couldn't rename ~A to ~A\n" old new))))))
+ (cdr args))
+
+;; command-line examples:
+;; rename '(lambda (x) (regexp-substitute/global #f "\\.orig\$" x (quote pre)))' *.orig
+;; rename string-downcase *
+;; rename '(lambda (x) (if (string-match "^Make" x) x (string-downcase x)))' *
+;; rename '(lambda (x) (string-append x ".bad"))' *.pl
+;; rename '(lambda (x) (format #t "~a: ") (read-line))' *
+
+;; @@PLEAC@@_9.10
+(define base (basename path))
+(define base (dirname path ext))
+(define dir (dirname path))
+
+(define path "/usr/lib/libc.a")
+(define file (basename path))
+(define dir (dirname path))
+
+(format #t "dir is ~A, file is ~A\n" dir file)
+
+(basename path ".a") ; libc
+
+(use-modules (ice-9 regex))
+(define (file-parse path . args)
+  (let* ((ext (if (null? args) "\\..*" (car args)))
+         (rx1 (string-append "^((.*)/)?(.*)?(" ext ")$"))
+         (rx2 (string-append "^((.*)/)?(.*)?()$")))
+    (let ((m (or (string-match rx1 path) (string-match rx2 path))))
+      (list (match:substring m 2) (match:substring m 3)
+            (match:substring m 4)))))
+
+(define (extension path . args)
+  (caddr (apply file-parse path args)))
 
