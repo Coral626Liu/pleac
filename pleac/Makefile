@@ -56,7 +56,7 @@ web:
 		done=`grep "@@@[0-9].*" pleac_$$i.data | wc -l`; \
 		percent=`ruby -e "printf \"%.2f\n\", $$done*100/Float($$total)"`; \
 		echo "<b>$$i:</b> <a href=\"pleac_$$i.data\">code</a>, " >> webcontents; \
-		echo "  <a href=\"pleac_$$i/t1.html\">html version</a> ($$percent% done)" >> webcontents; \
+		echo "  <a href=\"pleac_$$i/t1.html\">html output</a> ($$percent% done)" >> webcontents; \
 		echo "</li>" >> webcontents; \
 	done  
 	echo "</ul> " >> webcontents
