@@ -31,14 +31,16 @@ PSTARGETS = $(addsuffix .ps, $(addprefix pleac_, $(IMPLS)))
 all: $(HTMLTARGETSDEP) 
 
 clean:
-	rm -rf index.html pleac_*.html skeleton $(HTMLTARGETS)
+	rm -rf index.html pleac_*.html skeleton tmp.data $(HTMLTARGETS)
 
 skeleton/index.html: skeleton.sgml
 	rm -rf $@
 	db2html -d pleac.dsl $<
 
 %.html: %.data
-	./code2html $<
+	cat $< | ruby -pe 'sub(/^@@INCLUDE@@ (\S+)/) { File.open($$1).readlines }' > tmp.data
+	./code2html tmp.data
+	mv -f tmp.html $@
 
 $(HTMLTARGETSDEP): %/index.html: %.html skeleton/index.html
 	rm -rf $(@D)
