@@ -67,7 +67,7 @@ chapters.each { |k,v|
     end
     total = skel_contents.select { |i| i =~ /PLEAC:(.*):CAELP/ && $1.to_i == v }.size
     percentage = Float(100*actual)/total
-    toc_contents.sub!(">#{k}</A", sprintf ">#{k}</a> (%.1f%s)</br", percentage, "%")
+    toc_contents.sub!(%r|>#{k}</A|, sprintf(">#{k}</a> (%.1f%s)</br", percentage, "%"))
 }
 
 File.open(ARGV[0], 'w').write(toc_contents)

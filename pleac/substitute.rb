@@ -41,13 +41,13 @@ for i in impl_contents
 	    if current_key
 		final_subst = [ "<font color=\"#f5deb3\" size=\"+1\">", current_subst, "PLEAC:#{current_key}:CAELP" ].flatten.to_s
 		if current_key == "NAME" || current_key == "WEB"
-		    final_subst.gsub!("<[^>]+>", "")
+		    final_subst.gsub!(/<[^>]+>/, "")
 		end
 		final_subst.gsub!(/.*@@SKIP@@\s*(.*)\s*@@SKIP@@.*/) { $1 }
 		final_subst.gsub!(/.*@@SKIP@@\s*/, '')
-		skel_contents.gsub!(Regexp.escape("PLEAC:#{current_key}:CAELP"), final_subst)
+		skel_contents.gsub!(Regexp.new(Regexp.escape("PLEAC:#{current_key}:CAELP")), final_subst)
 	    end
-	    current_subst = [ i.gsub(/^[^<]+\n/, '').gsub("[^<]*(<[^>]*>)[^<]*") { $1 } ]  # keep only HTML stuff of keyword line
+	    current_subst = [ i.gsub(/^[^<]+\n/, '').gsub(/[^<]*(<[^>]*>)[^<]*/) { $1 } ]  # keep only HTML stuff of keyword line
 	end
 	current_key = new_key
     else
@@ -55,9 +55,9 @@ for i in impl_contents
     end
 end
 
-skel_contents.gsub!("PLEAC:.*:CAELP", "")
-skel_contents.gsub!("BGCOLOR.*", "bgcolor=\"#2f4f4f\"")
-skel_contents.gsub!("><BODY.*", "><BODY TEXT=\"#cecece\" BGCOLOR=\"#4f6f6f\" LINK=\"#f5deb3\" VLINK=\"#d5ae83\"")
+skel_contents.gsub!(/PLEAC:.*:CAELP/, "")
+skel_contents.gsub!(/BGCOLOR.*/, "bgcolor=\"#2f4f4f\"")
+skel_contents.gsub!(/><BODY.*/, "><BODY TEXT=\"#cecece\" BGCOLOR=\"#4f6f6f\" LINK=\"#f5deb3\" VLINK=\"#d5ae83\"")
 
 File.open(ARGV[0], 'w').write(skel_contents)
 
