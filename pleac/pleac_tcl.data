@@ -441,12 +441,12 @@ for {set i [expr {[string length $string]-1}]} {$i >= 0} {incr i -1} {
 }
 
 
-# this works for strings that do not
-# contain list symbol characters, see below
 set revwords {}
-for {set i [expr {[llength $string]-1}]} {$i >= 0} {incr i -1} {
-    lappend revwords [lindex $string $i]
+set words [split $string]
+for {set i [expr {[llength $words]-1}]} {$i >= 0} {incr i -1} {
+    lappend revwords [lindex $words $i]
 }
+join $revwords
 
 
 # again, another way
@@ -465,7 +465,7 @@ for {set i 0} {$i < [llength $words]} {incr i} {
 
 
 # reverse word order where list symbols appear (braces, double quotes)
-set words [split "Yoda said, \"can you see this?\""]
+set words [split {Yoda said, "can you see this?"}]
 set revwords {}
 for {set i 0} {$i < [llength $words]} {incr i} {
     lappend revwords [lindex $words end-$i]
@@ -1375,9 +1375,6 @@ set size 500
 set numberOfTimes 100
 set totalTime 0
  
-proc sortList {a} {
-    set a [lsort -real $a]
-}
  
 for {set i 0} {$i < $numberOfTimes} {incr i} {
     set a [list]
@@ -1757,4 +1754,285 @@ foreach employee $employees {
     }
 }
 puts "Highest paid engineer is: [lindex $highestEngineer 1]"
+ 
+# @@PLEAC@@_4.13
+ 
+# If the test is matching an element's value against
+# an exact string, a wildcard pattern, or a regular
+# expression, use the standard package TclX (contained
+# in the ActiveTcl distribution).
+ 
+package require Tclx
+ 
+set matching [lmatch $list $matchThis]
+
+
+# For other tests, use a foreach loop:
+set matching [list]
+foreach {elt} $list {
+    if {[TEST $elt]} {
+        lappend matching $elt
+    }
+}
+
+
+# A procedure similar to Perl's grep might look
+# like this:
+ 
+proc grep {test list} {
+    set matching [list]
+    foreach {_} $list {
+        if {[expr $test]} {
+            lappend matching $_
+        }
+    }
+    return $matching
+}
+ 
+set bigs [grep {$_ > 1000000} $nums]
+set pigs [grep {$::users($_) > 1e7} [array names ::users]]
+ 
+set matching [grep {[regexp {^gnat } $_]} [exec who]]
+ 
+# assuming applicants is a list of lists where each sublist
+# has at least one element; income:
+set secondaryAssistance [grep {[lindex $_ 0] >= 26000 && [lindex $_ 0] < 30000} $applicants]
+ 
+# @@PLEAC@@_4.14
+ 
+# Numerical sorting (elements treated as reals).
+set sorted [lsort -real $unsorted]
+
+
+# Use the standard package TclX (contained in
+# the ActiveTcl distribution).
+package require Tclx
+ 
+# Note: the TclX kill command is not available
+# on Win9x/NT.  
+ 
+foreach {pid} [lsort -integer $pids] {
+    puts $pid
+} 
+puts "Select a process ID to kill:";
+set pid [gets stdin]
+if {$pid == 0 || [regexp {\D} $pid]} {
+    error Exiting...
+}
+kill TERM $pid
+sleep 2
+kill KILL $pid
+
+
+set descending [lsort -decreasing -real $unsorted]
+
+
+# You can specify -command CMD to the lsort command
+# to use a custom comparison command (see next solution).
+# The lsort command *is* reentrant, so CMD may use lsort
+# during its execution. 
+ 
+# @@PLEAC@@_4.15
+ 
+set ordered [lsort -command compare $unordered]
+
+
+# An ersatz map command:
+proc map {op list} {
+    foreach {_} $list {
+        lappend res [subst $op]
+    }
+    return $res
+}
+ 
+# The Perl compute takes no argument.  I assume this is
+# a mistake, as one would expect it to make some sort of
+# operation on the value of the element.
+ 
+set precomputed [map {[list [compute $_] $_]} $unordered]
+set orderedPrecomputed [lsort -index 0 $precomputed]
+set ordered [map {[lindex $_ 1]} $orderedPrecomputed]
+
+
+set ordered [map {[lindex $_ 1]} \
+            [lsort -index 0 \
+            [map {[list [compute $_] $_]} $unordered]]]
+
+
+# For the following examples, assume that employees is a 
+# list of lists, where the elements of each sublist are
+# - name
+# - salary
+# - SSN
+# - age
+ 
+set ordered [lsort -dictionary -index 0 $employees]
+ 
+foreach {e} [lsort -dictionary -index 0 $employees] {
+    puts "[lindex $e 0] earns [lindex $e 1]" 
+}
+ 
+set sortedEmployees [lsort -dictionary -index 0 $employees]
+foreach {e} $sortedEmployees {
+    puts "[lindex $e 0] earns [lindex $e 1]" 
+}
+# load bonus array
+foreach {e} $sortedEmployees {
+    if {$bonus([lindex $e 2])} {
+    puts "[lindex $e 0] got a bonus!"
+    }
+}
+
+
+proc multiSort {a b} {
+    set cmp [string compare [lindex $a 0] [lindex $b 0]]
+    if {$cmp == 0} {
+        return [expr {[lindex $a 3]-[lindex $b 3]}]
+    } else {
+        return $cmp
+    }
+}
+
+
+proc sortBySecondLetter {a b} {
+    return [string compare [string range $a 1 1] [string range $b 1 1]]
+}
+ 
+set sorted [lsort -command sortBySecondLetter $names]
+
+
+proc sortByLength {a b} {
+    return [string compare [string length $a] [string length $b]]
+}
+ 
+set sorted [lsort -command sortByLength $names]
+ 
+# @@PLEAC@@_4.16
+ 
+set circular [concat [lrange $list 1 end] [lindex $list 0]]
+set circular [concat [lindex $list end] [lrange $list 0 end-1]]
+
+
+proc grabAndRotate {listname} {
+    upvar $listname list
+    set first [lindex $list 0]
+    set list [concat [lrange $list 1 end] $first]
+    return $first
+}
+ 
+set processes [list 1 2 3 4 5]
+while 1 {
+    set process [grabAndRotate processes]
+    puts "Handling process $process"
+    after 1000
+}
+ 
+# @@PLEAC@@_4.17
+ 
+proc FisherYatesShuffle {listname} {
+    upvar $listname list
+    for {set i [expr {[llength $list]-1}]} {$i >= 0} {incr i -1} {
+        set j [expr {int(rand()*$i+1)}]
+        if {$i != $j} {
+            set temp [lindex $list $i]
+            set list [lreplace $list $i $i [lindex $list $j]]
+            set list [lreplace $list $j $j $temp]
+        }
+    }
+}
+
+
+# Several shuffle algorithms in Tcl are compared for performance
+# here: <URL: http://mini.net/cgi-bin/nph-wikit/941.html>.
+# This is a very efficient algorithm for small lists:
+ 
+proc K { x y } { set x } ;# Donal Fellows
+ 
+proc shuffle5a { list } {
+    set n 1
+    set slist {}
+    foreach item $list {
+        set index [expr {int(rand()*$n)}]
+        set slist [linsert [K $slist [set slist {}]] $index $item]
+        incr n
+    }
+    return $slist
+} ;# Christoph Bauer
+
+
+set len [llength $list]
+set perm [factorial $len]
+set shuffle [list]
+foreach {i} [n2perm [expr {1+int(rand()*$perm)}] [expr {$len-1}]] {
+    lappend shuffle [lindex $list $i]
+}
+ 
+# @@PLEAC@@_4.19
+ 
+array set ::fact [list 0 1]
+ 
+proc factorial {n} {
+    global fact
+    if {![info exists fact($n)]} {
+        set fact($n) [expr {$n * [factorial [expr {$n - 1}]]}]
+    }
+    return $fact($n)
+}
+ 
+# n2pat N len : produce the $N-th pattern of length $len
+proc n2pat {N len} {
+    set i 1
+    set pat [list]
+    while {$i <= $len + 1} {
+        lappend pat [expr {$N % $i}]
+        set N [expr {int($N/$i)}]
+        incr i
+    }
+    return $pat
+}
+ 
+# pat2perm pat : turn pattern returned by n2pat into
+# permutation of integers.  XXX: splice is already O(N)
+proc pat2perm {args} {
+    if {[llength $args] == 1} {
+        set pat [lindex $args 0]
+    } else {
+        set pat $args
+    }
+    set source [list]
+    for {set i 0} {$i < [llength $pat]} {incr i} {
+        lappend source $i
+    }
+    set perm [list]
+    while {[llength $pat]} {
+        set i [lindex $pat end]
+        set pat [lrange $pat 0 end-1]
+        lappend perm [lindex $source $i]
+        set source [lreplace $source $i $i]
+    }
+    return $perm;
+}
+ 
+# n2perm N len : generate the $Nth permutation of $len objects
+proc n2perm {N len} {
+    return [pat2perm [n2pat $N $len]]
+}
+ 
+proc main {} {
+    while {[gets stdin _] >= 0} {
+        set data [split $_]
+        set len [llength $data]
+        set numPermutations [factorial $len]
+        set last [expr {$len - 1}]
+    }
+    for {set i 0} {$i < $numPermutations} {incr i} {
+        set permutation [list]
+        foreach {p} [n2perm $i $last] {
+            lappend permutation [lindex $data $p]
+        }
+        puts $permutation
+    }
+}
+ 
+main
  
