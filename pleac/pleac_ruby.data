@@ -2918,8 +2918,104 @@ puts "dir is #{dir}, name is #{name}, ext is #{ext}"
 # No fileparse_set_fstype() equivalent in ruby
 
 def extension(path)
-  ext = path.scan(/\..*$/).to_s
-  ext.sub(/^\./, "")
+    ext = path.scan(/\..*$/).to_s
+    ext.sub(/^\./, "")
+end
+
+
+# @@PLEAC@@_9.11
+#-----------------------------
+#!/usr/bin/ruby -w
+# symirror - build spectral forest of symlinks
+
+require 'find'
+require 'fileutils'
+
+raise "usage: #{$0} realdir mirrordir" unless ARGV.size == 2
+
+srcdir,dstdir = ARGV
+srcmode = File::stat(srcdir).mode
+Dir.mkdir(dstdir, srcmode & 07777) unless test(?d, dstdir)
+
+# fix relative paths
+Dir.chdir(srcdir) {srcdir = Dir.pwd}
+Dir.chdir(dstdir) {dstdir = Dir.pwd}
+
+Find.find(srcdir) do |srcfile| 
+    if test(?d, srcfile)
+        dest = srcfile.sub(/^#{srcdir}/, dstdir)
+        dmode = File::stat(srcfile).mode & 07777
+        Dir.mkdir(dest, dmode) unless test(?d, dest)
+        a = Dir["#{srcfile}/*"].reject{|f| test(?d, f)}
+        FileUtils.ln_s(a, dest)
+    end
+end
+
+
+# @@PLEAC@@_9.12
+# we use the Getopt/Declare library here for convenience:
+#   http://raa.ruby-lang.org/project/getoptdeclare/
+#-----------------------------
+#!/usr/bin/ruby -w
+# lst - list sorted directory contents (depth first)
+
+require 'find'
+require 'etc'
+require "Getopt/Declare"
+
+# Note: in the option-spec below there must by at least one hard
+# tab in between each -option and its description. For example
+#    -i <tab> read from stdin
+
+opts = Getopt::Declare.new(<<'EOPARAM')
+    ============
+    Input Format:
+        -i	read from stdin
+    ============
+    Output Format:
+        -l	long listing
+        -r	reverse listing
+    ============
+    Sort on: (one of)
+        -m	mtime (modify time - default)
+                {$sort_criteria = :mtime}
+        -u	atime (access time)
+                {$sort_criteria = :atime}
+        -c	ctime (inode change time)
+                {$sort_criteria = :ctime}
+        -s	size
+                {$sort_criteria = :size}
+        [mutex: -m -u -c -s]
+
+EOPARAM
+
+$sort_criteria ||= :mtime
+files = {}
+DIRS = opts['-i'] ? $stdin.readlines.map{|f|f.chomp!} : ARGV
+DIRS.each do |dir|
+    Find.find(dir) do |ent|
+        files[ent] = File::stat(ent)
+    end
+end
+entries = files.keys.sort_by{|f| files[f].send($sort_criteria)}
+entries = entries.reverse unless opts['-r']
+
+entries.each do |ent|
+    unless opts['-l']
+        puts ent
+        next
+    end
+    stats = files[ent]
+    ftime = stats.send($sort_criteria == :size ? :mtime : $sort_criteria)
+    printf "%6d %04o %6d %8s %8s %8d %s %s\n",
+        stats.ino,
+        stats.mode & 07777,
+        stats.nlink,
+        ETC::PASSWD[stats.uid].name,
+        ETC::GROUP[stats.gid].name,
+        stats.size,
+        ftime.strftime("%a %b %d %H:%M:%S %Y"),
+        ent
 end
 
 
