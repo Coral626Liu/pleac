@@ -11,7 +11,7 @@
 
 %%% @@PLEAC@@_1.0
 
-%% A character is simply an integer. For Latin-1 (or any Latin-N) and
+%% A character is simply an integer. For Latin-1 (or any Latin-n) and
 %% thus ASCII we have some syntactic sugar.
 
 C = 110.					% an ASCII 'n'
@@ -141,7 +141,7 @@ A = << "To be or not to be" >>,
 
 %%-----------------------------
 
-%% This function returns a function (closure, actually) instead of an
+%% This function returns a function (actually a closure) instead of an
 %% unpack format string --- so I call it cut2fun intead.
 
 cut2fun(Positions) ->
@@ -166,7 +166,7 @@ Fun = cut2fun([8, 14, 20, 26, 30]).		% no point in printing it
 % => #Fun<tmp.3.14582076>
 Fun(Bin).					% so use it instead
 % => [Bin1, Bin2, Bin3, Bin4, Bin5, BinRest]
-
+(cut2fun([8, 14, 20, 26, 30]))(Bin).		% or use it instantly (somewhat messy syntax)
 
 %%% @@PLEAC@@_1.2
 %%-----------------------------
@@ -179,7 +179,7 @@ A = if
 %%-----------------------------
 %% While the Erlang language proper has no concept of not-defined most
 %% lookup-functions have it in some guise: The function erlang:get/1
-%% uses, for example,  the atom 'undefined'.
+%% uses, for example, the atom 'undefined'.
 
 %% use B if B is defined, else C
 A = case B of
@@ -245,13 +245,13 @@ starting_point(Place) ->
 
 fun(V1, V2) ->
 	%% Swapped here...
-end(V2, V1).
+	end(V2, V1).
 
 
 {Alpha, Beta, Production} = {january, march, august},
 fun(Alpha, Beta, Production) ->
 	%% Rotated here...
-end(Beta, Production, Alpha).
+	end(Beta, Production, Alpha).
 
 %% And here I use named functions
 
@@ -361,9 +361,8 @@ sum_(FName, Acc) ->
 	    Acc;
 	{ok, Bin} ->
 	    binaries_fold(
-	      fun(Bin, Acc)->
-		      <<Ch:1/unit:8, Rest/binary>> = Bin,
-		      {(Acc + Ch) band (1 bsl 16 - 1), Rest}
+	      fun(<<Ch:1/unit:8, Rest/binary>>, S) ->
+		      {(Acc + Ch) rem (1 bsl 16 - 1), Rest}
 	      end, Acc, Bin)
     end.
 
@@ -375,8 +374,50 @@ binaries_fold(Fun, Acc, Bin) ->
 
 %%-----------------------------
 
-%% MISSING: slowcat
-    
+%% TODO: Make this a standalone program.
+
+-module(slowcat).
+-author('sverkerw').
+
+-compile(export_all).
+
+slowcat(Files) ->
+    slowcat(1, Files).
+
+slowcat(Delay, Files) ->
+    lists:foreach(
+      fun(F) ->
+	      slowcat_(Delay, F)
+      end, Files).
+
+slowcat_(Delay, File) ->
+    case file:read_file(File) of
+	{error, Err} ->
+	    io:format("[~w]", [Err]);
+	{ok, Bin} ->
+	    binaries_foreach(
+	      fun(<<Ch:1/unit:8, Rest/binary>>) ->
+		      timer:sleep(Delay*5),
+		      io:put_chars([Ch]),
+		      Rest
+	      end, Bin)
+    end.
+
+binaries_foreach(_, << >>) ->
+    ok;
+binaries_foreach(Fun, Bin) ->
+    Bin1 = Fun(Bin),
+    binaries_foreach(Fun, Bin1).
+
+%%% @@PLEAC@@_1.6
+%%-----------------------------
+
+%% reversing by character
+Revbytes = lists:reverse(String).
+
+%% reversing by word
+Revwords = perl_join(" ", lists:reverse(string:tokens(String, " "))).
+
 
 %%% @@PLEAC@@_APPENDIX
 
@@ -394,8 +435,27 @@ lists_map2_(Fun, [H1|T1], [H2|T2], RevLoP) ->
     lists_map2_(T1, T2, [Fun(H1, H2) | RevLoP]).
 
 
+%% Iterates over binaries.
+binaries_foreach(_, << >>) ->
+    ok;
+binaries_foreach(Fun, Bin) ->
+    Bin1 = Fun(Bin),
+    binaries_foreach(Fun, Bin1).
+
 binaries_fold(_, Acc, << >>) ->
     Acc;
 binaries_fold(Fun, Acc, Bin) ->
     {Acc1, Bin1} = Fun(Bin, Acc),
     binaries_fold(Fun, Acc1, Bin1).
+
+%% A Perl-style join --- concatenates all strings in Strings,
+%% separated by Sep.
+perl_join(Sep, Strings) ->
+    perl_join_(Sep, Strings, []).
+
+perl_join_(_, [], Acc) ->
+    lists:append(lists:reverse(Acc));
+perl_join_(Sep, [Str | Rest], []) ->
+    perl_join_(Sep, Rest, [Str]);
+perl_join_(Sep, [Str | Rest], Acc) ->
+    perl_join_(Sep, Rest, [Str, Sep | Acc]).
