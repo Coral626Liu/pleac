@@ -2493,8 +2493,7 @@ Grooviness went out of fashion decades ago."""
 
 meadow = "Ovines are found typically in ovaries."
 
-# "\b" should work but fails.
-if re.search("\bovines\b",meadow,re.I) : print "Here be sheep!"
+if re.search(r"\bovines\b",meadow,re.I) : print "Here be sheep!"
 #-----------------------------
 # The tricky bit
 string = "good food"
@@ -2524,6 +2523,7 @@ print "(%s) (%s) (%s)" % \
 	(string[:fnd.start()], string[fnd.start():fnd.end()], string[fnd.end():])
 # (And ) (little lambs) ( eat ivy)
 
+
 # @@PLEAC@@_6.1
 import re
 dst = re.sub("this","that",src)
@@ -2549,6 +2549,46 @@ print " ".join(libdirs),"\n"
 #-----------------------------
 # strings are never modified in place.
 #-----------------------------
+
+# @@PLEAC@@_6.2
+##---------------------------
+import re
+if re.match("^[A-Za-z]+$",ln):
+	print "pure alphabetic"
+##---------------------------
+if re.match(r"^[^\W\d_]+$", ln, re.LOCALE):
+	print "pure alphabetic"
+##---------------------------
+import re
+import locale, sys
+
+try:
+    locale.setlocale(locale.LC_ALL, 'fr_CA.ISO8859-1')
+except:
+    print "couldn't set locale to French Cnadian"
+    sys.exit()
+
+DATA="""
+silly
+façade
+coöperate
+niño
+Renée
+Molière 
+hæmoglobin
+naïve
+tschüß
+random!stuff#here
+"""
+
+for ln in DATA.split():
+    ln = ln.rstrip()
+    if re.match(r"^[^\W\d_]+$",ln,re.LOCALE):
+        print "%s: alphabetic" % (ln)
+    else:
+        print "%s: line noise" % (ln)
+# although i dont think "coöperate" should be in canadian
+##---------------------------
 
 # @@PLEAC@@_6.3
 # Matching Words
@@ -2613,6 +2653,98 @@ re.sub("""(?x)     # nicer formatting
           line
       )
 ##-----------------------------
+
+# @@PLEAC@@_6.5
+import re
+pond = "one fish two fish red fish blue fish"
+fishes = re.findall(r"(?i)(\w+)\s+fish\b",pond)
+if len(fishes)>2:
+    print "The third fish is a %s one." % (fishes[2])
+##-----------------------------
+re.findall(r"(?i)(?:\w+\s+fish\s+){2}(\w+)\s+fish",pond)
+##-----------------------------
+# in python 2.2 and later
+count = 0
+for match_object in re.finditer(r"PAT",string):
+    count+=1
+# or
+iter = re.finditer(r"PAT",string)
+try:
+    while iter.next():
+        count += 1
+except StopIteration:
+    pass
+# "progressive" matching might be better if one wants match 5 from 50.
+# to count use
+count = len(re.findall(r"PAT",string))
+count = len(re.findall(r"aba","abaababa"))
+# "count" overlapping matches
+count = len(re.findall(r"(?=aba)","abaababa"))
+# FASTEST not overlapping might be string.count
+"abaababa".count("aba")
+##-----------------------------
+pond = "one fish two fish red fish blue fish"
+colors = re.findall(r"(?i)(\w+)\s+fish\b",pond)   # get all matches
+color = colors[2]                                 # then the one we want
+# or without a temporary array
+color = re.findall(r"(?i)(\w+)\s+fish\b",pond)[2] # just grab element 3
+
+print "The third fish in the pond is %s." % (color)
+##-----------------------------
+pond = "one fish two fish red fish blue fish"
+count = 0
+evens = []
+for fish in re.findall(r"(\w+)\s+fish\b",pond):
+    if (count % 2)==1:
+        evens.append(fish)
+    count += 1
+print "Even numbered fish are %s." % (" ".join(evens))
+##-----------------------------
+count = 0
+def four_is_sushi(match_obj):
+    global count
+    count += 1
+    if count==4:
+        return "sushi%s" % (match_obj.group(2))
+    return "".join(match_obj.groups())
+
+re.sub(r"""(?x)               # VERBOSE
+           \b                 # makes next \w more efficient
+           ( \w+ )            # this is what we'll be changing
+           (
+             \s+ fish \b
+           )""",
+           four_is_sushi,
+           pond)
+# one fish two fish red fish sushi fish
+##-----------------------------
+# greedily
+last_fish = re.findall(r"(?i).*\b(\w+)\s+fish\b",pond)
+##-----------------------------
+pond = "One fish two fish red fish blue fish swim here"
+color = re.findall(r"(?i)\b(\w+)\s+fish\b",pond)[-1]
+print "Last fish is "+color+"."
+# FASTER using string.
+color = pond[0:pond.rfind("fish")].split()[-1]
+##-----------------------------
+r"""(?x)
+    A             # find some pattern A
+    (?!           # mustn't be able to find
+      .*          # something
+      A           # and A
+    )
+    $             # through the end of string
+ """
+
+pond = "One fish two fish red fish blue fish swim here"
+fnd = re.findall(r"""(?xis)                # VERBOSE, CASEINSENSITIVE, DOTALL
+                  \b ( \w+ ) \s+ fish \b
+                  (?! .* \b fish \b )""",
+                  pond)
+if len(fnd):
+    print "Last fish is %s." % (fnd[0])
+else:
+    print "Failed!"
 
 
 # @@PLEAC@@_7.0
@@ -5785,6 +5917,47 @@ opts, rest = getopt.getopt(argv, "", [
 
 # TODO: Introduce 'optparse', a very powerful command line
 # option parsing module. New in 2.3.
+
+
+# @@PLEAC@@_15.2
+##------------------
+import sys
+
+def I_am_interactive_python():
+    try:
+        ps = sys.ps1
+    except:
+        return 0
+    return 1
+##------------------
+import os
+def I_am_interactive():
+    # only false if stdin is redirected like "-t" in perl.
+    return sys.stdin.isatty()
+##------------------
+import posix
+def I_am_interactive_posix():
+    tty = open("/dev/tty")
+    tpgrp = posix.tcgetpgrp(tty.fileno())
+    pgrp = posix.getpgrp()
+    tty.close()
+    return (tpgrp == pgrp)
+
+# test with:
+#  python 15.2.py
+#  echo "dummy" | python 15.2.py | cat
+print "is python shell:",I_am_interactive_python()
+print "is a tty:", I_am_interactive()
+print "has no tty:", I_am_interactive_posix()
+
+if I_am_interactive():
+    while 1:
+        try:
+            ln = raw_input("Prompt:")
+        except:
+            break
+        print "you typed:", ln
+
 
 # @@PLEAC@@_15.6
 
