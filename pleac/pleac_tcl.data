@@ -11,51 +11,61 @@
 # @@SKIP@@ Version: Tcl 8.3
 
 # @@PLEAC@@_1.0
- 
-set string {\n}                     ;# two characters, \ and an n
-set string "Jon {Maddog} Orwant"    ;# literal braces
- 
+
+# Tcl's "..." corresponds to Perl's "...", while the other
+# quoting construct {...} is more similar to Perl's q{...}
+# operator.
+# 
+# It's not necessary to quote text data in Tcl as long as
+# it doesn't contain whitespace.
+
+
+set string {\n}                     ;# two characters, \ and n
+set string "jon 'maddog' orwant"    ;# literal single quotes
+
 set string \n                       ;# a "newline" character
-set string "\n"                     ;# another "newline" character
-set string "Jon \"Maddog\" Orwant"  ;# literal double quotes
-set string {Jon "Maddog" Orwant}    ;# literal double quotes, again
- 
+set string "jon \"crosby\" orwant"  ;# literal double quotes
+set string {jon "stills" orwant}    ;# literal double quotes
+set string "jon {nash} orwant"      ;# literal braces
+set string {jon {young} orwant}     ;# literal braces
+
 set a {
-This is a multiline string
+this is a multiline string
 terminated by an unescaped and
 {unnested} right brace (\})
 }
- 
-# @@PLEAC@@_1.1
- 
-set value [string range $string $first $last]
-set value [string range $string $first [expr {$first+$num-1}]]
-set value [string range $string $first end]
- 
-set string [string replace $string $first $last $newstring]
-set string [string replace $string $first [expr {$first+$num-1}] $newstring]
-set string [string replace $string $first end $newtail]
 
+set empty {}                        ;# empty string
+
+
+# @@PLEAC@@_1.1
+
+set value [string range $string $first $last]
+set value [string range $string $first [expr {$first+$count-1}]]
+set value [string range $string $first end]
+
+set string [string replace $string $first $last $newstring]
+set string [string replace $string $first [expr {$first+$count-1}] $newstring]
+set string [string replace $string $first end $newtail]
 
 # get a 5-byte string, skip 3, then grab 2 8-byte strings, then the rest
 binary scan $data "A5 x3 A8 A8 A*" leading s1 s2 trailing
- 
-# Important note: this was all well and good when the Cookbook was 
+
+# Important note: the above was all well and good when the Cookbook was 
 # written and a character and a byte were the same size.  They still
 # are for some programming languages, but Tcl for one uses 16-bit
 # Unicode characters to encode strings.
- 
+# 
 #   The above unpack/scan works for strings containing only character
 # codes in the range 0--255, but distorts other strings by truncating
 # all codes to 8 bits.
- 
+# 
 #   To avoid this, the input string can be converted to an 8-bit
-# encoding before scanning (\uhhhh is Tcl'ish for Unicode character
-# code; each h stands for one hexadecimal digit):
- 
-set data "H\u2082O is the chemical formula for water"
-set utf8data [encoding convertto utf-8 $data]
- 
+# encoding before scanning:
+
+encoding convertto utf-8 "H\u2082O is the chemical formula for water"
+# => Hâ‚‚O is the chemical formula for water
+
 # split at five-byte boundaries (16-bit safe)
 set fivers [list]
 set temp [encoding convertto utf-8 $string]
@@ -64,97 +74,84 @@ while {[binary scan $temp a5a* group tail]} {
     set temp $tail
 }
 if {[string length $tail]} { lappend fivers $tail }
- 
-# To split at five-character boundaries, this is much more
-# convenient, *and* 16-bit safe without re-encoding the data
+set fivers
+
+# split at five-char boundaries (16-bit safe)
 set fivers [regexp -all -inline {.{1,5}} $data]
- 
+
 # chop string into individual characters:
-# The binary command is a poor choice for this task.
-# split is more elegant, and 16-bit safe too.
 set chars [split $data {}]
 
-
-set string "This is what you have"
-#          +012345678901234567890  Indexing forwards (left to right)
-#           098765432109876543210- Indexing from end (right to left)
-#           note that 0 means 10 or 20, etc. above
- 
+# "This is what you have"
+# +012345678901234567890  Indexing forwards (left to right)
+#  098765432109876543210- Indexing from end (right to left)
+# note that 0 means 10 or 20, etc. above
+# 
 # end is a special value that is available in list and string 
 # commands.  It is defined as the index of the last element (in 
 # lists), or character (in strings).
 #   Likewise, end-1 is defined as the element/character
 # preceding the last, and so on.
- 
-set first [string index $string 0]
-# => "T"
-set first [string range $string 0 0]
-# => "T"
-set start [string range $string 5 6]
-# => "is"
-set rest [string range $string 13 end]
-# => "you have"
-set last [string index $string end]
-# => "e"
-set end [string range $string end-3 end]
-# => "have"
-set piece [string range $string end-7 end-5]
-# => "you"
- 
-set string "This is what you have"
-puts $string
-# => This is what you have
- 
-set string [string replace $string 5 6 wasn't]  ;# change "is" to "wasn't"
+
+set first [string index "This is what you have" 0]
+# => T
+
+set start [string range "This is what you have" 5 6]
+# => is
+
+set rest [string range "This is what you have" 13 end]
+# => you have
+
+set last [string index "This is what you have" end]
+# => e
+
+set end [string range "This is what you have" end-3 end]
+# => have
+
+set piece [string range "This is what you have" end-7 end-5]
+# => you
+
+# The general technique here is to mutate a string and then assign
+# it back to the variable.  One can [replace] a segment of the string
+# with another string or with an empty string (deleting the segment)
+# or simply select a segment using [range].
+
+set string [string replace "This is what you have" 5 6 wasn't]
 # => This wasn't what you have
- 
-set string [string replace $string end-11 end ondrous]
+
+set string [string replace "This wasn't what you have" end-11 end ondrous]
 # => This wasn't wondrous
- 
-set string [string replace $string 0 0]  ;# delete first character
+
+set string [string range "This wasn't wondrous" 1 end]
 # => his wasn't wondrous
- 
-set string [string replace $string end-9 end]  ;# delete last 10 characters
+
+set string [string range "his wasn't wondrous" 0 end-10]
 # => his wasn'
 
-
-# you can test substrings with regular expressions
 if {[regexp $pattern [string range $string end-9 end]]} {
-    set report "Pattern matches in last 10 characters"
+    return "Pattern matches in last 10 characters"
+} else {
+    return "Match failed"
 }
- 
+
 # substitute "at" for "is", restricted to first five characters
 regsub -all is [string range $string 0 4] at newstring
 set string [string replace $string 0 4 $newstring]
- 
-# exchange the first and last letters in a string
-# inelegant solution using substrings
-set a "make a hat"
-set a [string index $a end][string range $a 1 end-1][string index $a 0]
-puts $a
+
+regsub {(.)(.*)(.)} "make a hat" {\3\2\1} a
+set a
 # => take a ham
- 
-# better solution using regexp substitution:
-regsub {(.)(.*)(.)} $a {\3\2\1} a
 
-
-# extract column with unpack
-set a "To be or not to be"
-# this solution is not 16-bit safe
-binary scan $a "x6 A6" b
-puts $b
+set b [string range "To be or not to be" 6 11]
 # => or not
- 
-# but this one is
-set b [string range $a 6 11]
- 
+
+set a "To be or not to be"
 set b [string range $a 6 7]
-set c [string range $a 3 4]
-puts $b:$c
+append b : [string range $a 3 4]
 # => or:be
 
 
-proc cut2fmt args {
+proc cut2fmt {args} {
     set positions $args
     set template  {}
     set lastpos   1
@@ -165,16 +162,13 @@ proc cut2fmt args {
     append template A*
     return $template
 }
- 
+    
 set fmt [cut2fmt 8 14 20 26 30]
-puts $fmt
 # => A7 A6 A6 A6 A4 A*
- 
+
+
 # @@PLEAC@@_1.2
 
-
-# Perl: use $b if $b is true, else $c
- 
 # In Tcl, commands such as if or while require the value of the
 # condition expression to be a proper boolean value.  If the 
 # value is numeric, 0 is false and anything else is true.  For
@@ -182,34 +176,28 @@ puts $fmt
 # "false", "off", or "no" is false.  Any other value for the
 # condition expression raises an error.
 #   The `boolean operators' return either "1" or "0".
- 
+
 # use $b if b has characters, else $c
 if {[string length $b]} {
     set a $b
 } else {
     set a $c
 }
-
-
-# use $b if b is nonzero, else $c
+# use $b if b is non-zero, else $c
 if {$b != 0} {
     set a $b
 } else {
     set a $c
 }
 
-
 # set x to $y if $x has no characters
 if {![string length $x]} {
     set x $y
 }
-
-
 # set x to $y if $x is zero
 if {$x == 0} {
     set x $y
 }
-
 
 # set a to $b if b exists, else to $c
 if {[info exists b]} {
@@ -217,7 +205,6 @@ if {[info exists b]} {
 } else {
     set a $c
 }
-
 
 # Perl: $dir = shift(@ARGV) || "/tmp";
 set arg [lindex $argv 0]
@@ -228,7 +215,6 @@ if {[string length $arg]} {
     set dir /tmp
 }
 
-
 # Perl: $dir = $ARGV[0] || "/tmp";
 set arg [lindex $argv 0]
 if {[string length $arg]} {
@@ -237,7 +223,6 @@ if {[string length $arg]} {
     set dir /tmp
 }
 
-
 # Perl: $dir = defined($ARGV[0]) ? shift(@ARGV) : "/tmp";
 if {[info exists argv] && [llength $argv]} {
     set dir [lindex $argv 0]
@@ -245,15 +230,12 @@ if {[info exists argv] && [llength $argv]} {
 } else {
     set dir /tmp
 }
-
-
 # Perl: $dir = @ARGV ? $ARGV[0] : "/tmp";
 if {[llength $argv]} {
     set dir [lindex $argv 0]
 } else {
     set dir /tmp
 }
-
 
 # Perl: $count{ $shell || "/bin/sh" }++;
 if {![string length $shell]} {
@@ -265,8 +247,14 @@ if {[info exist count($shell)]} {
     set count($shell) 1
 }
 
+# The catch command intercepts errors raised.  In this
+# case catch is used as an alternative idiom to 
+# [info exists var].
+# The pros and cons of the different idioms is 
+# discussed at <URL: http://mini.net/tcl/1322.html>.
 
-# find the user name on Unix systems
+# find the user name on Unix systems; needs extension to
+# check getlogin() and getpwuid()
 if {![catch {string length $env(USER)}]} {
     set user $env(USER)
 } elseif {![catch {string length $env(LOGIN)}]} {
@@ -274,330 +262,369 @@ if {![catch {string length $env(USER)}]} {
 } else {
     set user "Unknown user"
 }
-# The catch command intercepts errors raised.  In this
-# case catch is used as an alternative idiom to 
-# info exists <var>.
-# The pros and cons of the different idioms is 
-# discussed at <URL: http://mini.net/tcl/1322.html>.
-
-# needs extension to check getlogin() and getpwuid()
-
-
-if {![string length $starting_point]} {
-    set starting_point Greenwich
+ 
+# The most obvious way to do the above in Tcl is
+set ::tcl_platform(user)
+ 
+ 
+if {![string length $startingPoint]} {
+    set startingPoint Greenwich
 }
 
-
-# copy list only if empty
-if {![llength $a]} {
-    set a $b
-}
-
-
-# assign b if nonempty, else c
-if {[llength $b]} {
-    set a $b
-} else {
-    set a $c
+# if x has no elements, assign $y to it
+if {[llength $x] == 0} {
+    set x $y
 }
  
+# if y has elements, assign it to x, otherwise assign $z to x
+if {[llength $y]} {
+    set x $y
+} else {
+    set x $z
+}
+
+
 # @@PLEAC@@_1.3
 
-
 # cross-assignment
-foreach {b a} [list $a $b] break
-
+foreach {b a} $args break
 
 # cross-assignment with temp
 set temp $a
 set a $b
 set b $temp
-
+unset temp
 
 foreach {alpha beta production} [list January March August] break
 # move beta       to alpha,
 # move production to beta,
 # move alpha      to production
 foreach {alpha beta production} [list $beta $production $alpha] break
- 
+
+
 # @@PLEAC@@_1.4
- 
+
 set num [scan $char %c]
+
 set char [format %c $num]
 
 
-# works for 16-bit Unicode characters
-format "Number %d is character %c" $num $num
-# => "Number 101 is character e"
+format "Number %d is character %c" 101 101
+# => Number 101 is character e
 
-
-# works for 8-bit characters (skip encoding change) and
-# 8-bit encodings of Unicode characters
 set utf8data [encoding convertto utf-8 $string]
 binary scan $utf8data c* codelist
+
 set utf8data [binary format c* $codelist]
 set string [encoding convertfrom utf-8 $utf8data]
 
 
-set hal HAL
-binary scan $hal c* codes
-foreach {num} $codes {
-    lappend newcodes [incr num]
+proc hal2ibm {} {
+    set hal HAL
+    binary scan $hal c* codes
+    foreach {num} $codes {
+        lappend newcodes [incr num]
+    }
+    set ibm [binary format c* $newcodes]
 }
-set ibm [binary format c* $newcodes]
-puts $ibm
-# => prints "IBM"
- 
+hal2ibm
+
+# => IBM
+
+
 # @@PLEAC@@_1.5
- 
+
 set a [split $string {}]
- 
-# works for 8-bit characters and 8-bit encodings
-# of Unicode characters
+
 set utf8data [encoding convertto utf-8 $string]
 binary scan $utf8data c* a
- 
+
 # with -line, . never matches newline
-foreach ch [regexp -inline -all -line . $string] {
-    # do something with $ch
+foreach 1 [regexp -inline -all -line . $string] {
+    # do something with $1
 }
 
 
-array set seen [list]
-set string "an apple a day"
-foreach {char} [split $string {}] {
-    if {[info exists seen($char)]} {
-        incr seen($char)
-    } else {
-        set seen($char) 1
+proc indChars-1 {s} {
+    array set seen [list]
+    set string $s
+    foreach {char} [split $string {}] {
+        if {[info exists seen($char)]} {
+            incr seen($char)
+        } else {
+            set seen($char) 1
+        }
     }
+    return "unique chars are: {[join [lsort [array names seen]] {}]}"
 }
-puts "unique chars are: [lsort [array names seen]]"
-# => unique chars are: { } a d e l n p y
- 
-array set seen [list]
-set string "an apple a day"
-foreach {byte} [regexp -inline -all -line . $string] {
-    if {[info exists seen($byte)]} {
-        incr seen($byte)
-    } else {
-        set seen($byte) 1
-    }
-}
-puts "unique chars are: [lsort [array names seen]]"
-# => unique chars are: { } a d e l n p y
- 
+indChars-1 "an apple a day"
+
+# => unique chars are: { adelnpy}
+
 # Of course, if all you care about are which unique 
 # characters appear, it's much easier:
-lsort -unique [split $s {}]
+
+
+proc uniqueChars-1 {s} {
+    return "unique chars are: {[join [lsort -unique [split $s {}]] {}]}"
+}
+uniqueChars-1 "an apple a day"
+
+# => unique chars are: { adelnpy}
 
 
 # simplistic checksum calculation
-set sum 0
-binary scan $string c* codes
-foreach {code} $codes {
-    incr sum $code
+proc simpleChecksum {string} {
+    set sum 0
+    binary scan $string c* codes
+    foreach {code} $codes {
+        incr sum $code
+    }
+    set sum
 }
-puts "sum is $sum"
-# => sum is 1248
-# if $string was "an apple a day"
+
+simpleChecksum "an apple a day"
+
+# => 1248
+
+# The Trf package, which is available at
+# <URL: http://www.oche.de/~akupries/soft/trf/>,
+# has several utilities for transforming data,
+# including message digests such as CRC and MD5.
 
 
-# ...I pass on the checksum tricks...
+package require Trf
+
+binary scan [crc {an apple a day}] H* checksum
+set checksum
+
+# => 325295
 
 
 # slowcat - emulate a   s l o w   line printer
 # usage: slowcat [-DELAY] [files ...]
-set delay 1
-if {[info exists argv] && [llength $argv]} {
-    if {[regexp {^-([.\d]+)} [lindex $argv 0] match delay]} {
-        set argv [lrange $argv 1 end]
-    }
-}
-fconfigure stdout -buffering no
-if {[info exists argv] && [llength $argv]} {
-    foreach {arg} $argv {
-        set f [open $arg]
-        lappend channels $f
-    }
-} else {
-    set channels stdin
-}
-foreach {chan} $channels {
-    while {[gets $chan line] > -1} {
-        foreach {ch} [split $line {}] {
-            puts -nonewline $ch
-            after [expr {int(5 * $delay)}]
+proc slowcat {args} {
+    set delay 1
+    if {[llength $args]} {
+        if {[regexp {^-([.\d]+)} [lindex $args 0] match delay]} {
+            set args [lrange $args 1 end]
         }
-        puts {}
+    }
+    fconfigure stdout -buffering no
+    if {[llength $args]} {
+        foreach {arg} $args {
+            set f [open $arg]
+            lappend channels $f
+        }
+    } else {
+        set channels stdin
+    }
+    foreach {chan} $channels {
+        while {[gets $chan line] > -1} {
+            foreach {ch} [split $line {}] {
+                puts -nonewline $ch
+                after [expr {int(5 * $delay)}]
+            }
+            puts {}
+        }
     }
 }
- 
+
+
 # @@PLEAC@@_1.6
- 
-set revchars {}
-for {set i [expr {[string length $string]-1}]} {$i >= 0} {incr i -1} {
-    append revchars [string index $string $i]
+
+
+proc reverse {args} {
+    set res [list]
+    if {[llength $args] == 1} {
+        set args [lindex $args 0]
+    }
+    foreach elem $args {
+        set res [linsert $res 0 $elem]
+    }
+    set res
 }
 
 
-set revwords {}
-set words [split $string]
-for {set i [expr {[llength $words]-1}]} {$i >= 0} {incr i -1} {
-    lappend revwords [lindex $words $i]
-}
-join $revwords
+# reverse characters
+join [reverse [split $string {}]] {}
+
+# reverse words
+join [reverse [split $string]]
 
 
-# again, another way
- 
-# reverse letters in string
-set gnirts {}
-for {set i 0} {$i < [string length $string]} {incr i} {
-    append gnirts [string index $string end-$i]
-}
- 
-# reverse elements in words
-set sdrow {}
-for {set i 0} {$i < [llength $words]} {incr i} {
-    lappend sdrow [lindex $words end-$i]
-}
-
-
-# reverse word order where list symbols appear (braces, double quotes)
-set words [split {Yoda said, "can you see this?"}]
-set revwords {}
-for {set i 0} {$i < [llength $words]} {incr i} {
-    lappend revwords [lindex $words end-$i]
-}
-puts [join $revwords]
+# reverse quoted words
+join [reverse [split {Yoda said, "can you see this?"}]]
 # => this?" see you "can said, Yoda
 
 
-# this solution is equivalent to the previous one
-set revwords {}
-set list [split $string " "]
-for {set i [expr {[llength $list]-1}]} {$i >= 0} {incr i -1} {
-    lappend revwords [lindex $list $i]
-}
-set revwords [join $revwords " "]
-
-
-proc reverse {string} {
-    for {set i [expr {[string length $string]-1}]} {$i >= 0} {incr i -1} {
-        append res [string index $string $i]
-    }
-    return $res
-}
 set word reviver
-set is_palindrome [string equal $word [reverse $word]]
+set is_palindrome [string equal $word [join [reverse [split $word]]]]
+
 # => 1
-set word revive
-set is_palindrome [string equal $word [reverse $word]]
-# => 0
- 
+
+
 # @@PLEAC@@_1.7
- 
+
 while {[regexp -indices {\t+} $string where]} {
     foreach {first last} $where break
-    regsub {\t+} $string \
-        [string repeat { } [expr {8*($last-$first+1)-$first%8}]] string
+    set size [expr {$n*($last-$first+1)-$first%$n}]
+    regsub {\t+} $string [string repeat { } $size] string
 }
-
 
 # There is a standard module for exanding/collapsing
 # tabs, but all it does is straight substitution;
 # tabs <-> N spaces. (tcllib 1.0)
-package require textutil
-
-set expandedText [::textutil::tabify::untabify $collapsedText]
-set collapsedText [::textutil::tabify::tabify $expandedText]
 
 
-package require textutil
+proc main {collapsedText expandedText} {
+    package require textutil
+    
+    set expandedText [::textutil::tabify::untabify $collapsedText]
+    set collapsedText [::textutil::tabify::tabify $expandedText]
 
-while {[gets stdin line] >= 0} {
-    puts [::textutil::tabify::untabify $line 4]
+    while {[gets stdin line] >= 0} {
+        puts [::textutil::tabify::untabify $line 4]
+    }
+     
+    while {[gets stdin line] >= 0} {
+        puts [::textutil::tabify::tabify $line]
+    }
 }
- 
-package require textutil
 
-while {[gets stdin line] >= 0} {
-    puts [::textutil::tabify::tabify $line]
-}
- 
+
 # @@PLEAC@@_1.8
- 
-#You owe $debt to me.
-#-----------------------------
- 
-# Use subst if all variables are expected to be in scope:
-puts [subst $string]
- 
-#-----------------------------
-# uplevel the command as required if the variables 
-# exist in an enclosing scope:
-uplevel puts [list [subst $string]]
- 
-#-----------------------------
+
+
+set debt 100
+subst "You owe $debt to me."
+# => You owe 100 to me.
+
+
+set debt 100
+proc writeIt {string} {
+    uplevel subst [list $string]
+}
+# braces prevent immediate substitution
+writeIt {You owe $debt to me.}
+# => You owe 100 to me.
+
+
 foreach {rows cols} {24 80} break
-set text {I am $rows high and $cols long} ;# braces prevent substitution
+set text {I am $rows high and $cols long}
 set text [subst $text]
-puts $text
 # => I am 24 high and 80 long
- 
-#-----------------------------
+
+
 set string "I am 17 years old"
 regsub -all {(\d+)} $string {[expr {\1*2}]} string
 subst $string
 # => I am 34 years old
- 
-#-----------------------------
+
 # expand variables in $text, but put an error message in
 # if the variable isn't defined.
-# This code assumes that the variables exist in an 
-# enclosing scope; if not, remove the [uplevel]s.
-while {[regexp {\$(\w+)} $text match var]} {
-    if {[uplevel info exists $var]} {
-        regsub \\$match $text [uplevel set $var] text
-    } else {
-        regsub \\$match $text "\[NO VARIABLE: $var\]" text
+proc expandOrError-1 {@text} {
+    upvar ${@text} text
+    while {[regexp {\$(\w+)} $text match var]} {
+        if {[uplevel info exists $var]} {
+            regsub \\$match $text [uplevel set $var] text
+        } else {
+            regsub \\$match $text "\[NO VARIABLE: $var\]" text
+        }
     }
+    set text
 }
- 
+
+# Tcl allows commands to embedded in text data as well as variables. 
+# If the string is taken from user input, this may be a security
+# hazard.  The solution is to let a "safe interpreter" (which has a
+# reduced set of commands by default) interpret the text data.
+
+
+proc safeExpand-1 {string} {
+    set si [interp create -safe]
+    set res [uplevel $si eval [list subst [list $string]]]
+    interp delete $si
+    set res
+}
+if {[catch {safeExpand-1 {[exec rm foo.bar]}} msg]} {
+    set msg
+}
+
+# => invalid command name "exec"
+
+# In this case, calling the exec command raised an error because it's
+# not available to a safe interpreter.  It is also possible to
+# further reduce the command set of an interpreter, or to add new
+# commands, or to change the meaning of commands (i.e. exec would
+# allow *some* system commands but not all, etc).
+# 
+# But I digress...
+
+
 # @@PLEAC@@_1.9
- 
+
+
+set little "bo peep"
 set big [string toupper $little]
-# "bo peep" -> "BO PEEP"
+# => BO PEEP
+
+
+set big "BO PEEP"
 set little [string tolower $big]
-# "BO PEEP" -> "bo peep"
-set Title [string totitle $little]
-# "bo peep" -> "Bo peep"
- 
+# => bo peep
+
+
+set little "bo peep"
+set title [string totitle $little]
+# => Bo peep
+
+
+set little "bo peep"
 set big [string toupper $little 0]
-# "bo peep" -> "Bo peep"
+# => Bo peep
+
+
+set big "BO PEEP"
 set little [string tolower $big 0]
-# "Bo Peep" -> "bo Peep"
+# => bO PEEP
+
+
+# convert case within a string
+set name {kirk}
+set string "Ship's Captain: [string totitle $name]."
+# => Ship's Captain: Kirk.
 
 
 # capitalize each word's first character, downcase the rest
 set text "thIS is a loNG liNE"
-set text [string tolower $text]
 set pos 0
 while {[regexp -indices -start $pos {(\w+)} $text where]} {
     foreach {first last} $where break
-    set text [string toupper $text $first]
+    set text [string tolower $text $first $last]
+    set text [string totitle $text $first]
     set pos $last
     incr pos
 }
+set text
 # => This Is A Long Line
 
 
 # case insensitive string comparison
-string equal -nocase $a $b
+string equal -nocase foo Foo
+# => 1
 
 
 # randcap: filter to randomly capitalize 20% of the letters
+set text {
+001:001 In the beginning God created the heaven and the earth.
+
+001:002 And the earth was without form, and void; and darkness was
+        upon the face of the deep. And the spirit of God moved upon
+        the face of the waters.
+
+001:003 And God said, let there be light: and there was light.
+}
 set pos 0
 while {[regexp -indices -start $pos {(\w)} $text where]} {
     foreach {first last} $where break
@@ -609,57 +636,84 @@ while {[regexp -indices -start $pos {(\w)} $text where]} {
     set pos $last
     incr pos
 }
-# =>
-# 001:001 in the bEginnInG God CreatEd the Heaven aNd The eaRth.
-# 
-# 001:002 and ThE earth wAs wIthout form, aNd voId; aNd darkness was
-#         uPoN The faCE Of the deEP. aNd the spirIt of god moved uPon
-#         the facE of thE wATers.
-#
-# 001:003 AnD god SAiD, let tHere be lIght: and TheRe was light.
- 
+set text
+# => 
+001:001 iN The begInNing god crEaTed tHe HeAven And thE earTh.
+
+001:002 and tHe earth was wiThout form, aNd void; and darknESs Was
+        upOn tHe faCe OF the deep. and the sPirIt Of goD moved upOn
+        the fACE oF the wATers.
+
+001:003 AnD goD said, lEt there be light: aND there wAs LighT.
+
+
 # @@PLEAC@@_1.10
- 
+
+
 # Interpolating functions and expressions within strings
-set answer $var1[func]$var2
- 
+set var1 Tool
+proc func {s} {string totitle $s}
+set var2 Language
+set answer "$var1 [func command] $var2"
+# => Tool Command Language
+
+
+set n 5
 set phrase "I have [expr {$n + 1}] guanacos."
- 
+# => I have 6 guanacos.
+
+
+set rec foo:bar:baz
+interp alias {} some_cmd {} join
 some_cmd "What you want is [llength [split $rec :]] items"
- 
+# => What you want is 3 items
+
 set text {
 To: $naughty
 From: Your Bank
-Cc: [get_manager_list $naughty]
+Cc: [getManagerList $naughty]
 Date: [clock format [clock seconds]] (today)
- 
 Dear $naughty,
- 
 Today, you bounced check number [expr {500 + int(rand()*100)}] to us.
 Your account is now closed.
- 
 Sincerely,
 the management
 }
-if {![send_mail $text $target]} {
+if {![sendMail $text $target]} {
     error "Couldn't send mail"
 }
- 
+
+
 # @@PLEAC@@_1.11
- 
+
+
 # all in one
 regsub -line -all {^\s+} {
     your text
     goes here
 } {} var
- 
+format %s \n$var
+# => 
+your text
+goes here
+
+
+
 # or with two steps
 set var {
     your text
     goes here
 }
+
 regsub -line -all {^\s+} $var {} var
- 
+format %s \n$var
+# => 
+your text
+goes here
+
+
+
+# one more time
 regsub -line -all {^\s+} {
     The five varieties of camelids
     are the familiar camel, his friends
@@ -668,56 +722,71 @@ regsub -line -all {^\s+} {
     and vicuña.
 } {} definition
 
+# => 5
 
 proc fix {string} {
     regsub -line -all {^\s+} $string {} string
     return $string
 }
- 
-puts [fix {
+
+fix {
     My stuff goes here
-}]
+}
+# => My stuff goes here
 
 
+
+# the end-of-string right brace doesn't have to be flush left
 regsub -line -all {^\s+} {
     ...we will have peace, when you and all your works have
     perished--and the works of your dark master to whom you would
     deliver us. You are a liar, Saruman, and a corrupter of men's
     hearts.  --Theoden in /usr/src/perl/taint.c
-} {} quote
+                         } {} quote       ;# <-- looki looki
 # move attribution to line of its own
 regsub {\s+--} $quote \n-- quote
+format %s \n$quote
+
+# => 
+...we will have peace, when you and all your works have
+perished--and the works of your dark master to whom you would
+deliver us. You are a liar, Saruman, and a corrupter of men's
+hearts.
+--Theoden in /usr/src/perl/taint.c
 
 
-dequote {
-    @@@ int
-    @@@ runops() {
-    @@@     SAVEI32(runlevel);
-    @@@     runlevel++;
-    @@@     while ( op = (*op->op_ppaddr)() ) ;
-    @@@     TAINT_NOT;
-    @@@     return 0;
-    @@@ }
+
+proc rememberTheMain {} {
+    dequote {
+        @@@ int
+        @@@ runops() {
+        @@@     SAVEI32(runlevel);
+        @@@     runlevel++;
+        @@@     while ( op = (*op->op_ppaddr)() ) ;
+        @@@     TAINT_NOT;
+        @@@     return 0;
+        @@@ }
+    }
+    # add more code here if you want
 }
-# add more code here if you want
 
-
-dequote {
-   Now far ahead the Road has gone,
-      And I must follow, if I can,
-   Pursuing it with eager feet,
-      Until it joins some larger way
-   Where many paths and errands meet.
-      And whither then? I cannot say.
-            --Bilbo in /usr/src/perl/pp_ctl.c
+proc roadGoesEverOn {} {
+    dequote {
+       Now far ahead the Road has gone,
+          And I must follow, if I can,
+       Pursuing it with eager feet,
+          Until it joins some larger way
+       Where many paths and errands meet.
+          And whither then? I cannot say.
+                --Bilbo in /usr/src/perl/pp_ctl.c
+    }
 }
-
 
 proc quotemeta {string} {
     regsub -all {(\W)} $string {\\\1} string
     return $string
 }
- 
+
 proc dequote {text} {
     if {[regexp -line {^\s*(?:([^\w\s]+)(\s*).*\n)(?:\s*\1\2?.*\n)+(?:\s*)$} $text m 1 2]} {
         set white $2
@@ -729,14 +798,15 @@ proc dequote {text} {
     regsub -line -all ^\\s*?$leader\(?:$white\) $text {} text
     return [string trimright $text]\n
 }
- 
+
+
 # @@PLEAC@@_1.12
- 
-# The tcllib 1.0 textutil module can adjust text
-# to a specified line length, justify left, right,
-# and plain, and fill lines to the right margin.
-# However, it can't add indentation.
- 
+
+#     # The tcllib 1.0 textutil module can adjust text
+#     # to a specified line length, justify left, right,
+#     # and plain, and fill lines to the right margin.
+#     # However, it can't add indentation.
+
 # A naive implementation of wrap.  Arguments:
 # text	the text
 # col	the line length (default 72)
@@ -777,82 +847,117 @@ proc wrap {text {col 72} {lead {}} {follow {}}} {
 }
 
 
-set input [concat "Folding and splicing is the work of an editor," \
-      "not a mere collection of silicon" \
-      "and" \
-      "mobile electrons!"]
-puts [string repeat 0123456789 2]
-puts [wrap $input 20 {    } {  }]
-# =>
-# 01234567890123456789
-#     Folding and 
-#   splicing is the 
-#   work of an 
-#   editor, not a 
-#   mere collection 
-#   of silicon and 
-#   mobile electrons!
-return [wrap $input 20 {    } {  }]
- 
+set input {"Folding and splicing is the work of an editor,"
+      "not a mere collection of silicon"
+      "and"
+      "mobile electrons!"}
+append res \n [string repeat 0123456789 2] \n
+append res [wrap [join $input] 20 {    } {  }] \n
+
+# => 
+01234567890123456789
+    Folding and 
+  splicing is the 
+  work of an 
+  editor, not a 
+  mere collection 
+  of silicon and 
+  mobile electrons!
+
+
 # @@PLEAC@@_1.13
- 
+
 # backslash
-set pattern {}
-append pattern {([} $charlist {])}
-regsub -all $pattern $var {\\\1} var
- 
+regsub -all (\[$charlist]) $var {\\\1} var
+
 # double
-set pattern {}
-append pattern {([} $charlist {])}
-regsub -all $pattern $var {\1\1} var
+regsub -all (\[$charlist]) $var {\1\1} var
 
 
 set string {Mom said, "Don't do that."}
 regsub -all {(['"])} $string {\\\1} string
- 
+set string
+# => Mom said, \"Don\'t do that.\"
+
+
 set string {Mom said, "Don't do that."}
 regsub -all {(['"])} $string {\1\1} string
- 
-regsub -all {([^A-Z])} $string {\\\1} string
-# equivalent to:
-regsub -all {([^[:upper:]])} $string {\\\1} string
- 
+set string
+# => Mom said, ""Don''t do that.""
+
+
+set string {Mom said, "Don't do that."}
+regsub -all {([^A-Z])} $string {\\\1} string    ;# or: ([^[:upper:]])
+set string
+# => M\o\m\ \s\a\i\d\,\ \"D\o\n\'\t\ \d\o\ \t\h\a\t\.\"
+
+
 regsub -all {([^[:alnum:]])} "is a test!" {\\\1} string
 set string "this $string"
 # => this is\ a\ test\!
- 
+
+
 # @@PLEAC@@_1.14
- 
-regsub {^\s+} $string {} string
-regsub {\s+$} $string {} string
-set string [string trim $string]
- 
-# The input command, gets, automatically
-# strips off newlines.
- 
+
+
+string trim "\n\t Tcl \t\n"
+# => Tcl
+
+
+set string {
+    foo bar
+    baz
+    
+}
+set res [list]
+foreach {s} [split $string \n] {
+    lappend res [string trim $s]
+}
+string trim [join $res]
+# => foo bar baz
+
+# The [gets] (get string) command always strips off the EOL
+# sequence, be it CR, LF, or CRLF (configurable for the stream).
+# 
+# Anyway, if you have a string that *might* have one or more
+# \n characters at the end, and in case it does, you want to
+# remove them:
+
+
+string trimright "foo bar\n\n" \n
+# => foo bar
+
+
 # @@PLEAC@@_1.15
- 
+
+
+# csv is a part of the standard ActiveTcl distribution
 package require csv
- 
+
 set line {XYZZY,,"O'Reilly, Inc","Wall, Larry","a ""glug"" bit",5,"Error, Core Dumped"}
 set fields [::csv::split $line]
+set res {}
 for {set i 0} {$i < [llength $fields]} {incr i} {
-    puts "$i : [lindex $fields $i]"
+    append res \n "$i : [lindex $fields $i]"
 }
-# =>
-# 0 : XYZZY
-# 1 : 
-# 2 : O'Reilly, Inc
-# 3 : Wall, Larry
-# 4 : a "glug" bit
-# 5 : 5
-# 6 : Error, Core Dumped
- 
+set res
+# => 
+0 : XYZZY
+1 : 
+2 : O'Reilly, Inc
+3 : Wall, Larry
+4 : a "glug" bit
+5 : 5
+6 : Error, Core Dumped
+
+
 # @@PLEAC@@_1.17
- 
+
+
 # fixstyle - switch one set of strings to another set
 #   usage: <scriptname> [-v] [files ...]
-array set data {
+
+array set ::data {
     analysed         analyzed
     built-in         builtin
     chastized        chastised
@@ -890,9 +995,43 @@ set testtext {
     re-compiling we saw the application reenter 
     acceptable ratings on turnkey operations.
 }
+
+# verbose or non-verbose?
+if {[llength $argv] && [string equal [lindex $argv 0] -v]} {
+    set ::verbose yes
+    set argv [lrange $argv 1 end]
+} else {
+    set ::verbose no
+}
+
+# prepare text to be read
+set text {}
+if {[string match *test [info script]]} {
+    # if we're running a test:
+    set text $testtext
+} else {
+    # Try to assemble text from input.  Do we have arguments?
+    if {[info exists argv]} {
+        # Yes; try to open each and read contents:
+        foreach {fn} [lrange $argv 0 end] {
+            if {![catch {open $fn} chan]} {
+                append text [read $chan]
+                close $chan
+            }
+        }
+    }
+
+    if {![string length $text]} {
+        # we still don't have any text; try standard input
+        # (inform user first)
+        if {[tell stdin] == -1} {
+            puts stderr "[info script]: Reading from stdin"
+        }
+        set text [read stdin]
+    }
+}
  
-set verbose no
- 
+
 proc fixstyle {text} {
     global data verbose
     set newtext [list]
@@ -909,69 +1048,43 @@ proc fixstyle {text} {
     return $newtext
 }
  
-set channels [list]
- 
-if {[info exists argv]} {
-    if {[llength $argv] && [string equal [lindex $argv 0] -v]} {
-        set verbose yes
-        set argv [lrange $argv 1 end]
-    }
-    foreach {fn} [lrange $argv 0 end] {
-        if {![catch {open $fn} chan]} { lappend channels $chan}
-    }
-}
- 
-if {![llength $channels]} {
-    set channels [list stdin]
-    if {[tell stdin] == -1} {
-        puts stderr "[info script]: Reading from stdin"
-    }
-}
- 
-set text {}
- 
-foreach {chan} $channels { append text [read $chan] }
- 
-puts [fixstyle $text]
- 
-# @@PLEAC@@_2.1
- 
-if {[regexp {\D} $string]} {
-    error "$string has nondigits"
-}
-# => -3 has nondigits
-# => 3.0 has nondigits
-# => 3.0e4 has nondigits
- 
-if {![regexp {^\d+$} $string]} {
-    error "$string is not a natural number"
-}
-# => -3 is not a natural number
-# => 3.0 is not a natural number
-# => 3.0e4 is not a natural number
- 
-if {![regexp {^[+-]?\d+$} $string]} {
-    error "$string is not an integer"
-}
-# => 3.0 is not an integer
-# => 3.0e4 is not an integer
- 
-if {![regexp {^-?(?:\d+(?:\.\d*)?|\.\d+)$} $string]} {
-    error "$string is not a real number"
-}
-# => 3.0e4 is not a real number
- 
-if {![regexp {^([+-]?)(?=\d|\.\d)\d*(\.\d*)?([Ee]([+-]?\d+))?$} $string]} {
-    error "$string is not a C float"
-}
- 
+fixstyle $text
 
+# => Yesterday we analyzed the efficiency of the builtin thingummies and were considerably chastised by the results. It seems that command-line invocation forced the whatchamacallit to deallocate drop-in maguffins. First, we tested instead to hard-code metadata -- especially when in multi-character and multi-way format (obviously only for nonempty data sets). However, that turned out to be a nonprofit improvement. Dr Egnarts then demonstrated using nontrappable signals in predefine mode to pre-extend save rates. When recompiling we saw the application re-enter acceptable ratings on turn-key operations.
+
+
+# @@PLEAC@@_2.1
+
+# The "backwards conditional" Perl form is useful here
+# to demonstrate the various regexps.  Tcl doesn't have
+# this syntax, but it can be fudged very easily:
+
+
+proc warn {msg cond pattern {string 0}} {
+    if {[string equal if $cond]} {
+        if {[regexp $pattern $string]} {
+            return [format "%s: %s" $string $msg]
+        }
+    } elseif {[string equal unless $cond]} {
+        if {![regexp $pattern $string]} {
+            return [format "%s: %s" $string $msg]
+        }
+    }
+    return
+}
+
+warn "has nondigits" if {\D}
+warn "not a natural number" unless {^\d+$}        ;# rejects -3
+warn "not an integer" unless {^[+-]?\d+$}         ;# rejects +3
+warn "not a real number" unless {^-?\d+\.?\d*$}   ;# rejects .2
+warn "not a C float" unless {^([+-]?)(?=\d|\.\d)\d*(\.\d*)?([Ee]([+-]?\d+))?$}
 
 # Regexps like the above are sometimes necessary for making fine
 # distinctions among string representations of numbers.
 # If the only thing in questions is whether $x is a number
 # or not, or whether it is an integer or a real number, Tcl
 # can help:
+
 if {[string is integer $x]} {
     set res "$x is an integer"
 } elseif {[string is double $x]} {
@@ -979,220 +1092,371 @@ if {[string is integer $x]} {
 } else {
     set res "$x is not a number"
 }
-puts stderr $res
-# => A is not a number
-# => 3 is an integer
-# => -3 is an integer
-# => 3.0 is a real number
-# => 3.0e4 is a real number
- 
+set res
+
+
 # @@PLEAC@@_2.2
- 
+
 # limit number of decimals when determining equality of
 # floating point values to avoid rounding errors.
-proc equal {num1 num2 accuracy} {
+proc floatEqual-1 {num1 num2 accuracy} {
     expr {[format %.${accuracy}f $num1] == [format %.${accuracy}f $num2]}
 }
 
 
 set wage 536                  ;# $5.36/hour
 set week [expr {40 * $wage}]  ;# $214.40
-puts [format "One week's wage is: \$%.2f" [expr {$week/100.0}]]
-#One week's wage is: $214.40
- 
+format "One week's wage is: \$%.2f" [expr {$week/100.0}]
+
+# => One week's wage is: $214.40
+
+
 # @@PLEAC@@_2.3
- 
-set rounded [format %${FORMAT}f $unrounded]
 
 
 set a 0.255
 set b [format %.2f $a]
-puts "Unrounded: $a\nRounded: $b"
-puts [format "Unrounded: $a\nRounded: %.2f" $a]
-puts number\tint\tfloor\tceil
+format "
+Unrounded: $a
+Rounded:   $b"
+
+# => 
+Unrounded: 0.255
+Rounded:   0.26
+
+
+set res \nnumber\tint\tfloor\tceil\n
 set a [list 3.3 3.5 3.7 -3.3]
 foreach n $a {
-    puts [format %.1f\t%.1f\t%.1f\t%.1f \
-        $n \
-        [expr {int($n)}] \
-        [expr {floor($n)}] \
-        [expr {ceil($n)}]]
+    append res [format %.1f\t $n]
+    append res [format %.1f\t [expr {int($n)}]]
+    append res [format %.1f\t [expr {floor($n)}]]
+    append res [format %.1f\n [expr {ceil($n)}]]
 }
-# => number	int	floor	ceil
-# => 3.3	3.0	3.0	4.0
-# => 3.5	3.0	3.0	4.0
-# => 3.7	3.0	3.0	4.0
-# => -3.3	-3.0	-4.0	-3.0
- 
+set res
+
+# => 
+number	int	floor	ceil
+3.3	3.0	3.0	4.0
+3.5	3.0	3.0	4.0
+3.7	3.0	3.0	4.0
+-3.3	-3.0	-4.0	-3.0
+
+
 # @@PLEAC@@_2.4
- 
+
+
 proc dec2bin {string} {
     binary scan [binary format I $string] B32 str
     return [string trimleft $str 0]
 }
- 
+
+dec2bin 54
+# => 110110
+
+
 proc bin2dec {string} {
     set string [format %032s $string]
     binary scan [binary format B32 $string] I str
     return $str
 }
- 
+
+bin2dec 110110
+# => 54
+
+
 # @@PLEAC@@_2.5
- 
+
+
 for {set i $X} {$i <= $Y} {incr i} {
     # $i is set to every integer from X to Y, inclusive
 }
- 
+
+
 for {set i $X} {$i <= $Y} {incr i 7} {
     # $i is set to every integer from X to Y, stepsize = 7
 }
 
 
-puts -nonewline "Infancy is: "
-for {set i 0} {$i <= 2} {incr i} {
-    puts -nonewline "$i "
+set res \n
+append res "Infancy is: "
+foreach i [list 0 1 2] {
+    append res "$i "
 }
-puts {}
- 
-puts -nonewline "Toddling is: "
-for {set i 3} {$i <= 4} {incr i} {
-    puts -nonewline "$i "
+
+proc .. {low high} {
+    for {set i $low} {$i <= $high} {incr i} {
+        lappend res $i
+    }
+    set res
 }
-puts {}
- 
-puts -nonewline "Childhood is: "
+append res \n
+append res "Toddling is: "
+foreach i [.. 3 4] {
+    append res "$i "
+}
+
+append res \n
+append res "Childhood is: "
 for {set i 5} {$i <= 12} {incr i} {
-    puts -nonewline "$i "
+    append res "$i "
 }
-puts {}
- 
+
+append res \n
+set res
+
+# => 
+Infancy is: 0 1 2 
+Toddling is: 3 4 
+Childhood is: 5 6 7 8 9 10 11 12 
+
+
 # @@PLEAC@@_2.6
- 
-# Does a module for automatic conversion of Roman numerals serve 
-# any other purpose than filling out CPAN?
- 
-# It *can* be done in Tcl, of course.  See
-# <URL: http://mini.net/tcl/1749.html>
-# (which even has arithmetic in Roman numerals).
- 
+
+
+# These procedures were written by Richard Suchenwirth.
+# See <URL: http://mini.net/tcl/1749.html>
+
+proc roman:number {i} {
+       set res ""
+       foreach {value roman} {
+       1000 M 900 CM 500 D 400 CD 100 C 90 XC 50 L 40 XL 10 X 9 IX 5 V 4 IV 1 I} {
+               while {$i>=$value} {
+                       append res $roman
+                       incr i -$value
+               }
+       }
+       set res
+}
+
+proc roman:get {s} {
+       array set r_v {M 1000 D 500 C 100 L 50 X 10 V 5 I 1}
+       set last 99999; set res 0
+       foreach i [split [string toupper $s] ""] {
+               if [catch {set val $r_v($i)}] {error "un-Roman digit $i in $s"}
+               incr res $val
+               if {$val>$last} {incr res [expr -2*$last]}
+               set last $val
+       }
+       set res
+} ;#RS
+
+
+
+roman:number 15
+# => XV
+
+roman:get XV
+# => 15
+
+
 # @@PLEAC@@_2.7
- 
-set random [expr {int(rand()*$Y)+$X}]
+
 # The rand function returns a floating point number from zero to
-# just less than one or, in mathematical terms, the range [0,1).
+# just less than one or, in mathematical notation, the range [0,1).
 # The seed comes from the internal clock of the machine or may be
-# set manual with the srand function.
- 
-set random [expr {int(rand()*51)+25}]
-puts $random
-
-
+# set manually with the srand function.
+# 
 # The math module of the standard distribution has a wrapper for
 # rand called random; it supports generation of pseudo-random
 # numbers in the [0,n) and [n,m) ranges.
- 
+
+
+set random [expr {int(rand()*51)+25}]
+# => 32
+
+
 package require math
- 
+
 set random [::math::random 25 76]
-puts $random
-# same as above
+# => 32
 
 
-set elt [lindex $list [expr {int(rand()*[llength $list])}]]
+set list [split {Demonstrate selecting a random element from a list.}]
+
+package require math
+
+set elt [lindex $list [::math::random [llength $list]]]
+# => selecting
 
 
-set chars [list]
-for {set c [scan A %c]} {$c <= [scan Z %c]} {incr c} {
-    lappend chars [format %c $c]
-}
-for {set c [scan a %c]} {$c <= [scan z %c]} {incr c} {
-    lappend chars [format %c $c]
-}
-lappend chars ! @ \$ % ^ & *
+package require math
+
 set password {}
 for {set i 0} {$i < 8} {incr i} {
-    append password [lindex $chars [expr {int(rand()*[llength $chars])}]]
+    append password [lindex $chars [::math::random [llength $chars]]]
 }
- 
+set password
+# => JhzQ!p!$
+
+
 # @@PLEAC@@_2.8
- 
+
+
+set value 1138
 expr {srand($value)}
- 
+# => 0.00890640821723
+
+
 # @@PLEAC@@_2.9
- 
+
 # There is no standard module known to me that implements better
 # random number generators than the one in the C library, but at
 # <URL: http://www.elf.org/etc/randomnumbers.html> there is Tcl
 # and C source for a ``very long period random number generator''.
- 
+# 
 # Also see <URL: http://mini.net/cgi-bin/wikit/1551.html> for a
 # `post-processor' that improves the randomness of the output of
 # rand().
- 
+
+# @@INCOMPLETE@@
+
+
+# @@PLEAC@@_2.10
+
+# @@INCOMPLETE@@
+
+# @@INCOMPLETE@@
+
+
 # @@PLEAC@@_2.11
- 
+
 # You'd typically want a variable like PI to be 
 # contained within a namespace and not automatically
 # set in the global namespace.  [namespace current]
 # returns the qualified name of the current namespace,
 # or :: for the global namespace.
+
+
 set [namespace current]::PI [expr {acos(-1)}]
- 
+
+# => 3.14159265359
+
+# The [variable] command creates a local variable
+# that references the same value as the namespace
+# variable with the same name.
+
 proc deg2rad {degrees} {
-    # The [variable] command creates a local variable
-    # that references the same value as the namespace
-    # variable with the same name.
     variable PI
-    return [expr {(double($degrees) / 180) * $PI}]
+    return [expr {$degrees / 180.0 * $PI}]
 }
- 
+
 proc rad2deg {radians} {
     variable PI
-    return [expr {($radians / $PI) * 180}]
+    return [expr {$radians / $PI * 180}]
 }
+
 # The core Tcl command [expr] has most of the commonly
 # used trigonometric functions defined, so there is
 # less need for a Trig module.
 
- 
 proc degreeSine {degrees} {
     set radians [deg2rad $degrees]
     return [expr {sin($radians)}]
 }
- 
+
+
 # @@PLEAC@@_2.12
- 
+
 # The tangent function is already available in the [expr]
 # command, as is the arcus cosine and many more.
- 
+# 
 # In some cases, the [expr] functions raise an error because
 # of overflow or division by zero.  To trap such errors, wrap
 # in [catch]:
- 
-if {[catch {expr {1/0}}]} { return }
- 
+
+list [catch {expr {1/0}} msg] $msg
+# => 1 {divide by zero}
+
+
 # @@PLEAC@@_2.13
- 
+
+
+set value 1138
 set logE [expr {log($value)}]
- 
+# => 7.03702761469
+
+
+set value 1138
 set log10 [expr {log10($value)}]
- 
-proc logBase {base value} {
+# => 3.05614226206
+
+proc logN {base value} {
     return [expr {log($value) / log($base)}]
 }
- 
-set answer [logBase 10 10000]
-puts "log10(10,000) = $answer"
-# => log10(10,000) = 4
- 
+
+
+# @@PLEAC@@_2.14
+
+# I don't know of any matrix arithmetic module for Tcl.  There
+# is a matrix module in the standard distribution library, but
+# it does not contain arithmetic.
+
+
+package require struct 1.1.1
+
+proc mmult {m1 m2} {
+   set m1rows [$m1 rows]
+   set m1cols [$m1 columns]
+   set m2rows [$m2 rows]
+   set m2cols [$m2 columns]
+   if {$m1cols != $m2rows} {
+       error "IndexError: matrices don't match: $m1cols != $m2rows"
+   }
+   
+   ::struct::matrix result
+   result add rows $m1rows
+   result add columns $m2cols
+
+   for {set i 0} {$i < $m1rows} {incr i} {
+       for {set j 0} {$j < $m2cols} {incr j} {
+           set v 0
+           for {set k 0} {$k < $m1cols} {incr k} {
+               incr v [expr {[$m1 get cell $k $i] * [$m2 get cell $j $k]}]
+           }
+           result set cell $j $i $v
+       }
+   }
+
+   return result
+}
+
+
+
+::struct::matrix x
+x add columns 3
+x add row [list 3 2 3]
+x add row [list 5 9 8]
+
+::struct::matrix y
+y add rows 3
+y add column [list 4 9 3]
+y add column [list 7 3 1]
+
+set res [mmult x y]
+
+$res get rect 0 0 end end
+
+# => {39 30} {125 70}
+
+
+# @@PLEAC@@_2.15
+
+# I don't know of any complex arithmetic module for Tcl.
+
+# @@INCOMPLETE@@
+
+# @@INCOMPLETE@@
+
+
 # @@PLEAC@@_2.16
- 
+
 # Tcl does not have hex/oct functions, but
 # they are easy to implement.  If [expr]
 # gets handed an invalid octal/hex number,
 # it raises an error instead of returning
 # 0 as the Perl functions do.
- 
+
 proc hex {string} {
     if {[regexp -nocase {^0x} $string]} {
         return [expr $string]
@@ -1200,7 +1464,7 @@ proc hex {string} {
         return [expr 0x$string]
     }
 }
- 
+
 proc oct {string} {
     if {[regexp -nocase {^0x} $string]} {
         return [hex $string]
@@ -1210,32 +1474,33 @@ proc oct {string} {
 }
 
 
-puts "Gimme a number in decimal, octal, or hex: "
-set num [gets stdin]
+if {[string match *.test [info script]]} {
+    # we are testing, supply known value
+    set num 0x39a
+} else {
+    puts "Gimme a number in decimal, octal, or hex: "
+    set num [gets stdin]
+}
 if {[string length $num]} {
     if {[regexp ^0 $num]} {
         set num [oct $num]
     }
-    puts [format "%d %x %o" $num $num $num]
+    format "%d %x %o" $num $num $num
 }
- 
+
+# => 922 39a 1632
+
+
 # @@PLEAC@@_2.17
- 
-proc reverse {string} {
-    for {set i 0} {$i < [string length $string]} {incr i} {
-        append gnirts [string index $string end-$i]
-    }
-    return $gnirts
+
+
+# This procedure is written by Keith Vetter and is part of the Tcl
+# Cookbook (<URL: #http://aspn.activestate.com/ASPN/Cookbook/Tcl/Recipe/68381>)
+
+proc comma {num {sep ,}} {
+    while {[regsub {^([-+]?\d+)(\d\d\d)} $num "\\1$sep\\2" num]} {}
+    return $num
 }
- 
-proc commify {string} {
-    set text [reverse $string]
-    regsub -all {(\d\d\d)(?=\d)(?!\d*\.)} $text {\1,} text
-    return [reverse $text]
-}
- 
-# See the Online Tcl Cookbook for a more elegant solution:
-# <URL: http://aspn.activestate.com/ASPN/Cookbook/Tcl/Recipe/68381>
  
 # @@PLEAC@@_3.0
  
