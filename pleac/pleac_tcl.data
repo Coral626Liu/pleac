@@ -1131,15 +1131,23 @@ expr {srand($value)}
  
 # @@PLEAC@@_2.11
  
-set PI [expr {acos(-1)}]
+# You'd typically want a variable like PI to be 
+# contained within a namespace and not automatically
+# set in the global namespace.  [namespace current]
+# returns the qualified name of the current namespace,
+# or :: for the global namespace.
+set [namespace current]::PI [expr {acos(-1)}]
  
 proc deg2rad {degrees} {
-    global PI
+    # The [variable] command creates a local variable
+    # that references the same value as the namespace
+    # variable with the same name.
+    variable PI
     return [expr {(double($degrees) / 180) * $PI}]
 }
  
 proc rad2deg {radians} {
-    global PI
+    variable PI
     return [expr {($radians / $PI) * 180}]
 }
 # The core Tcl command [expr] has most of the commonly
@@ -1226,6 +1234,8 @@ proc commify {string} {
     return [reverse $text]
 }
  
+# See the Online Tcl Cookbook for a more elegant solution:
+# <URL: http://aspn.activestate.com/ASPN/Cookbook/Tcl/Recipe/68381>
  
 # @@PLEAC@@_3.0
  
@@ -1348,4 +1358,181 @@ puts [clock format [clock scan 01/18/73] -format "%A %D"]
 puts [clock format [clock scan "18 Jan 1973 3:45:50"] \
     -format "%a %b %e %H:%M:%S %Z %Y" -gmt yes]
 # => Thu Jan 18 02:45:50 GMT 1973
+ 
+# @@PLEAC@@_3.9
+ 
+puts "Press return when ready"
+set before [clock clicks -milliseconds]
+set line [gets stdin]
+set elapsed [expr {([clock clicks -milliseconds] - $before) / 1000.0}]
+puts "You took $elapsed seconds"
+ 
+# => Press return when ready
+# => You took 0.33 seconds
+
+
+set size 500
+set numberOfTimes 100
+set totalTime 0
+ 
+proc sortList {a} {
+    set a [lsort -real $a]
+}
+ 
+for {set i 0} {$i < $numberOfTimes} {incr i} {
+    set a [list]
+    for {set j 0} {$j < $size} {incr j} {
+        lappend a [expr {rand()}]
+    }
+    set begin [clock clicks -milliseconds]
+    set a [lsort -real $a]
+    set time [expr {[clock clicks -milliseconds]-$begin}]
+    incr totalTime $time
+}
+puts [format "On average, sorting %d random numbers takes %.5f seconds" \
+    $size [expr {(double($totalTime)/$numberOfTimes)/1000}]]
+# => On average, sorting 500 random numbers takes 0.00170 seconds
+ 
+# Since one of Tcl's hats is software testing, this 'benchmark'
+# is of course better written as
+set size 500
+set numberOfTimes 100
+ 
+set a [list]
+for {set j 0} {$j < $size} {incr j} {
+    lappend a [expr {rand()}]
+}
+puts "Sorting $size random numbers:"
+puts [time {
+    set a [lsort -real $a]
+} $numberOfTimes]
+# => Sorting 500 random numbers:
+# => 1100 microseconds per iteration
+ 
+# @@PLEAC@@_3.10
+ 
+# Sleep 25 milliseconds
+after 25
+ 
+# Interrupt a ticking timer
+set id [after 2500]
+# ...
+after cancel $id
+ 
+# @@PLEAC@@_4.0
+ 
+# after assignment, $list has 4 elements
+set list [list this that the other]
+# after assignment, $list has 3 elements, the last
+# of which is a list with 2 elements
+set list [list this that {the other}]
+
+
+proc flatten {args} {
+    set res [list]
+    foreach {i} $args {
+        if {[llength $i] > 1} {
+            set res [concat $res [eval flatten $i]]
+        } else {
+            set res [concat $res $i]
+        }
+    }
+    set res
+}
+ 
+# after assignment, $list has 4 elements
+set list [flatten this that {the other}]
+
+
+set tune [list the star-spangled banner]
+puts [lindex $tune 0]
+# => the
+puts [lindex $tune 1]
+# => star-spangled
+ 
+# @@PLEAC@@_4.1
+ 
+set a [list quick brown fox]
+ 
+set a [list Why are you teasing me?]
+ 
+set lines [list]
+foreach {l} [split {
+    The boy stood on the burning deck,
+    It was as hot as glass.
+} \n ] {
+    set line [string trimleft $l]
+    if {[string length $line]} {
+        lappend lines $line
+    }
+}
+
+
+set biglist [list]
+set data [open mydatafile]          ;# Automatically raises error on failure
+while {[gets $data item] >= 0} {
+    lappend biglist $item
+}
+
+
+# Three ways to create a three-element list
+# (in the first example, banner must be empty).
+lappend banner Costs only \$4.95
+set banner [list Costs only \$4.95]
+set banner [split {Costs only $4.95}]
+
+
+set ships [list Niña Pinta Santa María]   ;# WRONG (4 ships)
+set ships [list Niña Pinta {Santa María}] ;# right (3 ships)
+ 
+# @@PLEAC@@_4.2
+ 
+set list [list red yellow green]
+ 
+puts "I have $list marbles."
+# => I have red yellow green marbles.
+
+
+set lists {
+    {{just one thing}}
+    {Mutt Jeff}
+    {Peter Paul Mary}
+    {{to our parents} {Mother Theresa} God}
+    {{pastrami} {ham and cheese} {peanut butter and jelly} {tuna}}
+    {{recycle tired, old phrases} {ponder big, happy thoughts}}
+    {{recycle tired, old phrases} \
+     {ponder big, happy thoughts} \
+     {sleep and dream peacefully} \
+    }
+}
+ 
+proc commifySeries {args} {
+    if {[regexp , $args]} {
+        set sepchar ";"
+    } else {
+        set sepchar ,
+    }
+    # Tcl has a switch command, nyah nyah nyah
+    switch [llength $args] {
+        0 { return {} }
+        1 { eval return $args }
+        2 { return [join $args { and }] }
+        default {
+            set args [lreplace $args end end [concat and [lindex $args end]]]
+            return [join $args "$sepchar "]
+        }
+    }
+}
+ 
+foreach {list} $lists {
+    puts "The list is: [eval commifySeries $list]."
+}
+ 
+# => The list is: just one thing.
+# => The list is: Mutt and Jeff.
+# => The list is: Peter, Paul, and Mary.
+# => The list is: to our parents, Mother Theresa, and God.
+# => The list is: pastrami, ham and cheese, peanut butter and jelly, and tuna.
+# => The list is: recycle tired, old phrases and ponder big, happy thoughts.
+# => The list is: recycle tired, old phrases; ponder big, happy thoughts; and sleep and dream peacefully.
  
