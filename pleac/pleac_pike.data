@@ -2004,3 +2004,75 @@ foreach(ARRAY;; mixed element)
     count[element]++;
 }
 
+// @@PLEAC@@_5.15
+mapping father = ([ "Cain":"Adam",
+                    "Abel":"Adam",
+                    "Seth":"Adam",
+                    "Enoch":"Cain",
+                    "Irad":"Enoch",
+                    "Mehujael":"Irad",
+                    "Methusael":"Mehujael",
+                    "Lamech":"Methusael",
+                    "Jabal":"Lamech",
+                    "Jubal":"Lamech",
+                    "Tubalcain":"Lamech",
+                    "Enos":"Seth" 
+                 ]);
+
+foreach(Stdio.stdin;; string name)
+{
+  do
+  {
+    write("%s ", name);
+  } while(name = father[name]);
+  write("\n");
+}
+
+mapping children = ([]);
+foreach(father; string k; string v)
+{
+  if(!children[v])
+    children[v] = ({ k });
+  else
+    children[v] += ({ k });
+}
+
+foreach(Stdio.stdin;; string name)
+{
+  write("%s begat %s.\n", name, (children[name]||({ "nobody" }))*", ");
+}
+
+//-----------------------------------------------------
+
+mapping includes = ([]);
+foreach(files, string file)
+{
+  string F = Stdio.read_file(file);
+  if(!F)
+    werror("Couldn't read %s; skipping.\n", file);
+
+  foreach(F/"\n";; string line)
+  {
+    array included = array_sscanf(line, "%*[ \t]#include%*[ \t]%*[<\"]%s%*[>\"]%*[ \t]");
+    if(sizeof(included))
+    {
+      if(!includes[included[0]])
+        includes[included[0]] = ({ file });
+      else
+        includes[included[0]] += ({ file });
+    }
+  }
+}
+//-----------------------------------------------------
+
+array uniq = `|( @values(includes) );
+array include_free = sort( uniq - indices(includes) );
+
+// values(includes) is an array of arrays.
+// @ splices values(includes) as arguments into `|()
+// `|() is a function that represents the | operator: a|b|c is `|(a,b,c)
+// | on arrays creates a new array with elements in a or b
+// the resulting array is unique as long as each array only has unique elements
+// from the uniq array we remove all those that are used as indices in the
+// includes mapping.
+// at last we sort the remaining list.
