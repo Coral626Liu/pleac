@@ -1023,6 +1023,68 @@ end
 
 
 # @@PLEAC@@_4.19
+#!/usr/bin/env ruby
+# example 4-2 words
+# words - gather lines, present in colums
+
+# class to encapsulate the word formatting from the input
+class WordFormatter
+    def initialize(cols)
+        @cols = cols
+    end
+
+    # helper to return the length of the longest word in the wordlist
+    def maxlen(wordlist)
+        max = 1					
+        for word in wordlist
+            if word.length > max
+                max = word.length
+            end
+        end
+        max
+    end
+
+    # process the wordlist and print it formmated into columns
+    def output(wordlist)
+        collen = maxlen(wordlist) + 1
+        columns = @cols / collen
+        columns = 1 if columns == 0
+        rows = (wordlist.length + columns - 1) / columns
+        # now process each item, picking out proper piece for this position
+        0.upto(rows * columns - 1) { |item|
+            target = (item % columns) * rows + (item / columns)
+            eol = ((item+1) % columns == 0)
+            piece = wordlist[target] || ""
+            piece = piece.ljust(collen) unless eol
+            print piece
+            puts if eol
+        }
+        # no need to finish it up, because eol is always true for the last element
+    end			
+end
+
+# get nr of chars that fit in window or console, see PLEAC 15.4
+# not portable -- linux only (?)
+def getWinCharWidth()
+    buf = "\0" * 8
+    $stdout.ioctl(0x5413, buf)
+    ws_row, ws_col, ws_xpixel, ws_ypixel = buf.unpack("$4")
+    ws_col || 80
+rescue
+    80
+end
+
+# main program
+cols = getWinCharWidth()
+formatter = WordFormatter.new(cols)
+words = readlines()
+words.collect! { |line|
+    line.chomp
+}
+formatter.output(words)
+
+
+# @@PLEAC@@_4.19
 # In ruby, Fixnum's are automatically converted to Bignum's when
 # needed, so there is no need for an extra module
 def factorial(n)
