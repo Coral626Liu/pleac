@@ -280,9 +280,43 @@ fields.each_with_index { |v,i|
 
 
 # @@PLEAC@@_1.16
-# uses a Perl module..
-# @@INCOMPLETE@@
-# @@INCOMPLETE@@
+# Use the soundex.rb Library
+require 'Soundex'
+
+code = Text::Soundex.soundex(string)
+codes = Text::Soundex.soundex(array)
+
+# substitution function for getpwent():
+# returns an array of user entries,
+# each entry contains the username and the full name
+def login_names
+    result = []
+    File.open("/etc/passwd") { |file|
+        file.each_line { |line|
+            next if line.match(/^#/)
+            cols = line.split(":")
+            result.push([cols[0], cols[4]])
+        }
+    }
+    result
+end
+
+puts "Lookup user: "
+user = STDIN.gets
+user.chomp!
+exit unless user
+name_code = Text::Soundex.soundex(user)
+
+splitter = Regexp.new('(\w+)[^,]*\b(\w+)')
+for username, fullname in login_names do
+    firstname, lastname = splitter.match(fullname)[1,2]
+    if name_code == Text::Soundex.soundex(username)
+        || name_code == Text::Soundex.soundex(firstname)
+        || name_code == Text::Soundex.soundex(lastname)
+    then
+        puts "#{username}: #{firstname} #{lastname}"
+    end
+end
 
 
 # @@PLEAC@@_1.17
@@ -375,15 +409,15 @@ __END__
 # @@PLEAC@@_2.1
 # Matz tells that you can use Integer() for strict checked conversion.
 Integer("abc")
-# => `Integer': invalid value for Integer: "abc" (ArgumentError)
+#=> `Integer': invalid value for Integer: "abc" (ArgumentError)
 Integer("567")
-# => 567
+#=> 567
 
 # You may use Float() for floating point stuff
 Integer("56.7")
-# => `Integer': invalid value for Integer: "56.7" (ArgumentError)
+#=> `Integer': invalid value for Integer: "56.7" (ArgumentError)
 Float("56.7")
-# => 56.7
+#=> 56.7
 
 # You may also use a regexp for that
 if string =~ /^[+-]?\d+$/
@@ -2926,7 +2960,7 @@ print_age()
 def foo; puts 'foo'; end
 def foo; puts 'bar'; end
 foo
-# => bar
+#=> bar
 
 # You can also take a reference to an existing method before
 # redefining a new one, using the `alias' keyword
@@ -2935,8 +2969,8 @@ alias foo_orig foo
 def foo; puts 'bar'; end
 foo_orig
 foo
-# => foo
-# => bar
+#=> foo
+#=> bar
 
 # AFAIK, there is no direct way to create a new method whose name
 # comes from a variable, so use "eval"
@@ -3251,7 +3285,7 @@ END {
 # @@PLEAC@@_12.7
 #-----------------------------
 # results may be different on your system
-# ruby -e "$LOAD_PATH.each_index { |i| printf("%d %s\n", i, $LOAD_PATH[i] }
+# % ruby -e "$LOAD_PATH.each_index { |i| printf("%d %s\n", i, $LOAD_PATH[i] }
 #0 /usr/local/lib/site_ruby/1.6
 #1 /usr/local/lib/site_ruby/1.6/i386-linux
 #2 /usr/local/lib/site_ruby/
@@ -3263,7 +3297,7 @@ END {
 #$ export RUBYLIB=$HOME/rubylib
 
 # syntax for csh or tcsh
-#% setenv RUBYLIB ~/rubylib
+# % setenv RUBYLIB ~/rubylib
 #-----------------------------
 $LOAD_PATH.unshift "/projects/spectre/lib";
 
@@ -3296,15 +3330,48 @@ end
 
 puts FineTime.time #=> "its a fine time"
 
+
 # @@PLEAC@@_12.12
 def even_only(n)
     raise "#{n} is not even" if (n & 1) != 0  # one way to test
-    #....
+    # ...
 end
 def even_only(n)
     $stderr.puts "#{n} is not even" if (n & 1) != 0
-    #....
+    # ...
 end
+
+
+# @@PLEAC@@_12.17
+# The library archive for ruby is called Ruby Application archive,
+# or shorter RAA, and can be found at http://raa.ruby-lang.org.
+# A typical library is installed like this:
+# % gunzip some-module-4.54.tar.gz
+# % tar xf some-module-4.54.tar
+# % cd some-module-4.54.tar
+# % ruby install.rb config
+# % ruby install.rb setup
+# get superuser previleges here if needed for next step
+# % ruby install.rb install
+
+# Some modules use a different process,
+# you should find details in the documentation
+# Here is an example of such a different process
+# % ruby extconf.rb
+# % make
+# % make install
+
+# If you want the module installed in your own directory:
+# For ruby version specific libraries
+# % ruby install.rb config --site-ruby=~/lib
+# For version independent libraries
+# % ruby install.rb config --site-ruby-common=~/lib
+
+# Information about possible options for config
+# % ruby install.rb --help
+
+# If you have your own complete distribution
+# % ruby install.rb --prefix=path=~/ruby-private
 
 
 # @@PLEAC@@_13.0
@@ -3422,7 +3489,7 @@ class MyClass
 end
 
 # test code
-3.times{
+3.times {
     MyClass.new
 }
 ObjectSpace.garbage_collect
