@@ -3610,6 +3610,27 @@ class PersonStruct
 end
 
 
+# @@PLEAC@@_13.6
+# The ruby Object class defines a dup and a clone method.
+# The dup method is recommended for prototype object creation.
+# The default implementation makes a shallow copy,
+# but each class can override it, for example to make a deep copy.
+
+# If you want to call 'new' directly on the instances,
+# you can create a instance method "new", which returns a new duplicate.
+# This method is distinct from the class method new.
+#
+class A
+    def new
+        dup
+    end
+end
+
+ob1 = A.new
+# later on
+ob2 = ob1.new
+
+
 # @@PLEAC@@_13.7
 methname = 'flicker'
 obj.send(methname, 10)      # calls obj.flicker(10)
@@ -3702,6 +3723,116 @@ puts a + b    # the overridden +
 #=> 8
 puts a.length # method from the superclass, String
 #=> 5
+
+
+# @@PLEAC@@_13.11
+# In ruby you can override the method_missing method
+# to have a solution similar to perls AUTOLOAD.
+class Person
+
+    def initialize
+        @ok_fields = %w(name age peers parent)
+    end
+
+    def valid_attribute?(name)
+        @ok_fields.include?(name)
+    end
+
+    def method_missing(namesymbol, *params)
+        name = namesymbol.to_s
+        return if name =~ /^A-Z/
+        if name.to_s[-1] == ('='[0])       # we have a setter
+            isSetter = true
+            name.sub!(/=$/, '')
+        end
+        if valid_attribute?(name)
+            if isSetter
+                instance_variable_set("@#{name}", *params)
+            else
+                instance_variable_get("@#{name}", *params)
+            end
+        else
+            # if no annestor is responsible,
+            # the Object class will throw a NoMethodError exception
+            super(namesymbol, *params)
+        end
+    end
+
+    def new
+        kid = Person.new
+        kid.parent = self
+        kid
+    end
+
+end
+
+dad = Person.new
+dad.name = "Jason"
+dad.age = 23
+kid = dad.new
+kid.name = "Rachel"
+kid.age = 2
+puts "Kid's parent is #{kid.parent.name}"
+puts dad
+puts kid
+
+class Employee < Person
+    def initialize
+        super
+        @ok_fields.push("salary", "boss")
+    end
+    def ok_fields
+        @ok_fields
+    end
+end
+
+
+# @@PLEAC@@_13.13
+# The ruby garbage collector pretends to cope with circular structures.
+# You can test it with this code:
+class RingNode
+    attr_accessor :next
+    attr_accessor :prev
+    attr_reader :name
+
+    def initialize(aName)
+        @name = aName
+        ObjectSpace.define_finalizer(self,
+                                     self.class.method(:finalize).to_proc)
+    end
+
+    def RingNode.finalize(id)
+        puts "Node #{id} dying"
+    end
+
+    def RingNode.show_all_objects
+        ObjectSpace.each_object {|id|
+            puts id.name if id.class == RingNode
+        }
+    end
+end
+
+def create_test
+    a = RingNode.new("Node A")
+    b = RingNode.new("Node B")
+    c = RingNode.new("Node C")
+    a.next = b
+    b.next = c
+    c.next = a
+    a.prev = c
+    c.prev = b
+    b.prev = a
+
+    a = nil
+    b = nil
+    c = nil
+end
+
+create_test
+RingNode.show_all_objects
+ObjectSpace.garbage_collect
+puts "After garbage collection"
+RingNode.show_all_objects
 
 
 # @@PLEAC@@_14.1
@@ -3831,6 +3962,89 @@ outdb = SDBM.open(outfile, 0666)
 in1.close
 in2.close
 outdb.close
+
+
+# @@PLEAC@@_14.7
+# we write a tie method that extends the Array class.
+# It reads the file into the memory, executes the code block
+# in which you can manipulate the array as needed, and writes
+# the array back to the file after the end of the block execution
+class Array
+    def tie(filename, flags)
+        File.open(filename, flags) { |f|
+            f.each_line { |line|
+                self.push(line.chomp)
+            }
+            yield
+            f.rewind
+            each { |line|
+                if line
+                    f.puts(line)
+                else
+                    f.puts ""
+                end
+            }
+        }
+    end
+end
+
+array = Array.new
+array.tie("/tmp/textfile.txt", File::RDWR|File::CREAT) {
+    array[4] = "a new line 4"
+}
+
+# The tied array can be manipulated like a normal array,
+# so there is no need for a special API, and the recno_demo program
+# to demonstrate is API is useless
+
+
+# tied array demo: show how to use array with a tied file
+filename = "db_file.txt"
+lines = Array.new
+File.unlink(filename) if File.exists?(filename)
+lines.tie(filename, File::RDWR | File::CREAT) {
+    # first create a textfile to play with
+    lines[0] = "zero"
+    lines[1] = "one"
+    lines[2] = "two"
+    lines[3] = "three"
+    lines[4] = "four"
+
+    # print the records in order.
+    # Opposed to perl, the tied array behaves exactly as a normal array
+    puts "\nOriginal"
+    for i in 0..(lines.length-1)
+        puts "#{i}: #{lines[i]}"
+    end
+
+    #use push and pop
+    a = lines.pop
+    lines.push("last")
+    puts("The last line was [#{a}]")
+
+    #use shift and unshift
+    a = lines.shift
+    lines.unshift("first")
+    puts("The first line was [#{a}]")
+
+    # add record after record 2
+    i = 2
+    lines.insert(i + 1, "Newbie")
+
+    # add record before record one
+    i = 1
+    lines.insert(i, "New One")
+
+    # delete record 3
+    lines.delete_at(3)
+
+    #now print the records in reverse order
+    puts "\nReverse"
+    (lines.length - 1).downto(0){ |i|
+        puts "#{i}: #{lines[i]}"
+    }
+
+}
 
 
 # @@PLEAC@@_14.8
