@@ -1,6 +1,7 @@
 #!/usr/bin/pike
-# slowcat - emulate a   s l o w  line printer
-# usage: slowcat [-DELAY] [files ...]
+// chapter 1.5
+// slowcat - emulate a   s l o w  line printer
+// usage: slowcat [-DELAY] [files ...]
 void main(int argc, array argv)
 {
   array(string) files;

@@ -1,4 +1,5 @@
 #!/usr/bin/pike
+// chapter 1.6
 void main(int argc, array(string) argv)
 {
   string data=Stdio.read_file(argv[1]);

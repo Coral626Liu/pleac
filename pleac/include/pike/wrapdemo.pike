@@ -1,4 +1,5 @@
 #!/usr/bin/pike
+// chapter 1.12
 // wrapdemo - show how wrapping with sprintf works
 void main()
 {

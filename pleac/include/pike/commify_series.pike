@@ -1,4 +1,5 @@
 #!/usr/bin/pike
+// chapter 4.2
 // commify_series - show proper comma insertion in list output
 
 array(array(string)) lists =

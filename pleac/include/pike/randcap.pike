@@ -1,4 +1,5 @@
 #!/usr/bin/pike
+// chapter 1.9
 // randcap: filter to randomly capitalize 20% of the letters
 
 void main()

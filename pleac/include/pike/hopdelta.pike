@@ -1,4 +1,5 @@
 #!/usr/bin/pike
+// chapter 3.11
 // hopdelta - feed mail header, produce lines
 //            showing delay at each hop.
 int main()
