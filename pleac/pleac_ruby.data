@@ -159,12 +159,13 @@ puts "sum is #{sum & 0xffffffff}" # since Ruby will go Bignum if necessary
 #!/usr/bin/ruby
 # slowcat - emulate a   s l o w   line printer
 # usage: slowcat [-DELAY] [files ...]
-delay = if ARGV[0] =~ /^-([.\d]+)/ then ARGV.shift; $1.to_i else 1 end
+# the following line with "&&" works because all strings are true
+delay = ARGV[0] =~ /^-([.\d]+)/ ? ARGV.shift && $1.to_i : 1
 $stdout.sync = 1
 while gets
     for b in split('')
-	print b
-	sleep(0.005 * delay)
+        print b
+        sleep(0.005 * delay)
     end
 end
 #-----------------------------
@@ -1316,11 +1317,15 @@ class Person
     # object constructor
     def initialize(age, name, alive = true)     # Default arg like in C++
         @age, @name, @alive = age, name, alive  # Object attributes are prefixed by '@'
-        @@person_counter += 1                   # (Numeric#++ doesn't exist in Ruby)
+        @@person_counter += 1
+          # There is no '++' operator in Ruby. The '++'/'--'  operators are in fact 
+          # hidden assignments which affect variables, not objects. You cannot accomplish
+          # assignment via method. Since everything in Ruby is object, '++' and '--' 
+          # contradict Ruby OO ideology. Instead '-=' and '+=' are used.
     end
     
     attr_accessor :name, :age   # This creates setter and getter methods for @name
-    # and @age. See 13.3 for detailes.
+                                # and @age. See 13.3 for detailes.
     
     # methods modifying the receiver object usually have the '!' suffix
     def die!
@@ -1334,7 +1339,8 @@ class Person
         anotherPerson.die!
     end
 
-    # method returning true/false usually have the '?' suffix   
+    # methods used as queries
+    # usually have the '?' suffix    
     def alive?
         @alive && true
     end
@@ -1349,7 +1355,8 @@ class Person
     end
 end
 
-# Using our class to create objects of class Person
+# Using the class:
+# Create objects of class Person
 lecter = Person.new(47, 'Hannibal')
 starling = Person.new(29, 'Clarice', true)
 pazzi = Person.new(40, 'Rinaldo', true)
@@ -1365,7 +1372,7 @@ print starling.name , ' was born in ', starling.year_of_birth, "\n"
 
 
 # @@PLEAC@@_13.3
-# You can write getter and setter methods in a natural way
+# You can write getter and setter methods in a natural way:
 class Person
     def name
         @name
@@ -1391,7 +1398,7 @@ end
 
 # @@PLEAC@@_13.7
 methname = 'flicker'
-obj.send(methname, 10)                        # calls obj.flicker(10)
+obj.send(methname, 10)      # calls obj.flicker(10)
 
 # call three methods on the object, by name
 ['start', 'run', 'stop'].each do |method_string|
