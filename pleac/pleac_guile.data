@@ -401,6 +401,18 @@ turnkey         => turn-key")
            n (round n) (floor n) (ceiling n)))
  a)
 
+;; @@PLEAC@@_2.4
+;; numbers are radix independent internally, so you usually only
+;; convert on output, however to convert strings:
+(define (dec->bin num)
+  (number->string (string->number num 10) 2))
+
+(define (bin->dec num)
+  (number->string (string->number num 2) 10))
+
+(define num (bin->dec "0110110"))  ; 54
+(define binstr (dec->bin "54"))    ; 110110
+
 ;; @@PLEAC@@_2.5
 ;; do is the most general loop iterator
 (do ((i x (1+ i)))   ; var  init-value  step-value
@@ -482,7 +494,28 @@ turnkey         => turn-key")
 ;; 0.939377327721761
 
 ;; @@PLEAC@@_2.9
-;; TODO - do we have an interface to /dev/urandom?
+;; @@INCOMPLETE@@
+;; very inefficient
+(use-modules (ice-9 rw))
+(define make-true-random
+  (letrec ((bufsize 8)
+           (accum (lambda (c acc) (+ (* 256 acc)
+                                     (char->integer c))))
+           (getbuf (lambda ()
+                     (call-with-input-file "/dev/urandom"
+                       (lambda (p)
+                         (let ((buf (make-string bufsize)))
+                           (read-string!/partial buf p)
+                           buf))))))
+    (lambda (rand-proc)
+      (lambda args
+        (let ((state (seed->random-state (string-fold accum 0 (getbuf)))))
+          (apply rand-proc (append args (list state))))))))
+
+(define urandom (make-true-random random))
+(define urandom:exp (make-true-random random:exp))
+(define urandom:normal (make-true-random random:normal))
+(define urandom:uniform (make-true-random random:uniform))
 
 ;; @@PLEAC@@_2.10
 ;; Guile offers a number of random distributions
@@ -596,8 +629,6 @@ turnkey         => turn-key")
 
 (matrix-mult '#2((3 2 3) (5 9 8)) '#2((4 7) (9 3) (8 1)))
 
-;; TODO: add description of Aubrey Jaffer's JACAL
-
 ;; @@PLEAC@@_2.15
 ;; Guile has builtin support for complex numbers:
 
@@ -672,8 +703,6 @@ turnkey         => turn-key")
 (format #t "It took ~D hour~P\n" hours hours)
 
 (format #t "It took ~D centur~@P\n" centuries centuries)
-
-(format #t "~D fruit fl~@P like~P a banana\n" flies flies (if (= 1 flies) 0 1))
 
 (define noun-plural
   (let* ((suffixes '(("ss"  . "sses")
@@ -1228,7 +1257,6 @@ turnkey         => turn-key")
 
 ;; @@PLEAC@@_7.5
 ;; use the POSIX tmpnam
-
 (let ((name (tmpnam)))
   (call-with-output-file name
     (lambda (port)
@@ -1698,6 +1726,7 @@ your data goes here
 (define lines (read-lines file))
 (list-ref lines desired-line-number)
 
+;; @@INCOMPLETE@@
 ; (define (build-index data-file index-file)
 ;   )
 
@@ -1743,7 +1772,34 @@ your data goes here
   (write-string/partial buf p)
   (close p))
 
-;; TODO weekearly
+;; @@INCOMPLETE@@
+;; weekearly
+
+;; @@PLEAC@@_8.14
+(seek p addr SEEK_SET)
+(define str (read-delimited (make-string 1 #\nul) p))
+
+#!/usr/local/bin/guile -s
+!#
+;; bgets -- get a string from an address in a binary file
+(use-modules (ice-9 format))
+
+(define args (cdr (command-line)))
+(define file (car args))
+(define addrs (map string->number (cdr args)))
+(define delims (make-string 1 #\nul))
+
+(call-with-input-file file
+  (lambda (p)
+    (for-each
+     (lambda (addr)
+       (seek p addr SEEK_SET)
+       (format #t "~x ~o ~d ~s\n" addr addr addr
+               (read-delimited delims p)))
+     addrs)))
+
+;; @@INCOMPLETE@@
+;; strings
 
 ;; @@PLEAC@@_9.0
 (define entry (stat "/usr/bin/vi"))
