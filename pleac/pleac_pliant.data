@@ -1,0 +1,99 @@
+# -*- pliant -*-
+
+# @@PLEAC@@_NAME
+# @@SKIP@@ Pliant
+
+# @@PLEAC@@_WEB
+# @@SKIP@@ http://pliant.cx
+
+# @@PLEAC@@_INTRO
+# @@SKIP@@ Written for version 64.
+
+
+# @@PLEAC@@_1.0
+# In Pliant, the standard type to handle character strings is Str.
+# String variables must be declared -- if no value is given it's
+# value is the empty string ("") if the variable is global.
+gvar Str string
+
+# special characters
+string := "[lb]"                   # character '['
+string := "[rb]"                   # character ']'
+string := "[lf]"                   # line feed
+string := "[cr]"                   # carriage return
+string := "[0]"                    # null character
+string := "Jon said [dq]hello[dq]" # literal double quotes
+
+# multiline strings may be achieved by addition of a new
+# parser filter; to do
+
+
+# @@PLEAC@@_1.1
+gvar Str s:="some string"
+
+# extraction of at most length characters (less if the required
+# length is not available in the string) -> new string
+
+gvar Str s1 
+s1 := s offset length
+s1 := s offset s:len      # extracts the end of the string
+
+# same, but the string is really a substring (like in Perl)
+# to do this, we add new methods to Str:
+
+method p map s from to
+  arg_rw Str p; arg Str s; arg Int from length
+  check to < s:len
+  p set (s:characters translate Char from) to-from false
+#
+
+s1 map s offset offset+length
+s1 map s offset s:len-1
+
+#
+# The equivalent of unpack in Pliant is eparse. However,
+# no parsing method is present by default for fixed length
+# strings.
+# We should create some function FixedStr to create the
+# type "string of length xxx" and the from_string method
+# on these types. Then, the unpack could be writen as
+
+gvar FixedStr:5 leading
+gvar FixedStr:3 dummy
+gvar FixedStr:8 s1 s2
+gvar Str trailing data
+data eparse leading dummy s1 s2 any:trailing
+
+#
+# A string may be accessed as an array of Char, but if we
+# way to transfer a Str into an Array of Char, we need a loop
+#
+gvar Array:Char chars
+for (var Int i) 0 s:len
+  chars i := s i
+
+#
+#
+
+s := "This is what you have"
+
+# strings do not support backwards indexing as perl does, but we may
+# add this functionality
+method s 'new substring' i j -> ss
+  arg Str s ss; arg Int i j
+  strong_definition
+  console (s (s:len-2) 1) eol
+  console i " " j eol
+  ss:= s (shunt i<0 s:len+i i) j
+alias '' '. new substring' 
+#
+first  := string 0 1              # "T"
+start  := string 5 2              # "is"
+rest   := string 13 string:len    # "you have"
+last   := string -1 string:len    # "e"
+end    := string -4 string:len    # "have"
+piece  := string -8 3             # "you"
+#--------------------
+string := "This is what you have"
+console string
+#This is what you have
