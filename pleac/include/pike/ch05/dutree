@@ -1,0 +1,82 @@
+#!/usr/bin/pike
+# dutree - print sorted indented rendition of du output
+# as a slight deviation from the perl version, the sizes are still in one
+# column, to make it more readable.
+
+array input(array(string) args)
+{
+  mapping Dirsize=([]);
+  mapping Kids=([]);
+
+  object pipe = Stdio.File();
+  Process.create_process(({ "du" })+args, ([ "stdout":pipe->pipe() ]));
+
+  string name;
+  foreach(pipe->line_iterator();; string line)
+  {
+    int size;
+    [size, name] = array_sscanf(line, "%d%*[ \t]%s");
+    Dirsize[name] = size;
+    array path = name/"/";
+    string parent = path[..sizeof(path)-2]*"/";
+    if(!Kids[parent])
+      Kids[parent] = ({ name });
+    else
+      Kids[parent] += ({ name });
+  }
+  return ({ name, Dirsize, Kids });
+}
+
+void getdots(string root, mapping Dirsize, mapping Kids)
+{
+  int size, cursize;
+  size = cursize = Dirsize[root];
+  if(Kids[root])
+  {
+    foreach(Kids[root];; string kid)
+    {
+      cursize -= Dirsize[kid]; 
+      getdots(kid, Dirsize, Kids);
+    }
+  }
+  else
+    Kids[root] = ({});
+
+  if(size != cursize)
+  {
+    string dot = root+"/.";    
+    Dirsize[dot] = cursize;
+    Kids[root] += ({ dot });
+  }
+}
+
+void output(string root, mapping Dirsize, mapping Kids, 
+            int width, void|string prefix)
+{
+  if(!prefix)
+    prefix="";
+  string path = (root/"/")[-1];
+  int size = Dirsize[root];
+  write("%*d %s%s\n", width, size, prefix, path);
+  prefix += " "*sizeof(path);
+  if(Kids[root])
+  {
+    array kids = Kids[root];
+    // get the dirsize for each kid and sort by that
+    sort(Dirsize[kids[*]], kids); 
+    
+    // make the output for each kid
+    output(kids[*], Dirsize, Kids, width, prefix);
+  }
+}
+
+void main(int argc, array(string) argv)
+{
+  mapping Dirsize;
+  mapping Kids;
+  string topdir;
+
+  [ topdir, Dirsize, Kids ] = input(argv[1..]);
+  getdots(topdir, Dirsize, Kids);
+  output(topdir, Dirsize, Kids, sizeof((string)sort(values(Dirsize))[-1]));
+}
