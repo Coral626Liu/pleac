@@ -94,10 +94,11 @@ s.wrap(width) =
         if "{s} {word}" > width then
             ls + [s], word
         else
-            ls, "{s} {word}"
+            s' = if s.? then "{s} {word}" else word
+            ls, s'
     ))
     join(ls + [s'], "\n")
-
+    
 #@@PLEAC@@_1.14
 s.subst!("^\s+", "")
 s.subst!("\s+$", "")
@@ -130,6 +131,11 @@ num = num.pattern_matches(
 #@@PLEAC@@_2.17
 s.commify =
     integer.fixpoint(subst(, "(\d)(\d\{3})($|\.|,)", (a,b,c -> "{a},{b}{c}")))
+s.commify' =
+    s.pattern_matches(
+        "(.*)(...)", (a,b -> a.commify' + "," + b)
+        "", s
+    )
     
 #@@PLEAC@@_4.1
 a = ("quick", "brown", "fox")
@@ -150,7 +156,7 @@ commify_series =
     [] -> ""
     l ->
         l', e = l.pop
-        [ l'.join(", "), e ].join(" and ")
+        l'.join(", ") + " and " + e
 
 array = ("red", "yellow", "green")
 println("I have {array.join(" ")} marbles.") #=> I have red yellow green marbles.
@@ -257,7 +263,7 @@ pigs = users.filter(_, n -> n > 1e7).keys
 matching = popen("who").lines.filter(m(, "^gnat "))
 engineers = employees.filter(employee -> employee.category == "engineer")
 
-secondary_assistance = applicants.filter(e -> e{Income} >= 26_000 && $e{Income} < 30_000)
+secondary_assistance = applicants.filter(e -> e{Income} >= 26_000 && e{Income} < 30_000)
 
 #@@PLEAC@@_4.14
 sorted = sort(non_sorted)               # if non_sorted !> Vector(Int)
@@ -390,7 +396,14 @@ popen("who").each(s ->
     #ttys{user} = [] if not ttys.key?(user)    <- not needed, auto created with ***
     ttys{user}.push!(tty)
 )
-ttys.keys.sort(user -> "{user}: {ttys{user}.join(", ")}".println)
+ttys.keys.sort.each(user -> "{user}: {ttys{user}.join(", ")}".println)
+
+# or the more functional:
+popen("who").foldl({}, (ttys, s ->
+    user, tty = s.words[0,1]
+    #ttys{user} = [] if not ttys.key?(user)    <- not needed, auto created with ***
+    ttys{user}.push(tty)
+)).keys.sort.each(user -> "{user}: {ttys{user}.join(", ")}".println)
 
 #@@PLEAC@@_5.8
 surname = { "Mickey","Mantle" , "Babe","Ruth" }
@@ -681,7 +694,7 @@ block = infile.read(256)                # can't do offset writing of 5
 
 #@@PLEAC@@_8.1
 
-while not fh.eo? do
+while not fh.empty? do
     lines = fh.take_while(substr!?(, "\\$", ""))
     line = lines.join("")
     # process full record in {line} here
@@ -787,7 +800,7 @@ fields = record.words
 #@@PLEAC@@_8.10
 fh = file.open(R | W)
 addr = 0
-fh.each(_ -> addr = fh.tell_seek if not file.eo?)
+fh.each(_ -> addr = fh.tell_seek if not file.empty?)
 fh.truncate!(addr)
 
 #@@PLEAC@@_8.11
@@ -834,7 +847,7 @@ addrs.each(s ->
 )
 
 #@@PLEAC@@_8.15
-while not file.eo? do
+while not file.empty? do
     fields = file.read_unpack(template)
     # use fields
 
