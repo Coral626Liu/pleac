@@ -1296,6 +1296,92 @@ bindirs = %w(/usr/bin /bin /usr/local/bin)
 libdirs = bindirs.map { |l| l.sub('bin', 'lib') }
 
 
+# @@PLEAC@@_6.3
+/\S+/               # as many non-whitespace bytes as possible
+/[A-Za-z'-]+/       # as many letters, apostrophes, and hyphens
+
+/\b([A-Za-z]+)\b/   # usually best
+/\s([A-Za-z]+)\s/   # fails at ends or w/ punctuation
+
+
+# @@PLEAC@@_6.4
+contents =~ /
+    any
+    thing
+            /x
+# @@INCOMPLETE@@
+
+
+# @@PLEAC@@_6.5
+# The 'g' modifier doesn't exist in Ruby, a regexp can't be used
+# directly in a while loop; instead, use String#scan { |match| .. } 
+fish = 'One fish two fish red fish blue fish'
+WANT = 3
+count = 0
+fish.scan(/(\w+)\s+fish\b/i) {
+    if (count += 1) == WANT
+        puts "The third fish is a #{$1} one."
+    end
+}
+
+if fish =~ /(?:\w+\s+fish\s+){2}(\w+)\s+fish/i
+    puts "The third fish is a #{$1} one."
+end
+
+pond = 'One fish two fish red fish blue fish'
+# String#scan without a block gives an array of matches, each match
+# being an array of all the specified groups
+colors = pond.scan(/(\w+)\s+fish\b/i).flatten  # get all matches
+color  = colors[2]                          # then the one we want
+# or without a temporary array
+color = pond.scan(/(\w+)\s+fish\b/i).flatten[2]  # just grab element 3
+puts "The third fish in the pond is #{color}."
+
+count = 0
+fishes = 'One fish two fish red fish blue fish'
+evens = fishes.scan(/(\w+)\s+fish\b/i).select { (count+=1) % 2 == 0 }
+print "Even numbered fish are #{evens.join(' ')}."
+
+count = 0
+fishes.gsub(/
+   \b               # makes next \w more efficient
+   ( \w+ )          # this is what we\'ll be changing
+   (
+     \s+ fish \b
+   )
+            /x) {
+    if (count += 1) == 4
+        'sushi' + $2
+    else
+        $1 + $2
+    end
+}
+
+pond = 'One fish two fish red fish blue fish swim here.'
+puts "Last fish is #{pond.scan(/\b(\w+)\s+fish\b/i).flatten[-1]}"
+
+/
+    A               # find some pattern A
+    (?!             # mustn\'t be able to find
+        .*          # something
+        A           # and A
+    )
+    $               # through the end of the string
+/x
+
+# The "s" modifier doesn't exist in Ruby (or at least I don't know how
+# to do it).
+pond = "One fish two fish red fish blue fish swim here."
+if (pond =~ /
+                    \b  (  \w+) \s+ fish \b
+                (?! .* \b fish \b )
+            /ix)
+    puts "Last fish is #{$1}."
+else
+    puts "Failed!"
+end
+
+
 # @@PLEAC@@_7.0
 # An IO object being Enumerable, we can use 'each' directly on it
 File.open("/usr/local/widgets/data").each { |line|
