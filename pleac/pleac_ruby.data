@@ -4487,6 +4487,178 @@ $stdout = IO.popen("/usr/bin/less","w")
 print "huge string\n" * 10000
 
 
+# @@PLEAC@@_16.5
+#-----------------------------
+def head(lines = 20)
+    pid = open("|-","w")
+    if pid == nil
+        return
+    else
+        while gets() do
+            pid.print
+            lines -= 1
+            break if lines == 0
+        end
+    end
+    exit
+end
+
+head(100)
+while gets() do
+    print
+end
+#-----------------------------
+1: > Welcome to Linux, version 2.0.33 on a i686
+
+2: > 
+
+3: >     "The software required `Windows 95 or better', 
+
+4: >      so I installed Linux."  
+#-----------------------------
+> 1: Welcome to Linux, Kernel version 2.0.33 on a i686
+
+> 2: 
+
+> 3:     "The software required `Windows 95 or better', 
+
+> 4:      so I installed Linux."  
+#-----------------------------
+#!/usr/bin/ruby
+# qnumcat - demo additive output filters
+
+def number()
+    pid = open("|-","w")
+    if pid == nil
+        return
+    else
+        while gets() do pid.printf("%d: %s", $., $_); end
+    end
+    exit
+end
+
+def quote()
+    pid = open("|-","w")
+    if pid == nil
+        return
+    else
+        while gets() do pid.print "> #{$_}" end
+    end
+    exit
+end
+
+number()
+quote()
+
+while gets() do
+    print
+end
+$stdout.close
+exit
+
+
+# @@PLEAC@@_16.6
+ARGV.map! { |arg|
+    arg =~ /\.(gz|Z)$/ ? "|gzip -dc #{arg}" : arg
+}
+for file in ARGV
+    fh = open(file)
+    while fh.gets() do
+        # .......
+    end
+end
+#-----------------------------
+ARGV.map! { |arg|
+    arg =~ %r#^\w+://# ? "|GET #{arg}" : arg
+}
+for file in ARGV
+    fh = open(file)
+    while fh.gets() do
+        # .......
+    end
+end
+#-----------------------------
+pwdinfo = (`domainname` =~ /^(\(none\))?$/) ? '/etc/passwd' : '|ypcat  passwd';
+pwd = open(pwdinfo);
+#-----------------------------
+puts "File, please? ";
+file = gets().chomp();
+fh = open(file);
+
+
+# @@PLEAC@@_16.7
+output = `cmd 2>&1`                            # with backticks
+# or
+ph = open("|cmd 2>&1")                         # with an open pipe
+while ph.gets() { }                            # plus a read
+#-----------------------------
+output = `cmd 2>/dev/null`                     # with backticks
+# or
+ph = open("|cmd 2>/dev/null")                  # with an open pipe
+while ph.gets() { }                            # plus a read
+#-----------------------------
+output = `cmd 2>&1 1>/dev/null`                # with backticks
+# or
+ph = open("|cmd 2>&1 1>/dev/null")             # with an open pipe
+while ph.gets() { }                            # plus a read
+#-----------------------------
+output = `cmd 3>&1 1>&2 2>&3 3>&-`             # with backticks
+# or
+ph = open("|cmd 3>&1 1>&2 2>&3 3>&-")          # with an open pipe
+while ph.gets() { }                            # plus a read
+#-----------------------------
+system("program args 1>/tmp/program.stdout 2>/tmp/program.stderr") 
+#-----------------------------
+output = `cmd 3>&1 1>&2 2>&3 3>&-`  
+#-----------------------------
+fd3 = fd1 
+fd1 = fd2 
+fd2 = fd3 
+fd3 = undef 
+#-----------------------------
+system("prog args 1>tmpfile 2>&1") 
+system("prog args 2>&1 1>tmpfile") 
+#-----------------------------
+# system ("prog args 1>tmpfile 2>&1") 
+fd1 = "tmpfile"          # change stdout destination first
+fd2 = fd1                # now point stderr there, too
+#-----------------------------
+# system("prog args 2>&1 1>tmpfile") 
+fd2 = fd1                # stderr same destination as stdout
+fd1 = "tmpfile"          # but change stdout destination 
+#-----------------------------
+# It is often better not to rely on the shell, 
+# because of portability, possible security problems 
+# and bigger resource usage. So, it is often better to use the open3 library. 
+# See below for an example.
+# opening stdin, stdout, stderr
+require "open3"
+stdin, stdout, stderr = Open3.popen('cmd')
+
+
+# @@PLEAC@@_16.8
+#-----------------------------
+# Contrary to perl, we don't need to use a module in Ruby
+fh = Kernel.open("|" + program, "w+")
+fh.puts "here's your input\n"
+output = fh.gets()
+fh.close()
+#-----------------------------
+Kernel.open("|program"),"w+")    # RIGHT !
+#-----------------------------
+# Ruby has already object methods for I/O handles
+#-----------------------------
+begin
+    fh = Kernel.open("|" + program_and_options, "w+")
+rescue
+    if ($@ ~= /^open/)
+        $stderr.puts "open failed : #{$!} \n #{$@} \n"
+        break
+    end
+    raise      # reraise unforseen exception
+end
+
+
 # @@PLEAC@@_17.1
 # A basic TCP client connection
 require 'socket'
@@ -4623,6 +4795,113 @@ end
 
 server = Preforker.new(1, 100, 3102, ClientHandler.new)
 server.run
+
+
+# @@PLEAC@@_18.2
+require 'net/ftp'
+
+begin
+    ftp = Net::FTP::new("ftp.host.com")
+    ftp.login(username,password)
+    ftp.chdir(directory)
+    ftp.get(filename)
+    ftp.put(filename)
+rescue Net::FTPError
+    $stderr.print "FTP failed: " + $!
+ensure
+    ftp.close() if ftp
+end
+
+# A better solution for a local use could be :
+Net::FTP::new("ftp.host.com") do |ftp|
+    ftp.login(username,password)
+    ftp.chdir(directory)
+    ftp.get(filename)
+    ftp.put(filename)
+end
+
+# If you have only one file to get, there is a simple solution :
+require 'open-uri'
+open("ftp://www.ruby-lang.org/path/filename") do |fh|
+    # read from filehandle fh
+end 
+#--------------------------------------------
+# to wait a defined time for the connection, 
+# use the timeout module
+require 'timeout'
+begin 
+    timeout(30){
+        ftp = Net::FTP::new("ftp.host.com")
+        ftp.debug_mode = true
+    }
+rescue Net::FTPError
+    $stderr.puts "Couldn't connect."
+rescue Timeout::Error
+    $stderr.puts "Timeout while connecting to server."
+end
+
+begin
+    ftp.login()
+rescue Net::FTPError
+    $stderr.print "Couldn't authentificate.\n"
+end
+
+begin
+    ftp.login(username)
+rescue Net::FTPError
+    $stderr.print "Still couldn't authenticate.\n"
+end
+
+begin
+    ftp.login(username, password)
+rescue Net::FTPError
+    $stderr.print "Couldn't authenticate, even with explicit
+    username and password.\n"
+end
+
+begin
+    ftp.login(username, password, account)
+rescue Net::FTPError
+    $stderr.print "No dice. It hates me.\n"
+end
+#-----------------------------
+ftp.put(localfile, remotefile)
+#-----------------------------
+# Sending data from STDIN is not directly supported 
+# by the ftp library module. A possible way to do it is to use the 
+# storlines method directly to send raw commands to the ftp server.
+#-----------------------------
+ftp.get(remotefile, localfile)
+#-----------------------------
+ftp.get(remotefile) { |data| puts data }
+#-----------------------------
+ftp.chdir("/pub/ruby") 
+print "I'm in the directory ", ftp.pwd(), "\n"
+#-----------------------------
+ftp.mkdir("/pub/ruby/new_dir")
+#-----------------------------
+lines = ftp.ls("/pub/ruby/")
+# => ["drwxr-xr-x 2 matz users 4096 July 17 1998 1.0", ... ]
+
+latest = ftp.dir("/pub/ruby/*.tgz").sort.last
+
+ftp.nlst("/pub/ruby")
+# => ["/pub/ruby/1.0", ... ]
+#-----------------------------
+ftp.quit()
+
+
+# @@PLEAC@@_18.7
+require 'ping'
+
+puts "#{host} is alive.\n" if Ping.pingecho(host);
+#-----------------------------
+# the ping module only use TCP ping, not ICMP even if we are root
+if Ping.pingecho("kingkong.com")
+    puts "The giant ape lives!\n";
+else
+    puts "All hail mighty Gamera, friend of children!\n";
+end
 
 
 # @@PLEAC@@_19.1
