@@ -112,6 +112,34 @@ let string = String.sub string 0 (String.length string -10)
 (*his wasn'*)
 (*-----------------------------*)
 
+(* @@PLEAC@@_1.2 *)
+
+(* Because OCaml doesn't have the same notion of truth or definedness as Perl,
+ * most of these examples just can't be done as they are in Perl.  Some can be
+ * approximated via the use of options, but remember, unbound variables are not
+ * automatically assigned the value of None -- the variable has to have been
+ * explicitly bound to None (or Some x) beforehand.
+*)
+
+(* use b if b is not None, else use c *)
+let a = match b with None -> c | _ -> b;;
+
+(* set x to y if x is currently None *)
+let x = match x with None -> y | _ -> x;;
+
+(* Note that these are much closer to Perls notion of definedness than truth *)
+
+(* We can set foo to either bar or "DEFAULT VALUE" in one of two ways *)
+(* keep foo as a string option *)
+let foo = match bar with Some x -> bar | _ -> Some "DEFAULT VALUE";;
+
+(* Use foo as a string *)
+let foo = match bar with Some x -> x | _ -> "DEFAULT VALUE";;
+
+let dir = if Array.length Sys.argv > 1 then argv.(1) else "/tmp";;
+
+(* None of the other examples really make sense in OCaml terms... *)
+
 (* @@PLEAC@@_1.3 *)
 (*-----------------------------*)
 let var1, var2 = var2, var1
@@ -181,6 +209,880 @@ let ibm = implode (List.map Char.chr ascii);;
 printf "%s\n" ibm             (* prints "IBM" *)
 (*-----------------------------*)
 
+(* @@PLEAC@@_1.5 *)
+
+(* One can split a string into an array of character, or corresponding ASCII
+ * codes as follows, but this is not necessary to process the strings a
+ * character at a time: *)
+
+let array_of_chars = Array.init (String.length s) (fun i -> s.[i]);;
+let array_of_codes = Array.init (String.length s) (fun i -> Char.code s.[i]);;
+
+(* or one can just use String.iter *)
+String.iter 
+  (fun i -> (*do something with s.[i], the ith char of the string*)) s;;
+
+(* The following function can be used to return a list of all unique keys in a
+ * hashtable *)
+
+let keys h =
+  let k = Hashtbl.fold (fun k v b -> k::b) h [] in
+  (* filter out duplicates *)
+  List.fold_left (fun b x -> if List.mem x b then b else x::b) [] k;;
+
+(* and this function is a shorthand for adding a key,value pair to a hashtable
+*)
+
+let ( <<+ ) h (k,v) = Hashtbl.add h k v;;
+
+let seen = Hashtbl.create 13;;
+let s = "an apple a day";;
+let array_of_chars = Array.init (String.length s) (fun i -> s.[i]);;
+Array.iter (fun x -> seen <<+ (x,1)) array_of_chars;
+print_string "unique chars are:\t";
+List.iter print_char (List.sort compare (keys seen));
+print_newline ();;
+
+(* or, without the unnecessary and innefficient step of converting the string
+ * into an array of chars *)
+let seen = Hashtbl.create 13;;
+let s = "an apple a day";;
+String.iter (fun x -> seen <<+ (x,1)) s;
+print_string "unique chars are:\t";
+List.iter print_char (List.sort compare (keys seen));
+print_newline ();;
+
+(* To compute the simple 31-bit checksum of a string *)
+let cksum s =
+  let sum = ref 0 in
+  String.iter (fun x -> sum := !sum + (Char.code x)) s;
+  !sum;;
+(*
+# cksum "an apple a day";;
+- : int = 1248
+*)
+
+(* to emulate the SysV 16-bit checksum, we will first write two routines sort of
+ * similar to Perl's (<>), that will return the contents of a file either as a
+ * list of strings or as a single string - not that the list of strings version
+ * throws away the \n at the end of each line *)
+
+let slurp_to_list filename =
+  let ic = open_in filename and
+  l = ref [] in
+  let rec loop () =
+    let line = input_line ic in
+    l := line::!l;
+    loop () in
+  try loop () with End_of_file -> close_in ic; List.rev !l;;
+
+let slurp_to_string filename =
+  let ic = open_in filename and
+  buf = Buffer.create 4096 in
+  let rec loop () =
+    let line = input_line ic in
+    Buffer.add_string buf line;
+    Buffer.add_string buf "\n";
+    loop () in
+  try loop () with End_of_file -> close_in ic; Buffer.contents buf;;
+
+let cksum16 fn =
+  let addString sum s =
+    let sm = ref sum in
+    String.iter (fun c -> sm := !sm + (Char.code c)) (s ^ "\n"); 
+    !sm mod 65537 (* 2^16 - 1 *)in
+  List.fold_left addString 0 (slurp_to_list fn);;
+
+(* or *)
+let cksum16 fn = 
+  let sum = ref 0
+  and s = slurp_to_string fn in
+  String.iter (fun c -> sum := (!sum + (Char.code c)) mod 65537) s;
+  !sum;;
+
+
+
+(* Note: slowcat as written is meant to be run from the command line, not in the
+ * toplevel *)
+
+#!/usr/local/bin/ocaml
+(* slowcat - emulate a   s l o w  line printer *)
+(* usage: slowcat [-DELAY] [files ...] *)
+#load "unix.cma";;
+
+(* make sure you have the code for the slurp_to_string function in this file as
+ * well... *)
+
+let _ =
+  let delay,fs = try (float_of_string Sys.argv.(1)),2 with Failure _ -> 1.,1 in
+  let files = Array.sub Sys.argv fs (Array.length Sys.argv - fs) in
+  let print_file f =
+    let s = slurp_to_string f in
+    String.iter 
+      (fun c -> 
+        print_char c;
+        ignore(Unix.select [] [] [] (0.005 *. delay))) s in
+  Array.iter print_file files;;
+
+(* @@PLEAC@@_1.6 *)
+
+(* To flip the characters of a string, we can use a for loop.
+ * Note that this version does not destructively update the string *)
+
+let reverse s = 
+  let len = String.length s - 1 in
+  let s' = String.create (len + 1) in
+  for i = 0 to len do
+    s'.[i] <- s.[len - i]
+  done;
+  s';;
+
+(* to modify the string in place, we can use the following function *)
+let reverse_in_place s =
+  let len = String.length s - 1 in
+  for i = 0 to (len + 1)/ 2 - 1 do
+    let t = s.[i] in
+    s.[i] <- s.[len - i];
+    s.[len - i] <- t
+  done;;
+
+(* To reverse the words in a string, we can use String.concat, Str.split and
+ * List.rev.  Note that this requires us to load in the Str module -- 
+ * use `#load "str.cma"' in* the toplevel, or be sure to include str.cma in the
+ * list of object files when compiling your code.  E.g.:
+ *      ocamlc other options str.cma other files   -or-
+ *      ocamlopt other options str.cmxa other files 
+*)
+
+let reverse_words s =
+  String.concat " " (List.rev (Str.split (Str.regexp " ") s));;
+
+let is_palindrome s = 
+  s = reverse s;;
+
+(* We do need to do a bit more work that Perl to find the big palindromes in
+ * /usr/share/dict/words ... *)
+
+let findBigPals () = 
+  let words = open_in "/usr/share/dict/words" in
+  let rec loop () =
+    let w = input_line words in
+    if String.length w > 5 && w = reverse w then
+      print_endline w;
+    loop () in
+  try loop () with End_of_file -> close_in words;;
+
+(* @@PLEAC@@_1.7 *)
+
+let expand_tabs ?(spaces = 8) s =
+  Str.global_replace (Str.regexp "\t") (String.make spaces ' ') s;;
+
+let compress_tabs ?(spaces = 8) s = 
+  Str.global_replace (Str.regexp (String.make spaces ' ')) "\t" s;;
+
+(*
+# let st = "\tyo baby!\n\t\tWhat the shizzle?\t(Mack)";;
+val st : string = "\tyo baby!\n\t\tWhat the shizzle?\t(Mack)"
+# let etst = expand_tabs st;;
+val etst : string =
+  "        yo baby!\n                What the shizzle?        (Mack)"
+# let etst = expand_tabs ~spaces:4 st;;
+val etst : string = "    yo baby!\n        What the shizzle?    (Mack)"
+# let etst = expand_tabs ~spaces:8 st;;
+val etst : string =
+  "        yo baby!\n                What the shizzle?        (Mack)"
+# let rest = compress_tabs etst;;
+val rest : string = "\tyo baby!\n\t\tWhat the shizzle?\t(Mack)"
+# let rest = compress_tabs ~spaces:4 etst;;
+val rest : string = "\t\tyo baby!\n\t\t\t\tWhat the shizzle?\t\t(Mack)"
+# let rest = compress_tabs ~spaces:3 etst;;
+val rest : string =
+  "\t\t  yo baby!\n\t\t\t\t\t What the shizzle?\t\t  (Mack)"
+*)
+
+(* @@PLEAC@@_1.8 *)
+
+(* As far as I know there is no way to do this in OCaml due to type-safety
+ * contraints built into the OCaml compiler -- it may be feasible with *much*
+ * juju, but don't expect to see this anytime soon... *)
+
+(* @@PLEAC@@_1.9 *)
+
+(* Just use the String module's uppercase, lowercase, capitalize and
+ * uncapitalize *)
+
+let big = String.uppercase little;;    (* "bo peep" -> "BO PEEP" *)
+let little = String.lowercase big;;    (* "JOHN" -> "john" *)
+let big = String.capitalize little;;   (* "bo" -> "Bo" *)
+let little = String.uncapitalize big;; (* "BoPeep" -> "boPeep" *)
+
+(* Capitalize each word's first character, downcase the rest *)
+let text = "thIS is a loNG liNE";;
+let text = String.capitalize (String.lowercase text);;
+print_endline text;;
+
+(*
+This is a long line
+*)
+
+(* To do case insensitive comparisons *)
+if String.uppercase a = String.uppercase b then
+  print_endline "a and b are the same\n";;
+
+let randcap fn =
+  let s = slurp_to_string fn in
+  for i = 0 to String.length s - 1 do
+    if Random.int 100 < 20 then
+      String.blit (String.capitalize (String.sub s i 1)) 0 s  i 1
+  done;
+  print_string s;;
+
+
+(*
+# randcap "/etc/passwd";;
+
+##
+# User DatAbAse
+# 
+# Note That this fIle is consuLTed wHen the sysTeM Is runninG In single-user
+# modE.  At other times this iNformAtion is handlEd by one or moRe oF:
+# lOokupD DIrectorYServicEs  
+# By default, lOOkupd getS inFormaTion frOm NetInFo, so thiS fIle will 
+# not be cOnsultEd unless you hAvE cHaNged LOokupd's COnfiguratiOn.
+# This fiLe is usEd while in siNgle UseR Mode.
+#
+# TO Use this file for noRmal aUthEnticatIon, you may eNable it With
+# /ApPlicatiOns/Utilities/DiRectory AccEss.
+##
+
+< ... snip ... >
+*)
+
+(* @@PLEAC@@_1.10 *)
+
+(* Again, because of OCaml's type-safe nature, actual interpolation cannot be
+ * done inside of strings -- one must use either string concatenation or sprintf
+ * to get the results we're looking for *)
+
+let phrase = "I have " ^ (string_of_int (n+1)) ^ " guanacos.";;
+let prhase = sprintf "I have %d guanacos." (n+1);;
+
+(* @@PLEAC@@_1.12 *)
+
+(* We can emulate the Perl wrap function with the following function *)
+let wrap width s =
+  let l = Str.split (Str.regexp " ") s in
+  Format.pp_set_margin Format.str_formatter width;
+  Format.pp_open_box Format.str_formatter 0;
+  List.iter 
+    (fun x -> 
+      Format.pp_print_string Format.str_formatter x;
+      Format.pp_print_break Format.str_formatter 1 0;) l;
+  Format.flush_str_formatter ();;
+
+(*
+# let st = "May I say how lovely you are looking today... this wrapping has done wonders for your figure!\n";;
+val st : string =
+  "May I say how lovely you are looking today... this wrapping has done wonders for your figure!\n"
+
+# print_string (wrap 50 st);;
+May I say how lovely you are looking today...
+this wrapping has done wonders for your figure!
+
+# print_string (wrap 30 st);;
+May I say how lovely you are
+looking today... this
+wrapping has done wonders for
+your figure!
+*)
+
+(* Note that this version doesn't allow you to specify an opening or standard
+ * indentation (I am having trouble getting the Format module to behave as I
+ * think it should...).  However, if one only wants to print spaces there
+ * instead of arbitrary line leaders, we can use the following version *)
+
+let wrap ?(lead=0) ?(indent=0) width s =
+  let l = Str.split (Str.regexp " ") s in
+  Format.pp_set_margin Format.str_formatter width;
+  Format.pp_open_box Format.str_formatter 0;
+  Format.pp_print_break Format.str_formatter lead indent;
+  List.iter 
+    (fun x -> 
+      Format.pp_print_string Format.str_formatter x;
+      Format.pp_print_break Format.str_formatter 1 indent;) l;
+  Format.flush_str_formatter ();;
+
+(*
+# print_string (wrap 20 st);;
+May I say how
+lovely you are
+looking today...
+this wrapping has
+done wonders for
+your figure!
+ - : unit = ()
+
+# print_string (wrap ~lead:6 ~indent:2 20 st);;
+      May I say how
+  lovely you are
+  looking today...
+  this wrapping has
+  done wonders for
+  your figure!
+
+# print_string (wrap ~lead:2 20 st);;
+  May I say how
+lovely you are
+looking today...
+this wrapping has
+done wonders for
+your figure!
+*)
+
+(* @@PLEAC@@_1.14 *)
+
+let trim s =
+  let s' = Str.replace_first (Str.regexp "^[ \t\n]+") "" s in
+  Str.replace_first (Str.regexp "[ \t\n]+$") "" s';;
+
+let chop s =
+  String.sub s 0 (String.length s - 1);;
+
+let chomp ?(c='\n') s =
+  let len = String.length s - 1 in
+  if s.[len] = c then String.sub s 0 len else s;;
+
+
+(* @@PLEAC@@_2.1 *)
+
+(* Something like this must be done differently in OCaml because of its
+* type-safety.  Some of the tests will use regular expressions, but most won't *)
+let has_NonDigits s = 
+  try ignore (search_forward (regexp "[^0-9]") s); true
+  with Not_found -> true;;
+let is_NaturalNumber s =
+  try let n = int_of_string s in n > 0 with Failure _ -> false;;
+let is_Integer s =
+  try ignore(int_of_string s); true with Failure _ -> false;;
+let is_DecimalNumber s =
+  try ignore(int_of_string s); true with Failure _ ->
+    try let n = float_of_string s in (abs_float f) >= 1. 
+    with Failure _ -> false;;
+let is_CFloat s = 
+  try ignore(float_of_string s); true 
+  with Failure _ -> false;;
+
+(* One of the above predicates can then be used as needed *)
+if predicate s then
+  (* is a number *)
+else
+  (* is not a number *)
+
+(* @@PLEAC@@_2.2 *)
+(* ---------------------------- *)
+(* equalStr num1 num2 accuracy returns true if num1 and num2 
+   are equal to accuracy decimal places *)
+
+(* done by converting to strings, a la the Perl example *)   
+let equalStr num1 num2 accuracy =
+  let p x = sprintf "%.*f" accuracy x in
+  (p num1) = (p num2)
+
+(* Done in a more or less sane way, i.e. treating them as numbers *)
+let equal num1 num2 accuracy =
+  let chop x = floor (x *. (10. ** (float accuracy))) in
+  (chop num1) = (chop num2);;
+
+(* ---------------------------- *)
+let wage = 536;;
+let week = 40 * wage;;
+Printf.printf "One week's wage is %.2f\n" ((float week) /. 100.);;
+(* ---------------------------- *)
+
+(* @@PLEAC@@_2.3 *)
+(* ---------------------------- *)
+let rounded digits fl = float_of_string (sprintf "%.*f" digits fl);;
+(* ---------------------------- *)
+let a = 0.255;;
+let b = float_of_string (sprintf "%.2f" a);;
+let c = rounded 2 a;;
+printf "Unrounded %f\nRounded %f\nOther rounded %f\n" a b c;;
+printf "Unrounded %f\nRounded %.2f\nOther rounded %f\n" a c (rounded 2 a);;
+
+(*
+ * Unrounded 0.255000
+ * Rounded 0.260000
+ * Other rounded 0.260000
+ * Unrounded 0.255000
+ * Rounded 0.26
+ * Other rounded 0.260000
+ *)
+
+(* ---------------------------- *)
+(* To "round" to the nearest integer, use ceil, floor, or truncate.  Note that
+truncate converts the float to an integer, so a conversion back to a float is
+necessary *)
+let fs = [3.3; 3.5; 3.7; -. 3.3];;
+printf "number\tint\tfloor\tceil\n";
+List.iter 
+  (fun x -> printf "%.1f\t%.1f\t%.1f\t%.1f\n" x (float (truncate x)) (floor x) (ceil x)) 
+  fs;;
+
+(*
+ * number	int	floor	ceil
+ * 3.3	3.0	3.0	4.0
+ * 3.5	3.0	3.0	4.0
+ * 3.7	3.0	3.0	4.0
+ * -3.3	-3.0	-4.0	-3.0
+ *) 
+  
+(* Or if you really want an integer in column 2 *)
+printf "number\tint\tfloor\tceil\n";
+List.iter 
+  (fun x -> printf "%.1f\t%d\t%.1f\t%.1f\n" x (truncate x) (floor x) (ceil x)) 
+  fs;;
+
+(* 
+ * number	int	floor	ceil
+ * 3.3	3	3.0	4.0
+ * 3.5	3	3.0	4.0
+ * 3.7	3	3.0	4.0
+ * -3.3	-3	-4.0	-3.0
+ *) 
+
+(* @@PLEAC@@_2.4 *)
+
+(* ---------------------------- *)
+(* 
+ * Two versions in each direction -- one to deal with decimal strings,
+ * and the other to deal with decimal integers.  Binary numbers will
+ * always be strings 
+ *)
+
+let binStr_of_decInt i =
+  let rec strip_bits i s =
+    match i with
+      0 -> s
+    | _ -> strip_bits (i lsr 1) ((string_of_int (i land 0x01)) ^ s) in
+  strip_bits i "";;
+
+let binStr_of_decStr i =
+  let rec strip_bits i s =
+    match i with
+      0 -> s
+    | _ -> strip_bits (i lsr 1) ((string_of_int (i land 0x01)) ^ s) in
+  strip_bits (int_of_string i) "";;
+(* Of course if you have binStr_of_decInt already, it's easier to just call
+   binStr_of_decInt (int_of_string i) *)
+
+(* ---------------------------- *)
+let decInt_of_binStr s =
+  int_of_string ("0b" ^ s);;
+
+let decStr_of_binStr s =
+  string_of_int (int_of_string ("0b" ^ s));;
+(* ---------------------------- *)
+let numInt = decInt_of_binStr "0110110";; (* numInt = 54 *)
+let numInt = decStr_of_binStr "0110110";; (* numInt = "54" *)
+let bin1 = binStr_of_decInt 54;;   (* bin1 = "110110" *)
+let bin2 = binStr_of_decStr "54";; (* bin2 = "110110" *)
+(* ---------------------------- *)
+
+(* @@PLEAC@@_2.5 *)
+(* ---------------------------- *)
+(* The boring way is to use a for loop... *)
+for i = low to high do
+  (* Do your stuff *)
+  (* Note, if what you want to do in the loop does not have have type unit, you
+     need to wrap it with ignore, e.g. ignore (2 * i) *)
+done
+
+(* Or you skip the syntactic sugar and write it recursively yourself *)
+let rec loop low high f =
+  if low > high then
+    ()
+  else
+    begin
+      ignore (f low);
+      loop (succ low) high f
+    end;;
+
+(* and now with stepsize different from 1 *)
+let rec loopStep low high step f =
+  if low > high then
+    ()
+  else
+    begin
+      ignore (f low);
+      loopStep (low + step) high f
+    end;;
+
+    
+(* Or, if you don't mind wasting space, you can use the useful iter functions
+ *)
+(* Array based *)
+let makeArraySequence lo hi =
+  Array.init (hi - lo + 1) (fun i -> i + lo);;
+Array.iter ( your function here ) (makeArraySequence lo hi);;
+  
+(* List based *)
+let makeListSequence lo hi = 
+  let rec msHelper lo hi l =
+    match (a - b) with
+    0 -> b::l
+	| _ -> msHelper a (b-1) (b::l) in
+  msHelper lo hi [];;
+List.iter ( your function here ) (makeListSequence lo hi);;
+(* ---------------------------- *)
+printf "Infancy is: ";
+for i = 0 to 2 do
+  printf "%d " i
+done;;
+
+print_newline();;
+
+printf "Toddling is: ";
+loop 3 4 (fun i -> printf "%d " i);;
+
+print_newline ();;
+
+printf "Childhood is: ";
+Array.iter (fun i -> printf "%d " i) (makeArraySequence 5 12);;
+
+print_newline();;
+
+(*
+ * Infancy is: 0 1 2
+ * Toddling is: 3 4
+ * Childhood is: 5 6 7 8 9 10 11 12
+ *) 
+(* ---------------------------- *)
+
+
+(* @@PLEAC@@_2.7 *)
+(* ---------------------------- *)
+let random_int lo hi =
+  (Random.int (hi - lo + 1)) + lo;;
+
+let random_float lo hi =
+  (Random.float (hi -. lo +. 1.)) +. lo;;
+(* ---------------------------- *)
+let random_number = random_int 25 75 in
+  printf "%d\n" random_number;;
+(* ---------------------------- *)
+let elem = arr.(Random.int (Arry.length arr))
+(* ---------------------------- *)
+let uc = Array.init 26 (fun i -> Char.chr (i+ (Char.code 'A')))
+and lc = Array.init 26 (fun i -> Char.chr (i+ (Char.code 'a')))
+and nums = Array.init 10 (fun i -> Char.chr (i + (Char.code '0')))
+and puncs = [| '!'; '@'; '$'; '%'; '^'; '&'; '*' |];;
+let chars = Array.concat [uc; lc; nums; puncs];;
+
+(* to generate the random password as a char array *)
+let password = Array.init 8 (fun i -> chars.(Random.int (Array.length chars)));;
+(* to generate the random password as a string *)
+let passString = 
+  let s = String.make 8 ' ' in
+  for i=0 to 7 do 
+	s.[i] <- chars.(Random.int (Array.length chars))
+  done;
+  s;;
+
+(* ---------------------------- *)
+
+
+(* @@PLEAC@_2.8 *)
+(* Seed the generator with an integer *)
+Random.init 5;;
+
+(* Seed the generator with an array of integers *)
+Random.full_init [| 1; 2; 178653; -62 |];;
+
+(* Automatically seed the generator in a system-dependant manner *)
+Random.self_init ();;
+
+(* @@PLEAC@@_2.9 *)
+(* This requires installation of the third party the cryptokit library... *)
+let prng = Cryptokit.Random.secure_rng;;
+let buf = String.make 10 ' ';;
+(* random_bytes buf pos len stores len random bytes in string buf, starting at position pos *)
+prng#random_bytes buf 0 10;;  (* buf now contains 10 random bytes *)
+
+
+(* @@PLEAC@@_2.10 *)
+(* Note that this will return just one of the numbers, as returning either one
+* or the other would requires always constructing an array or a list -- this
+* just returns a float *)
+
+let gaussianRand () =
+  let rec getW () =
+    let u1 = 2. *. (Random.float 1.) -. 1.
+    and u2 = 2. *. (Random.float 1.) -. 1. in
+    let w = u1 *. u1 +. u2 *. u2 in
+    if w >= 0. then w,u1,u2 else getW () in
+  let w,u1,u2 = getW () in
+  let w = sqrt((-2. *. (log w)) /. w) in
+  let g2 = u1 *. w
+  and g1 = u2 *. w in
+  g1;; 
+
+
+(* note that because of the way dist is used, it makes the most sense to return
+* it as a sorted associative list rather than another hash table *)
+let weightToDist whash =
+  let total = Hashtbl.fold (fun k v b -> b +. v) whash 0. in
+  let dist = Hashtbl.fold (fun k v b -> (v,k)::b) whash [] in
+  List.sort compare dist;;
+
+let rec weightedRand dhash =
+  let r = ref (Random.float 1.) in
+  try 
+    let v,k = List.find (fun (v,k) -> r := !r -. v; !r < 0.) dhash in k
+  with Not_found -> weightedRand dhash;;  
+
+let mean,dev = 25.,2. in
+let salary = gaussianRand () *. sdev +. mean;;
+printf "You have been hired at $%.2f\n" salary;;
+
+(* @@PLEAC@@_2.11 *)
+let pi = acos(-. 1.);;
+let degrees_of_radians r = 180. *. r /. pi;;
+let radians_of_degrees d = d *. pi /. 180.;;
+
+let sinDeg d = sin (radians_of_degrees d);;
+let cosDeg d = cos (radians_of_degrees d);;
+
+(* @@PLEAC@@_2.12 *)
+(* cos, sin, tan, acos, asin, atan, sinh, cosh and tanh are all standard
+functions, but missing functions, such as secant can be construced in the usual
+way... *)
+
+let sec x = 1. /. (sin x);;
+
+(* @@PLEAC@@_2.13 *)
+
+(* to take a natural log, use the log function *)
+let log_e = log 100.;;
+
+(* to take a log to base 10, use the log10 function *)
+let log_10 = log10 100.;;
+
+(* to take a log to an arbitrary base, use traditional identities *)
+let logB base x = (log x) /. (log base);;
+
+
+(* @@PLEAC@@_2.14 *)
+let mmult m1 m2 =
+  let dim m =
+    Array.length m,Array.length m.(0) in
+  let r1,c1 = dim m1
+  and r2,c2 = dim m2 in
+  if c1 <> r2 then raise (Invalid_argument "Matrix dimensions don't match")
+  else
+    begin
+      let dotP v1 v2 =
+        let sum = ref 0. in
+        for i = 0 to Array.length v1 - 1 do 
+          sum := !sum +. (v1.(i) *. v2.(i))
+        done;
+        !sum in
+      let row m i = m.(i)
+      and col m i = Array.init (Array.length m) (fun r -> m.(r).(i)) in
+      let res = Array.make_matrix r1 c2 0. in
+      for r = 0 to pred r1 do
+        for c = 0 to pred c2 do
+          res.(r).(c) <- dotP (row m1 r) (col m2 c)
+        done
+      done;
+      res
+    end;;
+
+(* @@PLEAC@@_2.15 *)
+(* ---------------------------- *)
+(* c = a * b manually *)
+type cplx = { real : float; imag : float; };;
+let c = {real = a.real *. b.real -. a.imag *. b.imag;
+         imag = a.imag *. b.real +. b.imag *. a.real};;
+(* ---------------------------- *)
+
+(* c = a * b using the Complex module *)
+open Complex;;
+
+let c = Complex.mul a b;;
+(* Note that we could have simply said let c = mul a b, but a later binding of a value to the
+   name mul would render the complex mul invisible after that, Complex.mul is
+   less ambiguous. *)
+(* ---------------------------- *)
+let a = {real=3.; imag=5.};;
+let b = {real=2.; imag=(-. 2.);}
+let c = {real = a.real *. b.real -. a.imag *. b.imag;
+         imag = a.imag *. b.real +. b.imag *. a.real};;
+printf "c = %f+%fi\n" c.real c.imag;;
+         
+(* c = 16.000000+4.000000i *)
+
+let a = {re=3.; im=5.};;
+let b = {re=2.; im=(-. 2.);}
+let c = mul a b;;
+printf "c = %f+%fi\n" c.re c.im;;
+
+(* c = 16.000000+4.000000i *)
+
+let d = {re=3.; im=4.};;
+let s = sqrt d in
+printf "sqrt(%.2f+%.2fi) = %.2f+%.2fi\n" d.re d.im s.re s.im;;
+
+(* sqrt(3.00+4.00i) = 2.00+1.00i *)
+
+(* @@PLEAC@@_2.16 *)
+(* Since integers and strings are very different things in OCaml, we will
+   represent both octal and hexidecimal values as strings *)
+
+let oct_of_hex h =
+  Printf.sprintf "%0o" (int_of_string ("0x" ^ h));;
+let hex_of_oct o =
+  Printf.sprintf "%0x" (int_of_string ("0o" ^ o));;
+
+(* One small problem is that OCaml integers are 31 (or 63) bit values, if you need
+   something larger, you can use the following for a full 32 bits: *)
+let oct_of_hex32 h =
+  Printf.sprintf "%0lo" (Int32.of_string ("0x" ^ h));;
+let hex_of_oct32 o =
+  Printf.sprintf "%0lx" (Int32.of_string ("0o" ^ o));;
+
+(* Or this for 64 bits: *)
+let oct_of_hex64 h =
+  Printf.sprintf "%0Lo" (Int64.of_string ("0x" ^ h));;
+let hex_of_oct64 o =
+  Printf.sprintf "%0Lx" (Int64.of_string ("0o" ^ o));;
+
+(* For anything else you have to roll your own *)
+let chopn n s =
+  (* Chops strings into list of n byte substrings *)
+  match s with 
+    "" -> [""] (* avoids wierd edge case *)
+    | _ ->
+      let ex = (String.length s) mod n in
+      let ss = if ex = 0 then s else ((String.make (n-ex) '0') ^ s) in
+      let rec schopn x s l =
+        match x with
+          0 -> (String.sub s 0 n)::l
+          | _ -> schopn (x-n) s ((String.sub s x n)::l) in
+      schopn (String.length ss - n) ss [];;
+        
+let long_oct_of_hex h =
+  let choppedH = chopn 6 h in
+  let f x = int_of_string ("0x" ^ x) in
+  String.concat "" (List.map (fun x -> Printf.sprintf "%08o" (f x)) choppedH);;
+
+let long_hex_of_oct o =
+  let choppedO = chopn 8 o in
+  let f x = int_of_string ("0o" ^ x) in
+  String.concat "" (List.map (fun x -> Printf.sprintf "%06x" (f x)) choppedO);;
+(* ---------------------------- *)
+(* Since octal, hex and decimal are all the same internally, we don't need to do
+    any explicit conversion *)
+printf "Gimme a number in decimal, octal, or hex: ";;
+let num = read_int ();;
+printf "%d %x %o\n" num num num;;
+(* ---------------------------- *)
+printf "Enter file permission in octal: ";;
+let permissions = try read_int ()
+with Failure message -> failwith "Exiting...\n";;
+printf "The decimal value is %d\n" permissions;;
+
+(* @@PLEAC@@_2.18 *)
+(* Hardcoded examples can be done as follows: *)
+Printf.printf "It took %d hour%s\n" n (if n <> 1 then "s" else "");;
+Printf.printf "It took %d centur%s\n" n (if n <> 1 then "ies" else "y");;
+
+(* For a more general solution *)
+(* First define the rules *)
+(* Note: the OS needs to support dynamic loading of C libraries for this *)
+#load "str.cma";;
+
+let rules = 
+  List.map (fun x -> (Str.regexp (fst x)),(snd x))
+    ["\\([psc]h\\)$\\|z$","\\0es";
+     "\\(ff\\)$\\|\\(ey\\)$","\\0s";
+     "f$","ves";
+     "y$","ies";
+     "ix$","ices";
+     "ius$","ii";
+     "[sx]$","\\0es";
+     "non","na"];;
+
+let f w x =
+  ignore(Str.search_forward (fst x) w 0); 
+  Str.replace_first (fst x) (snd x) w;;
+
+let rec exn_map ex fn1 fn2 l =
+  match l with
+    [] -> fn2
+  | h::t -> try (fn1 h) with ex -> exn_map ex fn1 fn2 t;;
+
+let pluralize x = (* "wish" in *)
+  exn_map Not_found (f x) (x ^ "s") rules;;
+  
+(* Note: This next example doesn't work on the odd cases *)
+let nouns = ["fish"; "fly"; "ox"; "species"; "genus"; "phylum"; "cherub";
+             "radius"; "jockey"; "index"; "matrix"; "mythos"; "phenomenon";
+             "formula"];;
+List.iter (fun x -> printf "One %s, two %s\n" x (pluralize x)) nouns;;
+  
+
+(* @@PLEAC@@_2.19 *)
+(* Note: the OS needs to support dynamic loading of C libraries for this
+   otherwise you will need to link the nums library with the code at comple time *)
+#load "nums.cma";;
+open Big_int;;
+
+let cmd = [|"bigfact"; "8"; "9"; "96"; "2178"; 
+            "239322000000000000000000"; "25000000000000000000000000"; "17"|];;
+
+(* This will raise an exception if a nonnumeric string is in the argument list
+*)
+let argList = 
+  Array.map big_int_of_string (Array.sub cmd 1 ((Array.length cmd) - 1));;
+
+let factorize num = 
+  let two = big_int_of_int 2 and four = big_int_of_int 4 in
+  let rec genFactors (i,sqi) n fList =
+    if eq_big_int n unit_big_int then fList else
+    if lt_big_int n sqi then ((n,1)::fList) else
+      let newn = ref n and fcount = ref 0 in
+      while  (eq_big_int (mod_big_int !newn i) zero_big_int) do
+          newn := div_big_int !newn i;
+          fcount := !fcount + 1;
+      done;
+      let nexti,nextsqi = 
+          if eq_big_int i two then
+              (add_big_int i unit_big_int),
+                (add_big_int sqi (add_big_int (mult_big_int i two)
+                 unit_big_int))
+          else
+              (add_big_int i two),
+                (add_big_int sqi (add_big_int (mult_big_int i four) two)) in
+      genFactors (nexti,nextsqi) !newn (if !fcount = 0 then fList else
+          ((i,!fcount)::fList)) in
+   genFactors (two,four) num [];;
+
+let _ = 
+  Array.iter
+  (fun n ->
+    let l = factorize n in
+    match l with
+      [(x,1)] -> printf "%s\tPrime!\n" (string_of_big_int x)
+    | _ -> 
+        printf "%s\t" (string_of_big_int n);
+        List.iter
+          (fun (x,count) -> let sx = string_of_big_int x in
+            if count = 1 then printf "%s " sx
+            else printf "%s**%d " sx count)
+          (List.rev l);
+    print_newline()) argList;;
+
+
 (* @@PLEAC@@_3.9 *)
 
 (* @@INCOMPLETE@@ *)
@@ -211,10 +1113,19 @@ let tune = ["The"; "Star-Spangled"; "Banner"]
 (*-----------------------------*)
 
 (* @@PLEAC@@_4.1 *)
-let a = ["quick"; "brown"; "fox"]
+(* Note that Perl sort of munges OCaml lists and arrays into a single data
+ * structure.  In OCaml, they are two distinct data structures, and one needs to
+ * learn when it is best to use lists vs. arrays. *)
+
+(* To initialize a list *)
+let l = ["quick"; "brown"; "fox"];;
+
+(* To initialize an array *)
+let a = [|"quick"; "brown"; "fox"|];;
+
 (* ------------ *)
-let words s = Str.split (Str.regexp "[ \t\n]+") str
-let a = words "Why are you teasing me?"
+let words s = Str.split (Str.regexp "[ \t]+") s;;
+let l = words "Why are you teasing me?";;
 (* ------------ *)
 let str = "  The boy stood on the burning deck,
   It was as hot as glass.
@@ -237,6 +1148,778 @@ f (Str.split (Str.regexp_string "\n") str);;
 let data = open_in "mydatafile" in
 let bigarray = readlines data in
 bigarray;;
+
+
+(* @@PLEAC@@_4.2 *)
+
+let commify_series l = 
+  let rec sepChar l =
+  match l with
+    [] -> ", "
+  | h::t -> 
+       if String.contains h ',' then "; " else sepChar t in
+  match l with
+    [] -> ""
+  | h::[] -> h
+  | h1::h2::[] -> h1 ^ " and " ^ h2
+  | _ ->
+     let l' =
+        let last::rest = List.rev l in
+        (List.rev (("and " ^ last)::rest)) in
+     String.concat (sepChar l) l';; 
+
+let lists = 
+  [
+    [ "just one thing" ];
+    [ "Mutt"; "Jeff" ];
+    [ "Peter"; "Paul"; "Mary" ];
+    [ "To our parents"; "Mother Theresa"; "God" ];
+    [ "pastrami"; "ham and cheese"; "peanut butter and jelly"; "tuna" ];
+    [ "recycle tired, old phrases"; "ponder big, happy thoughts" ];
+    [ "recycle tired, old phrases"; 
+      "ponder big, happy thoughts"; 
+      "sleep and dream peacefully" ]
+  ];;
+
+List.iter (fun x -> printf "The list is: %s.\n" (commify_series x)) lists;;
+
+(* 
+The list is: just one thing.
+The list is: Mutt and Jeff.
+The list is: Peter, Paul, and Mary.
+The list is: To our parents, Mother Theresa, and God.
+The list is: pastrami, ham and cheese, peanut butter and jelly, and tuna.
+The list is: recycle tired, old phrases and ponder big, happy thoughts.
+The list is: recycle tired, old phrases; ponder big, happy thoughts; and sleep and dream peacefully.
+*)
+
+(* Note that if you are actually using arrays instead of lists, you can either
+ * reuse the above code by calling "commify_series (Array.to_list a)", or you
+ * can use the following solution (which won't work with lists, but is probably
+ * more efficient).
+*)
+
+let commify_array a =
+  let len = Array.length a in
+  let rec sepChar a =
+    try
+      for i=0 to len - 1 do
+        if String.contains a.(i) ',' then raise Not_found
+      done;
+      ", "
+    with Not_found -> "; " in
+  match len with
+    0 -> ""
+  | 1 -> a.(0)
+  | 2 -> a.(0) ^ " and " ^ a.(1)
+  | _ -> 
+      let buf = Buffer.create 10
+      and sep = sepChar a in
+      for i = 0 to len - 2 do
+        Buffer.add_string buf a.(i);
+        Buffer.add_string buf sep;
+      done;
+      Buffer.add_string buf "and ";
+      Buffer.add_string buf a.(len - 1);
+      Buffer.contents buf;;
+
+let arrays = 
+  [|
+    [| "just one thing" |];
+    [| "Mutt"; "Jeff" |];
+    [| "Peter"; "Paul"; "Mary" |];
+    [| "To our parents"; "Mother Theresa"; "God" |];
+    [| "pastrami"; "ham and cheese"; "peanut butter and jelly"; "tuna" |];
+    [| "recycle tired, old phrases"; "ponder big, happy thoughts" |];
+    [| "recycle tired, old phrases"; 
+      "ponder big, happy thoughts"; 
+      "sleep and dream peacefully" |]
+  |];;
+
+Array.iter (fun x -> printf "The list is: %s.\n" (commify_array x)) arrays;;
+
+(* @@PLEAC@@_4.3 *)
+
+(*
+   OK, OCaml just doesn't work with arrays the same way tha Perl does.  In
+   Ocaml, Arrays are immutable in their shape, while containing mutable
+   contents.  You can simulate this example as shown below (which only works for
+   string arrays), or you can get resizeable arrays from a library such as
+   extlib <http://ocaml-lib.sourceforge.net/>
+*)
+
+let what_about_that_array a =
+  let len = Array.length a in
+  printf "The array now has %d elements.\n" len;
+  printf "The index of the last element is %d.\n" (if len=0 then 0 else len-1);
+  printf "Element 3 is \"%s\".\n" a.(3);; 
+
+let resizeArray a s =
+  (* begin stupid hack to work like the Perl example *)
+  let s = s + 1 in
+  (* end stupid hack to work like the Perl example *)
+  assert (s >= 0);
+  let len = Array.length a in
+  if s = len then a else
+    if s < len then
+      Array.sub a 0 s
+    else
+      Array.append a (Array.make (s - len) "");;
+
+let people = [|"Crosby"; "Stills"; "Nash"; "Young"|];;
+what_about_that_array people;;
+
+(*
+The array now has 4 elements.
+The index of the last element is 3.
+Element 3 is "Young".
+*)
+
+let people = resizeArray people 2;;
+what_about_that_array people;;
+
+(*
+The array now has 3 elements.
+The index of the last element is 2.
+Exception: Invalid_argument "index out of bounds".
+*)
+
+let people = resizeArray people 10000;;
+what_about_that_array people;;
+(*
+The array now has 10001 elements.
+The index of the last element is 10000.
+Element 3 is "".
+*)
+
+(* @@PLEAC@@_4.4 *)
+
+Array.iter complain bad_users;;
+(* Or for lists *)
+List.iter complain bad_users;;
+
+(* For the hashtable example, we'd iterate over the table itself *)
+
+Hashtbl.iter (fun k v -> printf "%s=%s\n" k v) h;; 
+
+(* Of course if you want to iterate over the keys in lexicographic order, then
+ * you'll need to build a list of keys, sort it, then iterate over that *)
+
+List.iter (fun x -> printf "%s=%s\n" x (Hashtbl.find env x))
+  (List.sort compare (Hashtbl.fold (fun k v b -> k::b) env []));;
+
+Array.iter (fun x -> if get_usage x > max_quota then complain_user) all_users;;
+(* or for lists of users *)
+List.iter (fun x -> if get_usage x > max_quota then complain_user) all_users;;
+
+(* for this example, we're going to assume that the output of the who command is
+ * contained in the list named who, with one line of output per list element.
+ * This example requires the use of the Str module which is not loaded or linked
+ * by default (but is part of the standard library), at the toplevel, use the
+ * directive "#load "str.cma"
+*)
+
+List.iter 
+  (fun x -> 
+    try 
+      ignore (Str.search_forward (Str.quote "tchrist") x 0);
+      print_endline x;
+    with Not_found -> ()) who;;
+
+(* To iterate over all lines read in from some channel we would do the following *)
+  
+let iter_channel f ic =
+  try
+    while true do
+      f (input_line ic)
+    done
+  with Not_found -> ();;
+
+(* and the example would then be written as *)
+iter_channel
+  (fun  s ->
+    let reverse s ='let len = String.length s in
+      let s' = String.create len in
+      for i = 0 to len - 1 do
+        s'.[len-i-1] <- s.[i]
+      done;
+      s' in
+    (* assuming we have written a chomp workalike *)
+    let s = chomp s in
+    List.iter 
+      (fun x -> print_endline (reverse x)) 
+      (Str.split (Str.regexp "[ \t]+") s)) fh;;
+
+(* In OCaml the iterator variable also is an alias for the current element,
+ * however, because of the functional nature of OCaml, unless the elements of
+ * the array are references, the only way to change them is by resetting the
+ * value of the array to something new -- this is best done using iteri *)
+
+let a = [|1; 2; 3|];;
+Array.iteri (fun i x -> a.(i) <- x-1) a;;
+
+(* or, with references *)
+
+let a = [| ref 1; ref 2; ref 3 |];;
+Array.iter (fun x -> x := !x - 1) a;;
+
+(* You can, of course, use map to create a new array with the desired contents
+ * as well *)
+let a = [| 0.5; 3.|];;
+let b = [|0.; 1.|];;
+Array.iter (printf "%f ") (Array.map (( *. ) 7.) (Array.append a b));;
+
+
+let strip s =
+  Str.replace_first (Str.regexp "^[ \t\n]") ""
+    (Str.replace_first (Str.regexp "[ \t\n$]") "" s);;
+
+
+let sc,ar,h = 
+  strip sc,
+  Array.map strip ar,
+  (Hashtbl.iter (fun k v -> Hashtbl.replace h k (strip v)) h; h);;
+
+(* of course, the Hashtbl.replace already destructively updates the old
+ * hashtable... *)
+
+(* @@PLEAC@@_4.5 *)
+
+(* iterate over elements of array in arrayref *)
+
+Array.iter (fun x -> (* do something with x *)) !arrayref;;
+
+for i = 0 to Array.length !arrayref - 1 do
+  (* do something with !arrayref.(i) *)
+done
+
+let fruits = [| "Apple"; "Blackberry" |];;
+let fruit_ref = ref fruits;;
+Array.iter (printf "%s tastes good in a pie.\n") !fruit_ref;;
+
+for i = 0 to  Array.length !fruit_ref - 1 do
+  printf "%s tastes good in a pie.\n" !fruit_ref.(i)
+done;;
+
+Hashtbl.add namelist "felines" (ref rogue_cats);;
+Array.iter (printf "%s purrs hypnotically.\n") !(Hashtbl.find namelist
+"felines");;
+print_endline "--More--\nYou are controlled.";;
+
+for i=0 to Array.length !(Hashtbl.find namelist "felines") - 1 do
+  printf "%s purrs hypnotically.\n" !(Hashtbl.find namelist "felines").(i)
+done;;
+
+(* @@PLEAC@@_4.6 *)
+
+(* For lists, the most "natural" way to do this is by walking the list and
+ * looking for duplicates of each item *)
+
+let rec uniquesOnly l = 
+  let rec contains x l =
+    match l with
+      [] -> false
+    | h::t -> if x = h then true else contains x t in
+  match l with 
+    [] -> []
+  | h::t -> if contains h t then uniquesOnly t else h::(uniquesOnly t);;
+
+(* if you have a lot of duplicates, it might be better to use List.filter *)
+let rec uniquesOnly l =
+  match l with
+    [] -> []
+  | h::t -> h::(uniquesOnly (List.filter ((<>) h) t));;
+
+(* Or, for lists or arrays, you can use a hashtable *)
+(* Straightforward *)
+let uniquesOnly l =
+  let seen = Hashtbl.create 17
+  and uniq = ref [] in
+  List.iter 
+    (fun x -> 
+      if not (Hashtbl.mem seen x) then 
+        (Hashtbl.add seen x 1; uniq := (x::!uniq)))
+    l;
+  !uniq;;
+
+(* Or more likely *)
+let uniquesOnly l =
+  let seen = Hashtbl.create 17 in
+  List.iter (fun x -> Hashtbl.replace seen x 1) l;
+  Hashtbl.fold (fun k v b -> k::b) seen [];;
+
+(* To apply a user function to each unique element of a list, one would likely
+ * do something like *)
+
+let userUnique f l =
+  List.map f (uniquesOnly l);;
+
+(* Generate a list of users logged in, removing duplicates.  Note that this
+ * example requires linking with the Unix and Str libraries. *)
+let who () =
+  let w = Unix.open_process_in "who"
+  and l = ref [] in
+  try
+    while true do
+      l := (input_line w)::!l
+	done;
+	!l
+  with End_of_file -> !l;;
+
+let ucnt = Hashtbl.create 17;;
+List.iter 
+  (fun x -> 
+    Hashtbl.replace ucnt (Str.replace_first (Str.regexp "[ \t].*$") "" x) 1)
+  (who ());;
+let users = Hashtbl.fold (fun k v b -> k::b) ucnt [];;
+
+printf "users logged in: %s";;
+List.iter (printf "%s ") users;;
+
+(* @@PLEAC@@_4.7 *)
+
+(* using hashtables, like the cookbook *)
+let arrayDiff a b = 
+  let seen = Hashtbl.create 17 
+  and l = ref [] in
+  Array.iter (fun x -> Hashtbl.add seen x 1) b;
+  Array.iter (fun x -> if not (Hashtbl.mem seen x) then l := x::!l) a;
+  Array.of_list !l;;
+
+
+(* @@PLEAC@@_4.8 *)
+
+let a = [ 1;3;5;6;7;8 ];;
+let b = [ 2;3;5;7;9 ];;
+
+let union = Hashtbl.create 13
+and isect = Hashtbl.create 13
+and diff = Hashtbl.create 13;;
+
+(* simple solution for union and intersection *)
+List.iter (fun x -> Hashtbl.add union x 1) a;;
+List.iter 
+  (fun x -> hashtbl.add (if Hashtbl.mem union x then isect else union) x 1) b;;
+let u = Hashtbl.fold (fun k v b -> k::b) union []
+and i = Hashtbl.fold (fun k v b -> k::b) isect [];;
+
+(* Union, intersection, and symmetric difference *)
+let hincr h x = 
+  let v = try Hashtbl.find h x with Not_found -> 0 in
+  Hashtbl.replace h x (v+1);;
+
+let count = Hashtbl.create 13;;
+List.iter (fun x -> Hashtbl.add count x 1) a;;
+List.iter (hincr count) b;;
+let u,i,d =
+  let u = Hashtbl.fold (fun k v b -> (k,v)::b) count [] in
+  let i,d = List.partition(fun x -> snd x = 2) u in
+  let vo l = List.map fst l in
+  (vo u),(vo i),(vo d);;
+
+
+(* @@PLEAC@@_4.9 *)
+
+(* For lists, use the @ operator for two lists, or List.concat for a list of
+ * lists, for arrays, use Array.append for two arrays, or Array.concat for a
+ * list of arrays*)
+
+let list1 = list1 @ list2;;
+let array1 = Array.append array1 array2;;
+
+let members = [| "Time"; "Flies" |];;
+let initiates = [| "An"; "Arrow" |];;
+let members = Array.append members initiates;;
+
+(* It is easiest to write a splice workalike and then just use the new function
+ * much like in Perl *)
+
+let splice ?length ?list arr off =
+  let len = Array.length arr in
+  let off = if off < 0 then len + off else off in
+  let l,back =
+    match length with
+      None -> (len - off),[||]
+    | Some l -> 
+        l,
+        (let boff = off + l in
+        try Array.sub arr boff (len - boff)  with Invalid_argument _ -> [||]) in
+  let front = Array.sub arr 0 off
+  and mid = 
+    match list with 
+      None -> [||] 
+    | Some a -> a
+  and sp = Array.sub arr off l in
+  sp,Array.concat [front;mid;back];;
+
+let _,members = 
+  splice members 2 ~length:0 ~list:(Array.append [|"Like"|] initiates);;
+Array.iter (printf "%s ") members; print_newline ();;
+
+let _,members = splice members 0 ~length:1 ~list:[|"Fruit"|];;
+let _,members = splice members (-2) ~length:2 ~list:[|"A"; "Banana"|];;
+Array.iter (printf "%s ") members; print_newline ();;
+
+(* @@PLEAC@@_4.10 *)
+
+(* To reverse a list, use List.rev *)
+let reversed = List.rev l;;
+
+(* For an array, it is probably easiest to use Array.init *)
+
+let revArray a = 
+  let len = Array.length a - 1 in
+  Array.init len+1 (fun i -> a.(len - i);;
+
+let reversed = revArray a;;
+
+(* Or one can use a for loop *)
+for i = Array.length a - 1 downto 0 do
+  (* Do something to a.(i) *)
+done;;
+
+(* @@PLEAC@@_4.11 *)
+
+(* To remove multiple elements from an array at once, one can use the splice
+ * function from section 4.9 *)
+
+(* Remove n elements from the front of arr *)
+front,arr = splice arr 0 ~length:n;;
+rear,arr = splice arr (-n);;
+
+(* this can also be wrapped as an explicit function *)
+
+let shift2 a = splice a 0 ~length:2;;
+let pop2 a = splice a (-2);;
+
+(* This lets you do something like Perl's hinkey pattern matching *)
+let friends = [|"Peter"; "Paul"; "Mary"; "Jim"; "Tim" |];;
+let [|this; that|],friends = shift2 friends;;
+
+let beverages = [|"Dew"; "Jolt"; "Cola"; "Sprite"; "Fresca"|];;;
+let pair,beverages =  pop2 beverages;;
+
+(* @@PLEAC@@_4.12 *)
+
+(* To find the first element in a list that satisfies some predicate, just use
+ * the List.find function to return an 'a option *)
+
+match
+  (try Some (List.find (fun x -> x > 10) l)
+  with Not_found -> None)
+with
+    None -> (* unfound *)
+  | Some x -> (* Do something with x *);;
+
+(* Note that this is a very general form, and can be shortened in some cases *)
+let pf l =
+  try 
+    printf "hah! Found %d!\n" (List.find (fun x -> x > 10) l)
+  with 
+    Not_found -> "Sorry charly!\n";;
+
+(*
+# pf [1;2;3;4;5;6];;
+Sorry charly!
+
+# pf [1;2;3;50;100];;
+Hah!  Found 50!
+*)
+
+(* To return the index of a matching element in an array, we can use exceptions
+ * to short circuit the search *)
+
+exception Found of int;;
+
+let findi pred arr = 
+  Array.iteri (fun i x -> if pred x then raise (Found i)) arr;
+  raise Not_found;;
+
+let f arr = 
+try
+  findi (fun x -> x > 10) arr
+with
+  Found i -> printf "element %d is a big element - %d\n" i arr.(i)
+| Not_found -> printf "Only small values here!\n";;
+
+(*
+# f [|1; 2; 3; 4; 5; 6|];;
+Only small values here!
+
+# f [|1; 2; 3; 4; 5; 60; 8; 9; 100|];;
+element 5 is a big element - 60
+*)
+
+let highest_engineer =
+  List.find (fun x -> x#category = "engineer") employees in
+  printf "Highest paid engineer is: %s\n" highest_engineer#name;;
+
+
+(* @@PLEAC@@_4.13 *)
+
+(* to find all elements of a list that satisfy a certain predicate, just use the
+ * List.find_all function *)
+
+let matching = List.find_all ( (* predicate *) l;;
+
+(* for an array, it's likely easiest to convert the original array to a list,
+ * use List.find_all, and convert that list into an array *)
+let matching = 
+  Array.ofList (List.find_all ( (*predicate *) ) (Array.to_list a));;
+
+(* the next example requires use of the Str library, which must be linked in.
+ * In the toplevel environment use `#load "str.cma"' *)
+
+let bigs = List.find_all (fun x -> x > 1000000) nums;;
+let pigs = List.find_all (fun x -> (Hashtbl.find users x) > 1e7) 
+            (Hashtbl.fold (fun k v b -> k::b) users []);;
+
+let matching = 
+  List.find_all (fun x -> Str.string_match (Str.regexp "gnat") x 0) (who ());;
+
+let engineers = List.find_all (fun x -> x#position = "Engineer") employees;;
+
+let secondary_assistance = 
+  List.find_all (fun x -> x#income >= 26000 && x#income < 30000) applicants;;
+
+(* @@PLEAC@@_4.14 *)
+
+(* OCaml is smart enough to figure out if a list is full of numbers or
+ * non-numbers, so the polymorphic compare function works just fine *)
+let sorted = List.sort compare unsorted;;
+
+(* note that Array.sort sorts the given array in place, so unexpected results
+ * can occur, e.g.
+let sorted = Array.sort compare unsorted;;
+
+ * results in unsorted referring to the now sorted array, and sorted referring
+ * to something of type unit *)
+
+(* pids is an unsorted list of process IDs *)
+List.iter (printf "%d\n") (List.sort compare pids);;
+print_endline "Select a process ID to kill:";;
+let pid = read_int () in
+  Unix.kill pid Sys.sigterm;
+  Unix.sleep 2;
+  Unix.kill pid Sys.sigterm;;
+
+let descending = List.sort (fun x y -> compare y x) unsorted;;
+
+(* @@PLEAC@@_4.15 *)
+(* since compare orders tuples by first comparing the first slot then, if they
+ * were equal, comparing the second slot, and so on, we can sort by computable
+ * fields as follows *)
+
+let sorted = 
+  List.map snd (List.sort compare (List.map (fun x-> (compute x),x) unsorted));;
+
+let ordered = List.sort (fun x y -> compare x#name y#name) employees;;
+List.iter (fun x -> printf "%s earns $%2f\n" x#name x#salary)
+  (List.sort (fun x y -> compare x#name y#name) employees);;
+
+let sorted_employees = 
+  List.map snd (List.sort compare (List.map (fun x-> (compute x),x) unsorted)) in
+  List.iter (fun x -> printf "%s earns $%2f\n" x#name x#salary) sorted_employees;
+  List.iter 
+    (fun x -> if Hashtbl.mem bonus x#ssn then printf "%s got a bonus!\n" x#name)
+    sorted_employees;;
+
+let sorted = 
+  List.sort 
+    (fun x y ->
+      match compare x#name y#name with
+        0 -> compare x#age y#age
+      | c -> c)
+    employees;;
+
+(* Assuming we have a getpwent function that returns a value of type users, or
+ * throws an End_of_file exception when done (not sure what getpwent is supposed
+ * to do), then we can write *)
+
+let getUsers () = 
+  let l = ref [] in
+  try
+    while true do
+      l := (getpwent ())::!l
+    done
+  with End_of_file -> !l;;
+
+List.iter 
+  (fun x -> print_endline x#name) 
+  (List.sort (fun x y -> compare x#name y#name) (getUsers ()));;
+
+let sorted = List.sort (fun x y -> compare x.[1] y.[1]) strings;;
+
+let sorted = 
+  List.map snd
+    (List.sort compare (List.map (fun x -> (String.length x),x) strings));;
+
+let sorted_fields = 
+  List.map snd
+    (List.sort compare 
+      (List.map 
+        (fun x ->
+          (try 
+            ignore(Str.search_forward (Str.regexp "[0-9]+") x 0);
+            int_of_string (Str.matched_string x)
+          with Not_found -> max_int),x) 
+        strings));;
+
+let passwd () =
+  let w = Unix.open_process_in "cat /etc/passwd"
+  and l = ref [] in
+  try
+    while true do
+      l := (input_line w)::!l
+	done;
+	!l
+  with End_of_file -> !l;;
+
+(* for illustration purposes, we provide a function to return the (non-comment)
+ * contents of /etc/passwd *)
+let passwd () =
+  let w = Unix.open_process_in "cat /etc/passwd"
+  and l = ref [] in
+  try
+    while true do
+      l := (input_line w)::!l
+	done;
+	!l
+  with End_of_file -> 
+    List.filter (fun x -> x.[0] <> '#') !l;;
+
+let sortedPasswd = 
+  List.map (fun Some x -> snd x)
+  (List.sort compare
+   (List.filter (function Some x -> true | None -> false)
+    (List.map
+      (fun x -> 
+        match Str.split (Str.regexp ":") x with
+          name::_::uid::gid::t -> Some ((gid,uid,name),x)
+        | _ -> None) 
+     (passwd ()))));;
+
+(* @@PLEAC@@_4.16 *)
+
+(* To get a true circular list, one can use the let rec construct *)
+
+let rec processes = 1::2::3::4::5::processes;;
+while true do
+  let process::processes = process in
+  printf "Handling process %d\n" process;
+  Unix.sleep 2;
+done;;
+
+(* or one can use these somewhat inefficient functions to simulate the Perl
+ * examples *)
+
+let popleft l =
+  match l with
+    [] -> raise Not_found
+  | h::t -> h,(t @ [h]);;
+
+let popright l =
+  match List.rev l with
+    [] -> raise Not_found
+  | h::t -> h,(h::(List.rev t));;
+
+let processes = ref [1;2;3;4;5];;
+while true do
+  let process,np = popleft !processes in
+  processes := np;
+  printf "Handling process %d\n" process;
+  flush_all ();
+  Unix.sleep 1;
+done;;
+
+(* @@PLEAC@@_4.17 *)
+
+let fisher_yates_shuffle a =
+  for i = Array.length a - 1 downto 1 do
+    let x = a.(i)
+    and r = Random.int (i+1) in
+    a.(i) <- a.(r);
+    a.(r) <- x;
+  done;;
+
+(* @@PLEAC@@_4.18 *)
+
+(* Assuming we start with a list of all the data called data, and assuming we
+ * already have the curent number of screen columns in a variable cols *)
+
+let words data cols =
+  let strippedData = 
+    Array.of_list 
+      (List.map (Str.replace_first (Str.regexp "[ \t\n]+$") "") data) in
+  let maxlen = 
+    (Array.fold_left (fun m s -> max m (String.length s)) 0 strippedData) + 1 in
+  let cols = if cols < maxlen then 1 else cols / maxlen in
+  let rows = ((Array.length strippedData - 1) + cols)/cols in
+  let bufs = Array.init rows (fun x -> Buffer.create (cols * maxlen)) in
+  for i = 0 to Array.length strippedData - 1 do
+    let dst = String.make maxlen ' '
+    and src = strippedData.(i) in
+    String.blit src 0 dst 0 (String.length src);
+    Buffer.add_string bufs.(i mod rows) dst
+  done;
+  Array.iter (fun x -> print_endline (Buffer.contents x)) bufs;;
+
+(* @@PLEAC@@4.19 *)
+
+(* Note: This routine uses the splice routine written in section 4.9 *)
+
+let tsc_permute arr =
+  if Array.length arr > 0 then print_endline "Perms:";
+  let rec permute arr perms =
+    match Array.length arr with
+      0 -> Array.iter (printf "%s ") perms; print_newline ();
+    | _ ->
+        for i = 0 to Array.length arr - 1 do
+          let v,ni = splice arr i ~length:1 in
+          permute ni (Array.append v perms);
+        done in
+  permute arr [||];;
+
+(* Note: This example is going to permute the words of a given string - also, I
+ * don't feel like bringing in the BigInt module, so we will trim any array
+ * longer than 12 elements down to 12 before permuting *)
+
+let fact = Array.append [|Some 1|] (Array.make 11 None);;
+let rec factorial n =
+  match fact.(n) with
+    Some f -> f
+  | None -> let f = n*(factorial (n-1)) in fact.(n) <- Some f; f;;
+
+let n2pat n len =
+  let rec nh n i pat =
+    if i > len+1 then pat
+    else
+      nh (n/i) (i+1) ((n mod i)::pat) in
+  nh n 1 [];;
+
+let pat2perm pat =
+  let rec ph source pat perm =
+    match pat with
+      [] -> perm
+    | h::t ->
+        let v,s = splice source h ~length:1 in
+        ph s t (v.(0)::perm) in
+  Array.of_list (ph (Array.init (List.length pat) (fun i -> i)) pat []);;
+  
+let n2perm n len =
+  pat2perm (n2pat n len);;
+
+let mjd_permute s =
+  let arr = 
+    let arr = Array.of_list (Str.split (Str.regexp "[ \t]+") s) in
+    try
+      Array.sub arr 0 12
+    with Invalid_argument _ -> arr in
+  let len = Array.length arr - 1 in
+  for i = 0 to factorial (len+1) do
+    let perm = Array.map (fun i -> arr.(i)) (n2perm i len) in
+    Array.iter (printf "%s ") perm; print_newline ();
+  done;;
 
 
 (* @@PLEAC@@_5.0 *)
@@ -999,3 +2682,439 @@ Unix.copy "datafile.dat" "datafile.bak";;
 Sys.rename "datafile.dat" "datafile.bak";;
 
 (***************)
+
+(* @@PLEAC@@_10.0 *)
+
+(* A function is bound to a variable (as with everything) with the let keyword
+*)
+
+let hello () =
+  incr greeted; (* global reference *)
+  printf "hi there!\n";;
+
+(* Other forms for declaring a function are as follows *)
+
+let hello = 
+  fun () -> 
+    incr greeted; (* global reference *)
+    printf "hi there!\n";;
+
+let hello = 
+  function () ->
+    incr greeted; (* global reference *)
+    printf "hi there!\n";;
+
+(* The typical way of calling this function is *)
+
+hello ();;
+
+(* @@PLEAC@@_10.1 *)
+
+(* All values passed to a function must be named in the paramater list to the
+ * function *)
+
+let hypotenuse side1 side2 =
+  sqrt ((side1 ** 2.) +. (side2 ** 2.));;
+
+(* Note, however, that if the parameters are defined/sent as a tuple then they
+ * can be accessed in one of two equivalent ways *)
+
+let hypotenuse (side1,side2) =
+  sqrt ((side1 ** 2.) +. (side2 ** 2.));;
+
+let hypotenuse sides =
+  let side1,side2 = sides in
+  sqrt ((side1 ** 2.) +. (side2 ** 2.));;
+
+(* In both of these cases, however, we must pass the arguments as a tuple *)
+
+print_float hypotenuse (3.,4.);;
+
+(* since most data structures are immutable, one generally does not need to copy
+ * the parameters into local variables *)
+
+let nums = [1.4; 3.5; 6.7];;
+let int_all l =
+  List.map int_of_float l;;
+
+(*
+# let ints = int_all nums;;
+val ints : int list = [1; 3; 6]
+
+# nums;;
+- : float list = [1.4; 3.5; 6.7]
+*)
+
+(* However, one needs to be careful when mutable data is passed in and
+ * operations that alter that data are used *)
+
+let nums = [|1.4; 3.5; 6.7 |];;
+let int_all2 a =
+  Array.iteri (fun i x -> a.(i) <- 10. *. x) a;
+  a;;
+let int_all3 a = 
+  Array.map int_of_float a;;
+
+(*
+# let a2 = int_all2 nums;;
+val a2 : int array = [|1; 3; 6|]
+
+# nums;;
+- : float array = [|1.4; 3.5; 6.7|]
+
+# let a3 = times10 nums;;
+val a3 : float array = [|14.; 35.; 67.|]
+
+# nums;;
+- : float array = [|14.; 35.; 67.|]
+*)
+
+(* To write functions that change their caller's variables, those variables must
+ * be mutable structures, such as references *)
+let nums = ref [1.4; 3.5; 6.7];;
+let trunc_em l =
+  l:= List.map floor !l;
+  !l;;
+
+(*
+
+# let n2 = trunc_em nums;;
+val n2 : float list = [1.; 3.; 6.]
+
+# !nums;;
+- : float list = [1.; 3.; 6.]
+*)
+
+(* @@PLEAC@@_10.2 *)
+
+(* to declare a variable local to a function, simply use let inside the function
+ * body *)
+
+let somefunc () =
+  let variable = ... in
+  let another,anarray,ahash = ... in
+  ... ;;
+
+let check_x x =
+  let y = "whatever" in
+  run_check ();
+  if condition then printf "got %s" x;;
+
+let save_array arguments =
+  global_list := arguments @ !global_list;;
+
+(* @@PLEAC@@_10.3 *)
+
+let mysub =
+  let variable = ... in
+  fun args -> ... ;;
+
+(* To write a counter *)
+let next_counter = 
+  let counter = ref 0 in
+  fun () -> 
+    incr counter; 
+    !counter;;
+
+let next_counter,prev_counter = 
+  let counter = ref 42 in
+  (fun () -> incr counter; !counter),
+  (fun () -> decr counter; !counter);;
+
+
+(* @@PLEAC@@_10.5 *)
+(* Because all OCaml variables represent pointers to their data, all function
+ * arguments are implicitly passed by reference *)
+
+array_diff array1 array2;;
+
+let a = [| 1; 2 |];;
+let b = [| 5; 8 |];;
+let add_vec_pair x y =
+  Array.init (Array.length x) (fun i -> x.(i) + y.(i));;
+
+(*
+# let c = add_vec_pair a b;;
+val c : int array = [|6; 10|]
+*)
+
+(* @@PLEAC@@_10.6 *)
+(* OCaml's type safety doesn't allow this kind of shenanigans unless you bring
+ * union types into play -- but you still need to ensure that the return type of
+ * all three contexts is the same *)
+
+type 'a lORs =
+    List of 'a list
+  | Scalar of 'a
+  | Void of unit ;;
+
+let mysub arg =
+  match arg with
+    List l -> (* list context, do something with l *)
+  | Scalar s -> (* scalar context, do something with s *)
+  | Void _ -> (* void context, do something with nothing *);;
+
+(* or equivalently *)
+let mysub = function
+    List l -> (* list context, do something with l *)
+  | Scalar s -> s (* scalar context, do something with s *)
+  | Void _ -> (* void context, do something with nothing *);;
+
+mysub (Void ());;         (* void context *)
+mysub (Scalar arg);;      (* scalar context *)
+mysub (List arg);;        (* list context *)
+
+(* @@PLEAC@_10.7 *)
+(* To name the arguments of a function, use labels *)
+let thefunc ~increment ~finish ~start =
+  ... ;;
+
+(* It can be called like *)
+thefunc ~increment:"20s" ~start:"+5m" ~finish:"+30m";;
+
+(* Note that you can use different names for the labels and variables, and if
+ * the application is total, the labels can be omitted *)
+let divide ~numerator:x ~denominator:y = 
+  x / y;;
+
+(*
+# divide ~denominator:2 ~numerator:100;;
+ - : int = 50
+
+# divide 20 4;;
+ - : int = 5
+*)
+
+(* If you want to provide default values, you need to use optional arguments,
+ * but this requires at least one unlabelled argument *)
+
+let fraction ?(y = 2) x =
+  x / y;;
+
+(*
+fraction 30 ~y:3;;
+ - : int = 10
+
+fraction 30;;
+ - : int = 15
+*)
+
+(* @@PLEAC@@_10.8 *)
+(* Use _, which matches any pattern and throws away the value it matches *)
+
+let a,_,c = func ();;
+let _,_,d = func ();;
+
+(* @@PLEAC@@_10.9 *)
+(* Just stick all of the values in a tuple and return it *)
+let somefunc () =
+  let arr = ... in
+  let hash = ... in
+    ...
+    (arr,hash);;
+
+let a,h = somefunc ();;
+
+(* @@PLEAC@@_10.10 *)
+(* Use an appropriate exception *)
+
+let failing_routine () =
+  ...
+  raise Failure "Bad things happened...";;
+
+try failing_routine () with
+  Failure s -> printf "failing_routine failed because: %s\n" s;;
+
+(* @@PLEAC@@_10.11 *)
+
+(* This is pretty much unnecessary due to OCaml's type inference -- you will
+ * know at compile time if you try to pass invalid arguments to a function *)
+
+(* @@PLEAC@@_10.12 *)
+(* To handle exceptions, which are thrown with the raise keword, wrap the
+ * possibly exceptional call in a try ... with block.  You only need to do this
+ * where appropriate *)
+
+let slurp_to_list filename =
+  (* Note, if filename does not exist in the current directory, it will raise a
+   * Sys_error exception *)
+  let ic = open_in filename and
+  l = ref [] in
+  let rec loop () =
+    let line = input_line ic in
+    l := line::!l;
+    loop () in
+  try loop () with End_of_file -> close_in ic; List.rev !l;;
+
+let lfind name l =
+  (* Note, if no elements in the list satisfy the predicate, List.find will
+   * raise the Not_found exception *)
+  List.find (fun x -> Str.string_match (Str.regexp ("$" ^ name)) x 0) l;;
+
+let findSmurfette =
+  try
+    print_endline (lfind "Smurfette" (slurp_to_list "smurfs"))
+  with
+    Sys_error s -> prerr_endline ("Dammit! - " ^ s)
+  | Not_found -> prerr_endline "Hmmm... Smurfette is not in smurfs";;
+
+(* @@PLEAC@@_10.13 *)
+(* To do this in OCaml -- which doesn't like global state in the fist place --
+ * you need to manually store the old value and replace it before exiting the
+ * block *)
+
+let age = ref 18;;
+if condition then
+  (
+    let org_age = !age in
+    age := 23;
+    func ();
+    age := org_age
+  );;
+
+(* for local handles, just create a new channel inside your block *)
+let get_motd () =
+  let motd = open_in "/etc/motd" in
+  let retval = 
+    ... in
+  close_in motd;
+  retval;;
+
+(* @@PLEAC@@_10.14 *)
+
+(* If you want to redefine a function... go ahead.  Functions are first class
+ * members in OCaml *)
+
+let f x y =
+  x + y;;
+
+f 5 7;;
+(*  - : int = 12 *)
+
+let f x y =
+  x - y;;
+
+f 5 7;;
+
+(*  - : int = -2 *)
+
+(* to do it temporarily, either save to old value and then restore it, or just
+ * redefine it in the current block.  The old value will be restored when you
+ * exit the scope of that block *)
+
+let g = f
+and f x y =
+  x * y;;
+
+f 5 7;;
+
+(*  - : int = 35 *)
+
+let f = g;;
+
+f 5 7;;
+
+(*  - : int = -2 *)
+
+let g () = 
+  let f x y =
+    x / y in
+  f 5 7;;
+
+g ();;
+
+(*  - : int = 0 *)
+
+f 5 7;;
+
+(*  - : int = -2 *)
+
+(* @@PLEAC@@_10.16 *)
+
+(* Just define the inner function within the outer one *)
+let outer x =
+  let x = x + 35 in
+  let inner () =
+    x * 19 in
+  x + inner ();;
+
+(* @@PLEAC@@_10.17 *)
+
+let slurp_to_string filename =
+  let ic = open_in filename and
+  buf = Buffer.create 4096 in
+  let rec loop () =
+    let line = input_line ic in
+    Buffer.add_string buf line;
+    Buffer.add_string buf "\n";
+    loop () in
+  try loop () with End_of_file -> close_in ic; Buffer.contents buf;;
+
+(* Note: The following function does something slightly different than the Perl
+ * version, as it returns a subject,message #,refrence to the message tuple
+ * sorted by subject -> message number instead of just a list of messages sorted
+ * by subject -> message number -- it's trivial to get just what the Perl
+ * version does from this... *)
+
+let sortedMail fn =
+  let msglist = 
+    (* I had to add this filtering step due to some wierd structure in my mbox
+     * file. go figure... *)
+    List.filter (fun s -> String.sub s 0 5 = "From:")
+      (List.map (fun x -> "From" ^ x) 
+        (Str.split (Str.regexp "^From") (slurp_to_string fn)))
+  and counter = ref (-1) in
+(*  let subjList = *)
+    List.sort compare
+      (List.map 
+        (fun s -> 
+          ignore (Str.search_forward 
+            (* Not positive this regex is equivalent to the Perl version, but it
+             * seems to work -- you can use the third party PCRE module if you
+             * want to be positive *)
+            (Str.regexp "^Subject:[ \t]*\(:?[Rr][Ee]:[ \t]*\)*\(.*\)") s 0);
+          incr counter;
+          (try (String.lowercase (Str.matched_group 2 s)) with Not_found -> ""),
+           !counter,
+           ref s)
+        msglist);;
+
+List.iter (fun (_,_,rm) -> print_endline !rm) (sortedMail "mbox");;
+
+(* To sort by using a hashtable *)
+
+let keys h =
+  let k = Hashtbl.fold (fun k v b -> k::b) h [] in
+  (* filter out duplicates *)
+  List.fold_left (fun b x -> if List.mem x b then b else x::b) [] k;;
+
+let sortedMailByHash fn =
+  let msglist = 
+    (* I had to add this filtering step due to some wierd structure in my mbox
+     * file. go figure... *)
+    List.filter (fun s -> String.sub s 0 5 = "From:")
+      (List.map (fun x -> "From" ^ x) 
+        (Str.split (Str.regexp "^From") (slurp_to_string fn)))
+  and counter = ref (-1) in
+  let h = Hashtbl.create (List.length msglist) in
+(*  let subjList = *)
+(*    List.sort compare *)
+      (List.iter 
+        (fun s -> 
+          ignore (Str.search_forward 
+            (* Not positive this regex is equivalent to the Perl version, but it
+             * seems to work -- you can use the third party PCRE module if you
+             * want to be positive *)
+            (Str.regexp "^Subject:[ \t]*\(:?[Rr][Ee]:[ \t]*\)*\(.*\)") s 0);
+          incr counter;
+          let sub =
+            try 
+              (String.lowercase (Str.matched_group 2 s)) 
+          with Not_found -> "" in
+          Hashtbl.add h sub s))
+        msglist;
+      List.flatten 
+        (List.map (fun x -> List.rev (Hashtbl.find_all h x)) 
+          (List.sort (keys h)));;
+
+List.iter (fun m -> print_endline m) (sortedMailByHash "mbox");;
