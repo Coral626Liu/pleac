@@ -1,0 +1,97 @@
+( -*- forth -*-
+
+ @@PLEAC@@_NAME
+ @@SKIP@@ Forth
+
+ @@PLEAC@@_WEB
+ @@SKIP@@ http://www.forth.org/
+
+ @@PLEAC@@_INTRO
+ Implementations vary wildly. 
+ I'm pretty sure these are all legal ANS.
+ They work on GFORTH on RH7.3. At least on mine. 
+ Line-by-line stack description comments are optional, but recommended for
+the programmer's sanity on long words. 
+ NB: hex digits for read-int are 0123456789:;<=>? )
+
+( @@PLEAC@@_APPENDIX )
+ ( a couple of basic I/O words )
+ ( read-int isn't used directly yet in these examples, but helps a lot for testing )
+:  read-int  	( -- n ) 
+   0	     	( -- old )
+   begin     	( no stack effect )
+      key    	( old -- old input )
+      dup    	( old input -- old input input )
+      dup	( old input input -- old input input input ) 
+      47 	( old input input input -- old input input input '0' ) ( ASCII '0' )
+      > 	( old input input input '0' -- old input input flag ) ( > ASCII '0'? )
+      swap 	( old input input flag -- old input flag input )
+      47	( old input flag input -- old input flag input '0' ) ( ASCII '0' )
+      base	( old inut flag input '0' -- old input flag input '0' &base ) ( push address of 'base' global )
+      @		( old input flag input '0' &base -- old input flag input '0' *base ) ( dereference 'base' )
+      1+	( old input flag input '0' *base -- old input flag input '0' "10" ) ( 10 in base )
+      +  	( old input flag input '0' "10" -- old input flag input highest ) ( highest number in base )
+      < 	( old input flag input highest -- old input flag flag ) ( < highest digit expected in base? )
+      and 	( old input flag flag -- old input flag )
+   while 	( old input flag -- old input ) ( either test failed? terminate )
+      48 - 	( onld input -- old digit ) ( char2digit = char - 48 )
+      swap 	( old digit -- digit old )
+      base 	( digit old -- digit old &base ) 
+      @ 	( digit old -- digit old *base )
+      *		( digit old *base -- digit old*base ) 
+      + 	( digit old*base -- new_old )
+   repeat 	( new_old -- new_new_old ) 
+   drop  	( old input -- old: QEF )
+;
+
+( @@PLEAC@@_1.1 )
+: substr 	( addr strlen offset count -- ) ( types $count chars from &addr + $offset. ) ( require that substring is within original string )
+ 2dup 		( addr strlen offset count -- addr strlen offset count offset count )
+ 2>r		( addr strlen offset count offset count -- addr strlen offset count )
+ +		( addr strlen offset count -- addr strlen last )
+ >		( addr strlen last -- addr flag )
+ if		( addr flag -- addr )
+  2r>		( addr -- addr offset count )
+  0 do		( addr offset count -- addr offset )
+  2dup		( addr offset -- addr offset addr offset )
+  i +		( addr offset addr offset -- addr offset addr new_offset )
+  +		( addr offset addr new_offset -- addr offset caddr )
+  c@		( addr offset caddr --addr offset char )
+  emit
+  loop
+ else
+  2r> 		( addr -- addr offset count )
+  drop drop drop ( addr offset count -- : QEF ) 
+  s" Error: exceeds string length" type
+ then 
+;
+
+( @@PLEAC@@_1.2 )
+: enforce_default ( default addr -- ) dup @ 0= if ! then ;
+
+( @@PLEAC@@_1.3 )
+: swap_without_temporary_variables ( &x &y -- ) 
+  2dup 	( &x &y -- &x &y &x &y )
+  @ 	( &x &y &x &y -- &x &y &x *y )
+  swap  ( &x &y &x *y -- &x &y *y &x )
+  @ 	( &x &y *y &x -- &x &y *x *y )
+  -rot	( &x &y *x *y -- &x *y &y *x )
+  swap  ( &x *y &y *x -- &x *y *x &y )
+  ! 	( &x *y *x &y -- &x *y )
+  swap  ( &x *y -- *y &x )
+  ! 	( *y &x -- : QEF )
+;
+
+( @@PLEAC@@_1.4 )
+: ord ( char -- int ) 48 - ( char -- int : QEF ) ;
+: chr ( int -- char ) emit ( int -- char : QEF ) ;
+
+( @@PLEAC@@_1.5 )
+
+( with address length pair )
+: process_string ( addr strlen -- variable stack effect )
+  0 do dup i + c@ ( some word that does whatever processing you want goes here ) swap loop drop ; 
+
+( with counted string )
+: process_counted_string ( addr -- variable stack effect )
+ dup c@ 0 do dup i + c@ ( some word that does whatever processing you want goes here ) swap loop drop ;
