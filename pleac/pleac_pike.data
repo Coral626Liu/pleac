@@ -2079,3 +2079,79 @@ array include_free = sort( uniq - indices(includes) );
 
 // @@PLEAC@@_5.16
 // @@INCLUDE@@ include/pike/ch05/dutree
+
+// @@PLEAC@@_7.0
+// if you are going to read the whole file, the most common way is it use 
+// Stdio.read_file()
+
+string INPUT = Stdio.read_file("/usr/local/widgets/data");
+if(!INPUT)
+{
+  werror("Couldn't open /usr/local/widgets/data for reading\n");
+  exit(1);
+}
+
+foreach(INPUT/"\n";; string line)
+{
+  if(search(line, "blue")!=-1)
+    write(line+"\n");
+}
+
+// if you need more control over the process you can get a filehandle with
+// Stdio.File()
+
+Stdio.File INPUT = Stdio.File("/usr/local/widgets/data", "r");
+if(!INPUT)
+{
+  werror("Couldn't open /usr/local/widgets/data for reading\n");
+  exit(1);
+}
+
+foreach(INPUT->line_iterator();; string line)
+{
+  if(search(line, "blue")!=-1)
+    write(line+"\n");
+}
+INPUT->close();
+
+//---------------------------------------------------------
+
+foreach(Stdio.stdin;; string line)            // reads from STDIN
+{
+  if(!sizeof(array_sscanf(line, "%*s%d")))
+    werror("No digit found.\n");              // writes to STDERR
+  write("Read: %s\n", line);                  // writes ot STDOUT
+}
+Stdio.stdout->close() || werror("couldn't close STDOUT\n") && exit(1);
+
+// just as with Stdio.read_file(), there are convenience functions for writing:
+// Stdio.write_file() and Stdio.append_file()
+
+Stdio.File logfile = Stdio.File("/tmp/log", "w");
+
+// access modes are "r" for reading, "w" for writing and "a" for append
+// default mode is "rw"
+
+// to read a line you may use Stdio.File()->gets() or get a line_iterator() and
+// read lines from it.
+
+object LOGFILE = logfile->line_iterator();
+do
+{
+  string line=LOGFILE->value();
+}
+while(LOGFILE->next())
+logfile->close();
+
+// or use foreach as shown above.
+
+// write() is actually a shortcut for Stdio.stdout->write()
+// you could get yourself a different shortcut by assigning that to a variable:
+
+function write = logfile->write;     //  switch to LOGFILE for write();
+write("Countdown initiated ...\n");
+write = Stdio.stdout->write;         //  return to stdout
+write("You have 30 seconds to reach minimum safety distance.\n");
+
+// Stdio.File is unbuffered. a buffered version is provided by Stdio.FILE
+
