@@ -325,7 +325,7 @@ def get_subs_from_end()
             changelist.push(Changer.new(pat, subst))
         end
     end
-    changelist	
+    changelist
 end
 
 changelist = get_subs_from_end()
@@ -679,7 +679,7 @@ def factorize(orig)
     factors.default = 0     # return 0 instead nil if key not found in hash
     n = orig
     i = 2
-    sqi = 4		    # square of i
+    sqi = 4                 # square of i
     while sqi <= n do
         while n.modulo(i) == 0 do
             n /= i
@@ -1181,7 +1181,7 @@ class WordFormatter
 
     # helper to return the length of the longest word in the wordlist
     def maxlen(wordlist)
-        max = 1					
+        max = 1
         for word in wordlist
             if word.length > max
                 max = word.length
@@ -1206,7 +1206,7 @@ class WordFormatter
             puts if eol
         }
         # no need to finish it up, because eol is always true for the last element
-    end			
+    end
 end
 
 # get nr of chars that fit in window or console, see PLEAC 15.4
@@ -2721,7 +2721,7 @@ def check_x(x)
     y = "whatever"
     run_check
     if $condition
-	puts "got $x"
+        puts "got $x"
     end
 end
 
@@ -2814,7 +2814,7 @@ def thefunc(param_args)
     args = { 'INCREMENT' => '10s', 'FINISH' => '0', 'START' => 0 }
     args.update(param_args)
     if (args['INCREMENT']  =~ /m$/ )
-	.....
+        # .....
     end
 end
 
@@ -3061,7 +3061,7 @@ end
 # @@PLEAC@@_11.15
 class Binary_tree
     def initialize(val)
-	@value = val
+        @value = val
         @left = nil
         @right = nil
     end
@@ -3181,11 +3181,11 @@ end
 # a module exports all of its functions
 module Your_Module
     def self.function
-	# this would be called as Your_Module.function
+        # this would be called as Your_Module.function
     end
     
     def Your_Module.another
-	# this is the same as above, but more specific
+        # this is the same as above, but more specific
     end
 end
 
@@ -3203,11 +3203,11 @@ module Alpha
     @bb = 11
     
     def self.put_aa
-	puts @aa
+        puts @aa
     end
     
     def self.bb=(val)
-	@bb = val
+        @bb = val
     end
 end
 
@@ -3226,6 +3226,7 @@ module MyModule
         caller(i) # an argument limits the size of the stack returned
     end
 end
+
 
 # @@PLEAC@@_12.6
 BEGIN {
@@ -3246,6 +3247,7 @@ END {
     $LF.close
 }
 
+
 # @@PLEAC@@_12.7
 #-----------------------------
 # results may be different on your system
@@ -3265,14 +3267,18 @@ END {
 #-----------------------------
 $LOAD_PATH.unshift "/projects/spectre/lib";
 
+
 # @@PLEAC@@_12.8
 # equivalents in ruby are mkmf, SWIG, or Ruby/DL depending on usage
+
 
 # @@PLEAC@@_12.9
 # no equivalent in ruby
 
+
 # @@PLEAC@@_12.10
 # no equivalent in ruby
+
 
 # @@PLEAC@@_12.11
 module FineTime
@@ -3291,12 +3297,10 @@ end
 puts FineTime.time #=> "its a fine time"
 
 # @@PLEAC@@_12.12
-#----------------------------- 
 def even_only(n)
     raise "#{n} is not even" if (n & 1) != 0  # one way to test
     #....
 end
-#----------------------------- 
 def even_only(n)
     $stderr.puts "#{n} is not even" if (n & 1) != 0
     #....
@@ -3366,6 +3370,64 @@ print pazzi.name, ' is ', (pazzi.alive?) ? 'alive' : 'dead', ".\n"
 print starling.name , ' was born in ', starling.year_of_birth, "\n"
 
 
+# @@PLEAC@@_13.1
+# If you don't need any initialisation in the constructor,
+# you don't need to write a constructor.
+class MyClass
+end
+
+class MyClass
+    def initialize
+        @start = Time.new
+        @age = 0
+    end
+end
+
+class MyClass
+    def initialize(inithash)
+        @start = Time.new
+        @age = 0
+        for key, value in inithash
+            instance_variable_set("@#{key}", value)
+        end
+    end
+end
+
+# @@PLEAC@@_13.2
+# Objects are destroyed by the garbage collector.
+# The time of destroying is not predictable.
+# The ruby garbage collector can handle circular references,
+# so there is no need to write destructor for that.
+
+# There is no direct support for destructor.
+# You can call a custom function, or more specific a proc object, when the
+# garbage collector is about to destruct the object, but it is unpredictable
+# when this occurs.
+# Also if such a finalizer object has a reference to the orignal object,
+# this may prevent the original object to get garbage collected.
+# Because of this problem the finalize method below is
+# a class method and not a instance method.
+# So if you need to free resources for an object, like
+# closing a socket or kill a spawned subprocess,
+# you should do it explicitly.
+
+class MyClass
+    def initialize
+        ObjectSpace.define_finalizer(self,
+                                     self.class.method(:finalize).to_proc)
+    end
+    def MyClass.finalize(id)
+        puts "Object #{id} dying at #{Time.new}"
+    end
+end
+
+# test code
+3.times{
+    MyClass.new
+}
+ObjectSpace.garbage_collect
+
+
 # @@PLEAC@@_13.3
 # You can write getter and setter methods in a natural way:
 class Person
@@ -3388,6 +3450,95 @@ end
 # There is also attr_accessor to create both setters and getters
 class Person
     attr_accessor :age, :name
+end
+
+
+# @@PLEAC@@_13.4
+class Person
+    # Class variables (also called static attributes) are prefixed by @@
+    @@person_counter = 0
+    
+    def Person.population
+        @@person_counter
+    end
+    def initialize
+        @@person_counter += 1
+        ObjectSpace.define_finalizer(self,
+                                     self.class.method(:finalize).to_proc)
+    end
+    def Person.finalize(id)
+        @@person_counter -= 1
+    end
+end
+people = []
+10.times {
+    people.push(Person.new)
+}
+printf("There are %d people alive", Person.population)
+
+
+FixedArray.class_max_bounds = 100
+alpha = FixedArray.new
+puts "Bound on alpha is #{alpha.max_bounds}"
+
+beta = FixedArray.new
+beta.max_bounds = 50                    # calls the instance method
+beta.class.class_max_bounds = 50        # alternative, calls the class method
+puts "Bound on alpha is #{alpha.max_bounds}"
+    
+class FixedArray
+    @@bounds = 7
+    
+    def max_bounds
+        @@max_bounds
+    end
+    # instance method, which sets the class variable
+    def max_bounds=(value)
+        @@max_bounds = value
+    end
+    # class method. This can only be called on a class,
+    # but not on the instances
+    def FixedArray.class_max_bounds=(value)
+        @@max_bounds = value
+    end
+end
+
+
+# @@PLEAC@@_13.5
+PersonStruct = Struct.new("Person", :name, :age, :peers)
+# creates a class "Person::Struct", which is accessiable with the
+# constant "PersonStruct"
+p = PersonStruct.new
+p = Struct::Person.new                      # alternative using the classname
+p.name = "Jason Smythe"
+p.age = 13
+p.peers = ["Wilbur", "Ralph", "Fred"]
+p[:peers] = ["Wilbur", "Ralph", "Fred"]     # alternative access using symbol
+p["peers"] = ["Wilbur", "Ralph", "Fred"]    # alternative access using name of field
+p[2] = ["Wilbur", "Ralph", "Fred"]          # alternative access using index of field
+puts "At age #{p.age}, #{p.name}'s first friend is #{p.peers[0]}"
+
+# The fields of a struct have no special type, like other ruby variables
+# you can put any objects in. Therefore the discussions how to specify
+# the types of the fields do not apply to ruby.
+
+FamilyStruct = Struct.new("Family", :head, :address, :members)
+folks = FamilyStruct.new
+folks.head = PersonStruct.new
+dad = folks.head
+dad.name = "John"
+dad.age = 34
+
+# supply of own accessor method for the struct for error checking
+class PersonStruct
+    def age=(value)
+        if !value.kind_of?(Integer)
+            raise(ArgumentError, "Age #{value} isn't an Integer")
+        elsif value > 150
+            raise(ArgumentError, "Age #{value} is unreasonable")
+        end
+        @age = value
+    end
 end
 
 
@@ -3993,7 +4144,7 @@ require 'socket'
 require 'timeout'
 begin
     timeout(1) do #the server has one second to answer
-	client = TCPSocket.new('www.host.com', 'www')
+        client = TCPSocket.new('www.host.com', 'www')
     end
 rescue
     puts "error: #{$!}"
