@@ -1464,3 +1464,153 @@ array(string) unsorted = ({ "123asdf", "3poiu", "23qwert", "3ayxcv" });
 
 sort((array(int))unsorted, unsorted);
 // unsorted is now sorted.
+
+// @@PLEAC@@_4.15
+
+array unordered;
+int compare(mixed a, mixed b)
+{
+  // return comparison of a and b
+}
+array ordered = Array.sort_array(unordered, compare);
+
+//-------------------------------------------------------------
+int compute(mixed element)
+{
+  // return computation from element
+}
+array precomputed = map(unordered, compute);
+sort(precomputed, unordered); // will destructively sort unordered in the same
+array ordered = unordered;    // manner as precomputed.
+
+//-------------------------------------------------------------
+sort(map(unordered, compute), unordered); // without a temp variable
+sort(compute(unordered[*]), unordered);   // using the automap operator
+                                          // both get compiled to the same code
+
+
+//-------------------------------------------------------------
+array ordered = sort(employees, lambda(mixed a, mixed b)
+                                { 
+                                  return a->name > b->name;
+                                }
+                    );
+
+//-------------------------------------------------------------
+foreach(Array.sort_array(employees, 
+                         lambda(mixed a, mixed b){ return a->name > b->name; })
+        ;; mixed employee)
+{
+  write("%s earns $%d\n", employee->name, employee->salary);
+}
+
+//-------------------------------------------------------------
+array ordered_employees = 
+        Array.sort_array(employees, 
+                         lambda(mixed a, mixed b){ return a->name > b->name; });
+foreach(ordered_employees;; mixed employee)
+{
+  write("%s earns $%d\n", employee->name, employee->salary);
+}
+
+mapping bonus;
+foreach(ordered_employees;; mixed employee)
+{
+  // you are not supposed to use the social security number as an id
+  if(bonus[employee->id])  
+    write("%s got a bonus!\n", employee->name);
+}
+
+//-------------------------------------------------------------
+array sorted = Array.sort_array(employees, 
+                                lambda(mixed a, mixed b)
+                                {
+                                  if(a->name!=b->name)
+                                    return (a->name < b->name)
+                                  return (b->age < a->age);
+                                }
+                               );
+
+//-------------------------------------------------------------
+array(array) users = System.get_all_users();
+
+sort(users); 
+// System.get_all_users() returns an array of arrays, with the name as the
+// first element in each inner array, sort handles multidimensional arrays, so
+// we can skip creating our own sort function.
+
+// if we wanted to sort on something else one could rearrange the array:
+array user;
+while(user=System.getpwent())
+{
+  users += ({ user[2], user });
+}
+System.endpwent();
+sort(users);  // now we are sorting by uid.
+
+// alternative:
+array(array) users = System.get_all_users();
+sort(users[*][2], users);
+
+write(users[*][0]*"\n");
+write("\n");
+
+//-------------------------------------------------------------
+array names;
+array sorted = Array.sort_array(names, lambda(mixed a, mixed b)
+                                       {
+                                         return a[1] < b[1];
+                                       }
+                               );
+// faster:
+sort(names[*][1], names);
+sorted=names;
+//-------------------------------------------------------------
+array strings;
+array sorted = Array.sort_array(strings, lambda(mixed a, mixed b)
+                                       {
+                                         return sizeof(a) < sizeof(b);
+                                       }
+                               );
+// faster:
+sort(sizeof(strings[*]), strings);
+sorted=strings;
+//-------------------------------------------------------------
+array strings;
+array temp = map(strings, sizeof);
+sort(temp, strings); 
+array sorted = strings;
+//-------------------------------------------------------------
+array strings;
+sort(map(strings, sizeof), strings);   // pick one
+sort(sizeof(strings[*]), strings);
+sorted=strings;
+//-------------------------------------------------------------
+array fields;
+array temp = map(fields, array_sscanf, "%*s%d%*s");
+sort(temp, fields);
+array sorted_fields=fields;
+
+//-------------------------------------------------------------
+sort(array_sscanf(fields[*], "%*s%d%*s"), fields);
+array sorted_fields=fields;
+//-------------------------------------------------------------
+array passwd_lines = (Stdio.read_file("/etc/passwd")/"\n")-({""});
+array(array) passwd = passwd_lines[*]/":";
+
+int compare(mixed a, mixed b)
+{ 
+  if(a[3]!=b[3])
+    return (int)a[3]<(int)b[3];
+  if(a[2]!=b[2])
+    return (int)a[2]<(int)b[2];
+  return a[0]<b[0];
+}
+
+array sorted_passwd = Array.sort_array(passwd, compare);
+
+// alternatively the following uses the builtin sort
+sort( passwd[*][0], passwd);
+sort( ((array(int))passwd[*][2]), passwd);
+sort( ((array(int))passwd[*][3]), passwd);
+
