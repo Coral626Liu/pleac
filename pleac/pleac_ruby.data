@@ -708,7 +708,7 @@ lines = <<"END_OF_HERE_DOC".gsub(/^\s*(.+)/, '\1')
     It was as hot as glass.
 END_OF_HERE_DOC
 
-bigarray = IO.readlines("mydatafile").collect {|l| l.chomp }
+bigarray = IO.readlines("mydatafile").collect { |l| l.chomp }
 
 name = "Gandalf"
 banner = %Q(Speak, #{name}, and welcome!)
@@ -2500,9 +2500,48 @@ end
 
 
 # @@PLEAC@@_10.13
-# I don't know how to imitate Perl's "local"
-# @@INCOMPLETE@@
-# @@INCOMPLETE@@
+# Saving Global Values
+# Of course we can just save the value and restore it later:
+def print_age
+    puts "Age is #{$age}"
+end
+
+$age = 18         # global variable
+print_age()
+if condition
+    safeage = $age
+    $age = 23
+    print_age()
+    $age = safeage
+end
+
+# We can also use a method that saves the global variable and
+# restores it automatically when the block is left:
+
+def local(var)
+    eval("save = #{var.id2name}")
+    begin
+        result = yield
+    ensure
+        # we want to call this even if we got an exception
+        eval("#{var.id2name} = save")
+    end
+    result
+end
+
+condition = true
+$age = 18
+print_age()
+if condition
+    local(:$age) {
+        $age = 23
+        print_age()
+    }
+end
+print_age()
+
+# There is no need to use local() for filehandles or directory
+# handles in ruby because filehandles are normal objects.
 
 
 # @@PLEAC@@_10.14
@@ -3053,6 +3092,57 @@ begin
 rescue
     # add error handling here
 end
+
+
+# @@PLEAC@@_14.3
+# sdbm2gdbm: converts sdbm database to a gdbm database
+require "sdbm"
+require "gdbm"
+
+unless ARGV.length == 2
+    fail "usage: sdbm2gdbm infile outfile"
+end
+infile = ARGV[0]
+outfile = ARGV[1]
+
+sdb = SDBM.open(infile)
+gdb = GDBM.open(outfile, 0666)
+sdb.each { |key, val|
+    gdb[key] = val
+}
+gdb.close
+sdb.close
+
+
+# @@PLEAC@@_14.4
+#!/usr/bin/ruby -w
+# dbmmerge: merges two dbm databases
+require "sdbm"
+
+unless ARGV.length == 3
+    fail "usage: dbmmerge indb1 indb2 outdb"
+end
+infile1 = ARGV[0]
+infile2 = ARGV[0]
+outfile = ARGV[2]
+
+in1 = SDBM.open(infile1, nil)
+in2 = SDBM.open(infile2, nil)
+outdb = SDBM.open(outfile, 0666)
+
+[in1, in2].each { |indb|
+    indb.each { |key, val|
+        if outdb.has_key?(key)
+            # decide which value to set.
+            # set outdb[key] if necessary
+        else
+            outdb[key] = val
+        end
+    }
+}
+in1.close
+in2.close
+outdb.close
 
 
 # @@PLEAC@@_15.4
