@@ -252,55 +252,12 @@ int sum=`+(@(array)data);
 write("sum is %d\n", sum);
 // sum is 1248
 //-----------------------------
-#/usr/bin/pike
-void main(int argc, array(string) argv)
-{
-  string data = Stdio.read_file(argv[1]);
-  int checksum;
-
-  foreach(data ;; int char)
-    checksum += char;
-
-  checksum %= pow(2,16)-1;
-  write("%d\n", checksum);
-}
+@@INCLUDE@@ include/pike/sum.pike
 //-----------------------------
 // alternate version
-#!/usr/bin/pike
-void main(int argc, array(string) argv)
-{
-  string data=Stdio.read_file(argv[1]);
-  int checksum = `+(@(array)data) % ((1<<16)-1);
-  write("%d\n", checksum);
-}
+@@INCLUDE@@ include/pike/sum2.pike
 //-----------------------------
-#!/usr/bin/pike
-# slowcat - emulate a   s l o w  line printer
-# usage: slowcat [-DELAY] [files ...]
-void main(int argc, array argv)
-{
-  array(string) files;
-  int delay = 1;
-
-  if(argv[1][0] == '-')
-  {
-    files = argv[2..];
-    delay = (int)argv[1][1..];
-  }
-  else
-    files = argv[1..];
-
-  foreach(files, string file)
-  {
-    string data = Stdio.read_file(file);
-    foreach(data/"", string char)
-    {
-      write(char);
-      sleep(0.005*delay);
-    }
-  }
-}
-
+@@INCLUDE@@ include/pike/slowcat.pike
 // @@PLEAC@@_1.6
 // #1.6 (reverse a string by char/word)
 // by Olivier Girondel
@@ -320,16 +277,7 @@ reverse(s/" ") * " ";               // preserve whitespace
 string word = "reviver";
 int is_palindrome = word==reverse(word);
 //-----------------------------
-#!/usr/bin/pike
-void main(int argc, array(string) argv)
-{
-  string data=Stdio.read_file(argv[1]);
-  foreach(data/"\n", string line)
-  {
-    if(line==reverse(line) && sizeof(line)>5)
-    write("%s\n", line);
-  }
-}
+@@INCLUDE@@ include/pike/palindrome.pike
 // @@PLEAC@@_1.7
 string s = "This   	 is                a    \n   string";
 
@@ -398,23 +346,7 @@ text = words*" ";                     // join back
 // you may do the same in one short line:
 text = String.capitalize(lower_case((text/" ")[*])[*])*" ";
 
-#!/usr/bin/pike
-// randcap: filter to randomly capitalize 20% of the letters
-
-void main()
-{
-  string input;
-  while(input=Stdio.stdin.read(1))
-    write(randcap(input));
-}
-
-string randcap(string char)
-{
-  if(random(100)<20)
-    char=String.capitalize(char);
-  return char;
-}
-
+@@INCLUDE@@ include/pike/randcap.pike
 
 // @@PLEAC@@_1.10
 // since pike does not provide any string interpolation 
@@ -445,66 +377,7 @@ string there=tmp*"\n";
 // @@PLEAC@@_1.12
 // pike sprintf() provides a facility for wrapping (column mode):
 // sprintf("%-=<int width>s", text);
-
-#!/usr/bin/pike
-
-void main()
-{
-  array(string) input = ({ "Folding and splicing is the work of an editor,",
-                           "not a mere collection of silicon",
-                           "and",
-                           "mobile electrons!"});
-  int columns = 20;
-
-  write("0123456789"*2+"\n");
-  write(wrap(input*" ", 20, "  ", "  ")+"\n");
-}
-
-// unlike the perl version here leadtab is relative to nexttab, 
-// to get a shorter lead use a negative int value. this allows the default of 0
-// to be a lead indent that is the same as nexttab, and it also has the
-// advantage of allowing you to change the indent without having to worry about
-// the lead getting messed up.
-// a negative lead will cut away from the nexttab which will be visible if you
-// use something other than spaces
-string wrap(string text, void|int width, 
-            void|string|int nexttab, void|string|int leadtab)
-{
-  string leadindent="";
-  string indent=""; 
-  string indent2="";
-
-  if(!width)
-    width=Stdio.stdout->tcgetattr()->columns;
-
-  if(stringp(nexttab))
-  {
-    indent=nexttab;
-    width-=sizeof(nexttab);  // this will be off if there are chars that have a
-                             // different width than 1.
-  }
-  else if(intp(nexttab))
-  {
-    indent=" "*nexttab;
-    width-=nexttab;
-  }
-
-  if(stringp(leadtab))
-    leadindent=leadtab;
-  else if(intp(leadtab))
-    if(leadtab > 0)
-      leadindent=" "*leadtab;
-    else if(leadtab < 0)
-    {
-      write(indent+".\n");
-      indent=indent[..(sizeof(indent)+leadtab)-1];
-      write(indent+".\n");
-      indent2=text[..-leadtab-1]; 
-      text=text[-leadtab..];
-    }
-  return sprintf("%^s%=*s%-=*s", indent, sizeof(indent2), indent2, 
-                                 width, leadindent+text);
-}
+@@INCLUDE@@ include/pike/wrapdemo.pike
 //----------------------------------------------
 $ ./wrapdemo 
 01234567890123456789
@@ -517,6 +390,7 @@ $ ./wrapdemo
   electrons!        
 
 // merge multiple lines into one, then wrap one long line
+inherit "wrapdemo.pike";
 wrap(replace(text, "\n", " "));
 
 // read stdin and split by paragraph,
@@ -945,39 +819,7 @@ Calendar.dwim_time("Tue, 26 May 1998 23:57:38 -0400")->distance(
     Calendar.dwim_time("Wed, 27 May 1998 05:04:03 +0100"))->format_elapsed();   
 // Result: "0:06:25"
 
-#!/usr/bin/pike
-
-int main()
-{
-  MIME.Message        mail = MIME.Message(Stdio.stdin.read());
-  
-  array           received = reverse(mail->headers->received/"\0");
-  Calendar.Second lasttime = Calendar.dwim_time(mail->headers->date);
-
-  array delays=({ ({ "Sender", "Recipient", "Time", "Delta" }) });
-  delays+=({ ({ mail->headers->from, 
-                array_sscanf(received[0], "from %[^ ]")[0], 
-                mail->headers->date, 
-                "" 
-          }) });
-          
-
-  foreach(received;; string hop)
-  {
-    string fromby, date;
-    [fromby, date] = hop/";";
-    Calendar.Second thistime = Calendar.dwim_time(date);
-
-    delays+= ({ array_sscanf(fromby, "from %[^ ]%*sby %[^ ]%*s") + 
-                ({ date, lasttime->distance(thistime)->format_elapsed() }) 
-             });
-
-    lasttime=thistime;
-  }
-
-  write("%{%-=22s %-=22s %-=20s %=10s\n%}\n", delays);
-  return 0;
-}
+@@INCLUDE@@ include/pike/hopdelta.pike
 
 // @@PLEAC@@_4.0
 
@@ -1026,43 +868,7 @@ array(string) ships = ({ "Niña", "Pinta", "Santa María" }); // right
 
  
 // @@PLEAC@@_4.2
-#!/usr/bin/pike
-
-array(array(string)) lists =
-  ({
-    ({ "just one thing" }),
-    ({ "Mutt", "Jeff" }),
-    ({ "Peter", "Paul", "Mary" }),
-    ({ "To our parents", "Mother Theresa", "God" }),
-    ({ "pastrami", "ham and cheese", "peanut butter and jelly", "tuna" }),
-    ({ "recycle tired, old phrases", "ponder big, happy thoughts" }),
-    ({ "recycle tired, old phrases",
-       "ponder big, happy thoughts",
-       "sleep and dream peacefully" }),
-  });
-
-void main()
-{
-  write("The list is: %s.\n", commify_list(lists[*])[*]);
-}
-
-string commify_list(array(string) list)
-{
-  switch(sizeof(list))
-  {
-    case 1: return list[0];
-    case 2: return sprintf("%s and %s", @list);
-    default: 
-      string seperator=",";
-      int count;
-      while(count<sizeof(list) && search(list[count], seperator)==-1)
-        count++;
-      if(count<sizeof(list))
-        seperator=";";
-      return sprintf("%{%s"+seperator+" %}and %s", 
-                     list[..sizeof(list)-2], list[-1]);
-  }
-}
+@@INCLUDE@@ include/pike/commify_series.pike
 
 // @@PLEAC@@_4.3
 
