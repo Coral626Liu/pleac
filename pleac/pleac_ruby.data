@@ -454,7 +454,66 @@ print "\n"
 
 
 # @@PLEAC@@_2.6
-# anyone really *needs* this?
+# We can add conversion methods to the Integer class,
+# this makes a roman number just a representation for normal numbers.
+class Integer
+    
+    @@romanlist = [["M", 1000],
+                   ["CM", 900],
+                   ["D",  500],
+                   ["CD", 400],
+                   ["C",  100],
+                   ["XC",  90],
+                   ["L",   50],
+                   ["XL",  40],
+                   ["X",   10],
+                   ["IX",   9],
+                   ["V",    5],
+                   ["IV",   4],
+                   ["I",    1]]
+    
+    def to_roman
+        remains = self
+        roman = ""
+        for entry in @@romanlist
+            sym, num = entry[0], entry[1]
+            while remains >= num
+                remains -= num
+                roman << sym
+            end
+        end
+        roman
+    end
+    
+    def Integer.from_roman(roman)
+        ustr = roman.upcase
+        sum = 0
+        for entry in @@romanlist
+            sym, num = entry[0], entry[1]
+            while sym == ustr[0, sym.length]
+                sum += num
+                ustr.slice!(0, sym.length)
+            end
+        end
+        sum
+    end
+    
+end
+
+
+roman_fifteen = 15.to_roman
+puts "Roman for fifteen is #{roman_fifteen}"
+i = Integer.from_roman(roman_fifteen)
+puts "Converted back, #{roman_fifteen} is #{i}"
+
+# check
+for i in (1..3900)
+    r = i.to_roman
+    j = Integer.from_roman(r)
+    if i != j
+        puts "error: #{i} : #{r} - #{j}"
+    end
+end
 
 
 # @@PLEAC@@_2.7
@@ -1543,6 +1602,136 @@ files.each { |f|
 }
 
 include_free = includes.values.flatten.uniq - includes.keys
+
+
+# @@PLEAC@@_5.16
+# dutree - print sorted intented rendition of du output
+#% dutree
+#% dutree /usr
+#% dutree -a
+#% dutree -a /bin
+
+# The DuNode class collects all information about a directory,
+# and provides some convenience methods
+class DuNode
+
+    attr_reader :name
+    attr_accessor :size
+    attr_accessor :kids
+
+    def initialize(name)
+        @name = name
+        @kids = []
+        @size = 0
+    end
+
+    # support for sorting nodes with side
+    def size_compare(node2)
+        @size <=> node2.size
+    end
+
+    def basename
+        @name.sub(/.*\//, "")
+    end
+
+    #returns substring before last "/", nil if not there
+    def parent
+        p = @name.sub(/\/[^\/]+$/,"")
+        if p == @name
+            nil
+        else
+            p
+        end
+    end
+
+end
+
+# The DuTree does the acdtual work of
+# getting the input, parsing it, builging up a tree
+# and format it for output
+class Dutree
+
+    attr_reader :topdir
+
+    def initialize
+        @nodes = Hash.new
+        @dirsizes = Hash.new(0)
+        @kids = Hash.new([])
+    end
+
+    # get a node by name, create it if it does not exist yet
+    def get_create_node(name)
+        if @nodes.has_key?(name)
+            @nodes[name]
+        else
+            node = DuNode.new(name)
+            @nodes[name] = node
+            node
+        end
+    end
+
+    # run du, read in input, save sizes and kids
+    # stores last directory read in instance variable topdir
+    def input(arguments)
+        name = ""
+        cmd = "du " + arguments.join(" ")
+        IO.popen(cmd) { |pipe|
+            pipe.each { |line|
+                size, name = line.chomp.split(/\s+/, 2)
+                node = get_create_node(name)
+                node.size = size.to_i
+                @nodes[name] = node
+                parent = node.parent
+                if parent
+                    get_create_node(parent).kids.push(node)
+                end
+            }
+        }
+        @topdir = @nodes[name]
+    end
+
+    # figure out how much is taken in each directory
+    # that isn't stored in the subdirectories. Add a new
+    # fake kid called "." containing that much.
+    def get_dots(node)
+        cursize = node.size
+        for kid in node.kids
+            cursize -=  kid.size
+            get_dots(kid)
+        end
+        if node.size != cursize
+            newnode = get_create_node(node.name + "/.")
+            newnode.size = cursize
+            node.kids.push(newnode)
+        end
+    end
+
+    # recursively output everything
+    # passing padding and number width as well
+    # on recursive calls
+    def output(node, prefix="", width=0)
+        line = sprintf("%#{width}d %s", node.size, node.basename)
+        puts(prefix + line)
+        prefix += line.sub(/\d /, "| ")
+        prefix.gsub!(/[^|]/, " ")
+        if node.kids.length > 0     # not a bachelor node
+            kids = node.kids
+            kids.sort! { |a,b|
+                b.size_compare(a)
+            }
+            width = kids[0].size.to_s.length
+            for kid in kids
+                output(kid, prefix, width)
+            end
+        end
+    end
+
+end
+
+tree = Dutree.new
+tree.input(ARGV)
+tree.get_dots(tree.topdir)
+tree.output(tree.topdir)
 
 
 # @@PLEAC@@_6.0
