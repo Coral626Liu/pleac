@@ -1458,58 +1458,7 @@ print "One $_, two ", PL($_), ".\n";
 #% bigfact 25000000000000000000000000
 #+25000000000000000000000000 2**24 5**26
 #-----------------------------
-#!/usr/bin/perl
-# bigfact - calculate prime factors
-use strict;
-use integer;
-
-use vars qw{ $opt_b $opt_d };
-use Getopt::Std;
-
-@ARGV && getopts('bd')        or die "usage: $0 [-b] number ...";
-
-load_biglib() if $opt_b;
-
-ARG: foreach my $orig ( @ARGV ) {
-    my ($n, %factors, $factor);
-    $n = $opt_b ? Math::BigInt->new($orig) : $orig;
-    if ($n + 0 ne $n) { # don't use -w for this
-        printf STDERR "bigfact: %s would become %s\n", $n, $n+0 if $opt_d;
-        load_biglib();
-        $n = Math::BigInt->new($orig);
-    }
-    printf "%-10s ", $n;
-
-    # Here $sqi will be the square of $i. We will take advantage
-    # of the fact that ($i + 1) ** 2 == $i ** 2 + 2 * $i + 1.
-    for (my ($i, $sqi) = (2, 4); $sqi <= $n; $sqi += 2 * $i ++ + 1) {
-        while ($n % $i == 0) {
-            $n /= $i;
-            print STDERR "<$i>" if $opt_d;
-            $factors {$i} ++;
-        }
-    }
-
-    if ($n != 1 && $n != $orig) { $factors{$n}++ }
-    if (! %factors) {
-        print "PRIME\n";
-        next ARG;
-    }
-    for $factor ( sort { $a <=> $b } keys %factors ) {
-        print "$factor";
-        if ($factors{$factor} > 1) {
-            print "**$factors{$factor}";
-        }
-        print " ";
-    }
-    print "\n";
-}
-
-# this simulates a use, but at run time
-sub load_biglib {
-    require Math::BigInt;
-    Math::BigInt->import();          #immaterial?
-}
+# ^^INCLUDE^^ include/perl/ch02/bigfact
 #-----------------------------
 
 # ^^PLEAC^^_3.0
@@ -1895,111 +1844,7 @@ $d2 = ParseDate("Wed, 27 May 1998 05:04:03 +0100");
 print DateCalc($d1, $d2);
 # +0:0:0:0:0:6:25
 #-----------------------------
-#!/usr/bin/perl
-# hopdelta - feed mail header, produce lines
-#            showing delay at each hop.
-use strict;
-use Date::Manip qw (ParseDate UnixDate);
-
-# print header; this should really use format/write due to
-# printf complexities
-printf "%-20.20s %-20.20s %-20.20s   %s\n", 
-        "Sender", "Recipient", "Time", "Delta";
-
-$/ = '';                # paragraph mode
-$_ = <>;                # read header
-s/\n\s+/ /g;            # join continuation lines
-
-# calculate when and where this started
-my($start_from) = /^From.*\@([^\s>]*)/m;
-my($start_date) = /^Date:\s+(.*)/m;
-my $then = getdate($start_date);
-printf "%-20.20s %-20.20s %s\n", 'Start', $start_from, fmtdate($then);
-
-my $prevfrom = $start_from;
-
-# now process the headers lines from the bottom up
-for (reverse split(/\n/)) {
-    my ($delta, $now, $from, $by, $when);
-    next unless /^Received:/;
-    s/\bon (.*?) (id.*)/; $1/s;         # qmail header, I think
-    unless (($when) = /;\s+(.*)$/) {    # where the date falls
-        warn "bad received line: $_";
-        next;
-    }
-    ($from) = /from\s+(\S+)/;           
-    ($from) = /\((.*?)\)/ unless $from; # some put it here
-    $from =~ s/\)$//;                   # someone was too greedy
-    ($by)   = /by\s+(\S+\.\S+)/;        # who sent it on this hop
-
-    # now random mungings to get their string parsable
-    for ($when) {
-        s/ (for|via) .*$//;
-        s/([+-]\d\d\d\d) \(\S+\)/$1/;
-        s/id \S+;\s*//;
-    }
-    next unless $now = getdate($when);          # convert to Epoch
-    $delta = $now - $then;
-
-    printf "%-20.20s %-20.20s %s  ", $from, $by, fmtdate($now);
-    $prevfrom = $by;
-    puttime($delta);
-    $then = $now;               
-}
-
-exit;
-
-# convert random date strings into Epoch seconds
-sub getdate {
-    my $string     =  shift;
-    $string        =~ s/\s+\(.*\)\s*$//;        # remove nonstd tz
-    my $date       =  ParseDate($string);
-    my $epoch_secs =  UnixDate($date,"%s");
-    return $epoch_secs;
-}
-
-# convert Epoch seconds into a particular date string
-sub fmtdate {
-    my $epoch = shift;
-    my($sec,$min,$hour,$mday,$mon,$year) = localtime($epoch);
-    return sprintf "%02d:%02d:%02d %04d/%02d/%02d",
-        $hour, $min, $sec,
-        $year + 1900, $mon + 1, $mday,
-}
-
-# take seconds and print in pleasant-to-read format
-sub puttime {
-    my($seconds) = shift;
-    my($days, $hours, $minutes);
-
-    $days    = pull_count($seconds, 24 * 60 * 60);
-    $hours   = pull_count($seconds, 60 * 60);
-    $minutes = pull_count($seconds, 60);
-
-    put_field('s', $seconds);
-    put_field('m', $minutes);
-    put_field('h', $hours);
-    put_field('d', $days);
-
-    print "\n";
-}
-
-# usage: $count = pull_count(seconds, amount)
-# remove from seconds the amount quantity, altering caller's version.
-# return the integral number of those amounts so removed.
-sub pull_count {
-    my($answer) = int($_[0] / $_[1]);
-    $_[0] -= $answer * $_[1];
-    return $answer;
-}
-
-# usage: put_field(char, number)
-# output number field in 3-place decimal format, with trailing char
-# suppress output unless char is 's' for seconds
-sub put_field {
-    my ($char, $number) = @_;
-    printf " %3d%s", $number, $char if $number || $char eq 's';
-}
+# ^^INCLUDE^^ include/perl/ch03/hopdelta
 #-----------------------------
 # Sender               Recipient            Time                   Delta
 # 
@@ -2678,61 +2523,7 @@ chgrp    dd       grep     mkdir    ps       sort     touch
 chmod    df       kill     mknod    pwd      stty     vi
 chown    echo     ln       more     rm       su
 #-----------------------------
-#!/usr/bin/perl -w
-# words - gather lines, present in columns
-
-use strict;
-
-my ($item, $cols, $rows, $maxlen);
-my ($xpixel, $ypixel, $mask, @data);
-
-getwinsize();
-
-
-# first gather up every line of input,
-# remembering the longest line length seen
-$maxlen = 1;        
-while (<>) {
-    my $mylen;
-    s/\s+$//;
-    $maxlen = $mylen if (($mylen = length) > $maxlen);
-    push(@data, $_);
-}
-
-$maxlen += 1;               # to make extra space
-
-# determine boundaries of screen
-$cols = int($cols / $maxlen) || 1;
-$rows = int(($#data+$cols) / $cols);
-
-# pre-create mask for faster computation
-$mask = sprintf("%%-%ds ", $maxlen-1);
-
-# subroutine to check whether at last item on line
-sub EOL { ($item+1) % $cols == 0 }  
-
-# now process each item, picking out proper piece for this position
-for ($item = 0; $item < $rows * $cols; $item++) {
-    my $target =  ($item % $cols) * $rows + int($item/$cols);
-    my $piece = sprintf($mask, $target < @data ? $data[$target] : "");
-    $piece =~ s/\s+$// if EOL();  # don't blank-pad to EOL
-    print $piece;
-    print "\n" if EOL();
-}
-
-# finish up if needed
-print "\n" if EOL();
-
-# not portable -- linux only
-sub getwinsize {
-    my $winsize = "\0" x 8;
-    my $TIOCGWINSZ = 0x40087468;
-    if (ioctl(STDOUT, $TIOCGWINSZ, $winsize)) {
-        ($rows, $cols, $xpixel, $ypixel) = unpack('S4', $winsize);
-    } else {
-        $cols = 80;
-    }
-}
+# ^^INCLUDE^^ include/perl/ch04/words
 #-----------------------------
 #Wrong       Right
 #-----       -----
@@ -2785,59 +2576,7 @@ print factorial(Math::BigInt->new("500"));
 #-----------------------------
 # ^^INCLUDE^^ include/perl/ch04/permute
 #-----------------------------
-#!/usr/bin/perl -w
-# mjd_permute: permute each word of input
-use strict;
-
-while (<>) {
-    my @data = split;
-    my $num_permutations = factorial(scalar @data);
-    for (my $i=0; $i < $num_permutations; $i++) {
-        my @permutation = @data[n2perm($i, $#data)];
-        print "@permutation\n";
-    }
-}
-
-# Utility function: factorial with memoizing
-BEGIN {
-  my @fact = (1);
-  sub factorial($) {
-      my $n = shift;
-      return $fact[$n] if defined $fact[$n];
-      $fact[$n] = $n * factorial($n - 1);
-  }
-}
-
-# n2pat($N, $len) : produce the $N-th pattern of length $len
-sub n2pat {
-    my $i   = 1;
-    my $N   = shift;
-    my $len = shift;
-    my @pat;
-    while ($i <= $len + 1) {   # Should really be just while ($N) { ...
-        push @pat, $N % $i;
-        $N = int($N/$i);
-        $i++;
-    }
-    return @pat;
-}
-
-# pat2perm(@pat) : turn pattern returned by 
-n2pat()
- into
-# permutation of integers.  XXX: splice is already O(N)
-sub pat2perm {
-    my @pat    = @_;
-    my @source = (0 .. $#pat);
-    my @perm;
-    push @perm, splice(@source, (pop @pat), 1) while @pat;
-    return @perm;
-}
-
-# n2perm($N, $len) : generate the Nth permutation of $len objects
-sub n2perm {
-    pat2perm(n2pat(@_));
-}
+# ^^INCLUDE^^ include/perl/ch04/mjd_permute
 #-----------------------------
 
 # ^^PLEAC^^_5.0
@@ -3064,20 +2803,7 @@ while ( ($k,$v) = each %food_color ) {
     keys %food_color;               # goes back to the start of %food_color
 }
 #-----------------------------
-#!/usr/bin/perl
-# countfrom - count number of messages from each sender
-
-$filename = $ARGV[0] || "-";
-
-open(FILE, "<$filename")            or die "Can't open $filename : $!";
-
-while(<FILE>) {
-    if (/^From: (.*)/) { $from{$1}++ }
-}
-
-foreach $person (sort keys %from) {
-    print "$person: $from{$person}\n";
-}
+# ^^INCLUDE^^include/perl/ch05/countfrom
 #-----------------------------
 
 # ^^PLEAC^^_5.5
@@ -3197,26 +2923,7 @@ Mickey
 #-----------------------------
 ("Ruth" => "Babe", "Mantle" => "Mickey")
 #-----------------------------
-#!/usr/bin/perl -w
-# foodfind - find match for food or color
-
-$given = shift @ARGV or die "usage: foodfind food_or_color\n";
-
-%color = ( 
-           "Apple"  => "red",
-           "Banana" => "yellow",
-           "Lemon"  => "yellow",
-           "Carrot" => "orange"
-         );
-
-    %food = reverse %color;
-
-    if (exists $color{$given}) {
-    print "$given is a food with color $color{$given}.\n";
-    }
-    if (exists $food{$given}) {
-    print "$food{$given} is a food with color $given.\n";
-    }
+# ^^INCLUDE^^ include/perl/ch05/foodfind
 #-----------------------------
 # %food_color as per the introduction
 while (($food,$color) = each(%food_color)) {
@@ -3510,122 +3217,9 @@ foreach $file (sort keys %uniq) {
 #% dutree -a 
 #% dutree -a /bin
 #-----------------------------
-#!/usr/bin/perl -w
-# dutree - print sorted indented rendition of du output
-use strict;
-
-my %Dirsize;
-my %Kids;
-
-getdots(my $topdir = input());
-output($topdir);
-
-# run du, read in input, save sizes and kids
-# return last directory (file?) read
-sub input { 
-    my($size, $name, $parent);
-    @ARGV = ("du @ARGV |");         # prep the arguments
-    while (<>) {                    # magic open is our friend
-
-	($size, $name) = split("\t", $_, 2);
-        $Dirsize{$name} = $size;
-        ($parent = $name) =~ s#/[^/]+$##;   # dirname
-        push @{ $Kids{$parent} }, $name unless eof;
-    } 
-    return $name;
-}
-
-# figure out how much is taken up in each directory
-# that isn't stored in subdirectories.  add a new
-# fake kid called "." containing that much.
-sub getdots {
-    my $root = $_[0];
-    my($size, $cursize);
-    $size = $cursize = $Dirsize{$root};
-    if ($Kids{$root}) {
-        for my $kid (@{ $Kids{$root} }) { 
-            $cursize -= $Dirsize{$kid};
-            getdots($kid);
-        }
-    } 
-    if ($size != $cursize) {
-        my $dot = "$root/.";
-        $Dirsize{$dot} = $cursize;
-        push @{ $Kids{$root} }, $dot;
-    } 
-} 
-
-# recursively output everything,
-# passing padding and number width in as well
-# on recursive calls
-sub output {
-    my($root, $prefix, $width) = (shift, shift || '', shift || 0);
-    my $path;
-    ($path = $root) =~ s#.*/##;     # basename
-    my $size = $Dirsize{$root};
-    my $line = sprintf("%${width}d %s", $size, $path);
-    print $prefix, $line, "\n";
-    for ($prefix .= $line) {        # build up more output
-        s/\d /| /;
-        s/[^|]/ /g;
-    }
-    if ($Kids{$root}) {             # not a bachelor node
-        my @Kids = @{ $Kids{$root} };
-        @Kids = sort { $Dirsize{$b} <=> $Dirsize{$a} } @Kids;
-        $Dirsize{$Kids[0]} =~ /(\d+)/;
-        my $width = length $1;
-        for my $kid (@Kids) { output($kid, $prefix, $width) }
-    }
-} 
+# ^^INCLUDE^^ include/perl/ch05/dutree
 #-----------------------------
-#!/usr/bin/perl
-# dutree_orig: the old version pre-perl5 (early 90s)
-
-@lines = `du @ARGV`;
-chop(@lines);
-&input($top = pop @lines);
-&output($top);
-exit;
-
-sub input {
-    local($root, *kid, $him) = @_[0,0];
-    while (@lines && &childof($root, $lines[$#lines])) {
-        &input($him = pop(@lines));
-        push(@kid, $him);
-    } 
-    if (@kid) {
-        local($mysize) = ($root =~ /^(\d+)/);
-        for (@kid) { $mysize -= (/^(\d+)/)[0]; } 
-        push(@kid, "$mysize .") if $size != $mysize;
-    } 
-    @kid = &sizesort(*kid);
-} 
-
-sub output {
-    local($root, *kid, $prefix) = @_[0,0,1];
-    local($size, $path) = split(' ', $root);
-    $path =~ s!.*/!!;
-    $line = sprintf("%${width}d %s", $size, $path);
-    print $prefix, $line, "\n";
-    $prefix .= $line;
-    $prefix =~ s/\d /| /;
-    $prefix =~ s/[^|]/ /g;
-    local($width) = $kid[0] =~ /(\d+)/ && length("$1");
-    for (@kid) { &output($_, $prefix); };
-} 
-
-sub sizesort {
-    local(*list, @index) = shift;
-    sub bynum { $index[$b] <=> $index[$a]; }
-    for (@list) { push(@index, /(\d+)/); } 
-    @list[sort bynum 0..$#list];
-} 
-
-sub childof {
-    local(@pair) = @_;
-    for (@pair) { s/^\d+\s+//g; s/$/\//; }          
-    index($pair[1], $pair[0]) >= 0;
-}
+# ^^INCLUDE^^ include/perl/ch05/dutree-orig
 #-----------------------------
 
 # ^^PLEAC^^_6.0
