@@ -362,6 +362,184 @@ for (var Int i) 0 fields:size-1
 #7 : Error, Core Dumped 
 #-----------------------------
 
+# ^^PLEAC^^_2.1
+#-----------------------------
+
+if (string eparse (var Int i))
+  # is an integer -> i
+else
+  # is not
+#-----------------------------
+if (string eparse (var Float f))
+  # is a float -> f
+else
+  # is not
+#-----------------------------
+function is_numeric s -> ok
+  arg Str s; arg Bool ok
+  ok := s eparse (var Int i)
+#-----------------------------
+
+# ^^PLEAC^^_2.3
+#-----------------------------
+var Float unrounded := 0.255
+var Float rounded := (cast unrounded*100 Int)/100
+console "Unrounded: " unrounded eol "Rounded: " rounded eol
+
+Unrounded: 0.255
+Rounded: 0.26
+#-----------------------------
+
+# ^^PLEAC^^_2.4
+#-----------------------------
+
+function dec2bin i -> s
+  arg Int i; arg Str s
+  s := string i "radix 2"
+var Str binstr := dec2bin 54      # binstr is "110110"
+#-----------------------------
+
+# ^^PLEAC^^_2.5
+#-----------------------------
+for (var Int i) X Y
+     # i is set to every integer from X to Y, inclusive
+
+for (var Int i) X Y step 7
+     # i is set to every integer from X to Y, stepsize = 7
+#-----------------------------
+print "Childhood is: ";
+for (var Int i) 5 12
+  console i " "
+console eol
+
+Childhood is: 5 6 7 8 9 10 11 12
+#-----------------------------
+
+# ^^PLEAC^^_2.11
+#-----------------------------
+module "/pliant/math/functions.pli"
+
+function deg2rad d -> r
+  arg Float d r
+  return d/180*pi
+
+function rad2deg r -> d
+  arg Float r d
+  return r/pi*180
+#-----------------------------
+radians := deg2rad degrees
+degrees := rad2deg radians
+#-----------------------------
+function degree_sine d -> s
+  arg Float d s
+  s := sin deg2rad:d
+#-----------------------------
+
+# ^^PLEAC^^_2.12
+#-----------------------------
+f := tan 3.7
+f := acos 3.7 # returns undefined
+f := acos 0.2
+f := tan (pi/2) # actualy returns 1.63317787284e16
+#-----------------------------
+
+# ^^PLEAC^^_2.13
+#-----------------------------
+log_e := log value
+#-----------------------------
+function log_base base value -> l
+  arg Float base value l
+  return log:value/log:base
+#-----------------------------
+# log_base defined as above
+answer := log_base 10 10000
+#-----------------------------
+
+# ^^PLEAC^^_2.15
+#-----------------------------
+module "/pliant/language/compiler.pli"
+module "/pliant/language/parser.pli"
+
+type Complex
+  field Float real imaginary        # define type
+
+function 'cast Complex' f -> z      # extension cast Float -> Complex
+  arg Float f; arg Complex z
+  extension
+  z real := f
+  z imaginary := 0
+
+function 'cast Float' z -> f        # reduction cast Complex -> Float
+  arg Float f; arg Complex z
+  reduction
+  if z:imaginary<>0
+    error error_id_arithmetic "The value is not a real number"
+  else
+    f := z real
+
+#
+# Define a parser for notation like 3i. i will not be valid, 1i will be.
+#
+function parse_imaginary context line parameter
+  arg_rw ParserContext context ; arg Str line ; arg Address parameter
+  if not (line parse (var Float data) word:"i" offset:(var Int offset))
+    return
+  var Link:Complex z :> new Complex
+  z real := 0
+  z imaginary := data
+  context add_token addressof:z
+  context forward offset
+
+gvar ParserFilter img_filter
+img_filter function :> the_function parse_imaginary ParserContext Str Address
+constant 'pliant parser basic types' img_filter
+export 'pliant parser basic types'
+
+# basic functions on complex numbers
+
+function '+' z1 z2 -> z
+  arg Complex z1 z2 z
+  z real := z1:real+z2:real
+  z imaginary := z1:imaginary+z2:imaginary
+
+function '-' z1 z2 -> z
+  arg Complex z1 z2 z
+  z real := z1:real-z2:real
+  z imaginary := z1:imaginary-z2:imaginary
+
+function '*' z1 z2 -> z
+  arg Complex z1 z2 z
+  z real := z1:real*z2:real-z1:imaginary*z2:imaginary
+  z imaginary := z1:real*z2:imaginary+z2:real*z1:imaginary
+
+# how to write it
+
+method z 'to string' options -> s
+  arg Complex z ; arg Str options ; arg Str s
+  if z:imaginary=0
+    return (string z:real)
+  eif z:real=0
+    return (string z:imaginary)+"i"
+  return (string z:real)+"+"+(string z:imaginary)+"i"
+#-------------------------
+var Complex c := a * b
+#-------------------------
+var Complex a := 3+5i
+var Complex b := 2-2i
+c := a*b
+console "c = " c eol
+
+c = 16+4i
+#-------------------------
+var Link:Complex za :> new Complex 3+5i
+var Link:Complex zb :> new Complex 2-2i
+var Link:Complex zc :> new Complex
+
+zc := za * zb
+console "c = " zc eol
+
+c = 16+4i
+#-------------------------
 
 # @@PLEAC@@_10.0
 gvar Int greeted               # global variable (but maybe local to module)
