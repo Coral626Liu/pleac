@@ -52,8 +52,10 @@ alpha, beta, production = beta, production, alpha
 num = ord(char)
 char = chr(num)
 
-char = "%c" % num
+char = "%" % num
 print "Number %d is character %c\n" % (num, num)
+
+print "Number %(n)d is character %(n)c\n" % {"n": num }
 
 from string import *
 hal = "HAL"
@@ -250,17 +252,6 @@ a = [ 3.3 , 3.5 , 3.7, -3.3 ]
 for n in a:
     print "% .1f\t% .1f\t% .1f\t% .1f" % (n, int(n), floor(n), ceil(n))
 
-# or using named string interpolation:
-for n in a:
-    print "%(default) .1f\t%(int) .1f\t%(floor) .1f\t%(ceil) .1f" % \
-    	{
-	    "default": n,
-	    "int": int(n),
-	    "floor": floor(n),
-	    "ceil": ceil(n),
-	}
-
-
 # @@PLEAC@@_2.5
 for i in range(x,y):
     # i is set to every integer from x to y, exclusive
@@ -287,4 +278,309 @@ random = uniform(x, y)
 # @@PLEAC@@_2.8
 seed        # uses a combination of the time, the process id, and a sequence number
 seed(val)   # for repeatable behaviour
+
+# @@PLEAC@@_2.16
+print "%(num)d %(num)x %(num)o\n" % { "num": num }
+
+# @@PLEAC@@_7.0
+input = open("/usr/local/widgets/data")
+for line in input:
+    if line.find("blue") != -1:
+        print line[:-1]
+input.close()
+#---------
+import sys, re
+pattern = re.compile(r"\d")
+for line in sys.stdin:
+    if not pattern.search(line):
+        sys.stderr.write("No digit found.\n")
+    sys.stdout.write("Read: " + line)
+sys.stdout.close()
+#---------
+logfile = open("/tmp/log", "w")
+#---------
+logfile.close()
+#---------
+# NOTE: this is poor Python style.
+import sys
+old_output, sys.stdout = sys.stdout, logfile
+print "Countdown initiated ..."
+sys.stdout = old_output
+print "You have 30 seconds to reach minimum safety distance."
+# NOTE: It is better to just use
+print >> logfile, "Countdown initiated ..."
+print >> sys.stdout, "You have 30 seconds to reach minimum safety distance."
+#---------
+
+# @@PLEAC@@_7.1
+source = open(path)
+sink = open(path, "w")
+#---------
+# NOTE: almost no one uses the low-level os.open and os.fdopen
+# commands, so their inclusion here is just silly.  If the
+# os.fdopen(os.open(...)) was needed often, it would be turned
+# into its own function.  Instead, I'll use 'fd' to hint that
+# os.open returns a file descriptor
+import os
+source_fd = os.open(path, os.O_RDONLY)
+source = os.fdopen(fd)
+sink_fd = os.open(path, os.O_WRONLY)
+sink = os.fdopen(sink_fd)
+#---------
+file = open(filename, "w")
+fd = os.open(filename, os.O_WRONLY | os.O_CREAT)
+file = open(filename, "r+")
+#---------
+fd = os.open(name, flags)
+fd = os.open(name, flags, mode)
+#---------
+file = open(path)
+fd = os.open(path, os.O_RDONLY)
+#-----------------------------
+file = open(path, "w")
+fd = os.open(path, os.O_WRONLY|os.O_TRUNC|os.O_CREAT)
+fd = os.open(path, os.O_WRONLY|os.O_TRUNC|os.O_CREAT, 0600)
+#-----------------------------
+fd = os.open(path, os.O_WRONLY|os.O_EXCL|os.O_CREAT)
+fd = os.open(path, os.O_WRONLY|os.O_EXCL|os.O_CREAT, 0600)
+#-----------------------------
+file = open(path, "a")
+fd = os.open(path, os.O_WRONLY|os.O_APPEND|os.O_CREAT)
+fd = os.open(path, os.O_WRONLY|os.O_APPEND|s.O_CREAT, 0600)
+#-----------------------------
+fd = os.open(path, os.O_WRONLY|os.O_APPEND)
+#-----------------------------
+file = open(path, "rw")
+fd = os.open(path, os.O_RDWR)
+#-----------------------------
+fd = os.open(path, os.O_RDWR|os.O_CREAT)
+fd = os.open(path, os.O_RDWR|os.O_CREAT, 0600)
+#-----------------------------
+fd = os.open(path, os.O_RDWR|os.O_EXCL|os.O_CREAT)
+fd = os.open(path, os.O_RDWR|os.O_EXCL|os.O_CREAT, 0600)
+#-----------------------------
+
+# @@PLEAC@@_7.2
+# Nothing different needs to be done with Python
+
+# @@PLEAC@@_7.3
+import os
+filename = os.path.expanduser(filename)
+
+# @@PLEAC@@_7.4
+file = open(filename)   # raise an exception on error
+
+try:
+  file = open(filename)
+except IOError, err:
+  raise AssertionError("Couldn't open %s for reading : %s" %
+                       (filename, err.strerror))
+
+# @@PLEAC@@_7.5
+import tempfile
+
+file = tempfile.TemporaryFile()
+
+#-----------------------------
+# NOTE: The TemporaryFile() call is much more appropriate
+# I would not suggest using this code for real work.
+import os, tempfile
+
+while 1:
+  name = os.tmpnam()
+  try:
+    fd = os.open(name, os.O_RDWR|os.O_CREAT|os.O_EXCL)
+    break
+  except os.error:
+    pass
+file = tempfile.TemporaryFileWrapper(os.fdopen(fd), name)
+
+# now go on to use the file ...
+#-----------------------------
+import os
+while 1:
+  tmpname = os.tmpnam()
+  fd = os.open(tmpnam, os.O_RDWR | os.O_CREAT | os.O_EXCL)
+  if fd:
+    tmpfile = os.fdopen(fd)
+    break
+
+os.unlink(tmpnam)
+
+#-----------------------------
+import tempfile
+
+file = tempfile.TemporaryFile(bufsize = 0)
+for i in range(10):
+  print >>file, i
+file.seek(0)
+print "Tmp file has:", file.read()
+#-----------------------------
+
+# @@PLEAC@@_7.6
+DATA = """\
+your data goes here
+"""
+for line in DATA.split("\n"):
+    # process the line
+
+# @@PLEAC@@_7.7
+for line in sys.stdin:
+    # do something with the line
+
+#-----------------------------
+import sys
+
+def do_with(file):
+  for line in file:
+      print line[:-1]
+
+filenames = sys.argv[1:]
+if filenames:
+    for filename in filenames:
+        try:
+            do_with(open(filename))
+        except IOError, err:
+            sys.stderr.write("Can't open %s: %s\n" % (filename, err.strerror))
+            continue
+else:
+    do_with(sys.stdin)
+
+#-----------------------------
+import sys, glob
+ARGV = sys.argv[1:] or glob.glob("*.[Cch]")
+#-----------------------------
+# NOTE: the getopt module is the prefered mechanism for reading
+# command line arguments
+import sys
+args = sys.argv[1:]
+chop_first = 0
+
+if args and args[0] == "-c":
+   chop_first += 1
+   args = args[1:]
+
+# arg demo 2: Process optional -NUMBER flag
+
+# NOTE: You just wouldn't process things this way for Python,
+# but I'm trying to preserve the same semantics.
+
+import sys, re
+digit_pattern = re.compile(r"-(\d+)$")
+
+args = sys.argv[1:]
+if args:
+  match = digit_pattern.match(args[0])
+  if match:
+    columns = int(match.group(1))
+    args = args[1:]
+
+# NOTE: here's the more idiomatic way, which also checks
+# for the "--" or a non "-" argument to stop processing
+
+args = sys.argv[1:]
+for i in range(len(args)):
+  arg = args[i]
+  if arg == "--" or not arg.startwith("-"):
+    break
+  if arg[1:].isdigit():
+    columns = int(arg[1:])
+    continue
+
+
+
+# arg demo 3: Process clustering -a, -i, -n, or -u flags
+import sys, getopt
+try:
+  args, filenames = getopt.getopt(sys.argv[1:], "ainu")
+except getopt.error:
+  raise SystemExit("usage: %s [-ainu] [filenames] ..." % sys.argv[0])
+
+append = ignore_ints = nostdout = unbuffer = 0
+for k, v in args:
+  if   k == "-a": append += 1
+  elif k == "-i": ignore_ints += 1
+  elif k == "-n": nostdout += 1
+  elif k == "-u": unbuffer += 1
+  else:
+    raise AssertionError("Unexpected argument: %s" % k)
+
+#-----------------------------
+# Note: Idiomatic Perl get translated to idiomatic Python
+import fileinput
+for line in fileinput.input():
+  sys.stdout.write("%s:%s:%s" %
+                   (fileinput.filename(), fileinput.filelineno(), line))
+#-----------------------------
+#!/usr/bin/env python
+# findlogin1 - print all lines containing the string "login"
+for line in fileinput.input(): # loop over files on command line
+  if line.find("login") != -1:
+    sys.stdout.write(line)
+
+#-----------------------------
+#!/usr/bin/env python
+# lowercase - turn all lines into lowercase
+### NOTE: I don't know how to do locales in Python
+for line in fileinput.input(): # loop over files on command line
+  sys.stdout.write(line.lower())
+
+#-----------------------------
+#!/usr/bin/env python
+# NOTE: The Perl code appears buggy, in that "Q__END__W" is considered
+#       to be a __END__ and words after the __END__ on the same line
+#       are included in the count!!!
+# countchunks - count how many words are used.
+# skip comments, and bail on file if __END__
+# or __DATA__ seen.
+chunks = 0
+for line in fileinput.input():
+  for word in line.split():
+    if word.startswith("#"):
+      continue
+    if word in ("__DATA__", "__END__"):
+      fileinput.close()
+      break
+    chunks += 1
+print "Found", chunks, "chunks"
+
+
+# @@PLEAC@@_7.13
+import select
+while 1:
+  rlist, wlist, xlist = select.select([file1, file2, file3], [], [], 0)
+  for r in rlist:
+    # Do something with the file handle
+
+# @@PLEAC@@_7.16
+# NOTE: this is all much easier in Python
+def subroutine(file):
+  print >>file, "Hello, file"
+
+variable = file
+subroutine(variable)
+
+# @@PLEAC@@_7.18
+for file in files:
+  print >> file, stuff_to_print
+
+# NOTE: This is unix specific
+import os
+file = os.popen("tee file1 file2 file3 >/dev/null", "w")
+print >> file, "whatever"
+
+# NOTE: the "make STDOUT go to three files" is bad programming style
+import os, sys
+sys.stdout.file = os.popen("tee file1 file2 file3", "w")
+print "whatever"
+sys.stdout.close()
+
+# @@PLEAC@@_7.19
+import os
+file = os.fdopen(fdnum) # open the descriptor itself
+file = os.fdopen(os.dup(fdnum)) # open to a copy of the descriptor
+
+###
+outcopy = os.fdopen(os.dup(sys.stdin.fileno()), "w")
+incopy = os.fdopen(os.dup(sys.stdin.fileno()), "r")
 
