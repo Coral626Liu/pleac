@@ -10,6 +10,160 @@
 # @@SKIP@@ Written for version 64.
 # @@SKIP@@ Code is function code to allow local variables (for readibility).
 
+# @@PLEAC@@_APPENDIX
+
+# multiline strings may be achieved by addition of a new
+# parser filter
+# We give here a full answer which goes a bit out the scope
+# of a basic tutorial, but emphasizes the power of Pliant reflexiveness.
+#
+
+module "/pliant/language/parser.pli"
+module "/pliant/language/compiler.pli"
+
+#
+# parser filter declaration helper function
+#     mod is the module in which the filter is declared
+#     section_name is the section in which the filter is inserted
+#     ad is the address of the filter function
+#     adp is the address of the filter parameter
+#
+function declare_filter2 mod section_name ad adp
+  arg_rw Module mod; arg Str section_name; arg Address ad; arg Arrow adp
+  var Link:ParserFilter lp :> new ParserFilter
+  lp function :> ad map Function
+  lp parameter := adp
+  mod define section_name addressof:lp
+
+#
+# declare_filter meta
+#
+#    syntax: declare_filter section filter parameter [link|copy]
+# inserts the filter 'filter' in section 'section' of the caller's module
+# with parameter 'parameter'; By default, parameter is copied.
+# parameter may be mapped by using 'link' keyword
+#
+
+meta declare_filter e
+  if (e:size <> 2) and (e:size<>3) and (e:size<>4)
+     return
+  var Bool copy:=true
+  if e:size=4
+     if not e:3:is_pure_ident
+        return
+     if e:3:ident="copy"
+        copy:=true
+     eif e:3:ident="link"
+        copy:=false
+     else
+        return
+  var Link:Expression ef :> expression immediat (the_function fun ParserContext Str Address) substitute fun e:1 near e
+  var Address ad := ef evaluate
+  if error_notified
+    return
+  if ad=null
+    error error_id_unexpected "Failed to evaluate expression at "+e:position
+    e set_void_result
+  var Arrow adp
+  if e:size>=3
+   e:2 compile ?
+   var Pointer:Type ptype :> e:2:result:type
+   var Link:Expression type_id :> expression ident ptype:name near e:2
+   if copy
+      ef :> expression immediat (new ptype pvalue) substitute ptype type_id substitute pvalue e:2 near e
+      adp := ef evaluate
+   else
+      adp := e:2 evaluate
+   if error_notified
+      return
+   if adp=null
+      error error_id_unexpected "Failed to evaluate expression at "+e:position
+      e set_void_result
+  if (addressof e:module:external)=null
+     var Link:Argument adr :> argument constant Address addressof:(e:module)
+  else
+     var Link:Argument adr :> argument constant Address addressof:(e:module:external)
+  var Link:Argument ma :> argument indirect Module adr 0
+  e add (instruction (the_function declare_filter2 Module Str Address Arrow) ma (argument constant Str e:0:ident) (argument constant Address ad) (argument constant Arrow adp))
+  e set_void_result
+#
+# generic parse_text parser filter
+# parameter is assumed to be a string corresponding to the keyword used.
+# If parameter is "foo", then
+#   foo a b c
+#     hello
+#    How are you ?
+#       this morning...
+#
+# will be parsed as if written
+#
+#   foo a b c
+#    " hello"
+#    "How are you ?"
+#    "   this morning..."
+#
+
+function parse_text context line parameter
+  arg_rw ParserContext context ; arg Str line ; arg Address parameter
+  var Pointer:Str kwd :> parameter map Str
+  if (line 0 kwd:len)=kwd
+    var Int x := 0
+    var Pointer:Str l :> context:current_line map Str
+    while l:x = " "
+       x+=1
+    var Pointer:Arrow cur :> context:text next context:current_line
+    while cur<>null and { var Pointer:Str l :> cur map Str ; (l 0 x+1)=(repeat x+1 " ") or l=(repeat l:len " ") }
+      var Str t := l x+1 l:len
+      l := (repeat x+1 " ")+string:t
+      cur :> context:text next cur
+
+#
+# simple multi-line text meta
+#
+# syntax:
+# inline_text [leftcut|ignorefirst]
+#   some text
+#    over multiple lines...
+#
+meta inline_text e
+  if e:size<1
+     return
+  var Link:Expression body :> e e:size-1
+  if body:ident<>"{}" or body:size=0
+     return
+  for (var Int i) 0 body:size-1
+     var Address ad := body:i constant Str
+     if ad=null
+        error error_id_unexpected "text: argument #"+string:i+" is not a constant Str"
+        return
+  var Bool leftcut := false; var Int leftmargin:=0; var Int start:=0
+  var Str s
+  if e:size>1 and e:0:is_pure_ident
+   if e:0:ident="leftcut"
+     leftcut:=true
+     leftmargin := -1 # stands for infinity
+   eif e:0:ident="ignorefirst"
+     start := 1
+     var Pointer:Str ss :> (body:0 constant Str) map Str
+     ss eparse spaces:s
+     leftmargin := s:len
+  if leftcut
+    for (var Int i) 0 body:size-1
+       var Pointer:Str ss :> (body:i constant Str) map Str
+       ss eparse spaces:s
+       if s:len<leftmargin or leftmargin<0
+         leftmargin:=s:len
+  s:=""
+  for (var Int i) start body:size-1
+    var Pointer:Str ss :> (body:i constant Str) map Str
+    s += (ss leftmargin ss:len)+"[lf]"
+  e set_result (argument constant Str s) access_read
+
+#
+# filter declaration for immediat use
+#
+declare_filter 'pliant parser basic types' parse_text "inline_text" copy
+
 
 # @@PLEAC@@_1.0
 # In Pliant, the standard type to handle character strings is Str.
@@ -22,12 +176,34 @@ string := "[lb]"                   # character '['
 string := "[rb]"                   # character ']'
 string := "[lf]"                   # line feed
 string := "[cr]"                   # carriage return
+string := "[tab]"                  # tabulation
 string := "[0]"                    # null character
 string := "Jon said [dq]hello[dq]" # literal double quotes
 
-# multiline strings may be achieved by addition of a new
-# parser filter; to do
+#
+# multiline text using inline_text meta and parse_text filters defined 
+# in the Appendix
+#
 
+var Str string := inline_text
+ This is a multiline here document
+ terminated by indentation rule
+ (the first indenting space is ignored).
+ In the multiline, "special" characters have not to be
+ [quoted].
+
+# remark each lines of string is ended with a [lf]
+
+var Str string := inline_text leftcut
+     This is a multiline here document
+       terminated by indentation rule
+   with left margin given by the leftest string
+
+var Str string := inline_text ignorefirst
+       ! left margin is here
+           This is a multiline here document
+  gna  with all characters left to the margin ignored,
+       as long as properly indented.
 
 # @@PLEAC@@_1.1
 var Str s:="some string"
@@ -147,3 +323,40 @@ for (var Int i) 0 string:len-1
 console sum eol
 # prints "1248" if string was "an apple a day"
 #---------------------------------------------
+# @@PLEAC@@_1.13
+
+var Str str := "This is a [dq]string[dq] with [lf] special [lb]characters[rb] in it"
+var Str quoted := string str
+# "This is a [lb]dq[rb]string[lb]dq[rb] with [lb]lf[rb] special [lb]lb[rb]characters[lb]rb[rb] in it"
+#
+# back to unquoted string (quoted -> str)
+quoted eparse str
+#---------------------------------------------
+
+# @@PLEAC@@_1.15
+
+#
+# quoted " ([lb][dq][rb]) are implictely dequoted when arising in a parsed string
+# 
+var Str string := "XYZZY,[dq][dq],[dq]O'Reilly, Inc[dq],[dq]Wall, Larry[dq],[dq]a [lb]dq[rb]glug[lb]dq[rb] bit[dq], another [dq]glub[dq] bit, 5, [dq]Error, Core Dumped[dq]"
+var Str a
+var Str b:=string+","
+var Array:Str fields
+while b<>""
+  if not (b parse a "," any:b)  # if not a quoted string
+    b parse any:a "," any:b     # it is not quoted and ends with the next ","
+  fields += a
+for (var Int i) 0 fields:size-1
+  console "#" i ":" fields:i eol
+
+#0 : XYZZY
+#1 :
+#2 : O'Reilly, Inc
+#3 : Wall, Larry
+#4 : a "glug" bit
+#5 : another "glub" bit
+#6 : 5
+#7 : Error, Core Dumped 
+#-----------------------------
+
+
