@@ -7,7 +7,7 @@
 # @@SKIP@@ http://pliant.cx
 
 # @@PLEAC@@_INTRO
-# @@SKIP@@ Written for version 64.
+# @@SKIP@@ Written for version 73.
 # @@SKIP@@ Code is function code to allow local variables (for readibility).
 
 # @@PLEAC@@_APPENDIX
@@ -363,3 +363,122 @@ for (var Int i) 0 fields:size-1
 #-----------------------------
 
 
+# @@PLEAC@@_10.0
+gvar Int greeted               # global variable (but maybe local to module)
+function hello
+  greeted += 1
+  console "hi there" eol
+#---------------------------
+hello
+#---------------------------
+
+
+# @@PLEAC@@_10.1
+function hypothenuse a b -> c
+  arg Float a b c
+  c := (a^2+b^2)^0.5
+
+var Float diag := hypothenuse 3 4  # diag is 5
+#----------------------------
+console (hypthenuse 3 4) eol       # prints 5
+#----------------------------
+var Array:Float nums
+nums 0 := 1.4; nums 1 := 3.5; nums 2 := 6.7
+function int_all t1 -> t2
+  arg Array:Float t1; arg Array:Int t2
+  t2 := new Array:Int
+  for (var Int n) 0 t1:size-1
+     t2 i := cast t1:i Int
+var Array:Int ints := int_all nums
+
+function int_all2 t1 -> t2         # with object creation
+   arg Array:Float t1; arg (Link Array:Int) t2
+   t2 :> new Array:Int
+   t2 size := t1 size
+   for (var Int n) 0 t1:size-1
+     t2 i := cast t1:i Int
+var (Link Array:Int) ints2 :> int_all2 nums
+
+#-----------------------------
+
+method t trunc_em                  # method implementation
+  arg_rw Array:Float t
+  for (var Int n) 0 t:size-1
+     t i := cast t:i Int
+
+function trunc_em t                # function implementation
+  arg_rw Array:Float t
+  for (var Int n) 0 t:size-1
+     t i := cast t:i Int
+
+nums trunc_em                       # calls the method
+trunc_em nums                       # calls the function
+#-------------------------------
+
+
+# @@PLEAC@@_10.2
+func somefunc
+  var Int variable                  # local variable
+  var Str a b c                     # many variables, if same type
+
+  # ...
+#---------------------------------
+
+
+# @@PLEAC@@_17.0
+module "/pliant/language/os/socket.pli"         # for low level socket calls
+module "/pliant/language/stream/tcp.pli"        # for TCP streams
+module "/pliant/protocol/common/tcp_server.pli" # for server writing
+#-------------------------------
+
+
+# @@PLEAC@@_17.1
+module "/pliant/language/stream.pli"
+module "/pliant/protocol/stream/tcp.pli"
+(var Stream s) open "tcp://thehost/client/port" in+out+safe
+if s=failure
+  console "connection failed" eol
+  #...
+# write a line on the stream
+s writeline "Why don't you call me anymore?\n";
+# read a line
+var Str answer := s readline
+# terminate
+s close
+#-------------------------------
+
+
+# @@PLEAC@@_17.2
+module "/pliant/language/stream.pli"
+module "/pliant/protocol/common/tcp_server.pli"
+
+type MyServer
+  tcp_fields "My Server" server_port
+  
+TcpServer maybe MyServer
+
+method server service gstream
+  arg_rw GeneralServer server ; arg_rw Stream stream
+  # get the ip of the connected client
+  var Str from_ip := gstream query "remote_ip_address"
+  # handle the connection (discussion through stream)
+
+# if you want to check some things at start time
+
+method server start_checkup -> status
+  arg_rw MyServer server ; arg Status status
+  # check whatever you want
+  return success
+
+# if you want to perform actions at shutdown
+
+method server stop_checkup
+  arg_rw MyServer server
+  # do whatever you need
+  
+# create a server
+define_tcp_server MyServer my_server
+
+# run the server detached
+my_server detached
+#---------------------------------
