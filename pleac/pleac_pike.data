@@ -398,6 +398,24 @@ text = words*" ";                     // join back
 // you may do the same in one short line:
 text = String.capitalize(lower_case((text/" ")[*])[*])*" ";
 
+#!/usr/bin/pike
+// randcap: filter to randomly capitalize 20% of the letters
+
+void main()
+{
+  string input;
+  while(input=Stdio.stdin.read(1))
+    write(randcap(input));
+}
+
+string randcap(string char)
+{
+  if(random(100)<20)
+    char=String.capitalize(char);
+  return char;
+}
+
+
 // @@PLEAC@@_1.10
 // since pike does not provide any string interpolation 
 // there are no sneaky tricks here.
@@ -423,3 +441,27 @@ foreach(here/"\n";; string line)
   tmp+=array_sscanf(line, "%*[\t ]%s");
 }
 string there=tmp*"\n";
+
+// @@PLEAC@@_1.12
+// pike sprintf() provides a facility for wrapping:
+// sprintf("<string indent>%-=<int width>s", text);
+
+// unlike the perl version here leadtab is relative to nexttab, 
+// to get a shorter lead use negative values. this allows the default of 0 to
+// be a lead indent that is the same as nexttab, and it also has the advantage
+// of allowing you ti change the indent without having to worry about the lead
+// getting messed up.
+string wrap(string text, void|int width, void|int nexttab, void|int leadtab)
+{
+  string leadindent="";
+  string indent=" "*nexttab;
+  if(leadtab > 0)
+    leadindent=" "*leadtab;
+  else if(leadtab < 0)
+  {
+    indent=" "*(nexttab+leadtab) + text[..-leadtab-1]; 
+    text=text[-leadtab..];
+  }
+  return sprintf(indent+"%-=*s", width, leadindent+text);
+}
+
