@@ -1071,6 +1071,10 @@ puts {}
 # Does a module for automatic conversion of Roman numerals serve 
 # any other purpose than filling out CPAN?
  
+# It *can* be done in Tcl, of course.  See
+# <URL: http://mini.net/tcl/1749.html>
+# (which even has arithmetic in Roman numerals).
+ 
 # @@PLEAC@@_2.7
  
 set random [expr {int(rand()*$Y)+$X}]
@@ -1175,19 +1179,147 @@ puts "log10(10,000) = $answer"
  
 # @@PLEAC@@_2.16
  
-proc oct {string} {
-    if {[regexp {^0?(.+)$} $string match string]} {
-        return [expr "0$string"]
-    } elseif {[regexp {^0x([[:xdigit:]]+)$} $string match string]} {
-        return [expr "0x$string"]
-    }
-    return 0
-}
+# Tcl does not have hex/oct functions, but
+# they are easy to implement.  If [expr]
+# gets handed an invalid octal/hex number,
+# it raises an error instead of returning
+# 0 as the Perl functions do.
  
 proc hex {string} {
-    if {[regexp {^(?:0x)?([[:xdigit:]]+)$} $string match string]} {
-        return [expr "0x$string"]
+    if {[regexp -nocase {^0x} $string]} {
+        return [expr $string]
+    } else {
+        return [expr 0x$string]
     }
-    return 0
 }
+ 
+proc oct {string} {
+    if {[regexp -nocase {^0x} $string]} {
+        return [hex $string]
+    } else {
+        return [expr 0$string]
+    }
+}
+
+
+puts "Gimme a number in decimal, octal, or hex: "
+set num [gets stdin]
+if {[string length $num]} {
+    if {[regexp ^0 $num]} {
+        set num [oct $num]
+    }
+    puts [format "%d %x %o" $num $num $num]
+}
+ 
+# @@PLEAC@@_2.17
+ 
+proc reverseString {string} {
+    for {set i 0} {$i < [string length $string]} {incr i} {
+        append gnirts [string index $string end-$i]
+    }
+    return $gnirts
+}
+ 
+proc commify {string} {
+    set text [reverse $string]
+    regsub -all {(\d\d\d)(?=\d)(?!\d*\.)} $text {\1,} text
+    return [reverse $text]
+}
+ 
+ 
+# @@PLEAC@@_3.0
+ 
+# A single command, [clock] is used for a wide range
+# of date/time-related tasks.  Subcommands include
+# seconds, which returns a seconds-since-epoch value,
+# and format, which formats a date/time-string like
+# the result of POSIX strftime.
+ 
+set now [clock seconds]
+set fmt "Today is day %j of the current year."
+puts [clock format $now -format $fmt]
+ 
+# @@PLEAC@@_3.1
+ 
+foreach {day month year} [clock format $now -format "%d %m %Y"] break
+ 
+set now [clock seconds]
+set fmt "The current date is %Y %m %d"
+puts [clock format $now -format $fmt]
+ 
+# @@PLEAC@@_3.2
+ 
+# 'timelocal'
+# this is one of several possible variants of scannable
+# date/time strings
+set time [clock scan "$hours:$min:$sec $year-$mon-$mday"]
+ 
+# 'timegm'
+set time [clock scan "$hours:$min:$sec $year-$mon-$mday" -gmt yes]
+ 
+# a time today in the current time zone.
+set time [clock scan "$hours:$min:$sec"]
+ 
+# @@PLEAC@@_3.3
+ 
+set now [clock seconds]
+set vars [list seconds minutes hours day_of_month month year wday yday]
+set desc [list S       M       H     d            m     Y    w    j]
+foreach v $vars d $desc {
+    set $v [clock format $now -format %$d]
+}
+ 
+# @@PLEAC@@_3.4
+ 
+set when [expr {$now + $difference}]
+set when [expr {$now - $difference}]
+ 
+# more idiomatic
+set when [clock scan "$difference seconds"]
+set when [clock scan "$difference seconds ago"]
+set when [clock scan "-$difference seconds"] ;# same as previous
+
+
+foreach {y2 m2 d2} [clock format [clock scan "$y-$m-$d $offset days"] -format "%Y %m %d"] break
+
+
+set vars [list year2 month2 day2 h2 m2 s2]
+set desc [list Y     m      d    H  M  S]
+set time [clock scan "$y-$m-$d $h:$m:$s
+    $days_offset days $hour_offset hours $minute_offset minutes $second_offset seconds"]
+foreach v $vars d $desc {
+    set $v [clock format $time -format %$d]
+}
+
+
+# The hard way
+set birthtime [clock scan "18-Jan-1973 3:45:50 am"]
+set interval [expr {5 + 17 * 60 + 2 * 60 * 60 + 55 * 60 * 60 * 24}]
+set then [expr {$birthtime + $interval}]
+puts [clock format $then]
+# => Wed Mar 14 06:02:55 1973
+# (note: I deleted time zone information from the above result)
+ 
+# The easy way
+set then [clock scan "18-Jan-1973 3:45:50 am 5 seconds 17 minutes 2 hours 55 days"]
+puts [clock format $then]
+ 
+# @@PLEAC@@_3.5
+ 
+set bree [clock scan "16 Jun 1981 4:35:25"]
+set nat  [clock scan "18 Jan 1973 3:45:50"]
+ 
+set difference [expr {$bree - $nat}]
+puts "There were $difference seconds between Nat and Bree"
+# => There were 265333775 seconds between Nat and Bree
+ 
+set vars    {seconds minutes hours days}
+set factors {60      60      24    7}
+foreach v $vars f $factors {
+    set $v [expr {$difference % $f}]
+    set difference [expr {($difference-[set $v]) / $f}]
+}
+set weeks $difference
+puts "($weeks weeks, $days days, $hours:$minutes:$seconds)"
+# => (438 weeks, 4 days, 23:49:35)
  
