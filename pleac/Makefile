@@ -19,7 +19,7 @@
  #*****************************************************************************
 
 
-IMPLS = perl python merd guile ruby haskell ocaml tcl c++ erlang pliant java masd nasm
+IMPLS = perl python merd guile ruby haskell ocaml tcl c++ pliant erlang java masd nasm
 
 
 HTMLTARGETS = $(addprefix pleac_, $(IMPLS))
@@ -55,7 +55,8 @@ web:
 	do \
 		echo "<li>" >> webcontents; \
 		done=`grep "..PLEAC.._[0-9].*" pleac_$$i.data | wc -l`; \
-		percent=`ruby -e "printf \"%.2f\n\", $$done*100/Float($$total)"`; \
+		incomp=`grep "@@INCOMPLETE@@" pleac_$$i.data | wc -l`; \
+		percent=`ruby -e "printf \"%.2f\n\", ($$done-0.5*$$incomp)*100/Float($$total)"`; \
 		echo "" >> webcontents; \
 		echo "<a href=\"pleac_$$i/t1.html\">$$i</a>, $$percent% done " >> webcontents; \
 		echo "(<a href=\"pleac_$$i.data\">raw source</a>, <a href=\"pleac_$$i.html\">colorized source</a>)" >> webcontents; \
