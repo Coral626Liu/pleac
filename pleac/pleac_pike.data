@@ -1792,6 +1792,7 @@ foreach(sort(indices(food_color));; string food)
 // @@PLEAC@@_5.5
 // perls problems and solutions do not apply to pike
 // here are a few ways to print a mapping:
+// food_color as per 5.0
 
 // debugging style
 write("%O\n", food_color);
@@ -1818,4 +1819,89 @@ write("%{%s is %s\n%}", sort((array)food_color));
 // Banana is yellow
 // Carrot is orange
 // Lemon is yellow
+
+// @@PLEAC@@_5.6
+// for this we need to first create an OrderedMapping class.
+// work for this is in progress
+// @@INCOMPLETE@@
+// @@INCOMPLETE@@
+// @@PLEAC@@_5.7
+
+mapping(string:array(string)) ttys = ([]);
+
+object pipe = Stdio.File();
+Process.create_process(({ "who" }), ([ "stdout":pipe->pipe() ]));
+
+foreach(pipe->line_iterator();; string line)
+{
+  array tty=(line/" ")-({ "" });
+  if(!ttys[tty[0]])
+    ttys[tty[0]] = ({ tty[1] });
+  else
+    ttys[tty[0]] += ({ tty[1] });
+}
+
+foreach(sort(indices(ttys));; string user)
+{
+  write("%s: %{%s %}\n", user, ttys[user]);
+}
+
+foreach(sort(indices(ttys));; string user)
+{
+  write("%s: %d ttys.\n", user, sizeof(ttys[user]));
+  foreach(ttys[user];; string tty)
+  {
+    object stat = file_stat("/dev/"+tty);
+    string user;
+    if(stat)
+      user = getpwuid(stat->uid)[0];
+    else
+      user = "(not available)";
+    write("\t%s (owned by %s)\n", tty, user);
+  }
+}
+
+mapping multihash_delete(mapping hash, mixed key, mixed value)
+{
+  if(arrayp(hash[key]))
+    hash[key]-=({ value });
+  if(!sizeof(hash[key]))
+    m_delete(hash, key);
+  return hash;
+}
+
+// @@PLEAC@@_5.8
+
+// search for a value in a mapping
+mapping lookup;
+mixed value;
+mixed key = search(lookup, value);
+
+// transposing: (this will break if there are multiple occurances of a value)
+mapping lookup;
+mapping reverse = mkmapping(values(lookup), indices(lookup));
+//----------------------------------------------------------
+mapping surname = ([ "Mickey":"Mantle", "Babe":"Ruth" ]);
+write("%s\n", search(surname, "Mantle"));
+// Mikey
+
+// with a transposed mapping (only worth doing if you'd have to search a lot)
+mapping first_name = mkmapping(values(surname), indices(surname));
+write("%s\n", first_name->Mantle);
+// Mikey
+//----------------------------------------------------------
+// @@INCLUDE@@ include/pike/ch05/foodfind
+//----------------------------------------------------------
+
+// food_color as per 5.0
+mapping foods_with_color = ([]);
+foreach(food_color; string food; string color)
+{
+  if(!foods_with_color[color])
+    foods_with_color[color] = ({ food });
+  else
+    foods_with_color[color] += ({ food });
+}
+
+write("%{%s %}were yellow foods.\n", foods_with_color->yellow);
 
