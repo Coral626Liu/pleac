@@ -66,8 +66,10 @@ web:
 	ruby -pi -e "sub(/@CURRENTVERSIONS@/, '`cat webcontents`')" index.html
 	rm -f webcontents
 
-upload: all web
+cvs:
 	cvs up
+
+upload: cvs all web
 	rm -rf ../t
 	mkdir ../t
 	cp -a * ../t
