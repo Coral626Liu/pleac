@@ -19,7 +19,7 @@
  #*****************************************************************************
 
 
-IMPLS = perl merd ruby python masd nasm haskell
+IMPLS = perl merd ruby haskell python masd nasm
 
 
 HTMLTARGETS = $(addprefix pleac_, $(IMPLS))
@@ -28,35 +28,36 @@ HTMLTARGETSDEP = $(addsuffix /t1.html, $(HTMLTARGETS))
 PSTARGETS = $(addsuffix .ps, $(addprefix pleac_, $(IMPLS)))
 
 
-all: $(HTMLTARGETSDEP) # $(PSTARGETS)
+all: $(HTMLTARGETSDEP) 
 
 clean:
-	rm -rf *.ps *.dvi *.log *.aux *.tex *.sgml index.html $(HTMLTARGETS)
+	rm -rf index.html pleac_*.html skeleton $(HTMLTARGETS)
 
-%.sgml: %.data skeleton.data
-	./generate_sgml.rb skeleton.data $< $@
-
-$(PSTARGETS): %.ps: %.sgml
-	db2ps $<
-
-$(HTMLTARGETSDEP): $(HTMLTARGETS)
-
-$(HTMLTARGETS): %: %.sgml
+skeleton/t1.html: skeleton.sgml
 	rm -rf $@
 	db2html $<
 
+%.html: %.data
+	code2html $<
+
+$(HTMLTARGETSDEP): %/t1.html: %.html skeleton/t1.html
+	rm -rf $(@D)
+	cp -a skeleton $(@D)
+	for i in $(@D)/*.html; do ./substitute.rb $$i $(@D).html ; done
+	genpercentages.rb $(@D)/t1.html $(@D).data skeleton.sgml
+
 web:
-	total=`grep "PLEAC:[0-9].*:CAELP" skeleton.data | wc -l` ; \
+	total=`grep "PLEAC:[0-9].*:CAELP" skeleton.sgml | wc -l` ; \
 	cp index-skeleton.html index.html ; \
 	ruby -pi -e "sub(/@LASTUPDATE@/, '`date`')" index.html ; \
 	echo "<ul> " > webcontents ; \
 	for i in $(IMPLS); \
 	do \
 		echo "<li>" >> webcontents; \
-		done=`grep "@@PLEAC@@_[0-9].*" pleac_$$i.data | wc -l`; \
+		done=`grep "..PLEAC.._[0-9].*" pleac_$$i.data | wc -l`; \
 		percent=`ruby -e "printf \"%.2f\n\", $$done*100/Float($$total)"`; \
-		echo "<b>$$i:</b> <a href=\"pleac_$$i.data\">code</a>, " >> webcontents; \
-		echo "  <a href=\"pleac_$$i/t1.html\">html output</a> ($$percent% done)" >> webcontents; \
+		echo "" >> webcontents; \
+		echo "<a href=\"pleac_$$i/t1.html\">$$i</a>, $$percent% done (<a href=\"pleac_$$i.data\">sourcecode</a>)" >> webcontents; \
 		echo "</li>" >> webcontents; \
 	done  
 	echo "</ul> " >> webcontents
