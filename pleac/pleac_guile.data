@@ -1,7 +1,7 @@
 ;;; -*- scheme -*-
 
 ;;; @@PLEAC@@_NAME
-;;; @@SKIP@@ Guile
+;;; @@SKIP@@ Guile 1.5
 
 ;;; @@PLEAC@@_WEB
 ;;; @@SKIP@@ http://www.gnu.org/software/guile/
@@ -9,13 +9,14 @@
 ;;; @@PLEAC@@_INTRO
 ;;; @@SKIP@@ The code requires a really recent version of Guile (out of CVS, or the beta version which is tested right now).
 
+
 ;;; @@PLEAC@@_1.0
 (define string "\\n")                    ; two characters, \ and an n
 (define string "\n")                     ; a "newline" character
 (define string "Jon \"Maddog\" Orwant")  ; literal double quotes
 (define string "Jon 'Maddog' Orwant")    ; literal single quotes
 
-(define a "This is a multiline here document
+(define a = "This is a multiline here document
 terminated by a closing double quote")
 
 ;;; @@PLEAC@@_1.1
@@ -517,8 +518,10 @@ turnkey         => turn-key")
   (* 180.0 (/ rad pi)))
 
 ;; @@PLEAC@@_2.12
-;; Guile provides the following trigonometric functions, defined for
-;; arbitrary real and complex numbers:
+
+;; Guile provides the following standard trigonometric functions (and
+;; their hyperbolic equivalents), defined for all real and complex
+;; numbers:
 
 (sin z)
 (cos z)
@@ -527,14 +530,7 @@ turnkey         => turn-key")
 (acos z)
 (atan z)
 
-;; as well as their hyperbolic equivalents
-
-(sinh z)
-(cosh z)
-(tanh z)
-(asinh z)
-(acosh z)
-(atanh z)
+(acos 3.7)  ; 0.0+1.9826969446812i
 
 ;; @@PLEAC@@_2.13
 ;; Guile provides log in base e and 10 natively, defined for any real
@@ -936,6 +932,186 @@ turnkey         => turn-key")
 (sleep i)   ; sleep for i seconds
 (usleep i)  ; sleep for i microseconds (not available on all platforms)
 
+;; @@PLEAC@@_4.0
+(define nested '("this" "that" "the" "other"))
+(define nested '("this" "that" ("the" "other")))
+(define tune '("The" "Star-Spangled" "Banner"))
+
+;; @@PLEAC@@_4.1
+(define a '("quick" "brown" "fox"))
+(define a '("Why" "are" "you" "teasing" "me?"))
+
+(use-modules (srfi srfi-13))
+(define lines
+  (map string-trim
+       (string-tokenize "\
+    The boy stood on the burning deck,
+    It was as hot as glass."
+			#\newline)))
+
+(define bigarray
+  (with-input-from-file "mydatafile"
+    (lambda ()
+      (let loop ((lines '())
+		 (next-line (read-line)))
+	(if (eof-object? next-line)
+	    (reverse lines)
+	    (loop (cons next-line lines)
+		  (read-line)))))))
+
+(define banner "The Mines of Moria")
+
+(define name "Gandalf")
+(define banner
+  (string-append "Speak, " name ", and enter!"))
+(define banner
+  (format #f "Speak, ~A, and welcome!" name))
+
+;; Advanced shell-like function is provided by guile-scsh, the Guile
+;; port of SCSH, the Scheme shell.  Here we roll our own using the
+;; pipe primitives that come with core Guile.
+(use-modules (ice-9 popen))
+
+(define (drain-output port)
+  (let loop ((chars '())
+             (next (read-char port)))
+    (if (eof-object? next)
+        (list->string (reverse! chars))
+        (loop (cons next chars)
+              (read-char port)))))
+
+(define (qx pipeline)
+  (let* ((pipe (open-input-pipe pipeline))
+         (output (drain-output pipe)))
+    (close-pipe pipe)
+    output))
+
+(define his-host "www.perl.com")
+(define host-info (qx (format #f "nslookup ~A" his-host)))
+
+(define perl-info (qx (format #f "ps ~A" (getpid))))
+(define shell-info (qx "ps $$"))
+
+(define banner '("Costs" "only" "$4.95"))
+(define brax    (map string (string->list "()<>{}[]")))
+(define rings   (string-tokenize "Nenya Narya Vilya"))
+(define tags    (string-tokenize "LI TABLE TR TD A IMG H1 P"))
+(define sample
+  (string-tokenize "The vertical bar (|) looks and behaves like a pipe."))
+(define ships  '("Niña" "Pinta" "Santa María"))
+
+;; @@PLEAC@@_4.2
+(define array '("red" "yellow" "green"))
+
+(begin
+  (display "I have ")
+  (for-each display array)
+  (display " marbles.\n"))
+;; I have redyellowgreen marbles.
+
+(begin
+  (display "I have ")
+  (for-each (lambda (colour)
+	      (display colour)
+	      (display " "))
+	    array)
+  (display "marbles.\n"))
+;; I have red yellow green marbles.
+
+;; commify - insertion of commas into list output
+(define (commify strings)
+  (let ((len (length strings)))
+    (case len
+      ((0) "")
+      ((1) (car strings))
+      ((2) (string-append (car strings) " and " (cadr strings)))
+      ((3) (string-append (car strings) ", "
+                          (cadr strings) ", and "
+                          (caddr strings)))
+      (else
+       (string-append (car strings) ", "
+                      (commify (cdr strings)))))))
+
+(define lists '(("just one thing")
+                ("Mutt" "Jeff")
+                ("Peter" "Paul" "Mary")
+                ("To our parents" "Mother Theresa" "God")
+                ("pastrami" "ham and cheese" "peanut butter and jelly" "tuna")
+                ("recycle tired, old phrases" "ponder big, happy thoughts")
+                ("recycle tired, old phrases"
+                 "ponder big, happy thoughts"
+                 "sleep and dream peacefully")))
+
+(for-each (lambda (list)
+            (display "The list is: ")
+            (display (commify list))
+            (display ".\n"))
+          lists)
+
+;; The list is: just one thing.
+;; The list is: Mutt and Jeff.
+;; The list is: Peter, Paul, and Mary.
+;; The list is: To our parents, Mother Theresa, and God.
+;; The list is: pastrami, ham and cheese, peanut butter and jelly, and tuna.
+;; The list is: recycle tired, old phrases and ponder big, happy thoughts.
+;; The list is: recycle tired, old phrases, ponder big, happy thoughts, and sleep and dream peacefully.
+
+;; @@PLEAC@@_4.3
+;;-----------------------------
+
+;; Scheme does not normally grow and shrink arrays in the way that
+;; Perl can.  The more usual operations are adding and removing from
+;; the head of a list using the `cons' and `cdr' procedures.
+;; However ...
+(define (grow/shrink list new-size)
+  (let ((size (length list)))
+    (cond ((< size new-size)
+           (grow/shrink (cons "" list) new-size))
+          ((> size new-size)
+           (grow/shrink (cdr list) new-size))
+          (else list))))
+
+(define (element list i)
+  (list-ref list (- (length list) i 1)))
+
+(define (set-element list i value)
+  (if (>= i (length list))
+      (set! list (grow/shrink list (- i 1))))
+  (set-car! (list-cdr-ref list (- (length list) i 1)))
+  list)
+
+(define (what-about list)
+  (let ((len (length list)))
+    (format #t "The array now has ~A elements.\n" len)
+    (format #t "The index of the last element is ~A.\n" (- len 1))
+    (format #t "Element #3 is `~A'.\n" (if (> len 3)
+                                           (element list 3)
+                                           ""))))
+
+;; In the emulation of Perl arrays implemented here, the elements are
+;; in reverse order when compared to normal Scheme lists.
+(define people (reverse '("Crosby" "Stills" "Nash" "Young")))
+(what-about people)
+;;-----------------------------
+;; The array now has 4 elements.
+;; The index of the last element is 3.
+;; Element #3 is `Young'.
+;;-----------------------------
+(set! people (grow/shrink people 3))
+(what-about people)
+;;-----------------------------
+;; The array now has 3 elements.
+;; The index of the last element is 2.
+;; Element #3 is `'.
+;;-----------------------------
+(set! people (grow/shrink people 10001))
+(what-about people)
+;;-----------------------------
+;; The array now has 10001 elements.
+;; The index of the last element is 10000.
+;; Element #3 is `'.
+;;-----------------------------
+
 ;; @@PLEAC@@_7.0
 ;; use (open-input-file filename) or (open filename O_RDONLY)
 
@@ -1138,44 +1314,10 @@ your data goes here
 ;; example: count-chunks:
 (use-modules (srfi srfi-1) (srfi srfi-13) (ice-9 format) (ice-9 regex))
 
-;; define a simple glob command
-
-(define (directory-files dir)
-  (if (not (access? dir R_OK))
-    '()
-    (let ((port (opendir dir)))
-      (do ((file (readdir port) (readdir port))
-           (ls '()))
-          ((eof-object? file) (closedir port) (reverse! ls))
-        (set! ls (cons file ls))))))
-
-(define (glob->regexp pat)
-  (let ((len (string-length pat))
-        (ls '("^"))
-        (in-brace? #f))
-    (do ((i 0 (1+ i)))
-        ((= i len))
-      (let ((char (string-ref pat i)))
-        (case char
-          ((#\*) (set! ls (cons "[^.]*" ls)))
-          ((#\?) (set! ls (cons "[^.]" ls)))
-          ((#\[) (set! ls (cons "[" ls)))
-          ((#\]) (set! ls (cons "]" ls)))
-          ((#\\)
-           (set! i (1+ i))
-           (set! ls (cons (make-string 1 (string-ref pat i)) ls))
-           (set! ls (cons "\\" ls)))
-          (else
-           (set! ls (cons (regexp-quote (make-string 1 char)) ls))))))
-    (string-concatenate (reverse (cons "$" ls)))))
-
-(define (glob pat dir)
-  (let ((rx (make-regexp (glob->regexp pat))))
-    (filter (lambda (x) (regexp-exec rx x)) (directory-files dir))))
+;; also use directory-files from 9.5 and globbing functions from 9.6
 
 ;; can use (ice-9 getopt-long) described in chapter 15, or process
 ;; options by hand
-
 (define opt-append 0)
 (define opt-ignore-ints 0)
 (define opt-nostdout 0)
@@ -1381,4 +1523,416 @@ your data goes here
 
 (set-current-output-port old-out)
 (set-current-error-port old-out)
+
+;; @@PLEAC@@_8.0
+;; open the file and loop through the port with read-line:
+(let ((p (open-input-file file)))
+  (do ((line (read-line p) (read-line p)))
+      ((eof-object? line))
+    (format #t "~A\n" (string-length line)))
+  (close p))
+
+;; you can use with-input-from-file to temporarily rebind stdin:
+(with-input-from-file file
+  (lambda ()
+    (do ((line (read-line) (read-line)))
+        ((eof-object? line))
+      (format #t "~A\n" (string-length line)))))
+
+;; or define a utility procedure to do this
+(define (for-each-line proc file)
+  (with-input-from-file file
+    (lambda ()
+      (do ((line (read-line) (read-line)))
+          ((eof-object? line))
+        (proc line)))))
+(for-each-line (lambda (x) (format #t "~A\n" (string-length line))) file)
+
+;; read in the file as a list of lines
+(define (read-lines file)
+  (let ((ls '()))
+    (with-input-from-file file
+      (lambda ()
+        (do ((line (read-line) (read-line)))
+            ((eof-object? line))
+          (set! ls (cons line ls)))
+        (reverse ls)))))
+
+;; read in the file as a single string
+(define (file-contents file)
+  (call-with-input-file file
+    (lambda (p)
+      (let* ((size (stat:size (stat p)))
+             (buf (make-string size)))
+        (read-string!/partial buf p)
+        buf))))
+
+;; use display to print human readable output
+(display '("One" "two" "three") port)  ; (One two three)
+(display "Baa baa black sheep.\n")     ; Sent to default output port
+
+;; use write to print machine readable output
+(write '("One" "two" "three") port)    ; ("One" "two" "three")
+
+;; use (ice-9 rw) to read/write fixed-length blocks of data:
+(use-modules (ice-9 rw))
+(let ((buffer (make-string 4096)))
+  (read-string!/partial buffer port 4096))
+
+;; truncate-file
+(truncate-file port length)  ; truncate to length
+(truncate-file port)         ; truncate to current pos
+
+;; ftell
+(define pos (ftell port))
+(format #t "I'm ~A bytes from the start of DATAFILE.\n" pos)
+
+;; seek
+(seek log-port 0 SEEK_END)      ; seek to end
+(seek data-port pos SEEK_SET)   ; seek to pos
+(seek out-port -20 SEEK_CUR)    ; seek back 20 bytes
+
+;; block read/write
+(use-modules (ice-9 rw))
+(write-string/partial mystring data-port (string-length mystring))
+(read-string!/partial block 256 5)
+
+;; @@PLEAC@@_8.1
+(let ((rx (make-regexp "(.*)\\\\$"))) ; or "(.*)\\\\\\s*$"
+  (with-input-from-file file
+    (lambda ()
+      (let loop ((line (read-line)))
+        (if (not (eof-object? line))
+          (let ((m (regexp-exec rx line))
+                (next (read-line)))
+            (cond ((and m (not (eof-object? next)))
+                   (loop (string-append (match:substring m 1) next)))
+                  (else
+                   ;; else process line here, then recurse
+                   (loop next)))))))))
+
+;; @@PLEAC@@_8.2
+(do ((line (read-line p) (read-line p))
+     (i 0 (1+ i)))
+    ((eof-object? line) i))
+
+;; fastest way if your terminator is a single newline
+(use-modules (ice-9 rw) (srfi srfi-13))
+(let ((buf (make-string (expt 2 16)))
+      (count 0))
+  (do ((len (read-string!/partial buf p) (read-string!/partial buf p)))
+      ((not len) count)
+    (set! count (+ count (string-count buf #\newline 0 len)))))
+
+;; or use port-line
+(let loop ((line (read-line p)))
+  (if (eof-object? line) (port-line p) (loop (read-line p))))
+
+;; @@PLEAC@@_8.3
+;; default behaviour of string-tokenize is to split on whitespace:
+(use-modules (srfi srfi-13))
+(let loop ((line (read-line p)))
+  (cond ((not eof-object? line)
+         (for-each some-function-of-word (string-tokenize line))
+         (loop (read-line p)))))
+
+(let ((table (make-hash-table 31)))
+  (let loop ((line (read-line p)))
+    (cond ((not (eof-object? line))
+           (for-each
+            (lambda (w) (hash-set! table w (1+ (hash-ref table w 0))))
+            (string-tokenize line))
+           (loop (read-line p)))))
+  (hash-fold (lambda (k v p) (format #t "~5D ~A\n" v k)) #f table))
+
+;; @@PLEAC@@_8.4
+;; build up the list the reverse it or fold over it:
+(define lines (read-lines file))
+(for-each (lambda (word) do-something-with-word) (reverse lines))
+(fold (lambda (word acc) do-something-with-word) #f lines)
+
+;; @@PLEAC@@_8.5
+;; save the current position and reseek to it
+(define (tail file)
+  (call-with-input-file file
+    (lambda (p)
+      (let loop ((line (read-line p)))
+        (cond ((eof-object? line)
+               (sleep sometime)
+               (let ((pos (ftell p)))
+                 (seek p 0 SEEK_SET)
+                 (seek p pos SEEK_SET)))
+              (else
+               ;; process line
+               ))
+        (loop (read-line p))))))
+
+;; @@PLEAC@@_8.6
+(let ((rand-line #f))
+  (let loop ((line (read-line p)))
+    (cond ((not (eof-object? line))
+           (if (= 0 (random (port-line p)))
+             (set! rand-line line))
+           (loop (read-line p)))))
+  ;; rand-line is the random line
+  )
+
+;; @@PLEAC@@_8.7
+(define (shuffle list)
+  (let ((v (list->vector list)))
+    (do ((i (1- (vector-length v)) (1- i)))
+        ((< i 0) (vector->list v))
+      (let ((j (random (1+ i))))
+        (cond ((not (= i j))
+               (let ((temp (vector-ref v i)))
+                 (vector-set! v i (vector-ref v j))
+                 (vector-set! v j temp))))))))
+
+(define rand-lines (shuffle (read-lines file))
+
+;; @@PLEAC@@_8.8
+;; looking for line number desired-line-number
+(do ((line (read-line p) (read-line p)))
+    ((= ((port-line p) desired-line-number) line)))
+;; or read into a list
+(define lines (read-lines file))
+(list-ref lines desired-line-number)
+
+; (define (build-index data-file index-file)
+;   )
+
+; (define (line-with-index data-file index-file line-number)
+;   )
+
+;; @@PLEAC@@_8.9
+;; use string-tokenize with an appropriate character set
+(use-modules (srfi srfi-13) (srfi srfi-14))
+(define fields (string-tokenize line (string->charset "+-")))
+(define fields (string-tokenize line (string->charset ":")))
+(define fields (string-tokenize line))
+
+;; @@PLEAC@@_8.10
+(let ((p (open-file file "r+")))
+  (let ((pos 0))
+    (let loop ((line (read-line p)))
+      (cond ((eof-object? (peek-char p))
+             (seek p 0 SEEK_SET)
+             (truncate-file p pos)
+             (close p))
+            (else
+             (set! pos (ftell p))
+             (loop (read-line p)))))))
+
+;; @@PLEAC@@_8.11
+;; no equivalent - don't know how Guile under windows handles this
+
+;; @@PLEAC@@_8.12
+(let* ((address (* recsize recno))
+       (buf (make-string recsize)))
+  (seek p address SEEK_SET)
+  (read-string!/partial buf p)
+  buf)
+
+;; @@PLEAC@@_8.13
+(let* ((address (* recsize recno))
+       (buf (make-string recsize)))
+  (seek p address SEEK_SET)
+  (read-string!/partial buf p)
+  ;; modify buf, then write back with
+  (seek p address SEEK_SET)
+  (write-string/partial buf p)
+  (close p))
+
+;; TODO weekearly
+
+;; @@PLEAC@@_9.0
+(define entry (stat "/usr/bin/vi"))
+(define entry (stat "/usr/bin"))
+(define entry (stat port))
+
+(use-modules (ice-9 posix))
+
+(define inode (stat "/usr/bin/vi"))
+(define ctime (stat:ctime inode))
+(define size (stat:size inode))
+
+(define F (open-input-file filename))
+;; no equivalent - what defines -T?
+; unless (-s F && -T _) {
+;     die "$filename doesn't have text in it.\n";
+; }
+
+(define dir (opendir "/usr/bin"))
+(do ((filename (readdir dir) (readdir dir)))
+    ((eof-object? filename))
+  (format #t "Inside /usr/bin is something called ~A\n" filename))
+(closedir dir)
+
+;; @@PLEAC@@_9.1
+(define inode (stat filename))
+(define readtime (stat:atime inode))
+(define writetime (stat:mtime inode))
+
+(utime newreadtime newwritetime filename)
+
+(define seconds-per-day (* 60 60 24))
+(define inode (stat file))
+(define atime (stat:atime inode))
+(define mtime (stat:mtime inode))
+(set! atime (- atime (* 7 seconds-per-day)))
+(set! mtime (- mtime (* 7 seconds-per-day)))
+(utime file atime mtime)
+
+;; mtime is optional
+(utime file (current-time))
+(utime file (stat:atime (stat file)) (current-time))
+
+#!/usr/local/bin/guile -s
+!#
+;; uvi - vi a file without changing its access times
+
+(define file (cadr (command-line)))
+(define inode (stat file))
+(define atime (stat:atime inode))
+(define mtime (stat:mtime inode))
+(system (string-append (or (getenv "EDITOR")  "vi") " " file))
+(utime file atime mtime)
+
+;; @@PLEAC@@_9.2
+(delete-file file)
+
+(let ((count 0))
+  (for-each
+   (lambda (x)
+     (catch #t
+       (lambda () (delete-file x) (set! count (1+ count)))
+       (lambda (err . args) #f)))
+   file-list)
+  (if (not (= count (length file-list)))
+    (format (current-error-port) "could only delete ~A of ~A files"
+            count (length file-list))))
+
+;; @@PLEAC@@_9.3
+;; use builtin copy-file
+(copy-file oldfile newfile)
+(rename-file oldfile newfile)
+
+;; or do it by hand (clumsy, error-prone)
+(use-modules (ice-9 rw) (ice-9 posix))
+(with-input-from-file oldfile
+  (lambda ()
+    (call-with-output-file newfile
+      (lambda (p)
+        (let* ((inode (stat oldfile))
+               (blksize (if inode (stat:size inode) 16384))
+               (buf (make-string blksize)))
+          (let loop ((len (read-string!/partial buf)))
+            (cond ((and len (> len 0))
+                   (write-string/partial buf p 0 len)
+                   (loop (read-string!/partial buf))))))))))
+
+;; or call out to the system (non-portable, insecure)
+(system (string-append "cp " oldfile " " newfile))    ; unix
+(system (string-append "copy " oldfile " " newfile))  ; dos, vms
+
+;; @@PLEAC@@_9.4
+;; use a hash lookup of inodes
+(use-modules (ice-9 posix))
+(let ((seen (make-hash-table 31)))
+  (for-each
+   (lambda (file)
+     (let* ((stats (stat file))
+            (key (cons (stat:dev stats) (stat:ino stats)))
+            (val (hash-ref seen key 0)))
+       (cond ((= val 0)
+              ;; do something with new file
+              ))
+       (hash-set! seen key (1+ val))))
+   file-names))
+
+(let ((seen (make-hash-table 31)))
+  (for-each
+   (lambda (file)
+     (let* ((stats (stat file))
+            (key (cons (stat:dev stats) (stat:ino stats)))
+            (val (hash-ref seen key '())))
+       (hash-set! seen key (cons file val))))
+   file-names)
+  (hash-fold
+   (lambda (key value prior)
+     ;; process key == (dev . inode), value == list of filenames
+     )
+   '() seen))
+
+;; @@PLEAC@@_9.5
+;; use opendir, readdir, closedir
+(let ((p (opendir dir)))
+  (let loop ((file (readdir p)))
+    (if (eof-object? file)
+      (close p)
+      ;; do something with file
+      )))
+
+;; or define a utility function for this
+(define (directory-files dir)
+  (if (not (access? dir R_OK))
+    '()
+    (let ((p (opendir dir)))
+      (do ((file (readdir p) (readdir p))
+           (ls '()))
+          ((eof-object? file) (closedir p) (reverse! ls))
+        (set! ls (cons file ls))))))
+
+;; to skip . and ..
+(cddr (directory-files dir))
+
+;; probably better to implement full Emacs style directory-files
+(use-modules (ice-9 posix))
+(define plain-files
+  (let ((rx (make-regexp "^\\.")))
+    (lambda (dir)
+      (sort (filter (lambda (x) (eq? 'regular (stat:type (stat x))))
+                    (map (lambda (x) (string-append dir "/" x))
+                         (remove (lambda (x) (regexp-exec rx x))
+                                 (cddr (directory-files dir)))))
+            string<))))
+
+;; @@PLEAC@@_9.6
+(define (glob->regexp pat)
+  (let ((len (string-length pat))
+        (ls '("^"))
+        (in-brace? #f))
+    (do ((i 0 (1+ i)))
+        ((= i len))
+      (let ((char (string-ref pat i)))
+        (case char
+          ((#\*) (set! ls (cons "[^.]*" ls)))
+          ((#\?) (set! ls (cons "[^.]" ls)))
+          ((#\[) (set! ls (cons "[" ls)))
+          ((#\]) (set! ls (cons "]" ls)))
+          ((#\\)
+           (set! i (1+ i))
+           (set! ls (cons (make-string 1 (string-ref pat i)) ls))
+           (set! ls (cons "\\" ls)))
+          (else
+           (set! ls (cons (regexp-quote (make-string 1 char)) ls))))))
+    (string-concatenate (reverse (cons "$" ls)))))
+
+(define (glob pat dir)
+  (let ((rx (make-regexp (glob->regexp pat))))
+    (filter (lambda (x) (regexp-exec rx x)) (directory-files dir))))
+
+(define files (glob "*.c" "."))
+(define files (glob "*.[ch]" "."))
+
+;; Not sure if the Schwartzian Transform would really be more
+;; efficient here... perhaps with a much larger directory where very
+;; few files matched.
+(define dirs (filter
+              (lambda (x) (eq? 'directory (stat:type (stat x))))
+              (map (lambda (x) (string-append dir "/" x))
+                   (sort (filter (lambda (x) (string-match "^[0-9]+$" x))
+                                 (directory-files dir))
+                         (lambda (a b)
+                           (< (string->number a) (string->number b)))))))
 
