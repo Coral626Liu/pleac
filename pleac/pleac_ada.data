@@ -1,0 +1,861 @@
+-- -*- Ada -*-
+
+-- @@PLEAC@@_NAME
+-- @@SKIP@@ Ada
+
+-- @@PLEAC@@_WEB
+-- @@SKIP@@ http://www.adapower.com/
+
+-- @@PLEAC@@_INTRO
+-- @@SKIP@@ Ada requires data items to be declared in a declarative region at
+-- @@SKIP@@ the beginning of a code block, before the "begin" reserved word.
+-- @@SKIP@@ Many of the PLEAC subsections are implemented in their own unnamed
+-- @@SKIP@@ code block to define local variables, functions, and procedures
+-- @@SKIP@@ close to their usage, as would be done in Perl.
+
+-- @@PLEAC@@_APPENDIX
+with Ada.Text_Io;
+with Ada.Integer_Text_IO;
+with Ada.Float_Text_Io;
+with Ada.Characters.Latin_1; use Ada.Characters.Latin_1;
+with Ada.Numerics.Discrete_Random;
+with Ada.Numerics.Float_Random;
+with Ada.Numerics.Elementary_Functions;
+with Ada.Numerics.Generic_Complex_Types;
+with Ada.Text_IO.Editing;
+with Ada.Strings.Bounded;
+with Ada.Strings.Unbounded;
+with Gnat.Regpat;
+
+-- @@PLEAC@@_1.0
+----------------------------------------------------------------------------
+---- Charater are enumeration values and use single quotes for delimiters
+-- except for non-printing characters, which have their own labels
+c : character := LF;
+-- a newline (line feed) character
+----------------------------------------------------------------------------
+---- Strings are fixed length arrays of characters with no NULL terminator
+s1 : string(1..1) := (1 => LF);   -- A string containing only a line feed
+s2 : string := "Jon " & '"' &
+               "Maddog" & '"' & "Orwant"; -- a string containing double quotes
+Put_Line("Jon 'Maddog' Orwant"); -- a string containing single quotes
+------------------------------------------------------------------------------
+s : string := "This is a multiline string declaration "
+            & "using the concatenation operator "
+            & "to append separate parts.";
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_1.1
+------------------------------------------------------------------------------
+-- accessing substrings
+s1 : string := data(start..ending);
+-- "end" is a reserved word in Ada
+s2 : string := data(start..data'Last); -- substrings accessed through array slices
+-----------------------------------------------------------------------------
+-- different string types
+-- Bounded strings have a fixed maximum length and
+may vary in size up to the -- maximum length.
+package Bounded is new Ada.Strings.Bounded.Generic_Bounded_Length(80);
+s : Bounded.Bounded_String := Bounded.To_Bounded_String("Hello World!");
+-- Unbounded strings have no maximum size and may vary in size and content
+use Ada.Strings.Unbounded;
+s : Unbounded_String := To_Unbounded_String("Hello World!");
+------------------------------------------------------------------------------
+-- No pack/unpack equivalents exist in standard Ada libraries.
+-- Examples here use a custom implementation to split an original string into
+-- chunks of specified length.
+
+-- TO BE DONE
+
+------------------------------------------------------------------------------
+-- Aggregates repeating a basic pattern s :
+string := 5 * "Wow! ";
+-- result: "Wow! Wow! Wow! Wow! Wow! "
+------------------------------------------------------------------------------
+data : string := "This is what you have";
+-- forward        123456789012345678901
+-- Any data element can be accessed directly through its index.
+-- Substrings can be accessed directly through array slices.
+first : character := data(1);                    -- 'T'
+start : string := data(6..7);                    -- "is"
+rest  : string := data(14..data'Last);           -- "you have"
+last  : character := data(data'Last);            -- 'e'
+final : string := data(data'Last - 3..data'Last);-- "have"
+piece : string := data(14..16);                  -- "you"
+------------------------------------------------------------------------------
+-- String contents can be rearranged as long as the length of the string does
+-- not change. If you want to change the length then use either Bounded or
+-- Unbounded strings.
+data : string := "This is what you have";
+data(18..21) := "were";  -- "This is what you were"
+data(1..7) := "Is this"; -- "Is this what you were"
+------------------------------------------------------------------------------
+use GNAT.Regpat;
+
+-- roughly the same set of regular expressions as are available in Perl or
+-- Python.
+
+Match_Position : Natural;
+
+Match_Position := Match(Compile("pattern"),data(data'last - 9..data'last));
+if Match_Position > 0 then
+   Put_Line("Pattern matches in last 10 characters");
+end if;
+-- substitute "at" for "is", restricted to the first five characters
+declare
+   Matches : Match_Array(0..4);
+   Regexp  : string := "is";
+   Data    : string := "This is what you have";
+begin
+   Match(Regexp, Data(1..5), Matches);
+   if Matches(0).First > 0 then
+      Data(Matches(0).First .. Matches(0).Last) := "at";
+   end if;
+end;
+-- exchange the first and last letters in a string
+data : string := "make a hat";
+temp : character := data(1);
+data(1) := data(data'Last);
+data(data'Last) := temp; -- "take a ham"
+-- extract a column with array slicing
+data : string := "to be or not to be";
+a1   : string := data(7..12); -- "or not"
+-- forward 6, grab 2, backward 5, grab 2
+a2   : string := data(7..8) & data(4..5); -- "orbe"
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_1.2
+------------------------------------------------------------------------------
+-- boolean values
+-- use b if b is true, else use c
+b, c : boolean;
+-- [..]
+a : boolean := b or else c; -- lazy evaluation
+
+-- set x to y unless x is already true
+x, y : boolean;
+-- [..]
+x := x or else y; -- Ada has no ternary operator
+-------------------------------------
+-- find the user name on Unix systems
+with Gnat.Os_Lib; -- Gnat.Os_Lib is a Gnat extension
+
+username : string := Gnat.Os_Lib.Getenv("USER");
+logname  : string := Gnat.Os_Lib.Getenv("LOGNAME");
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_1.3
+------------------------------------------------------------------------------
+-- Ada always requires temporary variables to swap values
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_1.4
+------------------------------------------------------------------------------
+num : integer := character'Pos(char);
+char : character := character'Val(num);
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_1.5
+------------------------------------------------------------------------------
+s : string := "Some value"; c : character;
+for index in S'Range loop
+   c := s(index);
+end loop;
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_2.0
+procedure Pleac_Numbers is
+   type Small_Int is range -10..10;
+   Numeric_String : String(1..80) := (1=> '6', Others => ' ');
+-- Ada defaults to fixed length strings.
+   Int : Integer;
+   Flt : Float;
+   Small : Small_Int;
+
+
+-- @@PLEAC@@_2.1
+   begin
+      Int := Integer'Value(Numeric_String);
+   exception
+      when Constraint_Error =>
+         Put_Line(Numeric_String & " is not an Integer");
+   end;
+   begin
+      Flt := Float'Value(Numeric_String);
+   exception
+      when Constraint_Error =>
+         Put_Line(Numeric_String & " is not a float");
+   end;
+
+-- Ada also allows you to define your own numeric types and check
+-- for valid conversion from a string, including out of range
+-- errors
+   begin
+      Small := Small_Int'Value(Numeric_String);
+   exception
+      when Constraint_Error =>
+         Put_Line(Numeric_String & " is not a Small_Int");
+   end;
+
+-- @@PLEAC@@_2.2
+function equal(Num1, Num2 : Float; Accuracy : Integer) return Boolean is
+   My_Delta : Float := 10.0 ** (-Accuracy);
+   Diff     : Float := abs (Num1 - Num2);
+begin
+   return Diff < My_Delta;
+end equal;
+----------------------------------------------------------------------
+-- Ada offers another form of Real numbers : Fixed point types
+-- You specify the fixed precision of the type in the "delta"
+-- parameter for the type
+-- The following type will have a clearly specified range:
+-- -999_999_999.999 to 999_999_999.999
+
+type Real is delta 0.001 digits 12;
+
+R1, R2 : Real;
+-- [...]
+if R1 = R2 then
+   Ada.Text_Io.Put_Line (Real'Image(R1) & " equals"
+                       & Real'Image(R2));
+end if;
+
+wage : Float := 5.36;
+week : Float := 40.0 * wage;
+begin
+   Put("One week's wage is: $");
+   Put(Item => week, Exp => 0, Aft => 2);
+   New_Line;
+end;
+
+-- @@PLEAC@@_2.3
+declare
+   a : float := 0.255;
+begin
+   Put("Unrounded: ");
+   Put(Item => a, Exp => 0, Aft => 3);
+   New_Line;
+   Put("Rounded: ");
+   Put(Item => a, Exp => 0, Aft => 2);
+   New_Line;
+end;
+
+------
+
+declare
+   type vals is array(1..4) of float;
+   a : vals := (3.3, 3.5, 3.7, -3.3);
+begin
+   for num in vals'range loop
+      Put(Item => a(num), Exp => 0, Aft => 1);
+      Put(Ada.Characters.Latin_1.HT);
+      Put(Item => Float'Truncation(a(num)), Aft =>1, Exp => 0);
+      Put(Ada.Characters.Latin_1.HT);
+      Put(Item => Float'Floor(a(num)), Aft => 1,Exp => 0);
+      Put(Ada.Characters.Latin_1.HT);
+      Put(Item => Float'Ceiling(a(num)), Aft => 1,Exp => 0);
+      New_Line;
+   end loop;
+end;
+------------
+
+-- @@PLEAC@@_2.4
+-- Ada uses the notation Base#value# for a non-decimal value
+-- Thus, a binary number is defined as 2#0011_0110#.
+-- The underscores are optional, for readability only.
+
+declare
+   num : Integer := 2#0011_0110#;
+begin
+   Put("Decimal: ");
+   Put(Item => num);
+   New_Line;
+   Put("Binary: ");
+   Put(Item => num, Base => 2);
+   New_Line;
+end;
+
+-- @@PLEAC@@_2.5
+declare
+   x : Integer := 5;
+   y : Integer := 10;
+begin
+   for i in x..y loop
+   -- i is set to every Integer from x to y, inclusive
+      null;
+   end loop;
+end;
+
+declare
+   x : Integer := 5;
+   y : Integer := 12;
+   num : Integer := x;
+begin
+   loop
+   -- operate on num
+      num := num + 7; -- step size = 7
+      exit when num > y;
+   end loop;
+end;
+
+Put("Childhood is: ");
+for num in 5..12 loop
+   Put(Integer'Image(num));
+end loop;
+New_Line;
+---------------
+
+-- @@PLEAC@@_2.6
+---------------
+-- No standard roman numeral package available
+---------------
+
+-- @@PLEAC@@_2.7
+-- Generating random discrete values
+declare
+   type Rand_Range is range 25..75;
+   package Rand_Int is new Ada.Numerics.Discrete_Random(Rand_Range);
+   seed : Rand_Int.Generator;
+   Num : Rand_Range;
+begin
+   Rand_Int.Reset(seed);
+   Num := Rand_Int.Random(seed);
+   Put_Line(Rand_Range'Image(Num));
+end;
+-- Generating a random 8 character password
+declare
+   subtype alphas is Character range 'A'..'z';
+   package Rand_Alpha is new Ada.Numerics.Discrete_Random(alphas);
+   seed : Rand_Alpha.Generator;
+   Password : String(1..8);
+begin
+   Rand_Alpha.Reset(seed);
+   for index in Password'Range loop
+      Password(index) := Rand_Alpha.Random(seed);
+   end loop;
+   Put_Line("Random Password: " & Password);
+end;
+
+-- Generating Random Floating Point Numbers
+declare
+   seed : Ada.Numerics.Float_Random.Generator;
+begin
+   Ada.Numerics.Float_Random.Reset(seed);
+   Put_Line("Random Float: " &
+         Float'Image(Ada.Numerics.Float_Random.Random(seed)));
+end;
+--------
+
+-- @@PLEAC@@_2.8
+------------
+-- Ada random number generators are required to yield a period of
+-- at least (2^31)-2 or greater.
+--------
+
+-- @@PLEAC@@_2.9
+------------
+-- Ada does not provide a standard biased random number package
+------------
+
+-- @@PLEAC@@_2.10
+------------
+-- Using the Cycle parameter of the Elementary Functions to define
+-- a cycle of 0.0..359.99
+declare
+   use Ada.Numerics.Elementary_Functions;
+   angle   : float := 45.0;
+   degrees : constant float := 360.0;
+   degreeSine : float;
+begin
+   DegreeSine := sin(X => angle, Cycle => degrees);
+   Put_Line("Sine of " & float'Image(angle) &
+            " degrees is " & float'Image(degreeSine));
+end;
+
+-- @@PLEAC@@_2.11
+declare
+   y: float;
+   package Elm renames Ada.Numerics.Elementary_Functions;
+begin
+   y := Elm.Arccos(X => 0.7);
+   Put_Line("arccos(0.7) = " & float'Image(y));
+end;
+
+-- @@PLEAC@@_2.12
+-- The Ada.Numerics.Elementary_Functions.Log function returns
+-- a natural logarithm when no base is specified, and a log to
+-- the specified base when a base is specified.
+declare
+   use Ada.Numerics.Elementary_Functions;
+   answer : float := log(X => 10000.0, Base => 10.0);
+begin
+   Put_Line("Log10(10000) = " & Float'Image(answer));
+end;
+
+-- @@PLEAC@@_2.13
+-- Compute the multiplication of two given matrices.
+declare
+   type Data is array(Positive range <>,Positive range <>) of Integer;
+   type Matrix(Rows : Positive; Cols : Positive) is record
+      Mat : Data(1..Rows,1..Cols);
+   end record;
+
+   Matrix_Mismatch : exception;
+
+   function Mat_Mult(Matrix1 : Matrix;
+                     Matrix2 : Matrix) return Matrix is
+      result : Matrix(Matrix1.Rows, Matrix2.Cols);
+   begin
+      if Matrix1.Rows /= Matrix2.Cols then
+         raise Matrix_Mismatch;
+      end if;
+      for i in 1..Matrix1.Rows loop
+         for j in 1..Matrix2.Cols loop
+            for k in 1..Matrix1.Cols loop
+               result.Mat(i,j) := result.Mat(i,j)+ (Matrix1.Mat(i,k) *
+                         Matrix2.Mat(k,j));
+            end loop;
+         end loop;
+      end loop;
+      return result;
+   end Mat_Mult;
+
+   Mat1 : Matrix(Rows => 2,Cols => 3);
+   Mat2 : Matrix(Rows => 3,Cols => 2);
+   Mat3 : Matrix(Rows => 2,Cols => 2);
+begin
+   Mat1.Mat := ((3,2,3), (5,9,8));
+   Mat2.Mat := ((4,7),(9,3),(8,1));
+   Mat3 := Mat_Mult(Mat1, Mat2);
+end;
+
+-- @@PLEAC@@_2.14
+declare
+   package Cmplx_Flt is new
+        Ada.Numerics.Generic_Complex_Types(float);
+   use Cmplx_Flt;
+   a : Cmplx_Flt.Complex := (3.0, 5.0);
+   b : Cmplx_Flt.Complex := (2.0, -2.0);
+   c : Cmplx_Flt.Complex;
+begin
+   c := a * b;
+end;
+
+-- @@PLEAC@@_2.15
+-- Ada allows representation of any base from 2 through 16 on output
+-- all Integers are stored internally as binary.
+declare
+   Num : Integer;
+begin
+   Put_Line("Gimme a number in decimal, octal, or hex:");
+   Get(Num);
+   Put_Line("Decimal value: " & Integer'Image(Num));
+   Put("Octal Value: ");
+   Put(Item => Num, Base => 8);
+   New_Line;
+   Put("Hexadecimal Value: ");
+   Put(Item => Num, Base => 16);
+   New_Line(2);
+------
+   Put_Line("Enter a file permission in octal: ");
+   Get(Num);
+   Put_Line("Decimal Value:" & Integer'Image(Num));
+end;
+
+-- @@PLEAC@@_2.16
+-- The Text Editing routines in Ada work for fixed decimal types
+declare
+   type Large_Type is delta 0.01 digits 10;
+   package with_Commas is new
+            Ada.Text_Io.Editing.Decimal_Output(Large_Type);
+   use with_Commas;
+   use Ada.Text_IO.Editing;
+
+   Val : Large_Type := 12345678.90;
+begin
+   put(Val, To_Picture("ZZ_ZZZ_ZZ9.99"));
+end;
+----------------
+
+-- @@PLEAC@@_2.17
+-----------------
+-- There are no standard Ada regular expression packages,
+-- however, then GNAT compiler does provide some regular expression
+-- packages as extensions.
+
+end Pleac_Numbers;
+
+-- @@PLEAC@@_2.18
+-----------------------------------------------------------------
+------- Program Calculating Prime Factors
+-----------------------------------------------------------------
+-----with Ada.Text_Io; use Ada.Text_IO;
+
+with Ada.Integer_Text_Io; use Ada.Integer_Text_Io;
+with Ada.Command_Line; use Ada.Command_Line;
+
+procedure Prime_Factors is
+   type Found_List is array(Positive range <>) of Natural;
+   type Factor_List (Max_Size : Positive) is record
+      Factors : Found_List(1..Max_Size) := (Others => 0);
+      Num_Found : Natural := 0;
+   end record;
+
+function getFactors(n : in Integer) return Factor_List is
+   orig : Integer := n;
+   new_n : Integer := n;
+   Temp : Factor_List(Max_Size => n / 2);
+   sqi  : Integer := 4;
+   i    : Integer := 2;
+begin
+   while sqi <= new_n loop
+     while (new_n mod i) = 0 loop
+        new_n := new_n / i;
+        if Temp.Factors(i) = 0 then
+           Temp.Factors(i) := 1;
+        else
+           Temp.Factors(i) := Temp.Factors(i) + 1;
+           Temp.Num_Found := Temp.Num_Found + 1;
+        end if;
+      end loop;
+      sqi := (i + 1)**2;
+      i := i + 1;
+   end loop;
+   if (new_n /= 1) and (new_n /= orig) then
+      Temp.Factors(new_n) := 1;
+      Temp.Num_Found := Temp.Num_Found + 1;
+   end if;
+   return Temp;
+end getFactors;
+
+procedure Display_Factors(Num : Integer; Item : in Factor_List) is
+begin
+   Put(Integer'Image(Num) & ": ");
+   if Item.Num_Found = 0 then
+      Put_Line("PRIME");
+   else
+      for index in Item.Factors'Range loop
+         if Item.Factors(index) /= 0 then
+            Put(Item => index, width => 1);
+            if Item.Factors(index) > 1 then
+               Put("^");
+               Put(Item => Item.Factors(index), width => 1);
+            end if;
+            Ada.Text_Io.Put(" ");
+         end if;
+      end loop;
+      New_Line;
+   end if;
+end Display_Factors;
+
+Begin
+   if Argument_Count < 1 then
+      Put_Line("Usage: " & Command_Name & " number...");
+      return;
+   end if;
+   for arg in 1..Argument_Count loop
+     Display_Factors(Positive'Value(Argument(arg)),
+                     getFactors(Positive'Value(Argument(arg))));
+   end loop;
+end Prime_Factors;
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_12.0
+------------------------------------------------------------------------------
+-- Ada packages provide both namespace and encapsulation. As such they act
+-- both as perl packages and perl modules.
+
+package Alpha is
+   name : String := "First";
+end Alpha;
+
+package Omega is
+   name : String := "Last";
+end Omega;
+
+With Ada.Text_Io; use Ada.Text_IO;
+with Alpha, Omega;
+with Ada.Text_Io;
+
+procedure main is
+begin
+   Put_Line("Alpha is " & Alpha.name & " ," &
+            "Omega is " & Omega.name);
+end main;
+----------------------
+with Cards; -- Make the Cards package visible
+use Cards;  -- Place the Cards package within the current scope
+-- Both operations happen only at compile time.
+----------------------
+
+package Cards is
+   type Card is private;
+   -- Print the value of a card
+   procedure Print(Item : in Card);
+   type Deck is private;
+
+   -- Create an initial deck (open a new deck of cards)
+   function Fill_Deck return Deck;
+
+   -- Print all the cards remaining in a deck
+   procedure Print(Item : in Deck);
+
+   -- Shuffle the deck (randomize the order of the cards in the deck)
+   procedure Shuffle(The_Deck : in out Deck);
+
+   -- Deal the next card from the deck
+   procedure Deal(The_Card : out Card; From : in out Deck);
+
+   -- Return the number of cards left in the deck
+     function Cards_Left(In_Deck : Deck) return Natural;
+
+   -- Deck_Empty exception raised when trying to deal from an empty deck.
+   Deck_Empty : Exception;
+
+private
+   -- Define the face values of the cards
+   type Pips is (Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten,
+                 Jack, Queen, King, Ace);
+   -- Define the card suits
+   type Suits is (Hearts, Spades, Clubs, Diamonds);
+
+   -- A card is defined by its combination of face value
+   -- and suit.
+   type Card is record
+     Pip  : Pips;
+     Suit : Suits;
+   end record;
+
+   -- Define the number of cards in a standard deck.
+   subtype Deck_Index is integer range 1..52;
+   -- Cards in the deck are accessed through an order list.
+   -- The values in the order list are sorted to create a
+   -- shuffled deck.
+   type Order_List is array(Deck_Index) of Deck_Index;
+
+   -- A deck is an order list, an index into the order list
+   -- indicating the next card to deal, and a count of the
+   -- number of cards left (not yeat dealt) in the deck.
+   type Deck is record
+      This_Order : Order_List;
+      Deal_Next  : Deck_Index := Deck_Index'First;
+      Num_Left   : Natural := 0;
+   end record;
+end Cards;
+-------------------------
+
+-- @@PLEAC@@_12.1
+----------------------------------------------------------------------
+-- Cards.ads
+-- Package implementing a standard deck of playing cards
+----------------------------------------------------------------------
+package Cards is
+   type Card is private;
+   -- Print the value of a card
+   procedure Print(Item : in Card);
+   type Deck is private;
+   -- Create an initial deck (open a new deck of cards)
+   function Fill_Deck return Deck;
+
+   -- Print all the cards remaining in a deck
+   procedure Print(Item : in Deck);
+
+   -- Shuffle the deck (randomize the order of the cards in the deck)
+   procedure Shuffle(The_Deck : in out Deck);
+
+   -- Deal the next card from the deck
+   procedure Deal(The_Card : out Card; From : in out Deck);
+
+   -- Return the number of cards left in the deck
+
+   function Cards_Left(In_Deck : Deck) return Natural;
+
+   -- Deck_Empty exception raised when trying to deal from an empty deck.
+   Deck_Empty : Exception;
+private
+   -- Define the face values of the cards
+   type Pips is (Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten,
+                 Jack, Queen, King, Ace);
+   -- Define the card suits
+   type Suits is (Hearts, Spades, Clubs, Diamonds);
+
+   -- A card is defined by its combination of face value
+   -- and suit.
+   type Card is record
+     Pip  : Pips;
+     Suit : Suits;
+   end record;
+
+   -- Define the number of cards in a standard deck.
+   subtype Deck_Index is integer range 1..52;
+
+   -- Cards in the deck are accessed through an order list.
+   -- The values in the order list are sorted to create a
+   -- shuffled deck.
+
+   type Order_List is array(Deck_Index) of Deck_Index;
+
+   -- A deck is an order list, an index into the order list
+   -- indicating the next card to deal, and a count of the
+   -- number of cards left (not yeat dealt) in the deck.
+   type Deck is record
+      This_Order : Order_List;
+      Deal_Next  : Deck_Index := Deck_Index'First;
+      Num_Left   : Natural := 0;
+   end record;
+end Cards;
+--------------------
+
+-- @@PLEAC@@_12.2
+--------------------
+-- No error trapping required in Ada, since all errors are detected
+-- at compile time.
+--------------------
+
+-- @@PLEAC@@_12.3
+--------------------
+-- Not possible in Ada
+--------------------
+
+-- @@PLEAC@@_12.4
+-------------------
+-- Place the variables in the package implementation, or "body"
+
+
+with Ada.Numerics.Float_Random;
+use Ada.Numerics.Float_Random;
+with Ada.Text_Io; use Ada.Text_Io;
+
+package body Cards is
+   type Card_Deck is array(Deck_Index) of Card;
+-------------
+-- Internal Function: Initialize
+-- Purpose: Initialize the value of the common Card_Deck
+-------------
+   function Initialize return Card_Deck is
+      Result : Card_Deck;
+      Temp_Index : Integer := Deck_Index'First;
+   begin
+      for The_Suit in Suits loop
+         for The_Pip in Pips loop
+            Result(Temp_Index) := (The_Pip, The_Suit);
+            Temp_Index := Temp_Index + 1;
+         end loop;
+      end loop;
+      return Result;
+   end Initialize;
+
+   All_Decks : constant Card_Deck := Initialize;
+-- private to the Cards package
+----------
+-- Procedure: Print
+-- Purpose: Print the value of a card on standard output
+----------
+   procedure Print(Item : in Card) is
+      package Pip_Io is new Ada.Text_Io.Enumeration_IO(Pips);
+      package Suit_Io is new Ada.Text_Io.Enumeration_Io(Suits);
+   begin
+      Pip_Io.Put(Item => Item.Pip);
+      Put(Item => " of ");
+      Suit_Io.Put(Item => Item.Suit);
+      New_Line;
+   end Print;
+----------------
+-- Function: Fill_Deck
+-- Purpose: Create a new card deck with all cards in order
+---------------
+   function Fill_Deck return Deck is
+      Result : Deck;
+      Temp_Index : Integer := Deck_Index'First;
+   begin
+      for Temp_Index in Deck_Index'Range loop
+          Result.This_Order(Temp_Index) := Temp_Index;
+      end loop;
+      Result.Num_Left := Deck_Index'Last;
+      return Result;
+   end Fill_Deck;
+--------
+-- Procedure: Print
+-- Purpose: Print all the cards remaining in the deck
+--------
+   procedure Print(Item : in Deck) is
+   begin
+      if Item.Num_Left > 0 then
+         for Temp_Index in Item.Deal_Next..Deck_Index'Last loop
+            Print(All_Decks(Item.This_Order(Temp_Index)));
+         end loop;
+      else
+         Put_Line("The deck is empty.");
+      end if;
+end Print;
+
+-----------
+-- Procedure Swap
+-- Exchange two Deck_Index values
+-------------
+   procedure Swap(Left, Right : in out Deck_Index) is
+      Temp : Deck_Index := Left;
+   begin
+      Left := Right;
+      Right := Temp;
+   end Swap;
+------------
+-- Procedure: Shuffle
+-- Purpose: Randomize the This_Order array for a deck to force
+-- random access to the deck of cards
+--  This algorithm is order O(n) and will work with any discrete
+--  index type.
+--  The Ada.Numerics.Float_Random routine is used so that the
+--  random number generator is reset only once per shuffle. This
+--  produces more random results than can be achieved by
+--  resetting the generator for each iteration as would be needed
+--  if the Ada.Numerics.Discrete_Random package had been used.
+-----------
+   procedure Shuffle(The_Deck : in out Deck) is
+      use Ada.Numerics.Float_Random;
+      Seed       : Generator;
+      Max_Search : Deck_Index := Deck_Index'Pred(Deck_Index'Last);
+      Difference : Integer;
+      Rand_Value : Integer;
+      Swap_Val   : Deck_Index;
+   begin
+      Reset(Seed);
+      The_Deck.Deal_Next := Deck_Index'First;
+      The_Deck.Num_Left  := Deck_Index'Last;
+      for Index in Deck_Index'First .. Max_Search loop
+         Difference := Deck_Index'Pos(Deck_Index'Last) -
+                       Deck_Index'Pos(Index);
+         Rand_Value := Integer( Random(Seed) * Float(Difference)) +
+                       Deck_Index'Pos(Index);
+         Swap_Val := Deck_Index'Val(Rand_Value);
+         Swap(The_Deck.This_Order(Index), The_Deck.This_Order(Swap_Val));
+      end loop;
+      The_Deck.Num_Left := Deck_Index'Last;
+      The_Deck.Deal_Next := Deck_Index'First;
+   end Shuffle;
+
+   procedure Deal(The_Card : out Card; From : in out Deck) is
+   begin
+      if From.Num_Left > 0 then
+         The_Card := All_Decks(From.This_Order(From.Deal_Next));
+         From.Num_Left := From.Num_Left - 1;
+         if From.Deal_Next < Deck_Index'Last then
+            From.Deal_Next := From.Deal_Next + 1;
+         end if;
+      else
+         raise Deck_Empty;
+      end if;
+   end Deal;
+
+   function Cards_Left(In_Deck : Deck) return Natural is
+   begin
+      return In_Deck.Num_Left;
+   end Cards_Left;
+end Cards;
+------------------
+
+-- @@PLEAC@@_12.5
+------------------
+-- Not possible in Ada. All such determinations are done at compile time
+------------------
+
