@@ -392,7 +392,36 @@ sin_val = Math.sin(angle)
 cos_val = Math.cos(angle)
 tan_val = Math.tan(angle)
 
-# no asin/acos in Ruby??
+# AFAIK Ruby's Math module doesn't provide acos/asin
+# While we're at it, let's also define missing hyperbolic functions
+module Math
+    def Math.asin(x)
+        atan2(x, sqrt(1 - x**2))
+    end
+    def Math.acos(x)
+        atan2(sqrt(1 - x**2), x)
+    end
+    def Math.atan(x)
+        atan2(x, 1)
+    end
+    def Math.sinh(x)
+        (exp(x) - exp(-x)) / 2
+    end
+    def Math.cosh(x)
+        (exp(x) + exp(-x)) / 2
+    end
+    def Math.tanh(x)
+        sinh(x) / cosh(x)
+    end
+end
+
+# The support for Complex numbers is not built-in
+y = Math.acos(3.7)
+#=> in `sqrt': square root for negative number (ArgumentError)
+
+# There is an implementation of Complex numbers in 'complex.rb' in current
+# Ruby distro, but it doesn't support atan2 with complex args, so it doesn't
+# solve this problem.
 
 
 # @@PLEAC@@_2.13
@@ -1251,6 +1280,181 @@ rescue SystemCallError
     $stderr.puts "#$!"
 end
 
+
+# @@PLEAC@@_13.0
+# Classes and objects in Ruby are rather straigthforward
+class Person
+    # Class variables (also called static attributes) are prefixed by @@
+    @@person_counter=0
+    
+    # object constructor
+    def initialize(age, name, alive = true)     # Default arg like in C++
+        @age, @name, @alive = age, name, alive  # Object attributes are prefixed by '@'
+        @@person_counter += 1                   # (Numeric#++ doesn't exist in Ruby)
+    end
+    
+    attr_accessor :name, :age   # This creates setter and getter methods for @name
+    # and @age. See 13.3 for detailes.
+    
+    # methods modifying the receiver object usually have the '!' suffix
+    def die!
+        @alive = false
+        puts "#{@name} has died at the age of #{@age}."
+        @alive
+    end
+    
+    def kill(anotherPerson)
+        print @name, ' is killing ', anotherPerson.name, ".\n"
+        anotherPerson.die!
+    end
+
+    # method returning true/false usually have the '?' suffix   
+    def alive?
+        @alive && true
+    end
+    
+    def year_of_birth
+        Time.now.year - @age
+    end
+    
+    # Class method (also called static method)
+    def Person.number_of_people
+        @@person_counter
+    end
+end
+
+# Using our class to create objects of class Person
+lecter = Person.new(47, 'Hannibal')
+starling = Person.new(29, 'Clarice', true)
+pazzi = Person.new(40, 'Rinaldo', true)
+
+# Calling a class method
+print "There are ", Person.number_of_people, " Person objects\n"
+
+print pazzi.name, ' is ', (pazzi.alive?) ? 'alive' : 'dead', ".\n"
+lecter.kill(pazzi)
+print pazzi.name, ' is ', (pazzi.alive?) ? 'alive' : 'dead', ".\n"
+
+print starling.name , ' was born in ', starling.year_of_birth, "\n"
+
+
+# @@PLEAC@@_13.3
+# You can write getter and setter methods in a natural way
+class Person
+    def name
+        @name
+    end
+    def name=(name)
+        @name = name
+    end
+end
+
+# But there is a better and shorter way
+class Person
+    attr_reader :age
+    attr_writer :name  
+    # attr_reader and attr_writer are actually methods in class Class
+    # which set getter and setter methods for you.
+end
+
+# There is also attr_accessor to create both setters and getters
+class Person
+    attr_reader :age, :name
+end
+
+
+# @@PLEAC@@_13.7
+methname = 'flicker'
+obj.send(methname, 10)                        # calls obj.flicker(10)
+
+# call three methods on the object, by name
+['start', 'run', 'stop'].each do |method_string|
+    obj.send(method_string)
+end
+
+# Another way is to create a Method object
+method_obj = obj.method('flicker')
+# And then call it
+method_obj.call(10)
+
+
+# @@PLEAC@@_13.8
+# All classes in Ruby inherit from class Object
+# and thus all objects share methods defined in this class
+
+# the class of the object
+puts any_object.type
+
+# Ruby classes are actually objects of class Class and they
+# respond to methods defined in Object class as well
+
+# the superclass of this class
+puts any_object.class.superclass
+
+# ask an object whether it is an instance of particular class
+n = 4.7
+puts n.instance_of?(Float)    # true
+puts n.instance_of?(Numeric)  # false
+
+# ask an object whether it is an instance of class, one of the
+# superclasses of the object, or modules included in it
+puts n.kind_of?(Float)       # true (the class)
+puts n.kind_of?(Numeric)     # true (an ancestor class)
+puts n.kind_of?(Comparable)  # true (a mixin module)
+puts n.kind_of?(String)      # false
+
+# ask an object whether it can respond to a particular method
+puts n.respond_to?('+')      # true
+puts n.respond_to?('length') # false
+
+# all methods an object can respond to
+'just a string'.methods.each { |m| puts m }
+
+
+# @@PLEAC@@_13.9
+# Actually any class in Ruby is inheritable
+class Person        
+    attr_accessor :age, :name
+    def initialize
+        @name
+        @age
+    end
+end
+#-----------------------------
+dude = Person.new
+dude.name = 'Jason'
+dude.age = 23
+printf "%s is age %d.\n", dude.name, dude.age
+#-----------------------------
+# Inheriting from Person
+class Employee < Person
+    attr_accessor :salary
+end
+#-----------------------------
+empl = Employee.new
+empl.name = 'Jason'
+empl.age = 23
+empl.salary = 200
+printf "%s is age %d, the salary is %d.\n", empl.name, empl.age, empl.salary
+#-----------------------------
+# Any built-in class can be inherited the same way
+class WeirdString < String  
+    def initialize(obj)
+        super obj
+    end
+    def +(anotherObj)   # + method in this class is overridden
+        # to return the sum of string lengths
+        self.length + anotherObj.length  # 'self' can be omitted
+    end  
+end
+#-----------------------------
+a = WeirdString.new('hello')
+b = WeirdString.new('bye')
+
+puts a + b    # the overridden +
+#=> 8
+puts a.length # method from the superclass, String
+#=> 5
 
 
 # @@PLEAC@@_15.4
