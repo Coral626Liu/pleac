@@ -1,4 +1,9 @@
 # -*- ruby -*-
+# Local variables:
+#  indent-tabs-mode: nil
+#  ruby-indent-level: 4
+# End:
+
 
 # @@PLEAC@@_NAME
 # @@SKIP@@ Ruby
@@ -1589,7 +1594,191 @@ end
 #   18.0 **************************************
 
 
-# Local variables:
-#  indent-tabs-mode: nil
-#  ruby-indent-level: 4
-# End:
+# @@PLEAC@@_17.12
+require 'socket'
+
+class Preforker 
+    attr_reader (:child_count)
+    
+    def initialize(prefork, max_clients_per_child, port, client_handler)
+        @prefork = prefork
+        @max_clients_per_child = max_clients_per_child
+        @port = port
+        @child_count = 0
+        
+        @reaper = proc {
+            trap('CHLD', @reaper)
+            pid = Process.wait
+            @child_count -= 1
+        }
+        
+        @huntsman = proc {
+            trap('CHLD', 'IGNORE')
+            trap('INT', 'IGNORE')
+            Process.kill('INT', 0)
+            exit
+        }
+        
+        @client_handler=client_handler
+    end
+    
+    def child_handler
+        trap('INT', 'EXIT')
+        @client_handler.setUp
+        # wish: sigprocmask UNblock SIGINT
+        @max_clients_per_child.times {
+            client = @server.accept or break
+            @client_handler.handle_request(client)
+            client.close
+        }
+        @client_handler.tearDown
+    end
+    
+    def make_new_child
+        # wish: sigprocmask block SIGINT
+        @child_count += 1
+        pid = fork do
+            child_handler
+        end
+        # wish: sigprocmask UNblock SIGINT
+    end
+    
+    def run
+        @server = TCPserver.open(@port)
+        trap('CHLD', @reaper)
+        trap('INT', @huntsman)
+        loop {
+            (@prefork - @child_count).times { |i|
+                make_new_child
+            }
+            sleep .1
+        }
+    end
+end
+
+#-----------------------------
+#!/usr/bin/ruby
+
+require 'Preforker'
+
+class ClientHandler
+    def setUp
+    end
+    
+    def tearDown
+    end
+    
+    def handle_request(client)
+        # do stuff
+    end
+end
+
+server = Preforker.new(1, 100, 3102, ClientHandler.new)
+server.run
+
+
+# @@PLEAC@@_19.1
+#!/usr/local/bin/ruby -w
+# hiweb - load CGI class to decode information given by web server
+
+require 'cgi'
+
+cgi = CGI.new('html3')
+
+# get a parameter from a form
+value = cgi.params['PARAM_NAME'][0]
+
+# output a document
+cgi.out {
+    cgi.html {
+        cgi.head { cgi.title { "Howdy there!" } } +
+            cgi.body { cgi.p { "You typed: " + cgi.tt {
+                    CGI.escapeHTML(value) } } }
+    }
+}
+
+require 'cgi'
+cgi = CGI.new
+who   = cgi.param["Name"][0]     # first param in list
+phone = cgi.param["Number"][0]
+picks = cgi.param["Choices"]     # complete list
+
+print cgi.header( 'type' => 'text/plain',
+                  'expires' => Time.now + (3 * 24 * 60 * 60) )
+
+
+# @@PLEAC@@_19.3
+#!/usr/local/bin/ruby -w
+# webwhoami - show web user's id
+require 'etc'
+print "Content-Type: text/plain\n\n"
+print "Running as " + Etc.getpwuid.name + "\n"
+
+# % ruby -wc cgi-script     # just check syntax
+
+# % ruby -w  cgi-script     # params from stdin
+# (offline mode: enter name=value pairs on standard input)
+# name=joe
+# number=10
+# ^D
+
+# % ruby -w  cgi-script name=joe number=10     # run with mock form input
+# % ruby -d  cgi-script name=joe number=10     # ditto, under the debugger
+
+# POST method script in csh
+# % (setenv HTTP_METHOD POST; ruby -w cgi-script name=joe number=10)
+# POST method script in sh
+# % HTTP_METHOD=POST perl -w cgi-script name=joe number=10
+
+
+# @@PLEAC@@_19.10
+preference_value = cgi.cookies["preference name"][0]
+
+packed_cookie = CGI::Cookie.new("name" => "preference name",
+                                "value" => "whatever you'd like",
+                                "expires" => Time.local(Time.now.year + 2,
+    Time.now.mon, Time.now.day, Time.now.hour, Time.now.min, Time.now.sec) )
+
+cgi.header("cookie" => [packed_cookie])
+
+#!/usr/local/bin/ruby -w
+# ic_cookies - sample CGI script that uses a cookie
+require 'cgi'
+
+cgi = CGI.new('html3')
+
+cookname = "favorite ice cream"
+favorite = cgi.params["flavor"][0]
+tasty    = cgi.cookies[cookname][0] || 'mint'
+
+unless favorite
+    cgi.out {
+        cgi.html {
+            cgi.head { cgi.title { "Ice Cookies" } } +
+            cgi.body {
+                cgi.h1 { "Hello Ice Cream" } +
+                cgi.hr +
+                cgi.form {
+                    cgi.p { "Please select a flavor: " +
+                            cgi.text_field("flavor", tasty ) }
+                } +
+                cgi.hr
+            }
+        }
+    }
+else
+    cookie = CGI::Cookie.new( "name"    => cookname,
+                              "value"   => favorite,
+                              "expires" => Time.local(Time.now.year + 2,
+Time.now.mon, Time.now.day, Time.now.hour, Time.now.min, Time.now.sec) )
+    cgi.out("cookie" => [cookie]) {
+        cgi.html {
+            cgi.head { cgi.title { "Ice Cookies" } } +
+            cgi.body {
+                cgi.h1 { "Hello Ice Cream" } +
+                cgi.p { "You chose as your favorite flavor `#{favorite}'." }
+            }
+        }
+    }
+end
+
