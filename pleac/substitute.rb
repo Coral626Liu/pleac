@@ -56,7 +56,6 @@ for i in impl_contents
 end
 
 skel_contents.gsub!(/PLEAC:.*:CAELP/, "")
-skel_contents.gsub!(/BGCOLOR.*/, "bgcolor=\"#2f4f4f\"")
 skel_contents.gsub!(/><BODY.*/, "><BODY TEXT=\"#cecece\" BGCOLOR=\"#4f6f6f\" LINK=\"#f5deb3\" VLINK=\"#d5ae83\"")
 
 File.open(ARGV[0], 'w').write(skel_contents)
