@@ -384,6 +384,86 @@ for line in fileinput.input(args, inplace = 1, backup = ".orig"):
     sys.stdout.write(output)
 
 
+# @@PLEAC@@_1.18
+
+#!/usr/bin/python
+# psgrep - print selected lines of ps output by
+#          compiling user queries into code.
+#
+# examples :
+# psgrep "uid<10"
+import sys, os, re
+
+class PsLineMatch:
+    # each field from the PS header
+    fieldnames = ("flags","uid","pid","ppid","pri","nice","size", \
+                  "rss","wchan","stat","tty","time","command")
+    numeric_fields = ("flags","uid","pid","ppid","pri","nice","size","rss")
+    def __init__(self):
+        self._fields = {}
+    def new_line(self,ln):
+        self._ln = ln.rstrip()
+        # ps header for option "wwaxl" (different than in the perl code)
+        """
+          F   UID   PID  PPID PRI  NI   VSZ  RSS WCHAN  STAT TTY        TIME COMMAND"
+        004     0     1     0  15   0   448  236 schedu S    ?          0:07 init"
+        .   .     .     .     .   .   .     .    .      .    .    .          .
+        """
+        # because only the last entry might contain blanks, splitting
+        # is safe
+        self._data = self._ln.split(None,12)
+        i = 0
+        for fn in self.fieldnames:
+            if fn in self.numeric_fields:  # make numbers integer 
+                self._fields[fn] = int(self._data[i])
+            else:
+                self._fields[fn] = self._data[i]
+            i +=1
+    def set_query(self,args):
+        # assume args: "uid==500", "command ~ ^wm"
+        conds=[]
+        m = re.compile("(\w+)([=<>]+)(.+)")
+        for a in args:
+            try:
+                (field,op,val) = m.match(a).groups()
+            except:
+                print "can't understand query \"%s\"" % (a)
+                sys.exit()
+            if field in self.numeric_fields:
+                conds.append(a)
+            else:
+                conds.append("%s%s'%s'",(field,op,val))
+        self._desirable = compile("(("+")and(".join(conds)+"))", "<string>","eval")
+    def is_desirable(self):
+        return eval(self._desirable, {}, self._fields)
+    def __str__(self):
+        # to allow "print".
+        return self._ln
+
+if len(sys.argv)<=1:
+    print """usage: %s criterion ...
+    Each criterion is a Perl expression involving: 
+    %s
+    All criteria must be met for a line to be printed.""" \
+    % (sys.argv[0], " ".join(PsLineMatch().fieldnames))
+    sys.exit()
+
+psln = PsLineMatch()
+psln.set_query(sys.argv[1:])
+p = os.popen("ps wwaxl")
+print p.readline()[:-1]        # emit header line
+for ln in p.readlines():
+    psln.new_line(ln)
+    if psln.is_desirable():
+        print psln
+p.close()
+
+# alternatively one could consider every argument being a string and
+# support wildcards: "uid==500" "command~^wm" by means of re, but this
+# does not show dynamic python code generation, although re.compile
+# also precompiles.
+
+
 # @@PLEAC@@_2.1
 if string.isdigit():
     print 'is a positive integer'
