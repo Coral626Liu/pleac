@@ -161,7 +161,7 @@ puts "sum is #{sum & 0xffffffff}" # since Ruby will go Bignum if necessary
 # usage: slowcat [-DELAY] [files ...]
 # the following line with "&&" works because all strings are true
 delay = ARGV[0] =~ /^-([.\d]+)/ ? ARGV.shift && $1.to_i : 1
-$stdout.sync = 1
+$stdout.sync = true
 while gets
     for b in split('')
         print b
@@ -1296,6 +1296,59 @@ file   = File.open(path, File::RDWR|File::CREAT, 0600)
 # open file "path" reading and writing, fails if file exists
 file   = File.open(path, File::RDWR|File::EXCL|File::CREAT)
 file   = File.open(path, File::RDWR|File::EXCL|File::CREAT, 0600)
+
+
+# @@PLEAC@@_7.2
+# No problem with Ruby since the filename doesn't contain characters with
+# special meaning; like Perl's sysopen
+File.open(filename, 'r')
+
+
+# @@PLEAC@@_7.3
+File.expand_path('~root/tmp')
+#=> "/root/tmp"
+File.expand_path('~rpcuser')
+#=> "/var/lib/nfs"
+
+# To expand ~/.. it explicitely needs the environment variable HOME
+File.expand_path('~/tmp')
+#=> "/home/gc/tmp"
+
+
+# @@PLEAC@@_7.5
+# Standard Ruby distribution provides the following useful extension
+require 'tempfile'
+# With the Tempfile class, the file is automatically deleted on garbage
+# collection, so you won't need to remove it, later on.
+tf = Tempfile.new('tmp')   # a name is required to create the filename
+
+# If you need to pass the filename to an external program you can use
+# File#path, but don't forget to File#flush in order to flush anything
+# living in some buffer somewhere.
+tf.flush
+system("/usr/bin/dowhatever #{tf.path}")
+
+fh = Tempfile.new('tmp')
+fh.sync = true                # autoflushes
+10.times { |i| fh.puts i }
+fh.rewind
+puts 'Tmp file has: ', fh.readlines
+
+
+# @@PLEAC@@_7.12
+output_handle.sync = true
+# Please note that like in Perl, $stderr is already unbuffered
+
+#-----------------------------
+#!/usr/bin/ruby -w
+# seeme - demo stdio output buffering
+$stdout.sync = ARGV.size > 0
+print "Now you don't see it..."
+sleep 2
+puts "now you do"
+#-----------------------------
+
+# @@INCOMPLETE@@
 
 
 # @@PLEAC@@_8.10
