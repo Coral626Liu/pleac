@@ -1,0 +1,263 @@
+; -*- lisp -*-
+;
+; @@PLEAC@@_NAME
+; @@SKIP@@ Common Lisp
+
+; @@PLEAC@@_WEB
+; @@SKIP@@ http://www.lisp.org/
+
+
+; @@PLEAC@@_APPENDIX
+; Common Lisp does not support regular expressions. This code uses
+; portable library CL-PPCRE (see www.cliki.net/cl-ppcre).
+(require :cl-ppcre)
+
+
+; @@PLEAC@@_1.1
+; assign a substring to a variable
+(setq value (substring string offset (+ offset count)))
+(setq value (substring string offset))
+
+; edit a substring
+(setq string (concatenate 'string (substring string 0 offset) newstring
+(substring string (+ offset count))))
+(setq string (concatenate 'string (substring string 0 offset) newtail))
+
+
+; @@PLEAC@@_1.2
+; use b if b is true, else c
+(if b (setq a b) (setq a c))
+
+; set x to y unless x is already true
+(unless x (setq x y))
+
+
+; @@PLEAC@@_1.3
+;;--------------------------------------------------
+(multiple-value-setq (VAR1 VAR2) (values VAR2 VAR1))
+(psetq VAR1 VAR2 VAR2 VAR1)
+;;--------------------------------------------------
+(setq temp a)
+(setq a b)
+(setq b temp)
+;;--------------------------------------------------
+(setq a "alpha")
+(setq b "omega")
+(multiple-value-setq (a b) (values b a)) ;; the first shall be last -- and versa vice
+;;--------------------------------------------------
+(setq alpha 'January
+      beta 'March
+      production 'August)
+(psetq alpha beta
+       beta production
+       production alpha))
+
+
+; @@PLEAC@@_1.4
+(setq ord (char-code char))
+(setq char (code-char ord))
+
+
+; @@PLEAC@@_1.5
+(map 'string #'(lambda (x) (whatever-you-want-to-do x)) my-string)
+(loop char across string
+      do (do-something-with-char char))
+;;--------------------------------------------------
+(let ((string "an apple a day")
+      (seen (make-hash-table)))
+  (loop for char across string
+        do (incf (gethash char seen 0)))
+  (let* ((chars (loop for char being each hash-key of seen
+                      collect char))
+         (chars (sort (coerce chars 'string) #'>
+                      :key (lambda (char) (gethash char seen)))))
+    (format t "unique chars are: ~A~%" chars)))
+;;--------------------------------------------------
+(let ((string "an apple a day"))
+  (format t "sum is ~D~%"
+          (reduce #'+ string :key #'char-code)))
+(let ((string "an apple a day"))
+  (format t "sum is ~D~%"
+          (loop for char across string
+                summing (char-code char))))
+;;--------------------------------------------------
+
+
+; @@PLEAC@@_1.6
+(setq revbytes (reverse string))
+
+(setq revwords (reverse (do* ((stringstream (make-string-input-stream
+string)) (result nil (cons next result))
+			       (next (read stringstream nil 'eos)
+				     (read stringstream nil 'eos)))
+			     ((equal next 'eos) (reverse result)))))
+
+; @@PLEAC@@_1.9
+(setq big (string-upcase string))
+
+(setq little (string-downcase string))
+
+
+; @@PLEAC@@_1.10
+; func, obviously, must evaluate to a string
+(setq answer (concatenate 'string var1 (func args) var2))
+(setq answer (format nil "~@{~A~}" var1 (func args) var2))
+;;--------------------------------------------------
+(setq phrase (format nil "I have ~D guanacos." (+ n 1)))
+;;--------------------------------------------------
+(setq phrase (format nil "I have ~A guanacos.~%" (+ n 1)))
+
+
+; @@PLEAC@@_2.1
+;;; Strings and numbers are separate data types in CL. These tests
+;;; check whether a string represents a number
+(unless (every #'digit-char-p string)
+  (format t "string has nondigits"))
+(unless (cl-ppcre:scan "^\\d+$" string) ; rejects -3
+  (format t "not a natural number"))
+(unless (cl-ppcre:scan "^-?\\d+$" string) ; rejects +3
+  (format t "not an integer"))
+(unless (cl-ppcre:scan "^[+-]?\\d+$" string)
+  (format t "not an integer"))
+(unless (cl-ppcre:scan "^-?(?:\\d+(?:\\.\\d*)?|\\.\\d+)$" string)
+  (format t "not an integer"))
+(unless (cl-ppcre:scan "^([+-]?)(?=\\d|\\.\\d)\\d*(\\.\\d*)?([Ee]([+-]?\\d+))?$"
+                       string)
+  (format t "not a C float"))
+
+
+; @@PLEAC@@_2.2
+(defun equal-to-accuracy (number1 number2 dp)
+  "Return TRUE if NUMBER1 and NUMBER2 are equal to DP number of
+  decimal places."
+  (let* ((difference (abs (- number1 number2)))
+         (delta (expt 10 (- dp))))
+    (< difference delta)))
+;;--------------------------------------------------
+(let* ((wage 536)                       ; $5.36/hour
+       (week (* 40 wage)))
+  (format t "One week's wage is: $~,2F~%" (/ week 100)))
+;;--------------------------------------------------
+(let* ((a 0.255)
+       (b (/ (fround a 0.01) 100)))
+  (format t "Unrounded: ~F~%Rounded: ~,2F~%" a b))
+;;--------------------------------------------------
+(progn
+  (format t "~&number~Tint~Tfloor~Tceil~%")
+  (let ((as '(3.3 3.5 3.7 -3.3)))
+    (dolist (a as)
+      (format t "~@{~4,1F~^~T~}~%"
+              a
+              (ftruncate a)
+              (ffloor a)
+              (fceiling a)))))
+
+
+; @@PLEAC@@_2.4
+; decimal to binary
+(setq bin (format nil "~2R" dec))
+
+; binary to decimal
+(setq dec (formant nil "~10R" bin))
+
+
+; @@PLEAC@@_2.6
+;arabic to roman
+(setq roman (format nil "~@R" arabic))
+
+;roman to arabic
+(defun romanchar (x) (cond ((or (eq x #\m) (eq x #\M)) 1000)
+			   ((or (eq x #\d) (eq x #\D)) 500)
+			   ((or (eq x #\c) (eq x #\C)) 100)
+			   ((or (eq x #\l) (eq x #\L)) 50)
+			   ((or (eq x #\x) (eq x #\X)) 10)
+		           ((or (eq x #\v) (eq x #\V)) 5)
+			   ((or (eq x #\i) (eq x #\I)) 1)
+			   (t 0)))
+
+(defun roman2arabic (x) (let ((y (coerce x 'list))) 
+				(if (eq 1 (length y)) 
+				    (romanchar (car y)) 
+				    (if (< (romanchar (car y)) (romanchar (cadr y)))
+				 		(- (roman2arabic (rest y)) (romanchar (car y)))
+						(+ (romanchar (car y)) (roman2arabic (rest y)))))))
+
+(setq arabic (roman2arabic roman))
+
+
+; @@PLEAC@@_2.7
+;integer
+(+ (random 51) 25)
+
+;float
+(+ (random 51.0) 25.0)
+
+
+; @@PLEAC@@_2.8
+; Question: anyone know a way to give a pre-determined seed, rather than seeding from hardware?
+(random limit (make-random-state t))
+
+
+; @@PLEAC@@_2.11
+; degrees to radians
+(defun deg2rad (degrees) (* (/ degrees 180) pi))
+
+; radians to degrees
+(defun rad2deg (radians) (* (/ radians pi) 180))
+
+
+; @@PLEAC@@_2.12
+; tangent
+(tan theta)
+
+(setq y (acos 3.7))
+
+
+; @@PLEAC@@_2.13
+; natural log
+(setq log_e (log value))
+
+(setq log_base_whatever (log value base))
+
+
+; @@PLEAC@@_2.14
+(defun multiply-matrices (m1 m2)
+  (check-type m1 (array * (* *)))
+  (check-type m2 (array * (* *)))
+  (let* ((m1-rows (array-dimension m1 0))
+         (m1-columns (array-dimension m1 1))
+         (m2-rows (array-dimension m2 0))
+         (m2-columns (array-dimension m2 1)))
+    (unless (= m1-columns m2-rows)
+      (error 'simple-type-error
+             :format-control "Matrices ~S and ~S do not match."
+             :format-args (list m1 m2)))
+    (let ((result (make-array (list m1-rows m2-columns))))
+      (dotimes (i m1-rows)
+        (dotimes (j m2-columns)
+          (setf (aref result i j)
+                (loop for k from 0 below m1-columns
+                      summing (* (aref m1 i k) (aref m2 k j))))))
+      result)))
+;;--------------------------------------------------
+(let ((x #2a((3 2 3)
+             (5 9 8)))
+      (y #2a((4 7)
+             (9 3)
+             (8 1))))
+  (multiply-matrices x y))
+
+
+; @@PLEAC@@_8.2
+;; Should we count the last line, if it does not end with a newline?
+;; This version counts:
+(with-open-file (stream #p"numbers.html")
+  (loop for line = (read-line stream nil)
+        while line
+        count t))
+;; and this does not:
+(with-open-file (stream #p"numbers.html")
+  (loop for (line missing-newline-p) =
+            (multiple-value-list (read-line stream nil))
+        while line
+        count (not missing-newline-p)))
