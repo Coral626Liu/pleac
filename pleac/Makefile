@@ -19,7 +19,7 @@
  #*****************************************************************************
 
 
-IMPLS = perl merd ruby
+IMPLS = perl merd ruby python
 
 
 HTMLTARGETS = $(addprefix pleac_, $(IMPLS))

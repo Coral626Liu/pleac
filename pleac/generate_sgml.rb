@@ -26,7 +26,7 @@ end
 skel_contents = File.open(ARGV[0]).read
 impl_contents = File.open(ARGV[1]).readlines.push("@@@")
 
-current_key = ''
+current_key = nil
 current_subst = []
 for i in impl_contents
     if i =~ /^@@@(.*)/
@@ -38,7 +38,9 @@ for i in impl_contents
 	    if current_subst[-1]
 		current_subst[-1].chop!
 	    end
-	    skel_contents.gsub!(Regexp.escape("PLEAC:#{current_key}:CAELP"), current_subst)
+	    if current_key
+		skel_contents.gsub!(Regexp.escape("PLEAC:#{current_key}:CAELP"), current_subst.to_s)
+	    end
 	    current_subst = []
 	end
 	current_key = new_key
