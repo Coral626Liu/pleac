@@ -53,7 +53,7 @@ skel_contents = File.open(ARGV[2]).read
 chapters.each { |k,v|
     actual = 0
     for i in impl_contents
-	if i =~ /^.*@@PLEAC@@_([^<]+).*$/ || i =~ /^.*\^\^PLEAC\^\^_([^<]+).*$/
+	if i =~ /^.*@@PLEAC@@_([^<\s]+).*$/ || i =~ /^.*\^\^PLEAC\^\^_([^<\s]+).*$/
 	   actual += 1 if $1.to_i == v
 	end
     end

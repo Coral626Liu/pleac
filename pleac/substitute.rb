@@ -29,7 +29,7 @@ impl_contents = File.open(ARGV[1]).readlines.push("@@PLEAC@@_FAKE")
 current_key = nil
 current_subst = []
 for i in impl_contents
-    if i =~ /^.*@@PLEAC@@_([^<]+).*$/ || i =~ /^.*\^\^PLEAC\^\^_([^<]+).*$/
+    if i =~ /^.*@@PLEAC@@_([^<\s]+).*$/ || i =~ /^.*\^\^PLEAC\^\^_([^<\s]+).*$/
 	new_key = $1
 	if current_subst.size > 0
 	    while current_subst.last =~ /^$/
@@ -39,10 +39,12 @@ for i in impl_contents
 		current_subst[-1].chop!
 	    end
 	    if current_key
-		final_subst = [ "<font color=\"#f5deb3\" size=\"+2\">", current_subst ].flatten.to_s
+		final_subst = [ "<font color=\"#f5deb3\" size=\"+2\">", current_subst, "PLEAC:#{current_key}:CAELP" ].flatten.to_s
 		if current_key == "NAME" || current_key == "WEB"
 		    final_subst.gsub!("<[^>]+>", "")
 		end
+		final_subst.gsub!(/.*@@SKIP@@\s*(.*)\s*@@SKIP@@.*/) { $1 }
+		final_subst.gsub!(/.*@@SKIP@@\s*/, '')
 		skel_contents.gsub!(Regexp.escape("PLEAC:#{current_key}:CAELP"), final_subst)
 	    end
 	    current_subst = [ i.gsub(/^[^<]+\n/, '').gsub("[^<]*(<[^>]*>)[^<]*") { $1 } ]  # keep only HTML stuff of keyword line
