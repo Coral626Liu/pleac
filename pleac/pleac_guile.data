@@ -1,0 +1,1225 @@
+;;; -*- scheme -*-
+
+;;; @@PLEAC@@_NAME
+Guile
+
+;;; @@PLEAC@@_WEB
+http://www.gnu.org/software/guile/
+
+;;; @@PLEAC@@_1.0
+(define string "\\n")                    ; two characters, \ and an n
+(define string "\n")                     ; a "newline" character
+(define string "Jon \"Maddog\" Orwant")  ; literal double quotes
+(define string "Jon 'Maddog' Orwant")    ; literal single quotes
+
+(define a = "This is a multiline here document
+terminated by a closing double quote")
+
+;;; @@PLEAC@@_1.1
+;; Use substring
+
+(substring str start end)
+(substring str start)
+
+;; You can fill portions of a string with another string
+
+(substring-move-right! str start end newstring newstart)
+(substring-move-left! str start end newstring newstart)
+
+;; Guile has a separate character type, and you can treat strings as a
+;; character array.
+
+(string-ref str pos)
+(string-set! str pos char)
+(string-fill! str char)
+(substring-fill! str start end char)
+
+(define s "This is what you have")
+(define first (substring s 0 1))                     ; "T"
+(define start (substring s 5 7))                     ; "is"
+(define rest  (substring s 13))                      ; "you have"
+(define last  (substring s (1- (string-length s))))  ; "e"
+(define end   (substring s (- (string-length s) 4))) ; "have"
+(define piece (let ((len (string-length s)))
+                (substring s (- len 8) (- len 5))))  ; "you"
+
+
+;;; Or use the string library SRFI-13
+(use-modules (srfi srfi-13))
+
+(define s "This is what you have")
+(define first (string-take s 1))                     ; "T"
+(define start (xsubstring s 5 7))                    ; "is"
+(define rest  (xsubstring s 13 -1))                  ; "you have"
+(define last  (string-take-right s 1))               ; "e"
+(define end   (string-take-right s 4))               ; "have"
+(define piece (xsubstring s -8 -5))                  ; "you"
+
+;; Mutation of different sized strings is not allowed.  You have to
+;; use set! to change the variable.
+
+(set! s (string-replace s "wasn't" 5 7))
+;; This wasn't what you have
+(set! s (string-replace s "ondrous" 13 25))
+;; This wasn't wondrous
+(set! s (string-take-right s (1- (string-length s))))
+;; his wasn't wondrous
+(set! s (string-take s 9))
+
+;;; @@PLEAC@@_1.2
+(define a (or b c))
+(define a (if (defined? b) b c))
+(define a (or (and (defined? b) b) c))
+
+;;; @@PLEAC@@_1.3
+;; This doesn't really make sense in Scheme... temporary variables are
+;; a natural construct and cheap.  If you want to swap variables in a
+;; block without introducing any new variable names, you can use let:
+
+(let ((a b) (b a))
+  ;; ...
+  )
+
+(let ((alpha beta) (beta production) (production alpha))
+  ;; ...
+  )
+
+;;; @@PLEAC@@_1.4
+(define num (char->integer char))
+(define char (integer->char num))
+
+;;; @@PLEAC@@_1.5
+;; Convert the string to a list of characters
+
+(map proc
+     (string->list str))
+
+(use-modules (srfi srfi-1))
+(format #t "unique chars are: ~A\n"
+        (apply string (sort (delete-duplicates
+                             (string->list "an apple a day")) char<?)))
+
+;;; or use string-fold/string-map/string-for-each from SRFI-13
+(use-modules (srfi srfi-13))
+
+(let* ((str "an apple a day")
+       (sum (string-fold (lambda (c acc) (+ acc (char->integer c)))
+                         0 str)))
+  (format #t "sum is ~A\n" sum))
+
+;; or
+
+(let* ((str "an apple a day")
+       (sum (apply + (map char->integer (string->list str)))))
+  (format #t "sum is ~A\n" sum))
+
+;;; @@PLEAC@@_1.6
+(define revbytes (list->string (reverse (string->list str))))
+
+;;; Or from SRFI-13
+(define revbytes (string-reverse str))
+(string-reverse! str) ; modifies in place
+
+(with-input-from-file "/usr/share/dict/words"
+  (lambda ()
+    (do ((word (read-line) (read-line)))
+        ((eof-object? word))
+      (if (and (> (string-length word) 5)
+               (string=? word (string-reverse word)))
+        (write-line word)))))
+
+;; A little too verbose on the command line
+;; guile --use-srfi=13 -c '(with-input-from-file "/usr/share/dict/words" (lambda () (do ((word (read-line) (read-line))) ((eof-object? word)) (if (and (> (string-length word) 5) (string=? word (string-reverse word))) (write-line word)))))'
+
+;;; @@PLEAC@@_1.7
+;; Use regexp-substitute/global
+
+(regexp-substitute/global
+ #f "([^\t]*)(\t+)" str
+ (lambda (m)
+   (let* ((pre-string (match:substring m 1))
+          (pre-len (string-length pre-string))
+          (match-len (- (match:end m 2) (match:start m 2))))
+     (string-append
+      pre-string
+      (make-string
+       (- (* match-len 8)
+          (modulo pre-len 8))
+       #\space))))
+ 'post)
+
+;;; @@PLEAC@@_1.8
+(regexp-substitute/global
+ #f "\\$(\\w+)" str
+ 'pre
+ (lambda (m)
+   (eval (string->symbol (match:substring m 1)) (current-module)))
+ 'post)
+
+;;; @@PLEAC@@_1.9
+(use-modules (srfi srfi-13))
+
+(string-upcase "bo beep")     ; BO PEEP
+(string-downcase "JOHN")      ; john
+(string-titlecase "bo")       ; Bo
+(string-titlecase "JOHN")     ; John
+
+(string-titlecase "thIS is a loNG liNE")  ; This Is A Long Line
+
+;;; @@PLEAC@@_1.10
+;; You can do this with format.  Lisp/Scheme format is a little
+;; different from what you may be used to with C/Perl style printf
+;; (actually far more powerful) , but if you keep in mind that we use
+;; ~ instead of %, and , instead of . for the prefix characters, you
+;; won't have trouble getting used to Guile's format.
+
+(format #f "I have ~A guanacos." n)
+
+;;; @@PLEAC@@_1.11
+(define var "
+        your text
+        goes here")
+
+(set! var (regexp-substitute/global #f "\n +" var 'pre "\n" 'post))
+
+;;; @@PLEAC@@_1.12
+(use-modules (srfi srfi-13))
+
+(define text "Folding and splicing is the work of an editor,
+not a mere collection of silicon
+and
+mobile electrons!")
+
+(define (wrap str max-col)
+  (let* ((words (string-tokenize str))
+         (all '())
+         (first (car words))
+         (col (string-length first))
+         (line (list first)))
+    (for-each
+     (lambda (x)
+       (let* ((len (string-length x))
+              (new-col (+ col len 1)))
+         (cond ((> new-col max-col)
+                (set! all (cons (string-join (reverse! line) " ") all))
+                (set! line (list x))
+                (set! col len))
+               (else
+                (set! line (cons x line))
+                (set! col new-col)))))
+     (cdr words))
+    (set! all (cons (string-join (reverse! line) " ") all))
+    (string-join (reverse! all) "\n")))
+
+(display (wrap text 20))
+
+;;; @@PLEAC@@_1.13
+(define str "Mom said, \"Don't do that.\"")
+(set! str (regexp-substitute/global #f "(['\"])" var 'pre "\\"
+                                    (lambda (x) (match:substring x 1))
+                                    'post))
+(set! str (regexp-substitute/global #f "([^A-Z])" var 'pre "\\"
+                                    (lambda (x) (match:substring x 1))
+                                    'post))
+(set! str (string-append "this "
+                         (regexp-substitute/global
+                          #f "(\W)" "is a test!" 'pre "\\"
+                          (lambda (x) (match:substring x 1))
+                          'post)))
+
+;;; @@PLEAC@@_1.14
+(use-modules (srfi srfi-13))
+
+(define str "  space  ")
+(string-trim str)          ; "space  "
+(string-trim-right str)    ; "  space"
+(string-trim-both str)     ; "space"
+
+;;; @@PLEAC@@_1.15
+(use-modules (srfi srfi-2) (srfi srfi-13) (ice-9 format))
+
+(define parse-csv
+  (let* ((csv-match (string-join '("\"([^\"\\\\]*(\\\\.[^\"\\\\]*)*)\",?"
+                                   "([^,]+),?"
+                                   ",")
+                                 "|"))
+         (csv-rx (make-regexp csv-match)))
+    (lambda (text)
+      (let ((start 0)
+            (result '()))
+        (let loop ((start 0))
+          (and-let* ((m (regexp-exec csv-rx text start)))
+            (set! result (cons (or (match:substring m 1)
+                                   (match:substring m 3))
+                               result))
+            (loop (match:end m))))
+        (reverse result)))))
+
+(define line "XYZZY,\"\",\"O'Reilly, Inc\",\"Wall, Larry\",\"a \\\"glug\\\" bit,\",5,\"Error, Core Dumped\"")
+
+(do ((i 0 (1+ i))
+     (fields (parse-csv line) (cdr fields)))
+    ((null? fields))
+  (format #t "~D : ~A\n" i (car fields)))
+
+;;; @@PLEAC@@_1.16
+(use-modules (srfi srfi-13) (srfi srfi-14))
+
+;; Knuth's soundex algorithm from The Art of Computer Programming, Vol 3
+(define soundex
+  (letrec ((chars "AEIOUYBFPVCGJKQSXZDTLMNR")
+           (nums "000000111122222222334556")
+           (skipchars (string->char-set "HW"))
+           (trans (lambda (c)
+                    (let ((i (string-index chars c)))
+                      (if i (string-ref nums i) c)))))
+    (lambda (str)
+      (let* ((ustr (string-upcase str))
+             (f (string-ref ustr 0))
+             (skip (trans f)))
+        (let* ((mstr (string-map trans (string-delete ustr skipchars 1)))
+               (dstr (string-map (lambda (c)
+                                   (cond ((eq? c skip) #\0)
+                                         (else (set! skip c) c)))
+                                 mstr))
+               (zstr (string-delete dstr #\0)))
+          (substring (string-append (make-string 1 f) zstr "000") 0 4))))))
+
+(soundex "Knuth")  ; K530
+(soundex "Kant")   ; K530
+(soundex "Lloyd")  ; L300
+(soundex "Ladd")   ; L300
+
+;;; @@PLEAC@@_1.17
+#!/usr/local/bin/guile -s
+!#
+
+(use-modules (srfi srfi-13)
+             (srfi srfi-14)
+             (ice-9 rw)
+             (ice-9 regex))
+
+(define data "analysed        => analyzed
+built-in        => builtin
+chastized       => chastised
+commandline     => command-line
+de-allocate     => deallocate
+dropin          => drop-in
+hardcode        => hard-code
+meta-data       => metadata
+multicharacter  => multi-character
+multiway        => multi-way
+non-empty       => nonempty
+non-profit      => nonprofit
+non-trappable   => nontrappable
+pre-define      => predefine
+preextend       => pre-extend
+re-compiling    => recompiling
+reenter         => re-enter
+turnkey         => turn-key")
+
+(define input (if (null? (cdr (command-line)))
+                (current-input-port)
+                (open-input-file (cadr (command-line)))))
+
+(let* ((newline-char-set (string->char-set "\n"))
+       (assoc-char-set (string->char-set " =>"))
+       (dict (map
+              (lambda (line)
+                (string-tokenize line assoc-char-set))
+              (string-tokenize data newline-char-set)))
+       (dict-match (string-join (map car dict) "|")))
+  (let loop ((line (read-line input)))
+    (cond ((not (eof-object? line))
+           (regexp-substitute/global
+            (current-output-port) dict-match line
+            'pre
+            (lambda (x)
+              (cadr (assoc (match:substring x 0) dict)))
+            'post)
+           (loop (read-line input 'concat))))))
+
+(close-port input)
+
+;; @@PLEAC@@_2.1
+;; Strings and numbers are separate data types in Scheme, so this
+;; isn't as important as it is in Perl.  More often you would use the
+;; type predicates, string? and number?.
+
+(if (string-match "[^\\d]" str) (display "has nondigits"))
+(or (string-match "^\\d+$" str) (display "not a natural number"))
+(or (string-match "^-?\\d+$" str) (display "not an integer"))
+(or (string-match "^[\\-+]?\\d+$" str) (display "not an integer"))
+(or (string-match "^-?\\d+\.?\d*$" str) (display "not a decimal number"))
+(or (string-match "^-?(\d+(\.\d*)?|\.\d+)$" str)
+    (display "not a decimal number"))
+(or (string-match "^([+-]?)(\d|\.\d)\d*(\.\d*)?([Ee]([+-]?\d+))?$" str)
+    (display "not a C float"))
+
+(define num1 (string->number str))
+
+(define num2 (read))
+
+;; @@PLEAC@@_2.2
+;; (approx-equal? num1 num2 accuracy) : returns #t if num1 and num2 are
+;;   equal to accuracy number of decimal places
+(define (approx-equal? num1 num2 accuracy)
+  (< (- num1 num2) (expt 10.0 (- accuracy))))
+
+(define wage 536)                     ;; $5.36/hour
+(define week (* 40 wage))             ;; $214.40
+(format #t "One week's wage is: $~$\n" (/ week 100.0))
+
+
+;; @@PLEAC@@_2.3
+(round num)                           ;; rounds to inexact whole number
+(inexact->exact num)                  ;; rounds to exact integer
+
+;; You can also use format to convert numbers to more precisely
+;; formatted strings.  Note Guile has a builtin format which is a more
+;; limited version of that found in the (ice-9 format) module, to save
+;; load time.  Basically, if you are doing anything you couldn't do
+;; with a series of (display), (write) and (newline), then you'll need
+;; to use the module.
+
+(use-modules (ice-9 format))
+
+(define a 0.255)
+(define b (/ (round (* 100.0 a)) 100.0))
+(format #t "Unrounded: ~F\nRounded: ~F\n" a b)
+(format #t "Unrounded: ~F\nRounded: ~,2F\n" a a)
+
+(define a '(3.3 3.5 3.7 -3.3))
+(display "number\tint\tfloor\tceil\n")
+(for-each
+ (lambda (n)
+   (format #t "~,1F\t~,1F\t~,1F\t~,1F\n"
+           n (round n) (floor n) (ceiling n)))
+ a)
+
+;; @@PLEAC@@_2.5
+;; do is the most general loop iterator
+(do ((i x (1+ i)))   ; var  init-value  step-value
+    ((> i y))        ; end when true
+  ;; i is set to every integer from x to y, inclusive
+  ;; ...
+  )
+
+;; Guile also offers a while loop
+(let ((i x))
+  (while (<= i y)
+         ;; i is set to every integer from x to y, inclusive
+         ; ...
+         (set! i (1+ i))))
+
+;; named let is another common loop
+(let loop ((i x))
+  (cond ((<= i y)
+         ;; i is set to every integer from x to y, step-size 7
+         ;; ...
+         (loop (+ i 7)))))  ; tail-recursive call
+
+(display "Infancy is: ")
+(do ((i 0 (1+ i)))
+    ((> i 2))
+  (format #t "~A " i))
+(newline)
+
+(display "Toddling is: ")
+(let ((i 3))
+  (while (<= i 4)
+         (format #t "~A " i)
+         (set! i (1+ i))))
+(newline)
+
+(display "Childhood is: ")
+(let loop ((i 5))
+  (cond ((<= i 12)
+         (format #t "~A " i)
+         (loop (1+ i)))))
+(newline)
+
+;; @@PLEAC@@_2.6
+;; format can output roman numerals - use ~:@r
+
+(use-modules (ice-9 format))
+
+(format #t "Roman for ~R is ~:@R\n" 15 15)
+
+;; @@PLEAC@@_2.7
+(random 5)        ; an integer from 0 to 4
+(random 5.0)      ; an ineaxct real in the range [0,5)
+
+;; char sets from SRFI-14 and string-unfold from SRFI-13 make a quick
+;; way to generate passwords
+
+(use-modules (srfi srfi-13) (srfi srfi-14))
+
+(define chars (char-set->string char-set:graphic))
+(define size (char-set-size char-set:graphic))
+(define password
+  (string-unfold (lambda (x) (= x 8))
+                 (lambda (x) (string-ref chars (random size)))
+                 1+ 0))
+
+;; @@PLEAC@@_2.8
+;; if you're working with random numbers you'll probably want to set
+;; the random seed
+
+(seed->random-state (current-time))
+
+;; you can also save random states and pass them to any of the above
+;; random functions
+
+(define state (copy-random-state))
+(random:uniform)
+;; 0.939377327721761
+(random:uniform state)
+;; 0.939377327721761
+
+;; @@PLEAC@@_2.9
+;; TODO - do we have an interface to /dev/urandom?
+
+;; @@PLEAC@@_2.10
+;; Guile offers a number of random distributions
+
+(random:exp)      ; an inexact real in an exponential dist with mean 1
+(random:normal)   ; an inexact real in a standard normal distribution
+(random:uniform)  ; a uniform dist inexact real random number in [0,1)
+
+;; There are also functions to fill vectors with random distributions
+
+;; Fills vector v with inexact real random numbers the sum of whose
+;; squares is equal to 1.0.
+(random:hollow-sphere! v)
+
+;; Fills vector v with inexact real random numbers that are
+;; independent and standard normally distributed (i.e., with mean 0
+;; and variance 1).
+(random:normal-vector! v)
+
+;; Fills vector v with inexact real random numbers the sum of whose
+;; squares is less than 1.0.
+(random:solid-sphere! v)
+
+;; @@PLEAC@@_2.11
+;; Guile's trigonometric functions use radians.
+
+(define pi 3.14159265358979)
+
+(define (degrees->radians deg)
+  (* pi (/ deg 180.0)))
+
+(define (radians->degrees rad)
+  (* 180.0 (/ rad pi)))
+
+;; @@PLEAC@@_2.12
+;; Guile provides the following trigonometric functions, defined for
+;; arbitrary real and comlex numbers:
+
+(sin z)
+(cos z)
+(tan z)
+(asin z)
+(acos z)
+(atan z)
+
+;; as well as their hyperbolic equivalents
+
+(sinh z)
+(cosh z)
+(tanh z)
+(asinh z)
+(acosh z)
+(atanh z)
+
+;; @@PLEAC@@_2.13
+;; Guile provides log in base e and 10 natively, defined for any real
+;; or complex numbers:
+
+(log z)    ; natural logarithm
+(log10 z)  ; base-10 logarithm
+
+;; For other bases, divide by the log of the base:
+
+(define (log-base n z)
+  (/ (log z) (log n)))
+
+;; To avoid re-computing (log n) for a base you want to use
+;; frequently, you can create a custom log function:
+
+(define (make-log-base n)
+  (let ((divisor (log n)))
+    (lambda (z) (/ (log z) divisor))))
+
+(define log-2 (make-log-base 2))
+
+(log-2 1024)
+
+;; @@PLEAC@@_2.14
+;; In addition to simple vectors, Guile has builtin support for
+;; uniform arrays of an arbitrary dimension.
+
+;; a rows x cols integer matrix
+(define a (make-array 0 rows cols))
+(array-set! a 3 row col)
+(array-ref a row col)
+
+;; a 3D matrix of reals
+(define b (make-array 0.0 x y z))
+
+;; a literal boolean truth table for logical and
+'#2((#f #f) (#f #t))
+
+;; simple matrix multiplication
+
+(define (matrix-mult m1 m2)
+  (let* ((d1 (array-dimensions m1))
+         (d2 (array-dimensions m2))
+         (m1rows (car d1))
+         (m1cols (cadr d1))
+         (m2rows (car d2))
+         (m2cols (cadr d2)))
+    (if (not (= m1cols m2rows))
+      (error 'index-error "matrices don't match"))
+    (let ((result (make-array 0 m1rows m2cols)))
+      (do ((i 0 (1+ i)))
+          ((= i m1rows))
+        (do ((j 0 (1+ j)))
+            ((= j m2cols))
+          (do ((k 0 (1+ k)))
+              ((= k m1cols))
+            (array-set! result (+ (array-ref result i j)
+                                  (* (array-ref m1 i k)
+                                     (array-ref m2 k j)))
+                        i j))))
+      result)))
+
+(matrix-mult '#2((3 2 3) (5 9 8)) '#2((4 7) (9 3) (8 1)))
+
+;; TODO: add description of Aubrey Jaffer's JACAL
+
+;; @@PLEAC@@_2.15
+;; Guile has builtin support for complex numbers:
+
+(define i 0+1i)       ; 0.0+1.0i
+(define i (sqrt -1))  ; 0.0+1.0i
+
+(complex? i)          ; #t
+(real-part i)         ; 0.0
+(imag-part i)         ; 1.0
+
+(* 3+5i 2-2i)         ; 16+4i
+(sqrt 3+4i)           ; 2+i
+
+;; Classic identity:  -e^(pi*i) => 1
+(inexact->exact (real-part (- (exp (* pi 0+1i))))) ; 1
+
+;; @@PLEAC@@_2.16
+;; You can type in literal numbers in alternate radixes:
+
+#b01101101     ; 109 in binary
+#o155          ; 109 in octal
+#d109          ; 109 in decimal
+#x6d           ; 109 in hexadecimal
+
+;; number->string and string->number also take an optional radix:
+
+(define number (string->number hexadecimal 16))
+(define number (string->number octal 8))
+
+;; format will also output in different radixes:
+
+(format #t "~B ~O ~D ~X\n" num num num num)
+
+;; converting Unix file permissions read from stdin:
+
+(let loop ((perm (read-line)))
+  (cond ((not (eof-object? perm))
+         (format #t "The decimal value is ~D\n" (string->number perm 8))
+         (loop (read-line)))))
+
+
+;; @@PLEAC@@_2.17
+;; once again, format is our friend :)
+
+(use-modules (ice-9 format))
+
+;; the : prefix to the D directive causes commas to be output every
+;; three digits.
+(format #t "~:D\n" (random 10000000000000000))
+; => 2,301,267,079,619,540
+
+;; the third prefix arg to the D directive is the separator character
+;; to use instead of a comma, useful for European style numbers:
+(format #t "~,,'.:D\n" (random 10000000000000000))
+; => 6.486.470.447.356.534
+
+;; the F directive, however, does not support grouping by commas.  to
+;; achieve this, we can format the integer and fractional parts
+;; separately:
+(define (commify num)
+  (let ((int (inexact->exact (truncate num))))
+    (if (= num int)
+      (format #f "~:D" int)
+      (string-append (format #f "~:D" int)
+                     (let ((str (format #f "~F" num)))
+                       (substring str (or (string-index str #\.)
+                                          (string-length str))))))))
+
+;; @@PLEAC@@_2.18
+;; format can handle simple 's' plurals with ~p, and 'y/ies' plurals
+;; with the @ prefix:
+
+(format #t "It took ~D hour~P\n" hours hours)
+
+(format #t "It took ~D centur~@P\n" centuries centuries)
+
+(format #t "~D fruit fl~@P like~P a banana\n" flies flies (if (= 1 flies) 0 1))
+
+(define noun-plural
+  (let* ((suffixes '(("ss"  . "sses")
+                     ("ph"  . "phes")
+                     ("sh"  . "shes")
+                     ("ch"  . "ches")
+                     ("z"   . "zes")
+                     ("ff"  . "ffs")
+                     ("f"   . "ves")
+                     ("ey"  . "eys")
+                     ("y"   . "ies")
+                     ("ix"  . "ices")
+                     ("s"   . "ses")
+                     ("x"   . "xes")
+                     ("ius" . "ii")))
+        (suffix-match
+         (string-append "(" (string-join (map car suffixes) "|") ")$"))
+        (suffix-rx (make-regexp suffix-match)))
+    (lambda (noun)
+      (let ((m (regexp-exec suffix-rx noun)))
+        (if m
+          (string-append (regexp-substitute #f m 'pre)
+                         (cdr (assoc (match:substring m) suffixes)))
+          (string-append noun "s"))))))
+
+;; @@PLEAC@@_2.19
+#!/usr/local/bin/guile -s
+!#
+
+;; very naive factoring algorithm
+(define (factor n)
+  (let ((factors '())
+        (limit (inexact->exact (round (sqrt n))))
+        (twos 0))
+    ;; factor out 2's
+    (while (even? n)
+           (set! n (ash n -1))
+           (set! twos (1+ twos)))
+    (if (> twos 0) (set! factors (list (cons 2 twos))))
+    ;; factor out odd primes
+    (let loop ((i 3))
+      (let ((r (remainder n i)))
+        (cond ((= r 0)
+               (set! n (quotient n i))
+               (let* ((old-val (assv i factors))
+                      (new-val (if old-val (1+ (cdr old-val)) 1)))
+                 (set! factors (assv-set! factors i new-val)))
+               (loop i))
+              ((< i limit)
+               (loop (+ 2 i))))))
+    ;; remainder
+    (if (> n 1) (set! factors (cons (cons n 1) factors)))
+    (reverse! factors)))
+
+;; pretty print a term of a factor
+(define (pp-term pair)
+  (if (= (cdr pair) 1)
+    (number->string (car pair))
+    (format #f "~A^~A" (car pair) (cdr pair))))
+
+;; factor each number given on the command line
+(for-each
+ (lambda (n)
+   (let ((factors (factor n)))
+     (format #t "~A = ~A" n (pp-term (car factors)))
+     (for-each
+      (lambda (x) (format #t " * ~A" (pp-term x)))
+      (cdr factors))
+     (newline)))
+ (map string->number (cdr (command-line))))
+
+;; @@PLEAC@@_3.0
+;; Use the builtin POSIX time functions
+
+;; get the current time
+(current-time)   ; number of seconds since the epoch
+(gettimeofday)   ; pair of seconds and microseconds since the epoch
+
+;; create a time object from an integer (e.g. returned by current-time)
+(localtime time) ; in localtime
+(gmtime time)    ; in UTC
+
+;; get/set broken down components of a time object
+
+(tm:sec time)    (set-tm:sec time secs)    ; seconds (0-59)
+(tm:min time)    (set-tm:min time mins)    ; minutes (0-59)
+(tm:hour time)   (set-tm:hour time hours)  ; hours (0-23)
+(tm:mday time)   (set-tm:mday time mday)   ; day of the month (1-31)
+(tm:mon time)    (set-tm:mon time month)   ; month (0-11)
+(tm:year time)   (set-tm:year time year)   ; year minus 1900 (70-)
+(tm:wday time)   (set-tm:wday time wday)   ; day of the week (0-6)
+                                           ; where Sunday is 0
+(tm:yday time)   (set-tm:yday time yday)   ; day of year (0-365)
+(tm:isdst time)  (set-tm:isdst time isdst) ; daylight saving indicator
+                                           ; 0 for "no", > 0 for "yes",
+                                           ; < 0 for "unknown"
+(tm:gmtoff time) (set-tm:gmtoff time off)  ; time zone offset in seconds
+                                           ; west of UTC (-46800 to 43200)
+(tm:zone time)   (set-tm:zone time zone)   ; Time zone label (a string),
+                                           ; not necessarily unique.
+
+(format #t "Today is day ~A of the current year.\n"
+        (tm:yday (localtime (current-time))))
+
+;; Or use SRFI-19 - Time and Date Procedures
+(use-modules (srfi srfi-19))
+
+(define now (current-date))  ; immutable once created
+
+(date-nanosecond now)        ; 0-9,999,999
+(date-second now)            ; 0-60 (60 represents a leap second)
+(date-minute now)            ; 0-59
+(date-hour now)              ; 0-23
+(date-day now)               ; 0-31
+(date-month now)             ; 1-12
+(date-year now)              ; integer representing the year
+(date-year-day now)          ; day of year (Jan 1 is 1, etc.)
+(date-week-day now)          ; day of week (Sunday is 0, etc.)
+(date-week-number now start) ; week of year, ignoring a first partial week
+                             ; start is the first day of week as above
+(date-zone-offset now)       ; integer number of seconds east of GMT
+
+(format #t "Today is day ~A of the current year.\n"
+        (date-year-day (current-date)))
+
+;; @@PLEAC@@_3.1
+;; using format and POSIX time components
+(use-modules (ice-9 format))
+(let ((now (localtime (current-time))))
+  (format #t "The current date is ~4'0D ~2'0D ~2'0D\n"
+          (+ 1900 (tm:year now)) (tm:mon now) (tm:mday now)))
+
+;; using format and SRFI-19 time components
+(use-modules (srfi srfi-19) (ice-9 format))
+(let ((now (current-date)))
+  (format #t "The current date is ~4'0d-~2'0D-~2'0D\n"
+          (date-year now) (date-month now) (date-day now)))
+
+;; using POSIX strftime with a libc time format string
+(display (strftime "%Y-%m-%d\n" (localtime (current-time))))
+
+;; @@PLEAC@@_3.2
+;; set the individual components of a time struct and use mktime
+(define time (localtime (current-time)))
+(set-tm:mday time mday)
+(set-tm:mon time mon)
+(set-tm:year time year)
+(car (mktime time))  ; mktime returns a (epoch-seconds . time) pair
+
+;; or use SRFI-19's make-date and date->time-monotonic
+(use-modules (srfi srfi-19))
+(date->time-monotonic
+ (make-date nanosecond second minute hour day month year zone-offset))
+
+;; @@PLEAC@@_3.3
+;; use localtime or gmtime with the accessors mentioned in the
+;; introduction to this chapter
+(let ((time (localtime seconds)))  ; or gmtime
+  (format #t "Dateline: ~2'0d:~2'0d:~2'0d-~4'0d/~2'0d/~2'0d\n"
+          (tm:hour time) (tm:min time) (tm:sec time)
+          (+ 1900 (tm:year time)) (1+ (tm:mon time)) (tm:mday time)))
+
+;; or use SRFI-19
+(use-modules (srfi srfi-19))
+(let* ((time (make-time time-monotonic nanosecond second)))
+  (display (date->string (time-monotonic->date time) "~T-~1\n")))
+
+;; @@PLEAC@@_3.4
+;; just add or subtract epoch seconds
+(define when (+ now difference))
+(define then (- now difference))
+
+;; if you have DMYHMS values, you can convert them to times or add
+;; them as seconds:
+(define birthtime 96176750)
+(define interval (+ 5                  ; 5 seconds
+                    (* 17 60)          ; 17 minutes
+                    (* 2 60 60)        ; 2 hours
+                    (* 55 60 60 24)))  ; and 55 days
+(define then (+ birthtime interval))
+(format #t "Then is ~A\n" (strftime "%a %b %d %T %Y" (localtime then)))
+
+;; @@PLEAC@@_3.5
+;; subtract the epoch seconds:
+(define bree 361535725)
+(define nat 96201950)
+(define difference (- bree nat))
+(format #t "There were ~A seconds between Nat and Bree\n" difference)
+
+;; or use SRFI-19's time arithmetic procedures:
+(use-modules (srfi srfi-19))
+(define time1 (make-time time-monotonic nano1 sec1))
+(define time2 (make-time time-monotonic nano2 sec2))
+(define duration (time-difference time1 time2))
+(time=? (subtract-duration time1 duration) time2) ; #t
+(time=? (add-duration time2 duration) time1)      ; #t
+
+;; @@PLEAC@@_3.6
+;; convert to a SRFI-19 date and use the accessors
+(use-modules (srfi srfi-19))
+(date-day date)
+(date-year-day date)
+(date-week-day date)
+(date-week-number date start-day-of-week)
+
+;; @@PLEAC@@_3.7
+;; use the strptime function:
+(define time-pair (strptime "%Y-%m-%d" "1998-06-03"))
+(format #t "Time is ~A\n." (strftime "%b %d, %Y" (car time-pair)))
+
+;; or use SRFI-19's string->date:
+(use-modules (srfi srfi-19))
+(define date (string->date "1998-06-03" "~Y-~m-~d"))
+(format #t "Time is ~A.\n" (date->string date))
+
+;; @@PLEAC@@_3.8
+;; use the already seen strftime:
+(format #t "strftime gives: ~A\n"
+        (strftime "%A %D" (localtime (current-time))))
+
+;; or SRFI-19's date->string:
+(use-modules (srfi srfi-19))
+(format #t "default date->string gives: ~A\n" (date->string (current-date)))
+(format #t "date->string gives: ~A\n"
+        (date->string (current-date) "~a ~b ~e ~H:~M:~S ~z ~Y"))
+
+;; @@PLEAC@@_3.9
+;; gettimeofday will return seconds and microseconds:
+(define t0 (gettimeofday))
+;; do your work here
+(define t1 (gettimeofday))
+(format #t "You took ~A seconds and ~A microseconds\n"
+        (- (car t1) (car t0)) (- (cdr t1) (cdr t0)))
+
+;; you can also get more detailed info about the real and processor
+;; times:
+(define runtime (times))
+(tms:clock runtime)  ; the current real time
+(tms:utime runtime)  ; the CPU time units used by the calling process
+(tms:stime runtime)  ; the CPU time units used by the system on behalf
+                     ; of the calling process.
+(tms:cutime runtime) ; the CPU time units used by terminated child
+                     ; processes of the calling process, whose status
+                     ; has been collected (e.g., using `waitpid').
+(tms:cstime runtime) ; the CPU times units used by the system on
+		     ; behalf of terminated child processes
+
+;; you can also use the time module to time execution:
+(use-modules (ice-9 time))
+(time (sleep 3))
+;; clock utime stime cutime cstime gctime
+;; 3.01  0.00  0.00   0.00   0.00   0.00
+;; 0
+
+;; @@PLEAC@@_3.10
+(sleep i)   ; sleep for i seconds
+(usleep i)  ; sleep for i microseconds (not available on all platforms)
+
+;; @@PLEAC@@_7.0
+;; use (open-input-file filename) or (open filename O_RDONLY)
+
+(define input (open-input-file "/usr/local/widgets/data"))
+(let loop ((line (read-line input 'concat)))
+  (cond ((not (eof-object? line))
+         (if (string-match "blue" line)
+           (display line))
+         (loop (read-line input 'concat)))))
+(close-port input)
+
+;; Many I/O functions default to the logical STDIN/OUT
+
+;; You can also explicity get the standard ports with
+;; [set-]current-{input,output,error}-port.
+
+;; format takes a port as the first argument.  If #t is given, format
+;; writes to stdout, if #f is given, format returns a string.
+
+(let loop ((line (read-line)))     ; reads from stdin
+  (cond ((not (eof-object? line))
+         (if (not (string-match "[0-9]" line))
+           ;; writes to stderr
+           (display "No digit found.\n" (current-error-port))
+           ;; writes to stdout
+           (format #t "Read: ~A\n" line))
+         (loop (read-line)))))
+
+;;---------
+
+(define logfile (open-output-file "/tmp/log"))
+
+;;---------
+
+(close-port logfile)
+(close-output-port logfile)
+
+;;---------
+
+(let ((old-out (current-output-port)))
+  (set-current-output-port logfile)
+  (display "Countdown initiated ...\n")
+  (set-current-output-port old-out)
+  (display "You have 30 seconds to reach minimum safety distance.\n"))
+
+;; or
+
+(with-output-to-file logfile
+  (lambda () (display "Countdown initiated ...\n")))
+(display "You have 30 seconds to reach minimum safety distance.\n")
+
+
+;; @@PLEAC@@_7.1
+(define source (open-input-file path))
+(define sink (open-output-file path))
+
+(define source (open path O_RDONLY))
+(define sink (open path O_WRONLY))
+
+;;-----------------------------
+(define port (open-input-file path))
+(define port (open-file path "r"))
+(define port (open path O_RDONLY))
+;;-----------------------------
+(define port (open-output-file path))
+(define port (open-file path "w"))
+(define port (open path (logior O_WRONLY O_TRUNC O_CREAT)))
+;;-----------------------------
+(define port (open path (logior O_WRONLY O_EXCL O_CREAT)))
+;;-----------------------------
+(define port (open-file path "a"))
+(define port (open path (logior O_WRONLY O_APPEND O_CREAT)))
+;;-----------------------------
+(define port (open path (logior O_WRONLY O_APPEND)))
+;;-----------------------------
+(define port (open path O_RDWR))
+;;-----------------------------
+(define port (open-file path "r+"))
+(define port (open path (logior O_RDWR O_CREAT)))
+;;-----------------------------
+(define port (open path (logior O_RDWR O_EXCL O_CREAT)))
+;;-----------------------------
+
+;; @@PLEAC@@_7.2
+;; Nothing different needs to be done with Guile
+
+;; @@PLEAC@@_7.3
+(define expand-user
+  (let ((rx (make-regexp "^\\~([^/]+)?")))
+    (lambda (filename)
+      (let ((m (regexp-exec rx filename)))
+        (if m
+          (string-append
+           (if (match:substring m 1)
+             (passwd:dir (getpwnam (match:substring m 1)))
+             (or (getenv "HOME") (getenv "LOGDIR")
+                 (passwd:dir (getpwuid (cuserid))) ""))
+           (substring filename (match:end m)))
+          filename)))))
+
+;; @@PLEAC@@_7.4
+(define port (open-file filename mode))  ; raise an exception on error
+
+;; use catch to trap errors
+(catch 'system-error ; the type of error thrown
+  (lambda () (set! port (open-file filename mode))) ; thunk to try
+  (lambda (key . args)  ; exception handler
+    (let ((fmt (cadr args))
+          (msg&path (caddr args)))
+      (format (current-error-port) fmt (car msg&path) (cadr msg&path))
+      (newline))))
+
+;; @@PLEAC@@_7.5
+;; use the POSIX tmpnam
+
+(let ((name (tmpnam)))
+  (call-with-output-file name
+    (lambda (port)
+      ;; ... output to port
+      )))
+
+;; better to test and be sure you have exclusive access to the file
+(define (open-temp-file)
+  (let loop ((name (tmpnam)))
+    (catch 'system-error
+      (lambda () (open name (logior O_RDWR O_CREAT O_EXCL)))
+      (lambda (key . args) (loop (tmpnam))))))
+
+;; now go on to use the file ...
+(let ((port (open-temp-file)))
+  (do ((i 0 (1+ i)))
+      ((= i 10))
+    (format port "~A\n" i))
+  (seek port 0 SEEK_SET)
+  (display "Tmp file has:\n")
+  (do ((line (read-line port 'concat) (read-line port 'concat)))
+      ((eof-object? line))
+    (display line))
+  (close port))
+
+;; @@PLEAC@@_7.6
+;; string ports are ideal for this
+
+(define DATA "
+your data goes here
+")
+
+(call-with-input-string
+ DATA
+ (lambda (port)
+   ;; ... process input from port
+   ))
+
+;; or
+
+(with-input-from-string DATA
+  (lambda ()
+    ;; ... stdin now comes from DATA
+    ))
+
+;; @@PLEAC@@_7.7
+(do ((line (readline) (readline)))
+    ((eof-object? line))
+  ;; ... do something with line
+  )
+
+;;-----------------------------
+
+(define (body)
+  (do ((line (read-line) (read-line)))
+      ((eof-object? line))
+    (display line)
+    (newline)))
+
+(let ((args (cdr (command-line))))
+  ;; ... handle options here
+  (if (null? args)
+    (body)     ; no args, just call body on stdin
+    (for-each  ; otherwise, call body with stdin set to each arg in turn
+     (lambda (file)
+       (catch 'system-error
+         (lambda ()
+           (with-input-from-file file
+             body))
+         (lambda (key . args)
+           (format (current-error-port) (cadr args) (caaddr args)
+                   (car (cdaddr args)))
+           (newline (current-error-port)))))
+     args)))
+
+;;-----------------------------
+(use-modules (srfi srfi-1) (srfi srfi-13) (ice-9 format) (ice-9 regex))
+
+;; define a simple glob command
+
+(define (directory-files dir)
+  (if (not (access? dir R_OK))
+    '()
+    (let ((port (opendir dir)))
+      (do ((file (readdir port) (readdir port))
+           (ls '()))
+          ((eof-object? file) (closedir port) (reverse! ls))
+        (set! ls (cons file ls))))))
+
+(define (glob->regexp pat)
+  (let ((len (string-length pat))
+        (ls '("^"))
+        (in-brace? #f))
+    (do ((i 0 (1+ i)))
+        ((= i len))
+      (let ((char (string-ref pat i)))
+        (case char
+          ((#\*) (set! ls (cons "[^.]*" ls)))
+          ((#\?) (set! ls (cons "[^.]" ls)))
+          ((#\[) (set! ls (cons "[" ls)))
+          ((#\]) (set! ls (cons "]" ls)))
+          ((#\\)
+           (set! i (1+ i))
+           (set! ls (cons (make-string 1 (string-ref pat i)) ls))
+           (set! ls (cons "\\" ls)))
+          (else
+           (set! ls (cons (regexp-quote (make-string 1 char)) ls))))))
+    (string-concatenate (reverse (cons "$" ls)))))
+
+(define (glob pat dir)
+  (let ((rx (make-regexp (glob->regexp pat))))
+    (filter (lambda (x) (regexp-exec rx x)) (directory-files dir))))
+
+;; can use (ice-9 getopt-long) described in chapter 15, or process
+;; options by hand
+
+(define opt-append 0)
+(define opt-ignore-ints 0)
+(define opt-nostdout 0)
+(define opt-unbuffer 0)
+
+(define args (cdr (command-line)))
+
+(do ((opts args (cdr opts)))
+    ((or (null? opts) (not (eq? (string-ref (car opts) 0) #\-)))
+     (set! args opts))
+  (let ((opt (car opts)))
+    (cond ((string=? opt "-a") (set! opt-append (1+ opt-append)))
+          ((string=? opt "-i") (set! opt-ignore-ints (1+ opt-ignore-ints)))
+          ((string=? opt "-n") (set! opt-nostdout (1+ opt-nostdout)))
+          ((string=? opt "-u") (set! opt-unbuffer (1+ opt-unbuffer)))
+          (else (throw 'usage-error "Unexpected argument: ~A" opt)))))
+
+;; default to all C source files
+(if (null? args) (set! args (glob "*.[Cch]" ".")))
+
+(define (find-login)
+  (do ((line (read-line) (read-line)))
+      ((eof-object? line))
+    (cond ((string-match "login" line)
+           (display line)
+           (newline)))))
+
+(define (lowercase)
+  (do ((line (read-line) (read-line)))
+      ((eof-object? line))
+    (display (string-downcase line))
+    (newline)))
+
+(define (count-chunks)
+  (do ((line (read-line) (read-line))
+       (chunks 0))
+      ((or (eof-object? line)
+           (string=? line "__DATA__") (string=? line "__END__"))
+       (format #t "Found ~A chunks\n" chunks))
+    (let ((tokens
+           (string-tokenize (string-take line (or (string-index line #\#)
+                                                  (string-length line))))))
+      (set! chunks (+ chunks (length tokens))))))
+
+(if (null? args)
+  (count-chunks)     ; or find-login, lowercase, etc.
+  (for-each
+   (lambda (file)
+     (catch 'system-error
+       (lambda ()
+         (with-input-from-file file
+           count-chunks))
+       (lambda (key . args)
+         (format (current-error-port) (cadr args) (caaddr args)
+                 (car (cdaddr args)))
+         (newline (current-error-port)))))
+   args))
+
