@@ -1,0 +1,208 @@
+// -*- pike -*-
+// @@PLEAC@@_NAME
+// @@SKIP@@ Pike
+
+// @@PLEAC@@_WEB
+// @@SKIP@@ http://pike.ida.liu.se/
+
+// @@PLEAC@@_INTRO
+// @@SKIP@@ Most examples will work with pike 7.2 or even older,
+// @@SKIP@@ some may need 7.4.
+// @@SKIP@@ In pike variables must be declared, but may not
+// @@SKIP@@ be declared twice, I am not yet sure if it is
+// @@SKIP@@ better to declare all variables for each individual example
+// @@SKIP@@ or per section...
+
+// @@PLEAC@@_APPENDIX
+// (this section is optional; use it if you need to import very
+// generic stuff for the whole code)
+
+// @@PLEAC@@_1.0
+int i;                          // declare a variable of type int             
+i = 'a';                        // the ascii value of "a"
+i = '\n';                       // the ascii value of a "newline"
+//-----------------------------
+string str;                     // declare a variable of type string
+str = "\n";                     // a "newline" character
+str = "Jon \"Maddog\" Orwant";  // literal double quotes
+//-----------------------------
+str =
+#"This is a multiline string
+terminated by a double-quote like any other string";
+//-----------------------------
+
+// @@PLEAC@@_1.1
+//------------------------------
+string str, value;
+int offset, count;
+value = str[offset..offset+count];
+value = str[offset..];
+
+string newstring, newtail;
+str = str[..offset-1]+newstring+str[offset+count..];
+str = str[..offset-1]+newtail;
+
+//------------------------------
+// get a 5-byte string, skip 3, then grab 2 8-byte strings, then the rest
+string leading, s1, s2, trailing;
+[leading, s1, s2, trailing] = array_sscanf(str, "%5s%*3s%8s%8s%s");
+
+// split at five byte boundaries
+array fivers = array fivers = str/5;
+
+// chop string into individual characters
+array chars = str/"";
+
+//------------------------------
+
+str = "This is what you have"; 
+
+string first, start, rest, last, end, piece;
+int t = str[0];
+// 84
+first = str[0..0];                     
+// "T"          
+start = str[5..5+1]; 
+// "is"
+rest  = str[13..];   
+// "you have"
+last  = str[sizeof(str)-1..sizeof(str)-1];
+// "e"
+end   = str[sizeof(str)-4..]; 
+// "have"                 
+piece = str[sizeof(str)-8..sizeof(str)-8+2];
+// "you"
+               
+str = "This is what you have";               
+str = replace(str, ([ " is ":" wasn't " ]) );
+// "This wasn't what you have"
+str = str[..sizeof(str)-13]+"ondrous";       
+// "This wasn't wondrous"
+str = str[1..]; 
+// "his wasn't wondrous"               
+str = str[..sizeof(str)-11];
+// "his wasn'"            
+str = "This is what you have";
+str = replace(str[..4], ([ "is":"at" ]) )+str[5..];
+// "That is what you have"    
+str = "make a hat";
+// "make a hat"          
+[str[0], str[-1]] = ({ str[-1], str[0] });
+// "take a ham"
+
+string a, b, c;
+a="To be or not to be";    
+b=a[6..11];      
+// "or not"                
+b=a[6..7]; c=a[3..4];            
+write("%s\n%s\n", b, c);
+/*
+or                  
+be
+*/
+//------------------------------------------------
+
+string cut2fmt(int ... positions)
+{ 
+  string template = "";
+  int lastpos  = 1;
+  foreach(positions, int place) 
+  {      
+    template += "A" + (place - lastpos) + " ";
+    lastpos=place;     
+  }
+  template += "A*";
+  return template;
+}
+
+string fmt=cut2fmt(8, 14, 20, 26, 30);
+write(fmt+"\n");
+//A7 A6 A6 A6 A4 A*         
+
+// @@PLEAC@@_1.2
+//-----------------------------
+// use b if b is true, else c
+a = b || c;
+
+// set x to y unless x is already true
+if(!x)
+  x=y;
+
+// use b if b is defined, else c
+// an undefined variable would be a compile time error so this
+// does not really apply. 
+
+// return b if b is defined (was supplied by the caller), else c
+int foo(int c, int|void b)
+{
+  return zero_type(b) ? c : b;
+}
+
+foo = bar || "DEFAULT VALUE";
+argv = argv[1..];              // remove program, as that is always set.
+dir = argv[0] || "/tmp";       // and see if anything is left...
+dir = sizeof(argv) ? argv[0] : "/tmp";
+count[shell||"/bin/sh"]++;     
+
+user = getenv("USER") || getenv("LOGNAME") || getpwuid(getuid())[0] ||
+"Unknown uid number "+getuid();
+
+if(!starting_point)
+  starting_point = "Greenwich";
+
+if(!sizeof(a))                  
+  a=b;              // copy only if empty              
+a=(sizeof(b)?b:c);  // assign b if nonempty, else c
+
+// @@PLEAC@@_1.3
+[var1, var2] = ({ var2, var1 });  // gee, i love this example.        
+                                  // it didn't even occur to me before
+                                  // :-)
+temp = a;
+a    = b;             
+b    = temp;
+
+a = "alpha";
+b = "omega";
+[a, b] = ({ b, a });
+
+[alpha, beta, production] = "January March August"/" ";
+[alpha, beta, production] = ({ beta, production, alpha });
+
+
+// @@PLEAC@@_1.4
+string char="foo";
+int num = char[0];   // gets the ascii value from the first char (that's
+                     // what ord() in perl does)
+char = String.int2char(num);
+
+char = sprintf("%c",num);   // the same as String.int2char(num) :-)
+write("Number %d is character %[0]c\n", num);
+
+Number 101 is character e
+
+string str;
+array arr;
+arr = (array)str;
+str = (string)arr;
+int ascii_value = 'e';                      // now 101
+string character = String.int2char(101);    // now "e"                  
+
+write("Number %d is character %[0]c\n", 101);
+
+
+array(int) ascii_character_numbers = (array(int))"sample";
+write("%s\n", (array(string))ascii_character_numbers*" ");    
+
+string word = (string)ascii_character_numbers;
+string word = (string)({ 115, 97, 109, 112, 108, 101 });  // same
+write(word+"\n");
+// sample           
+
+string hal ="HAL";
+array ascii = (array)hal;
+array ibm = ascii[*]+1;       // add 1 to each element in the array.
+array ibm = map(ascii, `+, 1) // apply the function +, with the argument
+                              // 1, to each element in the array.
+write(ibm+"\n");              // prints "IBM"
+
