@@ -8,7 +8,6 @@ http://www.web-sites.co.uk/nasm/what.html
 
 
 @@@1.0
-CODE
 ; strlen (C calling convention)
 ;   input:
 ;     s  : pointer to const ASCIIZ string (address at esp+4).
@@ -18,28 +17,25 @@ CODE
 ;     a dword, the first null byte disable carry so the string must be
 ;     checked in little endian only.
 strlen:
-	mov ecx,[esp+4]			; get s value
-.align:	cmp byte [ecx],0		; realign pointer on dword boundaries
+	mov eax,[esp+4]		; get s value
+.align:	cmp byte [eax],0	; realign pointer on dword boundaries
 	jz .end
-	inc ecx
-	test cl,3
+	inc eax
+	test al,3
 	jnz .align
-.loop:	mov eax,[ecx]			; test 4 bytes at one time
-	lea edx,[eax+0xfefefeff]
-	not eax
-	and eax,edx
-	add ecx,byte 4
-	test eax,0x80808080		; if one of the byte is null
+.loop:	mov edx,[eax]		; test 4 bytes at one time
+	lea ecx,[edx+0xfefefeff]
+	not edx
+	and edx,ecx
+	add eax,byte 4
+	test edx,0x80808080	; if one of the byte is null
 	jz .loop
-	test eax,0x8080			; if the null char is on first word
-	jnz .lo
-	shr eax,16			; prepare to examine 3rd byte and 4th
-	add ecx,byte 2			; byte, as if it was the 1st and 2nd
-.lo:	shl al,1			; check hi bit, if 1, the char was null
-	sbb ecx,byte 3			; use bit7 of AL for removing 4(bit7=1)
-.end:	mov eax,ecx			; or 3(bit7=0)
-	sub eax,[esp+4]			; size is difference of null char
-	ret				; adress and original value of s
+.final:	shr edx,8		; check first lo byte
+	inc eax
+	jnc .final
+	sub eax, byte 5		; realign pointer to null char
+.end:	sub eax,[esp+4]
+	ret
 
 
 ; strcpy (C calling convention)
@@ -48,7 +44,7 @@ strlen:
 ;     src  : pointer to source ASCIIZ string (address at esp+8).
 ;   algo:
 ;     see strlen above for algorithm.
-fast_strcpy:
+strcpy:
 	mov ecx,[esp+8]			; get src
 	mov edx,[esp+4]			; get dest
 .align:	mov al,[ecx]
