@@ -1574,3 +1574,126 @@ foreach(food_color; string food; )
 // Carrot
 // Raspberry
 
+// @@PLEAC@@_5.2
+// an undefined value in a mapping gets turned to 0.
+// assigning 0 as a value is allowed and will not remove the key.
+// checking for the key will of course return 0 and be interpreted as false.
+// to check if the key is really there, use zero_type()
+
+if(!zero_type(mapping->key))
+{
+  // it exists
+}
+else
+{
+  // it doesn't
+}
+
+foreach( ({ "Banana", "Milk" }) ;; string name)
+{
+  if(!zero_type(food_color[name]))
+    write("%s is a food.\n", name);
+  else
+    write("%s is a drink.\n", name);
+}
+// Banana is a food.
+// Milk is a drink.
+
+// ---------------------------------------------------------
+mapping age = ([ "Toddler":3, 
+                 "Unborn":0, 
+                 "Newborn":0.0, 
+                 "Phantasm":UNDEFINED ]);
+
+foreach( ({ "Toddler", "Unborn", "Newborn", "Phantasm", "Relic" });; string thing) 
+{
+    write(thing+":");
+    if(!zero_type(age[thing]))
+      write(" Exists");
+    if(age[thing])
+      write(" True");
+    write("\n");
+}
+// Toddler: Exists True
+// Unborn: Exists
+// Newborn: Exists True
+// Phantasm: Exists
+// Relic:
+
+// age->Toddler exists, because zero_type() is only true if the key is not in
+// the mapping. it is true because the value is not 0.
+// age->Unborn exists, but is false because 0 is false
+// age->Newborn exists and is true, because 0.0 is not false
+// age->Phantasm exists and is false, like Unborn
+// age->Relic does not exist
+
+// we can not test for defined. UNDEFINED is a special value used internally by
+// the compiler. it gets converted to 0 as soon as it is assigned in a mapping
+
+// however we can create something equivalent that can be treated like any
+// other value, except that it is false:
+
+class Nil
+{
+  // this is a minimal example. 
+  // a more complete one would also handle casting
+
+  int `!() {return 1;}
+  string _sprintf() {return "Nil";}
+
+  // we could have this function externally, but this is more convenient
+  int defined(mixed var)
+  {
+    return !zero_type(var) && var!=this;
+  }
+}
+
+Nil NIL = Nil();                    // create an instance so we can use it
+function defined = NIL->defined;  // just for symetry
+ 
+mapping age = ([ "Toddler":3, 
+                 "Unborn":0, 
+                 "Phantasm":NIL ]);
+
+foreach( ({ "Toddler", "Unborn", "Phantasm", "Relic" });; string thing) 
+{
+    write(thing+":");
+    if(!zero_type(age[thing]))
+      write(" Exists");
+    if(defined(age[thing]))
+      write(" Defined");
+    if(age[thing])
+      write(" True");
+    write("\n");
+}
+
+// Toddler: Exists Defined True
+// Unborn: Exists Defined
+// Phantasm: Exists
+// Relic:
+ 
+// age->Toddler exists, because zero_type() is only true if the key is not in
+// the mapping. it is defined because it exists an is not NIL. 
+// it is true because the value is not 0.
+// age->Unborn exists, and is defined, but is false because 0 is false
+// age->Phantasm exists, is not defined because it is NIL, 
+// it is not true because NIL is false.
+// age->Relic does not exist, it is not defined even though it is not NIL
+// because it doesn't exist. it is also not true, because it does not exist.
+
+// ----------------------------------------------------
+mapping size = ([]);
+string filename;
+while(filename = Stdio.stdin->gets())
+{
+  filename -= "\n";
+  if(size[filename])                // wrong
+    continue;
+  if(!zero_type(size[filename])     // right
+    continue
+  object stat = file_stat(filename)  
+  if(stat)
+    size[filename] = stat->size;
+  else
+    size[filename] = NIL;
+}
