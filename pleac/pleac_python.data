@@ -3207,6 +3207,454 @@ messages.sort(subject_date_position_cmp)
 #-----------------------------
 
 
+# ^^PLEAC^^_12.0
+#-----------------------------
+## Python's "module" is the closest equivalent to Perl's "package"
+
+
+#=== In the file "Alpha.py"
+name = "first"
+
+#=== End of file
+
+#=== In the file "Omega.py"
+
+name = "last"
+#=== End of file
+
+import Alpha, Omega
+print "Alpha is %s, Omega is %s." % (Alpha.name, Omega.name)
+#> Alpha is first, Omega is last.
+#-----------------------------
+# Python does not have an equivalent to "compile-time load"
+import sys
+
+# Depending on the implementation, this could use a builtin
+# module or load a file with the extension .py, .pyc, pyo, .pyd,
+# .so, .dll, or (with imputils) load from other files.
+import Cards.Poker
+
+#-----------------------------
+#=== In the file Cards/Poker.py
+__all__ = ["card_deck", "shuffle"]  # not usually bneeded
+card_deck = []
+def shuffle():
+    pass
+
+#-----------------------------
+
+# ^^PLEAC^^_12.1
+#-----------------------------
+#== In the file "YourModule.py"
+
+__version__ = (1, 0)          # Or higher
+__all__ = ["...", "..."]      # Override names included in "... import *"
+                              #   Note: 'import *' is consider poor style
+                              #   and it is rare to use this variable.
+########################
+# your code goes here
+########################
+
+#-----------------------------
+import YourModule             # Import the module into my package
+                              #  (does not import any of its symbols)
+
+import YourModule as Module   # Use a different name for the module
+
+from YourModule import *      # Import all module symbols not starting
+                              #  with an underscore (default); if __all__
+                              #  is defined, only imports those symbols.
+
+from YourModule import name1, name2, xxx
+                              # Import the named symbols from the module
+
+from YourModule import name1 as name2
+                              # Import the named object, but use a
+                              #  different name to access it locally.
+
+#-----------------------------
+__all__ = ["F1", "F2", "List"]
+#-----------------------------
+__all__ = ["Op_Func", "Table"]
+#-----------------------------
+from YourModule import Op_Func, Table, F1
+#-----------------------------
+from YourModule import Functions, Table
+#-----------------------------
+
+# ^^PLEAC^^_12.2
+#-----------------------------
+# no import
+mod = "module"
+try:
+    __import__(mod)
+except ImportError, err:
+    raise ImportError("couldn't load %s: %s" % (mod, err))
+
+# imports into current package
+try:
+    import module
+except ImportError, err:
+    raise ImportError("couldn't load 'module': %s" % (err, ))
+
+# imports into current package, if the name is known
+try:
+    import module
+except ImportError, err:
+    raise ImportError("couldn't load 'module': %s" % (err, ))
+
+# Use a fixed local name for a named module
+mod = "module"
+try:
+    local_name = __import__(mod)
+except ImportError, err:
+    raise ImportError("couldn't load %s: %s" % (mod, err))
+
+# Use the given name for the named module.
+# (You probably don't need to do this.)
+mod = "module"
+try:
+    globals()[mod] = __import__(mod)
+except ImportError, err:
+    raise ImportError("couldn't load %s: %s" % (mod, err))
+
+#-----------------------------
+DBs = "Giant.Eenie Giant.Meanie Mouse.Mynie Moe".split()
+for mod in DBs.split():
+    try:
+        loaded_module = __import__(mod)
+    except ImportError:
+        continue
+    # __import__ returns a reference to the top-most module
+    # Need to get the actual submodule requested.
+    for term in mod.split(".")[:-1]:
+        loaded_module = getattr(loaded_module, term)
+    break
+else:
+    raise ImportError("None of %s loaded" % DBs)
+#-----------------------------
+
+# ^^PLEAC^^_12.3
+#-----------------------------
+import sys
+if __name__ == "__main__":
+    if len(sys.argv) != 3 or not sys.argv[1].isdigit() \
+                          or not sys.argv[2].isdigit():
+        raise SystemExit("usage: %s num1 num2" % sys.argv[0])
+
+import Some.Module
+import More.Modules
+#-----------------------------
+if opt_b:
+    import math
+#-----------------------------
+from os import O_EXCL, O_CREAT, O_RDWR
+
+#-----------------------------
+import os
+O_EXCL = os.O_EXCL
+O_CREAT = os.O_CREAT
+O_RDWR = os.O_RDWR
+#-----------------------------
+import os
+O_EXCL, O_CREAT, O_RDWR = os.O_EXCL, os.O_CREAT, os.O_RDWR
+#-----------------------------
+load_module('os', "O_EXCL O_CREAT O_RDWR".split())
+
+def load_module(module_name, symbols):
+    module = __import__(module_name)
+    for symbol in symbols:
+        globals()[symbol] = getattr(module, symbol)
+#-----------------------------
+
+# ^^PLEAC^^_12.4
+#-----------------------------
+# @@INCOMPLETE@@
+# Don't know how to translate the 'Alpha' 'Beta' example
+#-----------------------------
+# Flipper.py
+__version__ = (1, 0)
+
+__all__ = ["flip_boundary", "flip_words"]
+
+Separatrix = ' ';  # default to blank
+
+def flip_boundary(sep = None):
+    prev_sep = Separatrix;
+    if sep is not None:
+        global Separatrix
+        Separatrix = sep
+    return prev_sep
+
+def flip_words(line):
+    words = line.split(Separatrix)
+    words.reverse()
+    return Separatrix.join(words)
+#-----------------------------
+
+# ^^PLEAC^^_12.5
+#-----------------------------
+this_pack = __name__
+#-----------------------------
+that_pack = sys._getframe(1).f_globals.get("__name__", "<string>")
+#-----------------------------
+print "I am in package", __name__
+#-----------------------------
+# @@INCOMPLETE@@
+# I don't know what the Alpha/Beta examples are trying to do.
+#-----------------------------
+## Do not use this in real Python code
+import sys
+
+def nreadline(count, handle_name):
+    assert count > 0, "count must be > 0"
+    locals = sys._getframe(1).f_locals
+    if not locals.has_key(handle_name):
+        raise AssertionError("need open filehandle")
+    infile = locals[handle_name]
+    retlist = []
+    for line in infile:
+        retlist.append(line)
+        count -= 1
+        if count == 0:
+            break
+    return retlist
+
+def main():
+    FH = open("/etc/termcap")
+    a, b, c = nreadline(3, "FH")
+
+if __name__ == "__main__":
+    main()
+#-----------------------------
+
+# ^^PLEAC^^_12.6
+#-----------------------------
+## There is no direct equivalent in Python to an END block
+import time, os, sys
+
+# Tricks to ensure the needed functions exist during module cleanup
+def _getgmtime(asctime = time.asctime, gmtime = time.gmtime,
+               t = time.time):
+    return asctime(gmtime(t()))
+
+class Logfile:
+    def __init__(self, file):
+        self.file = file
+
+    def _logmsg(self, msg, argv0 = sys.argv[0], pid = os.getpid(),
+                _getgmtime = _getgmtime):
+        # more tricks to keep all needed references
+        now = _getgmtime()
+        print >>self.file, argv0, pid, now + ":", msg
+
+    def logmsg(self, msg):
+        self._logmsg(self.file, msg)
+
+    def __del__(self):
+        self._logmsg("shutdown")
+        self.file.close()
+
+    def __getattr__(self, attr):
+        # forward everything else to the file handle
+        return getattr(self.file, attr)
+
+# 0 means unbuffered
+LF = Logfile(open("/tmp/mylog", "a+", 0))
+logmsg = LF.logmsg
+
+#-----------------------------
+## It is more appropriate to use try/finally around the
+## main code, so the order of initialization and finalization
+## can be specified.
+if __name__ == "__main__":
+    import logger
+    logger.init("/tmp/mylog")
+    try:
+        main()
+    finally:
+        logger.close()
+
+#-----------------------------
+
+# ^^PLEAC^^_12.7
+#-----------------------------
+#% python -c 'import sys\
+for i, name in zip(xrange(sys.maxint), sys.path):\
+    print i, repr(name)
+#> 0 ''
+#> 1 '/usr/lib/python2.2'
+#> 2 '/usr/lib/python2.2/plat-linux2'
+#> 3 '/usr/lib/python2.2/lib-tk'
+#-----------------------------
+# syntax for sh, bash, ksh, or zsh
+#$ export PYTHONPATH=$HOME/pythonlib
+
+# syntax for csh or tcsh
+#% setenv PYTHONPATH ~/pythonlib
+#-----------------------------
+import sys
+sys.path.insert(0, "/projects/spectre/lib")
+#-----------------------------
+import FindBin
+sys.path.insert(0, FindBin.Bin)
+#-----------------------------
+import FindBin
+Bin = "Name"
+bin = getattr(FindBin, Bin)
+sys.path.insert(0, bin + "/../lib")
+#-----------------------------
+
+# ^^PLEAC^^_12.8
+#-----------------------------
+#% h2xs -XA -n Planets
+#% h2xs -XA -n Astronomy::Orbits
+#-----------------------------
+# @@INCOMPLETE@@
+# @@INCOMPLETE@@
+# Need a distutils example
+#-----------------------------
+
+# ^^PLEAC^^_12.11
+#-----------------------------
+## Any definition in a Python module overrides the builtin
+## for that module
+
+#=== In MyModule
+def open():
+    pass # TBA
+#-----------------------------
+from MyModule import open
+file = open()
+#-----------------------------
+
+# ^^PLEAC^^_12.12
+#-----------------------------
+def even_only(n):
+    if n & 1:     # one way to test
+        raise AssertionError("%s is not even" % (n,))
+    #....
+
+#-----------------------------
+def even_only(n):
+    if n % 2:    # here's another
+        # choice of exception depends on the problem
+        raise TypeError("%s is not even" % (n,))
+    #....
+
+#-----------------------------
+import warnings
+def even_only(n):
+    if n & 1:           # test whether odd number
+        warnings.warn("%s is not even, continuing" % (n))
+        n += 1
+    #....
+#-----------------------------
+warnings.filterwarnings("ignore")
+#-----------------------------
+
+# ^^PLEAC^^_12.13
+#-----------------------------
+val = getattr(__import__(packname), varname)
+vals =  getattr(__import__(packname), aryname)
+getattr(__import__(packname), funcname)("args")
+#-----------------------------
+
+# @@INCOMPLETE@@
+#-----------------------------
+
+# ^^PLEAC^^_12.14
+#-----------------------------
+# @@INCOMPLETE@@
+# @@INCOMPLETE@@
+# No Python equivalent - see Inline for a possible replacement
+#-----------------------------
+
+# ^^PLEAC^^_12.15
+#-----------------------------
+# @@INCOMPLETE@@
+# @@INCOMPLETE@@
+# Need a distutils equivalent
+
+#-----------------------------
+
+# ^^PLEAC^^_12.16
+#-----------------------------
+# @@INCOMPLETE@@
+# @@INCOMPLETE@@
+# No Python equivalent.  (A couple of proposals, but nothing definitive.)
+# 
+# Python docstrings are one line, which is the short description of the
+# function, class, module, etc.  Optionally this is followed by a blank
+# line then the full description of the object.
+
+#-----------------------------
+
+# ^^PLEAC^^_12.17
+#-----------------------------
+# Recent Python distributions are built and installed with disutils.
+# 
+# To build and install under unix
+# 
+# % python setup.py install
+# 
+# If you want to build under one login and install under another
+# 
+# % python setup.py build
+# $ python setup.py install
+# 
+# A package may also be available prebuilt, eg, as an RPM or Windows
+# installer.  Details will be specific to the operating system.
+
+#-----------------------------
+# % python setup.py --prefix ~/python-lib
+#-----------------------------
+
+
+# ^^PLEAC^^_12.18
+#-----------------------------
+#== File Some/Module.py
+
+# There are so many differences between Python and Perl that
+# it isn't worthwhile trying to come up with an equivalent to
+# this Perl code.  The Python code is much smaller, and there's
+# no need to have a template.
+
+#-----------------------------
+
+# ^^PLEAC^^_12.19
+#-----------------------------
+#% pmdesc
+#-----------------------------
+import sys, pydoc
+
+def print_module_info(path, modname, desc):
+   # Skip files starting with "test_"
+   if modname.split(".")[-1].startswith("test_"):
+       return
+   try:
+       # This assumes the modules are safe for importing,
+       # in that they don't have side effects.  Could also
+       # grep the file for the __version__ line.
+       mod = pydoc.safeimport(modname)
+   except pydoc.ErrorDuringImport:
+       return
+   version = getattr(mod, "__version__", "unknown")
+   if isinstance(version, type("")):
+       # Use the string if it's given
+       pass
+   else:
+       # Assume it's a list of version numbers, from major to minor
+       ".".join(map(str, version))
+   synopsis, text = pydoc.splitdoc(desc)
+   print "%s (%s) - %s" % (modname, version, synopsis)
+
+scanner = pydoc.ModuleScanner()
+scanner.run(print_module_info)
+
+#-----------------------------
+
+
 # ^^PLEAC^^_13.0
 #-----------------------------
 # Inside a module named 'Data' / file named 'Data.py'
