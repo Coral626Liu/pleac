@@ -641,11 +641,15 @@ Calendar.dwim_time("2:40:25 UTC 23.11.2004");
 Calendar.parse("%Y-%M-%D %h:%m:%s %z","2004-11-23 2:40:25 UTC");
 // Result: Second(Tue 23 Nov 2004 2:40:25 UTC)
 
+// without parsing
+Calendar.Second(2004, 11, 23, 2, 40, 25);
+// Result: Second(Tue 23 Nov 2004 2:40:25 CET)
+
 // functional
 Calendar.Year(2004)->month(11)->day(23)->hour(2)->minute(40)->second(25);
 // Result: Second(Tue 23 Nov 2004 2:40:25 CET)
 
-Calendar.Year(2004)->month(11)->day(23)->set_timezone("UTC")->hour(2)->minute(40)->second(25);
+Calendar.Day(2004, 11, 23)->set_timezone("UTC")->hour(2)->minute(40)->second(25);
 // Result: Second(Tue 23 Nov 2004 2:40:25 UTC)
 
 // set a time today
@@ -702,7 +706,7 @@ int years   = 1973;
 int months  = 1;
 int days    = 18;
 int offset  = 55;
-object then = Calendar.Year(years)->month(months)->day(days)+Calendar.Day()*offset;
+object then = Calendar.Day(years, months, days)+offset;
 write("Nat was 55 days old on: %d/%d/%d\n", then->month_no(), then->month_day(),then->year_no());
 // Nat was 55 days old on: 3/14/1973
 
@@ -765,7 +769,7 @@ int year=1981;
 int month=6;
 int day=16;
 object date;
-date = Calendar.Year(year)->month(month)->day(day);
+date = Calendar.Day(year, month, day);
 // Result: Day(Tue 16 Jun 1981)
 
 date->week_day();
@@ -811,7 +815,7 @@ now->format_ctime();
 
 // there is no equivalent to scalar localtime
 
-now = Calendar.Year(1973)->month(1)->day(18)->hour(3)->minute(45)->second(50);
+now = Calendar.Second(1973, 1, 18, 3, 45, 50);
 write("strftime gives: %s %02d/%02d/%!2d\n", now->week_day_name(), 
         now->month_no(), now->month_day(), now->year_no());
 // strftime gives: Sunday 01/18/73
@@ -973,3 +977,49 @@ int main()
   write("%{%-=22s %-=22s %-=20s %=10s\n%}\n", delays);
   return 0;
 }
+
+// @@PLEAC@@_4.0
+
+// nested arrays are supported
+array flat = ({ "this", "that", "the", "other" });
+array nested = ({ "this", "that", ({ "the", "other" }) });
+
+
+array tune = ({ "The", "Star-Spangled", "Banner" });
+tune[0];
+// Result: "The"
+tune[1];
+// Result: "Star-Spangled"
+
+
+// the typing may be more specific
+// only strings allowed in the array (thus no nesting!)
+array(string) flat = ({ "this", "that", "the", "other" });
+
+// allow one level of nesting
+array(string|array(string)) admit1 = ({ "this", "that", ({ "the", "other" }) });
+
+// the first level may only contain arrays, other levels may contain anything
+array(array) require1 ({ ({ "this", "that" }), ({ "the", "other" }) });
+
+
+// @@PLEAC@@_4.1
+
+// list
+array(string) a = ({ "quick", "brown", "fox" });
+
+// words
+array(string) a = "Why are you teasing me?"/" ";
+
+// lines
+array(string) lines = #"The boy stood on the burning deck,
+It was as hot as glass."/"\n";
+
+// file
+array(string) bigarray = Stdio.read_file("mydatafile")/"\n";
+
+// the quoting issues do not apply.
+
+array(string) ships = "Niña Pinta Santa María"/" ";         // wrong
+array(string) ships = ({ "Niña", "Pinta", "Santa María" }); // right
+
