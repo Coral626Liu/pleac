@@ -9,12 +9,7 @@
 (* @@PLEAC@@_APPENDIX *)
 open Printf
 
-let cmp_int a b = a - b 
-let cmp_string a b = if a < b then -1 else 1
-
-let sort_ints l = List.sort cmp_int l
-let sort_strings l = List.sort cmp_string l
-
+let sort_ l = List.sort compare l
 
 let rec uniq = function
   | [] -> []
@@ -30,15 +25,15 @@ let rec all_assoc e = function
   | (e',v) :: l when e=e' -> v :: all_assoc e l
   | _ :: l -> all_assoc e l
 
-(* fold_right alike *)
+(* fold_left alike *)
 let rec fold_lines f init chan =
   try 
     let line = input_line chan in 
-    f line (fold_lines f init chan)
+    fold_lines f (f init line) chan
   with End_of_file -> init
 
-let iter_lines f chan = fold_lines (fun line _ -> f line) () chan  
-let readlines chan = fold_lines (fun e l -> e::l) [] chan
+let iter_lines f chan = fold_lines (fun _ line -> f line) () chan  
+let readlines chan = List.rev (fold_lines (fun l e -> e::l) [] chan)
 ;;
 (* @@PLEAC@@_1.0 *)
 (*---------------------------*)
@@ -355,7 +350,7 @@ List.iter
   (fun key ->
     printf "%s is %s.\n" key (Hashtbl.find food_color key)
   )
-  (sort_strings (hashtbl_keys food_color))
+  (sort_ (hashtbl_keys food_color))
 ;;
 
 (*
@@ -482,7 +477,7 @@ let ttys = filter_some (List.map (fun line ->
 List.iter
   (fun user ->
     printf "%s: %s\n" user (String.concat " " (all_assoc user ttys))
-  ) (sort_strings (uniq (List.map fst ttys)))
+  ) (sort_ (uniq (List.map fst ttys)))
 ;
 (*-----------------------------*)
 List.iter
@@ -499,7 +494,7 @@ List.iter
         in
         printf "%s (owned by %s)\n" tty uname
       ) ttylist
-  ) (sort_strings (uniq (List.map fst ttys)))
+  ) (sort_ (uniq (List.map fst ttys)))
 (*-----------------------------*)
 
 (* TODO continue from PLEAC 5.8 *)
