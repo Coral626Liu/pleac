@@ -1808,6 +1808,146 @@ def plainfiles(dir)
 end
 
 
+# @@PLEAC@@_9.6
+list = Dir.glob("*.c")
+
+dir = Dir.open(path)
+files = dir.entries.grep(/\.c$/)
+dir.close
+
+files = Dir.glob("*.c")
+files = Dir.open(path).entries.grep(/\.[ch]$/i)
+
+dir = Dir.new(path)
+files = dir.entries.grep(/\.[ch]$/i)
+
+begin
+  d = Dir.open(dir)
+rescue Errno::ENOENT
+  raise "Couldn't open #{dir} for reading: #{$!}"
+end
+
+files = []
+d.each do |file|
+  puts file
+  next unless file =~ /\.[ch]$/i
+
+  filename = "#{dir}/#{file}"
+  # There is no -T equivalent in Ruby, but we can still test emptiness
+  files.push(filename) if test(?s, filename)
+end
+
+dirs.entries.grep(/^\d+$/).
+             map    { |file| [file, "#{path}/#{file}"]} .
+             select { |file| test(?d, file[1]) }.
+             sort   { |a,b|  a[0] <=> b[0] }.
+             map    { |file| file[1] }
+
+
+# @@PLEAC@@_9.7
+require 'find'
+Find.find(dirlist) do |file|
+  # do whatever
+end
+
+require 'find'
+argv = ARGV.empty? ? %w{.} : ARGV
+Find.find(*argv) do |file|
+  print file, (test(?d, file) ? "/\n" : "\n")
+end
+
+require 'find'
+argv = ARGV.empty? ? %w{.} : ARGV
+sum = 0
+Find.find(*argv) do |file|
+  size = test(?s, file) || 0
+  sum += size
+end
+puts "#{argv.join(' ')} contains #{sum} bytes"
+
+require 'find'
+argv = ARGV.empty? ? %w{.} : ARGV
+saved_size, saved_name = -1, ""
+Find.find(*argv) do |file|
+  size = test(?s, file) || 0
+  next unless test(?f, file) && size > saved_size
+  saved_size = size
+  saved_name = file
+end
+puts "Biggest file #{saved_name} in #{argv.join(' ')} is #{saved_size}"
+
+require 'find'
+argv = ARGV.empty? ? %w{.} : ARGV
+age, name = nil
+Find.find(*argv) do |file|
+  mtime = File.stat(file).mtime
+  next if age && age > mtime
+  age = mtime
+  name = file
+end
+puts "#{name} #{age}"
+
+#-----------------------------
+#!/usr/bin/ruby -w
+# fdirs - find all directories
+require 'find'
+argv = ARGV.empty? ? %w{.} : ARGV
+File.find(*argv) { |file| puts file if test(?d, file) }
+#-----------------------------
+
+
+# @@PLEAC@@_9.9
+require 'ftools'
+names.each do |file|
+  newname = file
+  begin
+    File.move(file, newname)
+  rescue Errno::EPERM
+    $stderr.puts "Couldn't rename #{file} to #{newname}: #{$!}"
+  end
+end
+
+require 'ftools'
+op = ARGV.empty? ? (raise "Usage: rename expr [files]\n") : ARGV.shift
+argv = ARGV.empty? ? $stdin.readlines.map { |f| f.chomp } : ARGV
+argv.each do |file|
+  was = file
+  file = eval("file.#{op}")
+  File.move(was, file) unless was == file
+end
+
+
+# @@PLEAC@@_9.10
+base = File.basename(path)
+dir  = File.dirname(path)
+# ruby has no fileparse equivalent
+dir, base = File.split(path)
+ext = base.scan(/\..*$/).to_s
+
+path = '/usr/lib/libc.a'
+file = File.basename(path)
+dir  = File.dirname(path)
+
+puts "dir is #{dir}, file is #{file}"
+# dir is /usr/lib, file is libc.a
+
+path = '/usr/lib/libc.a'
+dir, filename = File.split(path)
+name, ext = filename.split(/(?=\.)/)
+puts "dir is #{dir}, name is #{name}, ext is #{ext}"
+#   NOTE: The Ruby code prints
+#   dir is /usr/lib, name is libc, extension is .a
+#     while the Perl code prints a '/' after the directory name
+#   dir is /usr/lib/, name is libc, extension is .a
+
+# No fileparse_set_fstype() equivalent in ruby
+
+def extension(path)
+  ext = path.scan(/\..*$/).to_s
+  ext.sub(/^\./, "")
+end
+
+
 # @@PLEAC@@_10.0
 def hello
     $greeted += 1      # in Ruby, a variable beginning with $ is global (can be any type of course)
