@@ -418,8 +418,7 @@ class Integer
     def to_roman
         remains = self
         roman = ""
-        for entry in @@romanlist
-            sym, num = entry[0], entry[1]
+        for sym, num in @@romanlist
             while remains >= num
                 remains -= num
                 roman << sym
@@ -6173,6 +6172,36 @@ print "Running as " + Etc.getpwuid.name + "\n"
 # % (setenv HTTP_METHOD POST; ruby -w cgi-script name=joe number=10)
 # POST method script in sh
 # % HTTP_METHOD=POST perl -w cgi-script name=joe number=10
+
+
+# @@PLEAC@@_19.4
+# ruby has several security levels, the level "1" is similar to perls taint mode.
+# It can be switched on by providing the -T command line parameter
+# or by setting $SAFE to 1. Setting $SAFE to 2,3 or 4 restricts possible
+# harmful operations further.
+
+#!/usr/bin/ruby -T
+$SAFE = 1
+File.open(ARGV[0], "w")
+# ruby warns with:
+# taint1.rb:2:in `initialize': Insecure operation - initialize (SecurityError)
+
+$SAFE = 1
+file = ARGV[0]
+unless /^([\w.-]+)$/.match(file)
+    raise "filename #{file} has invalid characters"
+end
+file = $1
+# In ruby, even the back reference from a regular expression stays tainted.
+# you need to explicitly untaint the variable:
+file.untaint
+File.open(file, "w")
+
+# Race condition exists like in perl:
+unless File.exists(filename)        # Wrong because of race condition
+    File.open(filename, "w")
+end
+
 
 
 # @@PLEAC@@_19.10
