@@ -222,3 +222,189 @@ temp @ b !
 : map-xt ( xt c- u -- variable stack effect )
  0 do 2dup i chars + c@ swap execute loop
 ;
+
+( @@PLEAC@@_1.6 )
+
+: 4dup-nip ( a b c d -- a b c d a b d  )
+    2over 2over nip
+;
+
+: c[i]@ ( c- i -- c )   chars + c@
+;
+
+: c[i]! ( c- i c -- )
+    chars + c!
+;
+
+: -cmove ( c- x c- -- c- x  )
+    over 0
+    u+do 	i 4dup-nip
+	1+ - c[i]@
+	2over nip rot c[i]!
+    loop
+    rot drop swap
+;
+
+: revbytes ( c- x -- c- x )
+    dup allocate throw
+    -cmove
+;
+
+: gnirts s" string" revbytes ;
+
+: space?
+    32 =
+;
+
+: ^? ( c c- a -- c t )
+    c[i]@
+    tuck      space? not       swap      space? and     ;
+
+: -^? ( c c- a -- c t )
+    c[i]@
+    tuck
+    space?
+    swap
+    space? not and
+;
+
+: count-words ( c- x -- x )
+    0 -rot 32 swap
+    0 u+do
+	over i ^? if
+	    rot 1+ -rot
+	then
+    loop
+    drop drop
+;
+
+: last-spaces ( c- x -- x )
+    0 -rot
+    begin
+	1-
+	2dup
+	c[i]@
+	space?
+	over 0 >=
+	and
+    while
+	    rot 1+ -rot
+    repeat
+    drop drop
+;
+
+: last-word ( c- x -- x )
+    0 -rot
+    begin
+	1-
+	2dup
+	c[i]@
+	space? not
+	over 0 >=
+	and
+    while
+	    rot 1+ -rot
+    repeat
+    drop drop
+;
+
+: back>front ( c- x c- x -- )
+    2swap 2dup last-word -rot
+    chars + over chars - swap
+    rot drop rot swap
+    cmove  ;
+
+: sback>front ( c- x c- x -- )
+    2swap 2dup last-spaces -rot
+    chars + over chars - swap
+    rot drop rot swap
+    cmove
+;
+
+: sdrow ( c- x -- c- x )      2dup last-spaces -
+dup >r dup chars allocate throw
+    dup >r
+    over 2swap 2dup count-words               0 u+do
+2dup last-word >r       	2over 2over 2swap back>front r@
+	- rot drop dup -rot 2swap
+	r>
+	rot + swap 2swap
+	2dup last-spaces >r
+	2over 2over 2swap sback>front r@
+	- rot drop dup -rot 2swap
+	r>
+	rot + swap 2swap
+    loop
+    2drop 2drop
+    r> r>
+;
+
+: count-spaces ( c- x -- x )
+    0 -rot
+    0 u+do
+	dup i c[i]@ space? if
+	    swap 1+ swap
+	then
+    loop
+    drop
+;
+
+: move-if-not-space ( c- c- -- f )
+    swap c@ dup space?
+    if
+	drop drop false
+    else
+	swap c! true
+    then	
+;
+
+: squash-words ( c- x -- c- x )
+    2dup count-spaces
+    over swap -
+    dup chars allocate throw
+    swap >r dup >r
+    -rot
+    0 u+do
+	2dup
+	i chars +
+	swap
+	move-if-not-space if
+	    swap 1 chars + swap
+	then
+    loop
+    drop drop r> r>
+;
+
+: confused ( c- x -- c- x )
+    squash-words
+    revbytes
+;
+
+80 constant biggest-word
+create buff biggest-word 2 + allot
+
+: palindrome? ( c- x -- f )
+    2dup revbytes
+    compare not
+;
+
+: chomp ( c- x -- c- x )
+    2dup last-spaces -
+;
+s" /usr/share/dict/words"  r/o open-file throw value dict
+
+: scan-dictionary ( c- x --  )
+    begin
+	buff biggest-word dict read-line throw
+    while
+	    dup buff swap chomp
+	    dup 5 > -rot
+	    palindrome? and if
+		buff swap type cr
+	    else
+		drop
+	    then
+    repeat
+;
+
+	        
