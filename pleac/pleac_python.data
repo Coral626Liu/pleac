@@ -5834,26 +5834,55 @@ upfile.close()
 
 ftp.quit()
 
+
 # @@PLEAC@@_18.3
+import smtplib
+from email.MIMEText import MIMEText
 
-#--------------------------
+msg = MIMEText(body)
+msg['From'] = from_address
+msg['To'] = to_address
+msg['Subject'] = subject
 
-# There is no API for sending via sendmail call
-# in python. Use smtplib or the next example instead.
+mailer = smtplib.SMTP()
+mailer.connect()
+mailer.sendmail(from_address, [to_address], msg.as_string())
 
-#--------------------------
+# @@PLEAC@@_18.4
+import nntplib
 
-import popen2
-(std_out_err, std_in) = popen2.popen4("sendmail -oi -t odq")
-std_in.write("""From: User Originating Mail <me@host>
-To: Final Destination <you@localhost>
-Subject: A relevant subject line
+# You can except nntplib.NNTPError to process errors
+# instead of displaying traceback.
 
-Body of the message goes here, in as many lines as you like.
-""")
-std_in.close()
-out = std_out_err.read().strip()
-print out
+server = nntplib.NNTP("news.example.com")
+response, count, first, last, name = server.group("misc.test")
+headers = server.head(first)
+bodytext = server.body(first)
+article = server.article(first)
+
+f = file("article.txt")
+server.post(f)
+
+response, grouplist = server.list()
+for group in grouplist:
+    name, last, first, flag = group
+    if flag == 'y':
+        pass  # I can post to group
+
+# @@PLEAC@@_18.5
+import poplib
+
+pop = poplib.POP3("mail.example.com")
+pop.user(username)
+pop.pass_(password)
+count, size = pop.stat()
+for i in range(1, count+1):
+    reponse, message, octets = pop.retr(i)
+    # message is a list of lines
+    pop.dele(i)
+
+# You must quit, otherwise mailbox remains locked.
+pop.quit()
 
 
 # @@PLEAC@@_19.1
