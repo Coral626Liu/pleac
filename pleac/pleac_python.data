@@ -2007,3 +2007,512 @@ file = os.fdopen(os.dup(fdnum)) # open to a copy of the descriptor
 outcopy = os.fdopen(os.dup(sys.stdin.fileno()), "w")
 incopy = os.fdopen(os.dup(sys.stdin.fileno()), "r")
 
+# ^^PLEAC^^_8.0
+#-----------------------------
+# for line in DATAFILE: # For Python 2.2
+for line in DATAFILE.xreadlines(): # Python 2.1
+    line = line.rstrip()
+    size = len(line)
+    print size        # output size of line
+
+#-----------------------------
+for line in datafile:
+    print length(line.rstrip())     # output size of line
+#-----------------------------
+lines = datafile.readlines()
+#-----------------------------
+whole_file = file.read()
+#-----------------------------
+## No direct equivalent in Python
+#% perl -040 -e '$word = <>; print "First word is $word\n";'
+#-----------------------------
+## No direct equivalent in Python
+#% perl -ne 'BEGIN { $/="%%\n" } chomp; print if /Unix/i' fortune.dat
+#-----------------------------
+print >>file, "One", "two", "three"; # "One two three"
+print "Baa baa black sheep.";        # Sent to default output file
+#-----------------------------
+buffer = file.read(4096)
+rv = len(buffer)
+#-----------------------------
+file.truncate(length)
+open("/tmp/%d.pid" % os.getpid(), "a").truncate(length)
+#-----------------------------
+pos = file.tell()
+print "I'm", pos, "bytes from the start of DATAFILE."
+#-----------------------------
+logfile.seek(0, 2)   # Seek to the end
+datafile.seek(pos)   # Seek to a given byte
+outfile.seek(-20, 1) # Seek back 20 bytes
+#-----------------------------
+written = os.write(datafile.fileno(), mystring)
+if written != len(mystring):
+    warnings.warn("only read %s bytes, not %s" % (written, len(mystring)))
+#-----------------------------
+pos = os.lseek(file.fileno(), 0, 1);       # don't change position
+#-----------------------------
+
+ 
+# ^^PLEAC^^_8.1
+# This uses the 'yield' keyword from Python 2.2
+from __future__ import generators
+def ContReader(infile):
+    lines = []
+    for line in infile:
+        line = line.rstrip()
+        if line.endswith("\\"):
+            lines.append(line[:-1])
+            continue
+        lines.append(line)
+        yield "".join(lines)
+        lines = []
+    if lines:
+        yield "".join(lines)
+
+for line in ContReader(datafile):
+    pass # process full record in 'line' here
+
+# ^^PLEAC^^_8.2
+import os
+count = int(os.popen("wc -l < " + filename).read())
+#-----------------------------
+file = open(filename)
+count = 0
+for line in file:
+    count += 1
+# 'count' now holds the number of lines read
+#-----------------------------
+file = open(filename)
+count = 0
+while 1:
+    line = file.readline()
+    if not line:
+        break
+    count += 1
+#-----------------------------
+count = 0
+while 1:
+    s = file.read(2**16)
+    count += s.count("\n")
+#-----------------------------
+for line, count in zip(open(filename), xrange(1, sys.maxint)):
+    pass
+# 'count' now holds the number of lines read
+#-----------------------------
+import fileinput
+fi = fileinput.FileInput(filename)
+while fi.readline(): pass
+
+count = fi.lineno()
+#-----------------------------
+from __future__ import generators
+
+def SepReader(infile, sep = "\n\n"):
+    text = infile.read(10000)
+    if not text:
+        return
+    while 1:
+        fields = text.split(sep)
+        for field in fields[:-1]:
+            yield field
+        text = fields[-1]
+        new_text = infile.read(10000)
+        if not new_text:
+            yield text
+            break
+        text += new_text
+
+para_count = 0
+for para in SepReader(open(filename)):
+    para_count += 1
+# FIXME: For my test case (Python-pre2.2 README from CVS) this
+# returns 175 paragraphs while Perl returns 174.
+#-----------------------------
+
+ 
+# ^^PLEAC^^_8.3
+for line in sys.stdin:
+    for word in line.split():
+        pass # do something with 'chunk'
+#-----------------------------
+pat = re.compile(r"(\w[\w'-]*)")
+for line in sys.stdin:
+    pos = 0
+    while 1:
+        match = pat.search(line, pos)
+        if not match:
+            break
+        pos = match.end(1)
+        # do something with match.group(1)
+
+# EXPERIMENTAL in the sre implementation but
+# likely to be included in future (post-2.2) releases.
+pat = re.compile(r"(\w[\w'-]*)")
+for line in sys.stdin:
+    scanner = pat.scanner(line)
+    while 1:
+        match = scanner.search()
+        if not match:
+            break
+        # do something with match.group(1)
+
+
+#-----------------------------
+# Make a word frequency count
+import fileinput, re
+pat = re.compile(r"(\w[\w'-]*)")
+seen = {}
+for line in fileinput.input():
+    pos = 0
+    while 1:
+        match = pat.search(line, pos)
+        if not match:
+            break
+        pos = match.end(1)
+        text = match.group(1).lower()
+        seen[text] = seen.get(text, 0) + 1
+
+# output dict in a descending numeric sort of its values
+items = seen.items()
+items.sort(lambda a, b: cmp(b[1], a[1]))
+for text, count in items:
+    print "%5d %s" % (count, text)
+
+#-----------------------------
+# Line frequency count
+import fileinput, sys
+seen = {}
+for line in fileinput.input():
+    text = line.lower()
+    seen[text] = seen.get(text, 0) + 1
+items = seen.items()
+items.sort(lambda a, b: cmp(b[1], a[1]))
+for text, count in items:
+    sys.stdout.write("%5d %s" % (count, text))
+
+#-----------------------------
+
+ 
+# ^^PLEAC^^_8.4
+lines = file.readlines()
+while lines:
+    line = lines.pop()
+    # do something with 'line'
+
+#-----------------------------
+lines = file.readlines()
+lines.reverse()
+for line in lines:
+    pass # do something with 'line'
+#-----------------------------
+for i in range(len(lines)):
+    line = lines[-i]
+#-----------------------------
+paragraphs = [para for para in SepReader(infile)]
+paragraphs.sort()
+for paragraph in paragraphs:
+    pass # do something
+
+#-----------------------------
+
+ 
+
+# ^^PLEAC^^_8.5
+import time
+while 1:
+    for line in infile:
+        pass # do something with the line
+    time.sleep(SOMETIME)
+    infile.seek(0, 1)
+#-----------------------------
+import time
+naptime = 1
+
+logfile = open("/tmp/logfile");
+while 1:
+    for line in logfile:
+        print line.rstrip()
+    time.sleep(naptime)
+    infile.seek(0, 1)
+#-----------------------------
+while 1:
+    curpos = logfile.tell()
+    while 1:
+        line = logfile.readline()
+        if not line:
+            break
+        curpos = logfile.tell()
+    sleep(naptime)
+    logfile.seek(curpos, 0)  # seek to where we had been
+#-----------------------------
+import os, sys, stat
+if os.stat(LOGFILENAME)[stat.ST_NLINK] == 0:
+    sys.exit()
+#-----------------------------
+
+ 
+# ^^PLEAC^^_8.6
+import random, fileinput
+text = None
+for line in fileinput.input():
+    if random.randrange(fileinput.lineno()) == 0:
+        text = line
+# 'text' is the random line
+#-----------------------------
+# XXX is the perl code correct?  Where is the fortunes file opened?
+import sys
+adage = None
+i = 1
+for rec in SepReader(open("/usr/share/games/fortunes"), "%\n"):
+    if random.randrange(i) == 0:
+        adage = rec
+    i += 1
+
+print adage
+#-----------------------------
+
+ 
+# ^^PLEAC^^_8.7
+import random
+lines = input.readlines()
+random.shuffle(lines)
+for line in lines:
+    print line.rstrip()
+#-----------------------------
+
+ 
+
+# ^^PLEAC^^_8.8
+# looking for line number DESIRED_LINE_NUMBER
+lineno = 0
+while 1:
+    line = infile.readline()
+    if not line or lineno == DESIRED_LINE_NUMBER:
+        break
+    lineno = lineno + 1
+#-----------------------------
+lines = infile.readlines()
+line = lines[DESIRED_LINE_NUMBER]
+#-----------------------------
+for i in range(DESIRED_LINE_NUMBER):
+    line = infile.readline()
+    if not line:
+        break
+#-----------------------------
+
+## Not sure what this thing is doing.  Allow fast access to a given
+## line number?
+
+# usage: build_index(*DATA_HANDLE, *INDEX_HANDLE)
+
+# ^^PLEAC^^_8.9
+# given $RECORD with field separated by PATTERN,
+# extract @FIELDS.
+fields = re.split(pattern_string, text)
+#-----------------------------
+pat = re.compile(pattern_string)
+fields = pat.split(text)
+#-----------------------------
+re.split(r"([+-])", "3+5-2")
+#-----------------------------
+[3, '+', 5, '-', 2]
+#-----------------------------
+fields = record.split(":")
+#-----------------------------
+fields = re.split(r":", record)
+#-----------------------------
+fields = re.split(r"\s+", record)
+#-----------------------------
+fields = record.split(" ")
+#-----------------------------
+
+ 
+# ^^PLEAC^^_8.10
+file = open(filename, "r")
+prev_pos = pos = 0
+while 1:
+    line = file.readline()
+    if not line:
+        break
+    prev_pos = pos
+    pos = file.tell()
+file = open(filename, "a")
+file.truncate(prev_pos)
+#-----------------------------
+
+ 
+
+# ^^PLEAC^^_8.11
+open(filename, "rb")
+open(filename, "wb")
+#-----------------------------
+gifname = "picture.gif"
+gif_file = open(gifname, "rb")
+
+# Don't think there's an equivalent for these in Python
+#binmode(GIF);               # now DOS won't mangle binary input from GIF
+#binmode(STDOUT);            # now DOS won't mangle binary output to STDOUT
+
+#-----------------------------
+while 1:
+    buff = gif.read(8 * 2**10)
+    if not buff:
+        break
+    sys.stdout.write(buff)
+#-----------------------------
+
+ 
+
+# ^^PLEAC^^_8.12
+address = recsize * recno
+file.seek(address, 0)
+buffer = file.read(recsize)
+#-----------------------------
+address = recsize * (recno-1)
+#-----------------------------
+
+ 
+
+# ^^PLEAC^^_8.13
+import posixfile
+address = recsize * recno
+file.seek(address)
+buffer = file.read(recsize)
+# ... work with the buffer, then turn it back into a string and ...
+file.seek(-recsize, posixfile.SEEK_CUR)
+file.write(buffer)
+file.close()
+#-----------------------------
+## Not yet implemented
+# weekearly -- set someone's login date back a week
+
+# ^^PLEAC^^_8.14
+## Note: this isn't optimal -- the 's+=c' goes O(N**2) so don't
+## use for large strings.
+file.seek(addr)
+s = ""
+while 1:
+    c = file.read(1)
+    if not c or c == "\0":
+        break
+    s += c
+#-----------------------------
+file.seek(addr)
+offset = 0
+while 1:
+    s = file.read(1000)
+    x = s.find("\0")
+    if x != -1:
+        offset += x
+        break
+    offset += len(s)
+    if len(s) != 1000:  # EOF
+        break
+file.seek(addr)
+s = file.read(offset - 1)
+file.read(1)
+
+#-----------------------------
+## Not Implemented
+# bgets - get a string from an address in a binary file
+#-----------------------------
+#!/usr/bin/perl
+# strings - pull strings out of a binary file
+import re, sys
+
+## Assumes SepReader from above
+
+pat = re.compile(r"([\040-\176\s]{4,})")
+for block in SepReader(sys.stdin, "\0"):
+    pos = 0
+    while 1:
+        match = pat.search(block, pos)
+        if not match:
+            break
+        print match.group(1)
+        pos = match.end(1)
+#-----------------------------
+
+ 
+
+# ^^PLEAC^^_8.15
+# Not Implemented
+
+# ^^PLEAC^^_8.16
+# NOTE: to parse INI file, see the stanard ConfigParser module.
+import re
+pat = re.compile(r"\s*=\s*")
+for line in config_file:
+    if "#" in line:         # no comments
+        line = line[:line.index("#")]
+    line = line.strip()     # no leading or trailing white
+    if not line:            # anything left?
+        continue
+    m = pat.search(line)
+    var = line[:m.start()]
+    value = line[m.end():]
+    User_Preferences[var] = value
+
+
+# ^^PLEAC^^_8.17
+import os
+
+mode, ino, dev, nlink, uid, gid, size, \
+atime, mtime, ctime = os.stat(filename)
+
+mode &= 07777               # discard file type info
+
+#-----------------------------
+import stat
+info = stat(filename)
+if info[stat.ST_UID] == 0:
+    print "Superuser owns", filename
+if info[stat.ST_ATIME] > info[stat.ST_MTIME]:
+    print filename, "has been read since it was written."
+#-----------------------------
+import os, stat
+def is_safe(path):
+    info = os.stat(path)
+
+    # owner neither superuser nor me 
+    # the real uid is in stored in the $< variable
+    if info[stat.ST_UID] not in (0, os.getuid()):
+        return 0
+
+    # check whether group or other can write file.
+    # use 066 to detect either reading or writing
+    if info[stat.ST_MODE] & 022:  # someone else can write this
+        if not os.path.isdir(path):  # non-directories aren't safe
+            return 0
+        # but directories with the sticky bit (01000) are
+        if not (info[stat.ST_MODE] & 01000):
+            return 0
+    return 1
+#-----------------------------
+## XXX What is '_PC_CHOWN_RESTRICTED'?
+
+def is_verysafe(path):
+    terms = []
+    while 1:
+        path, ending = os.path.split(path)
+        if not ending:
+            break
+        terms.insert(0, ending)
+    for term in terms:
+        path = os.path.join(path, term)
+        if not is_safe(path):
+            return 0
+    return 1
+#-----------------------------
+
+# Program: tailwtmp
+# Not Implemented (don't know enough about Python's pack module)
+
+# Program: tctee
+# Not Implemented (requires reimplementing Perl's builtin '>>', '|',
+# etc. semantics)
+
+# Program: laston
+# Not Implemented (don't know enough about Python's pack module)
+
+
