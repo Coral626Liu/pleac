@@ -248,6 +248,92 @@ string)) (result nil (cons next result))
   (multiply-matrices x y))
 
 
+;;; @@PLEAC@@_4.17
+(defun fisher-yates-shuffle (vector)
+  "Randomly shuffle elements of VECTOR."
+  (loop for i from (1- (length vector)) downto 1
+        for j = (random i)
+        unless (= i j)
+          do (rotatef (aref vector i) (aref vector j)))
+  vector)
+;;;
+(defun shuffle (vector)
+  "Return a fresh permuted copy of VECTOR."
+  (let* ((n-permutations (factorial (length vector)))
+         (permutation (nth-permutation (random n-permutations)
+                                       (length vector))))
+    (map 'vector (lambda (i) (aref vector i)) permutation)))
+;;;
+(defun naive-shuffle (vector)
+  (loop with n = (length vector)
+        for i from 0 below n
+        for j = (random n)
+        do (rotatef (aref vector i) (aref vector j)))
+  vector)
+
+;;; @@PLEAC@@_4.19
+(defun factorial (n)
+  (loop for result = 1 then (* result i)
+        for i from 1 to n
+        finally (return result)))
+
+(factorial 500) ; => 1220136... (1135 digits total)
+
+(defun map-vector-permutations (function vector)
+  (labels ((permute (end)
+             (if (= end 0)
+                 (funcall function vector)
+                 (dotimes (i end)
+                   (rotatef (aref vector (1- end)) (aref vector i))
+                   (permute (1- end))
+                   (rotatef (aref vector (1- end)) (aref vector i))))))
+    (permute (length vector))))
+(map-vector-permutations #'print #(1 2 3))
+
+(defun map-list-permutations (function list)
+  (labels ((permute (tail)
+             (if (null tail)
+                 (funcall function list)
+                 (loop for subtail on tail
+                       do (rotatef (car tail) (car subtail))
+                          (permute (cdr tail))
+                          (rotatef (car tail) (car subtail))))))
+    (permute list)))
+(map-list-permutations #'print '(1 2 3))
+;;; permute words in each line of input stream
+(loop for line = (read-line *standard-input* nil nil)
+      while line
+      do (map-list-permutations (lambda (words)
+                                  (format t "~{~A~^ ~}~%" words))
+                                (cl-ppcre:split "\\s+" line)))
+
+;;;
+(let ((memo (make-hash-table)))
+  (setf (gethash 0 memo) 1)
+  (defun factorial (n)
+    (or (gethash n memo)
+        (setf (gethash n memo) (* n (factorial (1- n)))))))
+
+(defun nth-pattern (n length)
+  (loop for i from length downto 1
+        for (new-n elem) = (multiple-value-list (truncate n i))
+        collect elem
+        do (setq n new-n)))
+
+(defun pattern-permutation (pattern)
+  (loop with source = (cons nil
+                            (loop for i from 0 below (length pattern)
+                                  collect i))
+        for i in pattern
+        for pred = (nthcdr i source)
+        for (elem . rest) = (cdr pred)
+        collect elem
+        do (setf (cdr pred) rest)))
+
+(defun nth-permutation (n length)
+  (pattern-permutation (nth-pattern n length)))
+
+
 ; @@PLEAC@@_8.2
 ;; Should we count the last line, if it does not end with a newline?
 ;; This version counts:
@@ -261,3 +347,74 @@ string)) (result nil (cons next result))
             (multiple-value-list (read-line stream nil))
         while line
         count (not missing-newline-p)))
+
+
+; @@PLEAC@@_11.15
+;;; Binary trees example
+(deftype tree () '(or null tree-node))
+(defstruct (tree-node
+             (:conc-name #:tree-))
+  value
+  ;; subtrees
+  (left nil :type tree)
+  (right nil :type tree))
+
+(defun tree-insert (tree value)
+  "Return TREE with destructively inserted VALUE."
+  (declare (type tree tree))
+  (if tree
+      (progn (if (< value (tree-value tree))
+                 (setf (tree-left tree)
+                       (tree-insert (tree-left tree) value))
+                 (setf (tree-right tree)
+                       (tree-insert (tree-right tree) value)))
+             tree)
+      (make-tree-node :value value)))
+
+(defun print-tree-in-order (tree)
+  (when tree
+    (print-tree-in-order (tree-left tree))
+    (format t "~S " (tree-value tree))
+    (print-tree-in-order (tree-right tree))))
+
+(defun print-tree-in-preorder (tree)
+  (when tree
+    (format t "~S " (tree-value tree))
+    (print-tree-in-preorder (tree-left tree))
+    (print-tree-in-preorder (tree-right tree))))
+
+(defun print-tree-in-postorder (tree)
+  (when tree
+    (print-tree-in-postorder (tree-left tree))
+    (print-tree-in-postorder (tree-right tree))
+    (format t "~S " (tree-value tree))))
+
+(defun search-tree (tree value)
+  "Return a subtree of TREE with the specified VALUE in root."
+  (when tree
+    (if (= (tree-value tree) value)
+        tree
+        (search-tree (if (< value (tree-value tree))
+                         (tree-left tree)
+                         (tree-right tree))
+                     value))))
+
+(defun test-trees ()
+  (let ((tree nil))
+    (dotimes (i 20)
+      (setq tree (tree-insert tree (random 1000))))
+    (format t "~&Pre order: ") (print-tree-in-preorder tree)
+    (format t "~&In order:  ") (print-tree-in-order tree)
+    (format t "~&Postorder: ") (print-tree-in-postorder tree)
+    (terpri)
+
+    (loop do
+         (format t "~&Search? ")
+         (finish-output)
+         (let* ((eof (gensym)) ; some hard-to-enter object
+                (value (read *standard-input* nil eof)))
+           (when (eq value eof) (loop-finish))
+           (let ((found (search-tree tree value)))
+             (if found
+                 (format t "Found ~S at ~S~%" value found)
+                 (format t "No ~S in tree~%" value)))))))
