@@ -855,3 +855,69 @@ now->format_ctime();          // "Thu Jan 18 03:45:50 1973\n"
 now->format_smtp();           // "Thu, 18 Jan 1973 3:45:50 +0100"
 now->format_http();           // "Thu, 18 Jan 1973 02:45:50 GMT"
 
+// @@PLEAC@@_3.9
+
+int t=time();                 // current time in unixtime seconds
+float t0=time(t);             // higher precision time passed since t
+float t1=time(t);
+float elapsed=t1-t0;
+// Result: 0.009453
+
+//-------------------------------------------
+write("Press return when ready: ");
+array(int) before=System.gettimeofday();
+Stdio.stdin->gets();
+array(int) after=System.gettimeofday();
+int elapsed_sec=after[0]-before[0];
+int elapsed_usec=after[1]-before[1];
+if(elapsed_usec<0)
+{
+  elapsed_sec--;
+  elapsed_usec+=1000000;
+}
+
+write("You took %d.%d seconds.\n", elapsed_sec, elapsed_usec);
+//-------------------------------------
+
+int main()
+{
+  // size values are adjusted so that each run takes about the same length.
+  gaugethis(5000000, 100, lambda(){ return random(pow(2,31)-1); });
+               // values to fit into a signed 32bit int.
+  gaugethis(50000, 100, lambda(){ return pow(2,64)+random(pow(2,64)); });
+               // make sure values are bignum even in case 64bit ints are used.
+  gaugethis(500000, 100, lambda(){ return random_string(10); });
+               // might be interresting to compare longer strings too.
+}
+
+void gaugethis(int size, int number_of_times, function rand)
+{
+  array gauged_times = ({});
+  float average;
+
+  int swidth=sizeof((string)size);
+  int nwidth=sizeof((string)number_of_times);
+  for(int i; i<number_of_times; i++)
+  { 
+    write("%*d: ", nwidth, i);
+    array(int) arr=({});
+    write("creating array: ");
+    for(int j; j<size; j++)
+    {
+      arr += ({ rand() }); 
+    }
+    write(" sorting: ");
+
+    float gaugetime=gauge
+    { 
+      arr=sort(arr);
+    };
+    gauged_times += ({ gaugetime });
+    write(" %f          \r", gaugetime);
+  }
+  average=`+(@gauged_times)/(float)number_of_times;
+  gauged_times=sort(gauged_times);
+
+  write("average: %O, min: %O, max: %O                           \n", 
+        average, gauged_times[0], gauged_times[-1]);
+}
