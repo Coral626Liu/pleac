@@ -373,6 +373,154 @@ hello
 #---------------------------
 
 
+# @@PLEAC@@_5.0
+module "/pliant/language/unsafe.pli"
+var (Dictionary Str Int) age
+# insertion
+implicit age
+  insert "Nat" 24
+  insert "Jules" 25
+  insert "Josh" 17
+# when you know keys already exist:
+age "Nat" := 24
+age "Jules" := 25
+age "Josh" := 17
+#-----------------------------
+var (Dictionary Str Str) food_color
+implicit food_color
+  insert "Apple" "red"
+  insert "Banana" "yellow"
+  insert "Lemon" "yellow"
+  insert "Carrot" "orange"
+#-----------------------------
+
+
+# @@PLEAC@@_5.1
+#-----------------------------
+ dict insert key value
+#-----------------------------
+# food_color defined per the introduction
+food_color insert "Raspberry" "pink"
+console "Known foods:" eol
+each x food_color
+  console (food_color key x) eol
+
+ Known foods:
+ Banana
+ Apple
+ Raspberry
+ Carrot
+#-----------------------------
+
+
+# @@PLEAC@@_5.2
+#-----------------------------
+# does dict have a value for key ?
+if (dict exists key)
+  # it exists
+else
+  # it doesn't
+ 
+#-----------------------------
+# food_color per the introduction
+
+var List:Str fruits; fruits += "Banana"; fruits += "Martini"
+each name fruits
+  if (food_color exists name)
+    console name " is a food." eol
+  else
+    console name " is a drink." eol
+
+ Banana is a food.
+ Martini is a drink.
+#-----------------------------
+age := new (Dictionary Str Int)
+implicit age
+  insert "Toddler" 3
+  insert "Unborn" 0
+  insert "Phantasm" undefined
+
+var List:Str things
+things+="Toddler", things+="Phantasm"; things+="Relic"
+
+each thing things
+  console thing ": "
+  if (age exists thing)
+    console "Exists "
+    console (shunt age:thing<>undefined "Defined " "")
+    console (shunt age:thing>0 "True " "")
+  console eol
+
+# Toddler: Exists Defined True 
+# Unborn: Exists Defined 
+# Phantasm: Exists 
+# Relic: 
+#-----------------------------
+
+
+# @@PLEAC@@_5.3
+#-----------------------------
+# remove the first element in dict with key value
+dict -= dict value
+
+#-----------------------------
+# food_color as per Introduction
+function print_foods
+  each food food_color
+    console "key : " (food_color key food)  ", value: " (shunt food="" "(undef)" food) eol
+  console eol
+
+console "Initially:" eol
+print_foods
+
+console "With Banana undef" eol
+food_color "Banana" := "" # no true way to undef a Str...
+print_foods
+
+console "With Banana deleted" eol
+food_color -= food_color "Banana"
+print_foods
+
+# Initially:
+# key : Lemon, value: yellow
+# key : Banana, value: yellow
+# key : Apple, value: red
+# key : Carrot, value: orange
+# 
+# With Banana undef
+# key : Lemon, value: yellow
+# key : Banana, value: (undef)
+# key : Apple, value: red
+# key : Carrot, value: orange
+# 
+# With Banana deleted
+# key : Lemon, value: yellow
+# key : Apple, value: red
+# key : Carrot, value: orange
+#---------------------------
+
+#-----------------------------
+each value dict
+  # the key is (dict key value)
+
+#-----------------------------
+# food_color per the introduction
+each color food_color
+  console (food_color key color) " is " color eol
+
+# Banana is yellow.
+# Apple is red.
+# Carrot is orange.
+# Lemon is yellow.
+
+#-----------------------------
+var Pointer:Str color :> food_color first
+while exists:color
+  console (food_color key color) " is " color
+  color :> food_color next color
+#---------------------------
+
+
 # @@PLEAC@@_10.1
 function hypothenuse a b -> c
   arg Float a b c
@@ -423,6 +571,37 @@ func somefunc
 
   # ...
 #---------------------------------
+
+
+# @@PLEAC@@_10.4
+# this meta returns the current Function object
+module "/pliant/language/compiler.pli"
+meta me e
+  if e:size<>0
+    return
+  var Pointer:Function f :>
+    (pliant_general_dictionary first "pliant function") map Function
+  if exists:f
+    console "compilation for function " f:name eol
+    e set_result (argument mapped_constant Function f) access_read+access_constant+access_mapped
+
+# sample use:
+
+function my_function
+  console "My name is " me:name eol
+#-----------------------------------
+
+
+# @@PLEAC@@_10.16
+function outer i -> j
+  arg Int i j
+  var Int x := i+35
+  function inner i -> j # no clash is possible
+    arg Int i j
+    var Int x := i*19
+    return x
+  j := x+inner:x
+#-----------------------------------
 
 
 # @@PLEAC@@_17.0
@@ -482,3 +661,44 @@ define_tcp_server MyServer my_server
 # run the server detached
 my_server detached
 #---------------------------------
+
+
+# @@PLEAC@@_17.4
+module "/pliant/language/stream/stream.pli"
+module "/pliant/language/stream/udp.pli"
+# open connection
+(var Stream s) open "udp://the_host/client/port" in+out+safe
+# configure priority
+s configure "priority high"
+# configure timeout
+s configure "timeout 10"
+# write something
+s writeline "hello!"
+# read in buffer what is available
+s read_available buffer_adr buffer_size
+#-------------------------------
+
+
+# @@PLEAC@@_17.5
+module "/pliant/language/stream.pli"
+module "/pliant/language/stream/udp.pli"
+
+# almost the pliant DNS UDP server implementation:
+
+thread
+  part udp_server "UDP server" # 'part' is used for administration monitoring
+    (var Stream s) open "udp:/server/53" in+out+safe
+    s configure "priority high"
+    while not server:please_stop_udp
+      part wait_for_request "wait for UDP request"
+        s read_available (var Address adr) (var Int size)  # read the request
+        part answer_request "answer UDP request"
+          server answer adr size s true                    # answer the request
+        part reset_stream "reset UDP stream"
+          s configure "reset"
+        if s:is_crashed
+          console "UDP stream crashed !  Restarting it." eol
+          s open "udp:/server/53" in+out+safe
+          s configure "priority high"
+      server please_stop_udp := false
+#-------------------------------
