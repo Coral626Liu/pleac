@@ -8,13 +8,14 @@
 
 # @@PLEAC@@_INTRO
 # @@SKIP@@ Written for version 64.
+# @@SKIP@@ Code is function code to allow local variables (for readibility).
 
 
 # @@PLEAC@@_1.0
 # In Pliant, the standard type to handle character strings is Str.
 # String variables must be declared -- if no value is given it's
 # value is the empty string ("") if the variable is global.
-gvar Str string
+var Str string
 
 # special characters
 string := "[lb]"                   # character '['
@@ -29,12 +30,12 @@ string := "Jon said [dq]hello[dq]" # literal double quotes
 
 
 # @@PLEAC@@_1.1
-gvar Str s:="some string"
+var Str s:="some string"
 
 # extraction of at most length characters (less if the required
 # length is not available in the string) -> new string
 
-gvar Str s1 
+var Str s1 
 s1 := s offset length
 s1 := s offset s:len      # extracts the end of the string
 
@@ -58,17 +59,17 @@ s1 map s offset s:len-1
 # type "string of length xxx" and the from_string method
 # on these types. Then, the unpack could be writen as
 
-gvar FixedStr:5 leading
-gvar FixedStr:3 dummy
-gvar FixedStr:8 s1 s2
-gvar Str trailing data
+var FixedStr:5 leading
+var FixedStr:3 dummy
+var FixedStr:8 s1 s2
+var Str trailing data
 data eparse leading dummy s1 s2 any:trailing
 
 #
 # A string may be accessed as an array of Char, but if we
 # way to transfer a Str into an Array of Char, we need a loop
 #
-gvar Array:Char chars
+var Array:Char chars
 for (var Int i) 0 s:len
   chars i := s i
 
@@ -82,8 +83,6 @@ s := "This is what you have"
 method s 'new substring' i j -> ss
   arg Str s ss; arg Int i j
   strong_definition
-  console (s (s:len-2) 1) eol
-  console i " " j eol
   ss:= s (shunt i<0 s:len+i i) j
 alias '' '. new substring' 
 #
@@ -97,3 +96,54 @@ piece  := string -8 3             # "you"
 string := "This is what you have"
 console string
 #This is what you have
+
+# @@PLEAC@@_1.4
+
+# characters have type Char in Pliant
+var Char char:="X"
+var Int num := char number        # gets the ASCII code of char
+char := character num             # ASCII to character
+#-----------------------------
+# Here, we use a string
+var Str string:="Hello"
+num := string:0:number            # ASCII code of first character
+string := character num           # implicit Char->Str cast
+#-----------------------------
+var Int ascii_value := "e":number # now 101
+var Char char := character 101    # now "e"
+#-----------------------------
+var Str hal := "HAL"
+var Str ibm := hal
+for (var Int i) 0 ibm:len-1
+  ibm:i := character hal:i:number+1
+
+# @@PLEAC@@_1.5
+# Since Pliant++ strings can be accessed one character at a time,
+# there's no need to do any processing on the string to convert
+# it into an array of characters
+
+var Str s
+
+for (var Int i) 0 s:len-1
+  # do something with s:i
+#------------------------------------------
+# we use an Index to sort implicitely the keys
+module "/pliant/language/unsafe.pli"         # at the moment Index is still considered unsafe
+module "/pliant/language/type/set/each.pli"  # each.pli has to be linked to explicitely
+var (Index Char Bool) seen
+var Str string := "an apple a day"
+for (var Int i) 0 string:len-1
+  if not (seen exists string:i)
+    seen insert string:i true
+console "unique chars are: "
+each c seen                       # warning, c is the value associated with the key
+  console (seen key c)
+console eol
+# unique chars are:  adelnpy
+#-------------------------------------------
+var Int sum:=0
+for (var Int i) 0 string:len-1
+  sum += s:i:number
+console sum eol
+# prints "1248" if string was "an apple a day"
+#---------------------------------------------
