@@ -1,8 +1,4 @@
 # -*- ruby -*-
-# Local variables:
-#  indent-tabs-mode: nil
-#  ruby-indent-level: 4
-# End:
 
 
 # @@PLEAC@@_NAME
@@ -1586,6 +1582,59 @@ File.utime(atime, mtime, file)
 #-----------------------------
 
 
+# @@PLEAC@@_9.2
+File.unlink(FILENAME)
+
+err_flg = false
+filenames.each do |file|
+  begin
+    File.unlink(file)
+  rescue
+    err_flg = $!
+  end
+end
+err_flg and raise "Couldn't unlink all of #{filenames.join(" ")}: #{err_flg}"
+
+File.unlink(file)
+
+count = filenames.length
+filenames.each do |file|
+  begin
+    File.unlink(file)
+  rescue
+    count -= 1
+  end
+end
+if count != filenames.length
+  STDERR.puts "could only delete #{count} of #{filenames.length} files"
+end
+
+
+# @@PLEAC@@_9.3
+require "ftools"
+File.copy(oldfile, newfile)
+
+infile  = File.open(oldfile, "r")
+outfile = File.open(newfile, "w")
+
+blksize = infile.stat.blksize
+# This doesn't handle partial writes or ^Z
+# like the Perl version does.
+while (line = infile.read(blksize))
+  outfile.write(line)
+end
+
+infile.close
+outfile.close
+
+system("cp #{oldfile} #{newfile}")    # unix
+system("copy #{oldfile} #{newfile}")  # dos, vms
+
+require "ftools"
+File.copy("datafile.dat", "datafile.bak")
+File.move("datafile.new", "datafile.dat")
+
+
 # @@PLEAC@@_10.0
 def hello
     $greeted += 1      # in Ruby, a variable beginning with $ is global (can be any type of course)
@@ -1945,6 +1994,158 @@ while gets
 end
 
 
+# @@PLEAC@@_12.0
+# class and module names need to have the first letter capitalized
+module Alpha
+    NAME = 'first'
+end
+module Omega
+    NAME = 'last'
+end
+puts "Alpha is #{Alpha::NAME}, Omega is #{Omega::NAME}"
+
+# ruby doesn't differentiate beteen compile-time and run-time
+require 'getoptlong.rb'
+require 'getoptlong'     # assumes the .rb
+require 'cards/poker.rb'
+require 'cards/poker'    # assumes the .rb
+load    'cards/poker'    # require only loads the file once
+
+module Cards
+    module Poker
+        @card_deck = Array.new # or @card_deck = []
+        def shuffle
+        end
+    end
+end
+
+
+# @@PLEAC@@_12.1
+# a module exports all of its functions
+module Your_Module
+    def self.function
+	# this would be called as Your_Module.function
+    end
+    
+    def Your_Module.another
+	# this is the same as above, but more specific
+    end
+end
+
+# @@PLEAC@@_12.2
+begin
+    require 'nonexistent'
+rescue LoadError
+    puts "Couldn't load #{$!}"  # $! contains the last error string
+end
+
+# @@PLEAC@@_12.4
+# module variables are private unless access functions are defined
+module Alpha
+    @aa = 10
+    @bb = 11
+    
+    def self.put_aa
+	puts @aa
+    end
+    
+    def self.bb=(val)
+	@bb = val
+    end
+end
+
+Alpha.bb = 12
+# Alpha.aa = 10 # error, no aa=method
+
+
+# @@PLEAC@@_12.5
+# caller provides a backtrace of the call stack
+module MyModule
+    def find_caller
+        caller
+    end
+
+    def find_caller2(i)
+        caller(i) # an argument limits the size of the stack returned
+    end
+end
+
+# @@PLEAC@@_12.6
+BEGIN {
+    $logfile = '/tmp/mylog' unless defined? $logfile
+    $LF = File.open($logfile, 'a')
+}
+
+module Logger
+    def self.logmsg(msg)
+        $LF.puts msg
+    end
+
+    logmsg('startup')
+end
+
+END {
+    Logger::logmsg('shutdown')
+    $LF.close
+}
+
+# @@PLEAC@@_12.7
+#-----------------------------
+# results may be different on your system
+# ruby -e "$LOAD_PATH.each_index { |i| printf("%d %s\n", i, $LOAD_PATH[i] }
+#0 /usr/local/lib/site_ruby/1.6
+#1 /usr/local/lib/site_ruby/1.6/i386-linux
+#2 /usr/local/lib/site_ruby/
+#3 /usr/lib/ruby/1.6
+#4 /usr/lib/ruby/1.6/i136-linux
+#5 .
+#-----------------------------
+# syntax for sh, bash, ksh, or zsh
+#$ export RUBYLIB=$HOME/rubylib
+
+# syntax for csh or tcsh
+#% setenv RUBYLIB ~/rubylib
+#-----------------------------
+$LOAD_PATH.unshift "/projects/spectre/lib";
+
+# @@PLEAC@@_12.8
+# equivalents in ruby are mkmf, SWIG, or Ruby/DL depending on usage
+
+# @@PLEAC@@_12.9
+# no equivalent in ruby
+
+# @@PLEAC@@_12.10
+# no equivalent in ruby
+
+# @@PLEAC@@_12.11
+module FineTime
+    def self.time
+        # to be defined later
+    end
+end
+
+
+module FineTime
+    def self.time
+        "its a fine time"
+    end
+end
+
+puts FineTime.time #=> "its a fine time"
+
+# @@PLEAC@@_12.12
+#----------------------------- 
+def even_only(n)
+    raise "#{n} is not even" if (n & 1) != 0  # one way to test
+    #....
+end
+#----------------------------- 
+def even_only(n)
+    $stderr.puts "#{n} is not even" if (n & 1) != 0
+    #....
+end
+
+
 # @@PLEAC@@_13.0
 # Classes and objects in Ruby are rather straigthforward
 class Person
@@ -2006,69 +2207,6 @@ lecter.kill(pazzi)
 print pazzi.name, ' is ', (pazzi.alive?) ? 'alive' : 'dead', ".\n"
 
 print starling.name , ' was born in ', starling.year_of_birth, "\n"
-
-
-# @@PLEAC@@_12.0
-# class and module names need to have the first letter capitalized
-module Alpha
-    NAME = 'first'
-end
-module Omega
-    NAME = 'last'
-end
-puts "Alpha is #{Alpha::NAME}, Omega is #{Omega::NAME}"
-
-# ruby doesn't differentiate between compile-time and run-time
-require 'getoptlong.rb'
-require 'getoptlong'     # assumes the .rb
-require 'cards/poker.rb'
-require 'cards/poker'    # assumes the .rb
-load    'cards/poker'    # require only loads the file once
-
-module Cards
-    module Poker
-	@card_deck = Array.new # or @card_deck = ()
-	def shuffle
-	end
-    end
-end
-
-# @@PLEAC@@_12.1
-# a module exports all of its functions
-module Your_Module
-    def self.function
-	# this would be called as Your_Module.function
-    end
-    
-    def Your_Module.another
-	# this is the same as above, but more specific
-    end
-end
-
-# @@PLEAC@@_12.2
-begin
-    require 'nonexistent'
-rescue LoadError
-    puts "Couldn't load #{$!}"  # $! contains the last error string
-end
-
-# @@PLEAC@@_12.4
-# module variables are private unless access functions are defined
-module Alpha
-    @aa = 10
-    @bb = 11
-    
-    def self.put_aa
-	puts @aa
-    end
-    
-    def self.bb=(val)
-	@bb = val
-    end
-end
-
-Alpha.bb = 12
-# Alpha.aa = 10 # error, no aa=method
 
 
 # @@PLEAC@@_13.3
@@ -2457,3 +2595,8 @@ Time.now.mon, Time.now.day, Time.now.hour, Time.now.min, Time.now.sec) )
     }
 end
 
+
+# Local variables:
+#  indent-tabs-mode: nil
+#  ruby-indent-level: 4
+# End:
