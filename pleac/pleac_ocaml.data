@@ -645,3 +645,155 @@ List.filter
 (* TODO continue from here *)
 
 
+(* @@PLEAC@@_9.0 *)
+open Unix 
+
+(* handle_unix_error generates a nice error message and exits *)
+let entry = handle_unix_error stat "/usr/bin/vi"
+let entry = handle_unix_error stat "/usr/bin/"
+let entry = handle_unix_error fstat filedescr
+
+(* without handle_unix_error an exception is raised for errors *)
+let inode = stat "/usr/bin/vi"
+let ctime = inode.st_ctime
+let size = inode.st_size
+
+(* don't know any equivalent in ocaml *)
+(* maybe one could use file(1) (to know if it is an ASCII text file) *)
+let dirhandle = handle_unix_error opendir "/usr/bin" in
+begin
+  try
+    while true do
+      let file = readdir dirhandle in
+      Printf.printf "Inside /usr/bin is something called %s\n" file
+    done
+  with
+    | End_of_file -> ()
+end;
+closedir dirhandle;;
+
+(* @@PLEAC@@_9.1 *)
+let (readtime, writetime) =
+  let inode = stat filename in
+  (inode.st_atime, inode.st_mtime);;
+
+utimes filename newreadtime newwritetime;;
+
+(******************)
+
+let second_per_day = 60. *. 60. *. 24. in
+let (atime, mtime) =
+  let inode = stat filename in
+  (inode.st_atime, inode.st_mtime) in
+let newreadtime = atime -. 7. *. second_per_day
+and newwritetime = mtime -. 7. *. second_per_day in
+try 
+  utimes filename newreadtime newwritetime 
+with
+  | Unix_error (er,_,_) ->
+      Printf.eprintf 
+	"couldn't backdate %s by a week w/ utime: %s\n"
+	filename (error_message er);;
+
+(****************)
+let mtime = (stat file).st_mtime in
+utimes file (time ()) mtime  ;;
+
+(***************)
+
+(* compile with ocamlc unix.cma uvi.ml -o uvi *)
+open Unix
+
+let main () =
+  if (Array.length Sys.argv <> 2)
+  then
+    Printf.eprintf "Usage: uvi filename\n";
+  let filename = Sys.argv.(1) in
+  let atime,mtime = 
+    let st = stat filename in
+    (st.st_atime, st.st_mtime) in
+  let editor =
+    begin
+      try
+	Sys.getenv "editor"
+      with
+	| Not_found -> "vi"
+    end in
+  Sys.command (Printf.sprintf "%s %s" editor filename);
+  utimes filename atime mtime in
+main ();;
+  
+(*****************)
+
+(* @@PLEAC@@_9.2 *)
+unlink filename;;			(* use unix library *)
+Sys.remove filename;;			(* in the standard library *)
+
+let error_flag = ref(None) in
+let local_unlink filename =
+  try
+    unlink filename
+  with
+    | Unix_error (er,_,_) -> 
+	error_flag := (Some er) in
+List.iter local_unlink filenames;
+match !error_flag with
+  | Some er ->
+      Printf.eprintf "Couldn't unlink all of";
+      List.iter (Printf.eprintf " %s") filenames;
+      Printf.eprintf ": %s\n" (error_message er)
+  | None ();;
+
+
+(****************)
+
+let error_flag = ref(0) in
+let local_unlink count filename =
+  try
+    unlink filename;
+    count + 1
+  with
+    | Unix_error (er,_,_) -> 
+	count in
+let count = (List.fold_left local_unlink filenames 0) 
+and len = List.length filenames in
+if count <> len
+then
+  Printf.eprintf "Could only delete %i of %i file\n" count len;;
+
+(****************)
+
+(* @@PLEAC@@_9.3 *)
+Unix.copy oldfile newfile
+(****************)
+
+(* Note : this doesn't use the unix library, only the standard one *)
+
+let infile = open_in oldfile
+and outfile = open_out newfile
+and blksize = 16384 in
+let buf = String.create blksize in
+let rec copy () =
+  let byte_read = input infile buf 0 blksize in
+  if byte_read = 0 then ()
+  else
+    begin
+      (* Handle partialle write : nothing to do *)
+      output outfile buf O byte_read;
+      copy ()
+    end in
+copy ();
+close_in infile;
+close_out outfile;;
+
+(****************)
+Sys.command ("cp " ^ oldfile ^ " " ^ newfile)	(* Unix *)
+Sys.command (String.concat " " ["copy";oldfile;newfile]) (* Dos *)
+
+(****************)
+
+Unix.copy "datafile.dat" "datafile.bak";;
+
+Sys.rename "datafile.dat" "datafile.bak";;
+
+(***************)
