@@ -26,9 +26,10 @@ import Complex
 -- seems ghc need it for chr,ord, readHex, readOct
 import Char 
 import Numeric 
-
 --ghc import Time
 --ghc import Locale
+
+import Common
 
 ----------------------------------------------------------------------------------------------------
 -- @@PLEAC@@_1.0
@@ -37,7 +38,11 @@ str  = "\\n"                             -- two characters, \ and an n
 str2 = "Jon 'Maddog' Orwant"             -- in haskell we can do string only with ", no single quote
 str3 = "\n"                              -- a "newline" character
 str4 = "Jon \"Maddog\" Orwant"           -- literal double quotes
--- no qq stuff or multiline in haskell
+-- no q/qq/qw/.. stuff in haskell
+-- no multiline, you can emulate it with ++ and \n, or unlines
+str5 = "This is a multiline here document\n" ++
+       "terminated by  on a line by itself\n"
+
 
 -- @@PLEAC@@_1.1
 s     = "This is what you have"
@@ -54,6 +59,7 @@ piece = s![-8 .. -5]                     -- "you"
 -- Regexp with repetition are better for this, why introduce extra concept (unpack)
 [lead2,ss12,ss22,trailing2] = s#match "^(..)...(.)(..)(.*)"
 fivers                      = s#unpack ((Grab 5)#replicate (s#length `div` 5))
+
 -- in haskell string == [Char] => no need to do  unpack("A1" x length($string), $string)
 characters = s
 
@@ -61,7 +67,7 @@ characters = s
 s'    = s#substr 5 2 "wasn't"       -- "This wasn't what you have"
 s''   = s'#substr2 (-12) "ondrous"  -- "This wasn't wondrous",note the () arount negative number :(
 s'''  = s''#substr 0 1 ""           -- "his wasn't wondrous", delete first character <=> tail
-s'''' = s'''#substr2 (-10) ""       -- "his wasn'"  ,delete last 10 characters
+s'''' = s'''#substr2 (-10) ""       -- "his wasn'"  ,delete last 10 characters <=> reverse . drop 10 . reverse
 
 m     = if s![-10 .. -1] =~ "have" 
 	then putStrLn "Pattern matches in last 10 characters" 
@@ -95,7 +101,9 @@ v6 = (0::Int) &&& "ee" -- -> ""
 -- no x ||= y
 v3' = v3 ||| v4
 
-dir = argv >>> (\x -> (x ||| ["/tmp"])#head)
+dir  = argv >>> (\x -> (x ||| ["/tmp"])#head)
+dir' = argv >>> ((||| ["/tmp"]) $ head) -- or even more cryptic
+
 -- @@PLEAC@@_1.3
 -- no side effect in haskell => swap is a nosense
 
@@ -117,7 +125,8 @@ sum1 = ("sum is " ^ s1#map ord#sum)#putStrLn
 -- @@PLEAC@@_1.6
 s2 = s1#reverse
 
--- can do: s3 = (unwords . reverse . words) s1, or s3 = (words $ reverse $ unwords) s1, or
+-- can do: s3 = (unwords . reverse . words) s1
+--         s3 = (words $ reverse $ unwords) s1
 s3 = s1#words#reverse#unwords 
 
 s3' = s1#split " "#reverse#join " " -- not the same, cos words = split "\s+"
@@ -130,10 +139,9 @@ long_palindromes = cat "/usr/share/dict/words" >>> filter(\s -> s == s#reverse &
 -- TODO, must do: \s if s == [] then [] else foldr1 .... ? must make a foldr1sure
 expand_tabs = split "\t" $ (foldr1 (\a b -> a ++ (times (8 - a#length `mod` 8) ' ') ++ b)) -- more efficient
 -- expand_tabs = fixpoint (break_char '\t' (\a b -> a ++ (' '#times (8 - a#length `mod` 8)) ++ b))
--- expand_tabs "to		andd	audela"
 				
 -- @@PLEAC@@_1.8
--- cant do that in haskell, too meta, too reflexif
+-- cant do eval in haskell, too meta, too reflexif
 
 s4 = "I am 17 years old"#subst "\\d+" (\n -> show ((read n) * 2))
 
@@ -145,10 +153,16 @@ s7 = s6#capitalize
 s8 = "thIS is a loNG liNE"#words#map capitalize
 
 -- @@PLEAC@@_1.10
---s9 = "I have " ++ (show (10+1)) ++ " guanacos."
+-- s9 = "I have " ++ (show (10+1)) ++ " guanacos."
 s9 = "I have "^10+1^" guanacos."
 
--- TODO 1.11
+-- @@PLEAC@@_1.11
+-- cant put lines at beginning of line cos of layout pb
+-- Multi_line is to say that ^ match beginning of every line, not of the string
+multi = (substS "^\\s+" "" [Global_Match,Multi_Line] . unlines) [
+ "       This is a multiline here document",
+ "       terminated by nothing"
+ ]
 
 -- @@PLEAC@@_1.12
 -- in fact this fonction is wrong, cos it insert a space at the front of the sentence (must use a foldl1)
@@ -159,7 +173,11 @@ wrap width s = let (all, line) = (words s)#foldl (\ (all, line) w ->
 					    ) ([],"") in
 	       join "\n" (all++[line])
 
--- TODO 1.13
+-- @@PLEAC@@_1.13
+escaping = "Mom Said, \"Don't do that.\""
+esc1 = escaping#gsubst "['\"]" ("\\"++) -- section, <=> (\x -> "\\" ++ x)
+esc3 = escaping#gsubst "[^A-Z]" ("\\"++)
+esc4 = escaping#gsubst "[^\\w]" ("\\"++)
 
 -- @@PLEAC@@_1.14
 s10 = "    titi"#substS "^\\s+" "" []
@@ -167,7 +185,74 @@ s11 = "  titi  "#substS "\\s+$" "" []
 
 trim = substS "^\\s+" "" [] . substS "\\s+$" "" []
 
--- TODO 1.15
+-- @@PLEAC@@_1.15
+parse_csv s = let re = ["\"([^\"\\\\]*(\\\\.[^\"\\\\]*)*)\",?" -- "toto,titi"
+		       ,"([^,]+),?" -- something that not start with " can not contain any , => go until next ,
+		       ,","
+                       ]#join "|"
+                  xxs  = s#gmatch re in
+	       xxs#map (\xs -> (xs!!0) ||| (xs!!2))
+			 
+testline = "XYZZY,\"\",\"O'Reilly, Inc\",\"Wall, Larry\",\"a \\\"glug\\\" bit,\",5,\"Error, Core Dumped\""
+mparse = testline#parse_csv#foldM(\i x -> putStrLn (i^" : "^x) >>> (\_ -> i+1)) 0
+
+-- @@PLEAC@@_1.16
+-- from explanation from http://www.myatt.demon.co.uk/sxalg.htm
+soundex s = x:'-':((res++[0,0,0])#take 3#map show#concat) -- note that as haskell is lazy, this code is efficient
+    where group      =  [("AEIOUYHW",0)
+			,("BFPV",1)
+			,("CGJKQSXZ",2)
+			,("DT",3)
+			,("L",4)
+			,("MN",5)
+			,("R",6)
+			]
+	  code x = group#find (\(letters,_) -> x `elem` letters)#just#snd
+	  (x:xs) = s#upcase#substS "[^\\w]" "" [Global_Match]
+	  -- A consonant immediately following an initial letter from the same code group is ignored
+	  xs'    = if xs#length > 0 && xs#head#code == x#code && x#code > 0 then xs#tail else xs
+	  trim xs = xs#dropWhile (\x -> x#code == 0)
+	  next_code xs = xs#trim#(\xs -> if length xs > 0 then xs#head#code else 0)
+	  aux xs = case trim xs of
+		   []     -> []
+		   (x:xs) -> if x#code == xs#next_code then aux xs else x#code:aux xs
+	  res    = aux xs'
+	  
+soundexes     =  ["holmes"           -- H-452
+		  ,"adomomi"         -- A-350 -- 355
+		  ,"vonderlehr"      -- V-536
+		  ,"ball"            -- B-400
+		  ,"shaw"            -- S-000
+		  ,"jackson"         -- J-250
+		  ,"scanlon"         -- S-545
+		  ,"saintjohn"       -- S-532
+		  ,"kingsmith"       -- K-525
+		  ,"booth-davis"     -- B-312
+		  ,"Knuth"           -- K-530
+		  ,"Kant"            -- K-530
+		  ,"Lloyd"           -- L-300
+		  ,"Ladd"            -- L-300
+		  ]#map soundex	     
+-- TODO, not complete ($quota,$comment,$gcos,$expire) = getpw*
+data Passwd_entry = Passwd_entry {pw_name,pw_passwd,pw_comment,pw_dir,pw_shell::String, pw_uid,pw_gid::Int}
+		  deriving (Eq,Show)
+getpwent s = let [name1,passwd1,uid1,gid1,comment1,dir1,shell1] = s#split ":" in
+		 Passwd_entry {pw_name=name1,pw_passwd=passwd1,pw_uid=read uid1,pw_gid=read gid1,
+			       pw_comment=comment1,pw_dir=dir1,pw_shell=shell1} 
+
+msoundex = do putStr "Lookup user: "
+	      user  <- getLine
+	      cat "/etc/passwd" >>=
+		  mapM (\l -> let Passwd_entry {pw_name=name,pw_comment=comment} = l#getpwent
+			          [firstname,lastname] = comment#match "(\\w+)[^,]*\\b(\\w+)"
+			          soundex' xs = if xs == [] then "" else xs#soundex in
+			       if user#soundex' `elem` (map soundex' [name,firstname,lastname])
+			       then putStrLn (name++": "++firstname++" "++lastname)
+			       else return ()
+			)
+			 
+-- TODO, pstyle and psgrep			 
+			 
 ----------------------------------------------------------------------------------------------------
 -- @@PLEAC@@_2.1
 is_integer s = if s =~ "^[+-]?\\d+$" 
@@ -231,17 +316,25 @@ bin10 = i2bin 54 -- "110110"
 m1 = putStr "Infancy is: " >> [0..2]#mapM(\e -> putStr (e^" "))
 m2 = putStr "Infancy is: " >> [0..2]#map show#unwords#putStr
 
--- TODO, 2.6, cf code from clf
+-- @@PLEAC@@_2.6
+-- code from comp.lang.functionnal
+inttorom n = (concat .reverse) (zipWith roman sets digits)  where
+     digits = reverse (map (\x -> fromInt (read [x])) (show n))
+     roman (i,v,x) n = case n of { 
+         0 -> [];  1 -> [i];   2 -> [i,i];   3 -> [i,i,i];   4 -> [i,v]; 
+         5 -> [v]; 6 -> [v,i]; 7 -> [v,i,i]; 8 -> [v,i,i,i]; 9 -> [i,x] }
+     sets = [('I','V','X'), ('X','L','C'), ('C','D','M'), ('M','?','?')] 
 
+mroman = putStrLn ("Roman for "^15^" is :"^inttorom 15)
 
 -- @@PLEAC@@_2.7
-ran = rand (25, 75)
+ran = rand (25, 75) -- [25,75]
 
 chars = concat [['A'..'Z'],['a'..'z'],['0'..'9'],"!@$%^&*"]
 
---password = [1..8]#foldM (\a _ -> rand (0, chars#length) >>= (\i -> return (a++chars![i]))) "" 
---password = [1..8]#mapM (\_ -> rand (0, chars#length) >>= (\i -> return (chars!!i)))
-password = [1..8]#mapM (\_ -> rand (0, chars#length) >>> (chars!!)) -- no join, string = [Char] :) hihi section :)
+--password = [1..8]#foldM (\a _ -> rand (0, chars#length -1) >>= (\i -> return (a++chars![i]))) "" 
+--password = [1..8]#mapM (\_ -> rand (0, chars#length -1) >>= (\i -> return (chars!!i)))
+password = [1..8]#mapM (\_ -> rand (0, chars#length -1) >>> (chars!!)) -- no join, string = [Char] :) hihi section :)
 
 -- @@PLEAC@@_2.8
 randfixed = do srand 2
@@ -331,6 +424,18 @@ m3' = do putStrLn "Enter file permission in octal: "
 commify s = if s#length <= 3 then s else 
 	    let (a,b) = splitAt (s#length -3) s in commify a ++ "," ++ b
 
+-- @@PLEAC@@_2.18
+plurals i   = if i > 1 then "s" else ""
+pluralies i = (i > 1) ? ("ies","y")
+
+hours = 2
+century = 2
+flies = 3
+mplural  = putStrLn ("It took "^hours^" hour"^(plurals hours))
+mplural2 = putStrLn ("It took "^century^" centur"^(pluralies century))
+
+-- TODO, the suffix program and prime factor
+
 ----------------------------------------------------------------------------------------------------
 --ghc -- @@PLEAC@@_3.0
 --ghc mtime1 = now >>= (\d -> putStrLn (calendarTimeToString d))
@@ -380,10 +485,10 @@ commify s = if s#length <= 3 then s else
 --ghc 
 --ghc weeknum = now >>> (\d -> d#strftime "%U"#read + 1)
 --ghc 
---ghc -- @@PLEAC@@_3.9
+--ghc -- TODO 3.9
 --ghc usec = now >>> ctPicosec -- is this ?
 --ghc 
---ghc -- @@PLEAC@@_3.10
+--ghc -- TODO _3.10
 --ghc -- have sleep::Int but not Double :(
 
 ----------------------------------------------------------------------------------------------------
@@ -449,7 +554,7 @@ m5 = env >>= (\l -> l#mapM(\(var,val) -> (var^"="^val)#putStrLn)) -- but non-sor
 m6 = env >>= (\l -> l#sortBy(\(a,_) (b,_) -> a <=> b)#mapM(\(var,val) -> (var^"="^val)#putStrLn))
 
 -- @@PLEAC@@_4.5
--- not relevant in Haskell since we have always kind of references
+-- not relevant in haskell since we have always kind of references
 
 
 -- @@PLEAC@@_4.6
@@ -464,10 +569,10 @@ m10 = do l <- users
 l1 = [1..5] `difference` [2,5] -- could make [1..5] - [2,5], just have to make an instance Num
 
 instance (Eq a,Show a) => Num ([a]) where
-    (+) a b = a `union` b
-    (-) a b = a `difference` b
-    (*) a b = a `intersect` b
-
+    a + b = a `union` b
+    (-) a b = a `difference` b -- we can write it like that
+    (*) = intersect -- or even shorter
+-- make this instance is very dangerous, cos now typechecker not detect the error [show 1,show 2]++[0,0], WHY ?
 l1' = [1..5] - [2,5]
 
 -- @@PLEAC@@_4.8
@@ -579,9 +684,85 @@ employee_sorted = employees#sortBy (\a b -> (a#name) <=> (b#name))
 
 musers  = cat "/etc/passwd" >>= (map (split ":" $ head) $ sort $ mapM putStrLn)
 musers' = cat "/etc/passwd" >>= (\x -> x#map (\l -> l#split ":"#head)#sort#mapM putStrLn)
+
+-- @@PLEAC@@_4.15
+-- in haskell we can use infinite list
+circular = [1,2,3,4,5]++circular
+
+grab_and_rotate (x:xs) = (x, xs++[x])
+
+mprocess1 = loop [1,2,3,4,5] where
+	    loop processes = do putStrLn ("Handling process"^process)
+				system "sleep 1"
+				loop newprocess
+				return () -- forced, WHY?
+				where (process, newprocess) = grab_and_rotate processes
+mprocess2 = loop circular where
+	    loop (x:xs) = do putStrLn ("Handling process"^x)
+			     system "sleep 1"
+			     loop xs
+			     return () -- forced, WHY?
+
+
+-- @@PLEAC@@_4.16
+-- brute force
+permut []     = []
+permut [x]    = [[x]]
+permut (x:xs) = xs#permut#map (insert x)#concat
+    where insert x []     = [[x]]
+	  insert x (y:ys) = (x:y:ys) : map (y:) (insert x ys)
+
+fact 0     = 1
+fact (n+1) = (n+1) * fact n
+
+randomizing xs = rand (0, xs#length#fact -1) >>> ((xs#permut)!!)
+
+-- @@PLEAC@@_4.18
+bigint = fact 500
+-- on hugs, i have 1134 digits
+permute = permut
+
+#!/usr/bin/runhugs
+module Main where
+-- 4.18
+
+-- usage: echo dog eat cat | ./script.hs
+permut []     = []
+permut [x]    = [[x]]
+permut (x:xs) = xs#permut#map (insert x)#concat
+    where insert x []     = [[x]]
+	  insert x (y:ys) = (x:y:ys) : map (y:) (insert x ys)
+
+fact 0     = 1
+fact (n+1) = (n+1) * fact n
+
+(#) o f = f o -- object notation for object fan
+
+main = do line <- getLine
+	  line#words#permut#mapM_(putStrLn . unwords)
+
+
 ----------------------------------------------------------------------------------------------------
 -- @@PLEAC@@_APPENDIX
 ----------------------------------------------------------------------------------------------------
+module Common where
+
+import Prelude hiding (($),(^))
+import Regexp
+import List
+import Random hiding (split)
+import Monad hiding (join,when,unless)
+import System
+import Complex
+
+-- seems ghc need it for chr,ord, readHex, readOct
+import Char 
+import Numeric 
+
+import Trace
+
+----------------------------------------------------------------------------------------------------
+
 -- to allow s![1..]
 -- note: a 'try (...) with' would be more efficient that constantly check for array bound
 -- note: we stop as soon as we have a big index => xs ! [1000, 2,3] if length xs < 1000 will give [] 
@@ -620,11 +801,19 @@ unpack opt s = opt#(foldl aux (0,[]))#snd#reverse --(snd $ reverse) (foldl aux (
 ----------------------------------------------------------------------------------------------------
 
 -- use http://www.dcs.gla.ac.uk/~meurig/regexp/ for substS, ...
+-- TODO, a subst that take group
 subst re f s = let matchresult = searchS re [] s in
 		   if matchedAny matchresult then 
 		      beforeMatch matchresult ++ 
 		      f (wholeMatch matchresult) ++ 
 		      afterMatch matchresult
+		   else s
+
+gsubst re f s = let matchresult = searchS re [] s in
+		   if matchedAny matchresult then 
+		      beforeMatch matchresult ++ 
+		      f (wholeMatch matchresult) ++ 
+			(gsubst re f (afterMatch matchresult))
 		   else s
 
 (=~) s re = let matchresult = searchS re [] s in
@@ -633,6 +822,8 @@ subst re f s = let matchresult = searchS re [] s in
 
 -- the Regexp lib require regexp of the form   " var@(...) var2@(...)" i dont
 -- like put name on this, prefer anonymous as in perl, that is "(...) (...)"
+-- TODO, handle |, for example when match .(..)|.(..) i would like to return a list of one element
+-- TODO, handle ?: of perl
 match re s = let (max,re2) = re#foldl (\(i,acc) c -> 
 			    if c == '(' then (i+1,acc++" "++show i++"@(") else (i,acc++[c])
 				   ) (1,[])
@@ -649,6 +840,14 @@ match re s = let (max,re2) = re#foldl (\(i,acc) c ->
 			      else ((read j)+1, acc++replicate ((read j)-i) ""++[str])
 				       ) (1,[]) in
 		 subs3#snd
+-- cant make match and gmatch the same type, cos one give [] and gmatch give [[]]
+gmatch re s = let (max,re2) = re#foldl (\(i,acc) c -> 
+			    if c == '(' then (i+1,acc++" "++show i++"@(") else (i,acc++[c])
+				   ) (1,[])
+		  matchresult = searchS re2 [] s in
+		  if matchedAny matchresult then (match re s):(gmatch re (afterMatch matchresult))
+		  else []
+
 
 --myl = "cava et toi"#match  "(a..) et (t)oi"
 --myl = match "(\\w+)" "pad tty etrre"
@@ -672,20 +871,6 @@ pattern_matches ((re, v):xs) s = if s =~ re then v else pattern_matches xs s
 next_char c = chr (ord c + 1)
 
 show_float i f = showFFloat (Just i) f ""
-
-infixl 1 >>>
-(>>>) monad f = monad >>= (return . f)
-eval x = x >>= (putStrLn . show)
-
-action `when` bool   = if bool then action else return ()
-action `unless` bool = action `when` (not bool)
-cat file = readFile file >>> lines
--- i know it is just poor code, but haskell force me
--- TODO, dont work, seems monad are lazy too, dont understand io in haskell anymore :(
---  if do {l <- exec "ps ux"; l2 <- exec "who"; l#mapM putStrLn} print the contents of l2 !!
-exec s = do _ <- system (s++" > /tmp/file")
-	    cat "/tmp/file"
-
 
 fixpoint f d | f d == d  = d
 	     | otherwise = fixpoint f (f d)
@@ -717,13 +902,6 @@ upcase      = map toUpper
 downcase    = map toLower
 capitalize (x:xs) = toUpper x : xs
 
-rand :: (Int, Int) -> IO Int -- force to do that to resolve overloading :(
-rand = getStdRandom . randomR
-stdrand :: IO Double
-stdrand = getStdRandom (randomR (0::Double,1))
-
-srand val = setStdGen (mkStdGen val)
-
 tonum x = fromInteger x
 
 hex ('0':('x':s)) = fst (head (readHex s)) -- TODO do some check
@@ -751,6 +929,38 @@ pop xs = (init xs, last xs) -- more efficient let (a,[b]) = splitAt (xs#length -
 
 foldl_index f acc xs = foldl f acc (zip [1..] xs)
 
+complex_i = 0 :+ 1
+
+(<=>) a b = compare a b
+
+debug expr = trace ("Debug:"++show expr++"\n") expr
+----------------------------------------------------------------------------------------------------
+infixl 1 >>>
+(>>>) monad f = monad >>= (return . f)
+eval x = x >>= (putStrLn . show)
+
+action `when` bool   = if bool then action else return ()
+action `unless` bool = action `when` (not bool)
+cat file = readFile file >>> lines
+contents = do l <- getContents
+	      return (l#lines)
+
+(<>) = do l <- argv
+	  if (l == []) then contents else foldM (\a e -> cat e >>> (a++)) [] l
+
+-- i know it is just poor code, but haskell force me
+-- TODO, dont work, seems monad are lazy too, dont understand io in haskell anymore :(
+--  if do {l <- exec "ps ux"; l2 <- exec "who"; l#mapM putStrLn} print the contents of l2 !!
+exec s = do _ <- system (s++" > /tmp/file")
+	    cat "/tmp/file"
+
+rand :: (Int, Int) -> IO Int -- force to do that to resolve overloading :(
+rand = getStdRandom . randomR
+stdrand :: IO Double
+stdrand = getStdRandom (randomR (0,1))
+
+srand val = setStdGen (mkStdGen val)
+
 -- in haskell we have getEnv::String -> String, but not getEnvs :(
 env = exec "env" >>> map (\s -> let [a,b] = s#match "(\\w+)=(.*)" in (a,b))
 -- env = getEnvironment  -- for ghc
@@ -759,11 +969,10 @@ argv = getArgs
 just (Just x) = x
 just _ = error "Common:just"
 
-complex_i = 0 :+ 1
+exit i = return () -- hugs primExitWith i
 
-(<=>) a b = compare a b
-
-exit i = primExitWith i
+-- printf a la danvy
+-- type fmt a = 
 ----------------------------------------------------------------------------------------------------
 --ghc now = do cl <- getClockTime
 --ghc 	       return (toUTCTime cl)
@@ -772,7 +981,33 @@ exit i = primExitWith i
 --ghc nulltime = TimeDiff {tdYear=0, tdMonth=0, tdDay=0, tdHour=0, tdMin=0, tdSec=0, tdPicosec = 0}
 
 ----------------------------------------------------------------------------------------------------
--- hash
+-- this class support only collection of kind/1 => :( cos assoc dont match this criteria
+-- not that some new type variable are introduced (something impossible with ocaml oo, can not
+--  define a list object and then a fold, cos the type of the accumulator is new
+--  can do it in caml/C++ by making fold an external function of the class
+
+-- Collects e [e] where ...                                                                          
+-- Collects e (e -> Bool) where ...                                                                  
+-- Collects Char BitSet where ...                                                                            
+-- (Hashable e, Collects a ce) Collects e (Array Int ce)
+
+type Assoc a b = [(a,b)]
+   
+class Collection1 c where
+    member1 :: Eq e => e -> c e -> Bool -- need Eq e, otherwise at instance declaration, when member = elem, pb (WHY?)
+    cmap1   :: (a -> b) -> c a -> c b
+    insert1 :: e -> c e -> c e
+instance Collection1 [] where
+    member1 = elem
+    cmap1   = map
+    insert1 = (:)
+-- instance Collection1 Assoc where
+-- class Collection2 e c where, useless constructor class do the same job
+-- *class Collection2 e ce where
+-- *	member2:: e -> ce -> Bool
+-- *--    cmap2::   (e -> b), cant define, but can be put outside and use insert/observers
+-- *	insert2:: e -> ce -> ce
+
 keys = map fst
 
 (@@)           :: Eq a => [(a,b)] -> a -> b
@@ -781,9 +1016,6 @@ keys = map fst
       | k==x      = y
       | otherwise = xys@@k
 
-
--- printf a la danvy
--- type fmt a = 
 ----------------------------------------------------------------------------------------------------
 -- matrix, there exist some implementation on the web, TODO dont do list but fixed size vector =>
 -- could make compile-time check, ex *, we must have row_size a = column_size b
@@ -881,6 +1113,6 @@ del_enclose xs | length xs <= 1 = xs
 	       | head xs == '"' && last xs == '"' = xs#tail#init
 	       | otherwise = xs
 (^) a b = (update_anti_slash . del_enclose . show) a ++ (update_anti_slash . del_enclose . show) b 
---(^) a b  = let op = update_anti_slash . del_enclose . show in op a ++ op b -- dont WORK !! AMAZING
+-- (^) a b  = let op = update_anti_slash . del_enclose . show in op a ++ op b -- dont WORK !! AMAZING
 infixl 1 ^
 
