@@ -816,6 +816,88 @@ seconds = 3.1
 time.sleep(seconds)
 print "boo"
 
+# @@PLEAC@@_3.11
+#----------------------------- 
+# Program HopDelta
+# Save a raw email to disk and run "python hopdelta.py FILE"
+# and it will process the headers and show the time taken
+# for each server hop (nb: if server times are wrong, negative dates
+# might appear in the output).
+
+import datetime, email, email.Utils
+import os, sys, time
+
+def extract_date(hop):
+    # According to RFC822, the date will be prefixed with
+    # a semi-colon, and is the last part of a received
+    # header.
+    date_string = hop[hop.find(';')+2:]
+    date_string = date_string.strip()
+    time_tuple = email.Utils.parsedate(date_string)
+
+    # convert time_tuple to datetime
+    EpochSeconds = time.mktime(time_tuple) 
+    dt = datetime.datetime.fromtimestamp(EpochSeconds)
+    return dt
+
+def process(filename):
+    # Main email file processing
+    # read the headers and process them
+    f = file(filename, 'rb')
+    msg = email.message_from_file(f)
+
+    hops = msg.get_all('received')
+    
+    # in reverse order, get the server(s) and date/time involved
+    hops.reverse()
+    results = []
+    for hop in hops:
+        hop = hop.lower()
+        
+        if hop.startswith('by'):  # 'Received: by' line
+            sender = "start"
+            receiver = hop[3:hop.find(' ',3)]
+            date = extract_date(hop)
+
+        else:  # 'Received: from' line
+            sender = hop[5:hop.find(' ',5)]
+            by = hop.find('by ')+3
+            receiver = hop[by:hop.find(' ', by)]
+            date = extract_date(hop)
+
+        results.append((sender, receiver, date))
+    output(results)
+
+def output(results):
+    print "Sender, Recipient, Time, Delta"
+    print
+    previous_dt = delta = 0
+    for (sender, receiver, date) in results:
+        if previous_dt:
+            delta = date - previous_dt
+        
+        print "%s, %s, %s, %s" % (sender,
+                               receiver,
+                               date.strftime("%Y/%d/%m %H:%M:%S"),
+                               delta)
+        print
+        previous_dt = date   
+            
+def main():
+    # Perform some basic argument checking
+    if len(sys.argv) != 2:
+        print "Usage: mailhop.py FILENAME"
+
+    else:
+        filename = sys.argv[1]
+        if os.path.isfile(filename):
+            process(filename)
+        else:
+            print filename, "doesn't seem to be a valid file."
+
+if __name__ == '__main__':
+    main()
+
 
 # @@PLEAC@@_4.0
 #-----------------------------
