@@ -1531,13 +1531,13 @@ write("%d\n", factorial(500));
 // creating a mapping from arrays
 mapping age = mkmapping( ({ "Nat", "Jules", "Josh", }), ({ 24, 25, 17 }) );
 
-// initialize one key at a time
+// initialize one index at a time
 mapping age = ([]);
 age["Nat"] = 24;
 age["Jules"] = 25;
 age["Josh"] = 17;
 
-// if your key names are valid identifiers:
+// if your index names are valid identifiers:
 age->Nat = 24;
 age->Jules = 25;
 age->Josh = 17;
@@ -1552,7 +1552,7 @@ mapping(string:string) food_color = ([
                                       "Carrot":"orange"
                                      ]);
 
-// a key may be of any type
+// a index may be of any type
 mapping any = ([ "1":"a string", 1:"an int", 1.0:"a float" ]);
 
 // you may use other types too, but be aware that they are matched by
@@ -1562,6 +1562,7 @@ mapping any = ([ "1":"a string", 1:"an int", 1.0:"a float" ]);
 mapping[mixed] = mixed;
 mapping->string = mixed;  //any string that is a valid identifier
 
+// food_color as per section 5.0
 food_color->Raspberry = "pink";
 write("Known foods:\n");
 foreach(food_color; string food; )
@@ -1576,11 +1577,11 @@ foreach(food_color; string food; )
 
 // @@PLEAC@@_5.2
 // an undefined value in a mapping gets turned to 0.
-// assigning 0 as a value is allowed and will not remove the key.
-// checking for the key will of course return 0 and be interpreted as false.
-// to check if the key is really there, use zero_type()
+// assigning 0 as a value is allowed and will not remove the index.
+// checking for the index will of course return 0 and be interpreted as false.
+// to check if the index is really there, use zero_type()
 
-if(!zero_type(mapping->key))
+if(!zero_type(mapping->index))
 {
   // it exists
 }
@@ -1589,6 +1590,7 @@ else
   // it doesn't
 }
 
+// food_color as per section 5.0
 foreach( ({ "Banana", "Milk" }) ;; string name)
 {
   if(!zero_type(food_color[name]))
@@ -1620,7 +1622,7 @@ foreach( ({ "Toddler", "Unborn", "Newborn", "Phantasm", "Relic" });; string thin
 // Phantasm: Exists
 // Relic:
 
-// age->Toddler exists, because zero_type() is only true if the key is not in
+// age->Toddler exists, because zero_type() is only true if the index is not in
 // the mapping. it is true because the value is not 0.
 // age->Unborn exists, but is false because 0 is false
 // age->Newborn exists and is true, because 0.0 is not false
@@ -1672,7 +1674,7 @@ foreach( ({ "Toddler", "Unborn", "Phantasm", "Relic" });; string thing)
 // Phantasm: Exists
 // Relic:
  
-// age->Toddler exists, because zero_type() is only true if the key is not in
+// age->Toddler exists, because zero_type() is only true if the index is not in
 // the mapping. it is defined because it exists an is not NIL. 
 // it is true because the value is not 0.
 // age->Unborn exists, and is defined, but is false because 0 is false
@@ -1698,3 +1700,92 @@ while(filename = Stdio.stdin->gets())
     size[filename] = -1; // since sizes can't be negative, this will do.
                          // if -1 is a valid value, use NIL
 }
+
+// @@PLEAC@@_5.3
+// users occasionally may get the idea that mapping[index]=0; may remove index
+// from mapping. the normal way to remove a index from a mapping is to
+// subtract: mapping -= ([ index:0 ]); the following shall demonstrate the
+// difference between subtracting a index and assigning 0 to it.
+
+// food_color as per section 5.0
+void print_foods()
+{
+  write("Foods:%{ %s%}\n", indices(food_color));
+  write("Values: ");
+
+  foreach(food_color; string food; string color)
+  {
+    if(color)
+      write(color+" ");
+    else
+      write("(no value) ");
+  }
+  write("\n");
+}
+
+write("Initially:\n");
+print_foods();
+
+write("\nWith Banana set to 0\n");
+food_color->Banana = 0;
+print_foods();
+
+write("\nWith Banana deleted\n");
+food_color -= ([ "Banana":"the value is irrelevant" ]);
+print_foods();
+
+// Initially:
+// Foods: Lemon Banana Apple Carrot
+// Values: yellow yellow red orange
+//
+// With Banana set to 0
+// Foods: Banana Lemon Apple Carrot
+// Values: (no value) yellow red orange 
+//  
+// With Banana deleted
+// Foods: Lemon Carrot Apple
+// Values: yellow orange red
+
+// you can also subtract multiple indices:
+food_color -= ([ "Banana":0, "Apple":0, "Cabbage":0 ]);
+
+// note that subtracting a mapping from another creates a new mapping.
+// thus any references you have to a mapping will be broken.
+// in most cases this is what you want anyways. if it is not, you can also
+// remove indices using m_delete();
+
+m_delete(food_color, "Banana");
+
+// @@PLEAC@@_5.4
+
+foreach( mapping; type index; type value)
+{
+  //do something with index and value
+}
+
+// food_color as per 5.0
+foreach(food_color; string food; string color)
+{
+  write("%s is %s.\n", food, color);
+}
+
+// Banana is yellow.
+// Lemon is yellow.
+// Carrot is orange.
+// Apple is red.
+
+
+foreach(sort(indices(food_color));; string food)
+{
+  write("%s is %s.\n", food, food_color[food]);
+}
+
+// Apple is red.
+// Banana is yellow.
+// Carrot is orange.
+// Lemon is yellow.
+
+// since pike does not have any equivalent to each() its problems do not apply
+
+// @@INCLUDE@@ include/pike/ch05/countfrom
+
