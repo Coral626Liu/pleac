@@ -2653,6 +2653,7 @@ proc multihash_delete {arrayname key value} {
 }
 
 # @@PLEAC@@_9.0
+# feat. Bob Techentin
 #-----------------------------
 if {[catch {file stat /usr/bin/vi entry} err]} {error "Couldn't stat /usr/bin/vi : $err"}
 #-----------------------------
@@ -2683,6 +2684,49 @@ foreach f $files {
     puts "Inside /usr/bin is something called [file tail $f]"
 }
 #-----------------------------
+
+# @@PLEAC@@_9.1
+# feat. Bob Techentin
+#-----------------------------
+set READTIME [file atime $filename]
+set WRITETIME [file mtime $filename]
+
+file atime $filename $NEWREADTIME
+file mtime $filename $NEWWRITETIME
+#-----------------------------
+set atime [file atime $filename]
+set mtime [file mtime $filename]
+
+set atime [clock scan "- 1 week" -base $atime]
+set mtime [clock scan "- 1 week" -base $mtime]
+
+if {[catch {
+	file atime $filename $atime
+	file mtime $filename $mtime
+} err]} {
+	error "couldn't backdate $filename by a week w/ file (a|m)time: $err"
+}
+#-----------------------------
+file atime $file [clock seconds]
+#-----------------------------
+#!/bin/sh
+# uvi - vi a file without changing its access times
+# the next line restarts using tclsh \
+exec tclsh "$0" "$@"
+if {[llength $argv] != 1} {
+	error "usage: uvi filename"
+}
+set file [lindex $argv 0]
+file stat $file statinfo
+if {[info exists env(EDITOR)]} {
+	exec $env(EDITOR) $file
+} else {
+	exec vi $file
+}
+file atime $file $statinfo(atime)
+file mtime $file $statinfo(mtime)
+#-----------------------------
+
 
 # @@PLEAC@@_10.1
 
