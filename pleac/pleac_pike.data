@@ -7,7 +7,7 @@
 
 // @@PLEAC@@_INTRO
 // @@SKIP@@ Most examples will work with pike 7.2 or even older,
-// @@SKIP@@ some may need 7.4.
+// @@SKIP@@ some may need 7.4 or even 7.6
 // @@SKIP@@ In pike variables must be declared, but may not
 // @@SKIP@@ be declared twice, I am not yet sure if it is
 // @@SKIP@@ better to declare all variables for each individual example
@@ -93,10 +93,10 @@ str = "make a hat";
 // "take a ham"
 
 string a, b, c;
-a="To be or not to be";    
-b=a[6..11];      
+a = "To be or not to be";    
+b = a[6..11];      
 // "or not"                
-b=a[6..7]; c=a[3..4];            
+b = a[6..7]; c=a[3..4];            
 write("%s\n%s\n", b, c);
 /*
 or                  
@@ -108,17 +108,17 @@ string cut2fmt(int ... positions)
 { 
   string template = "";
   int lastpos  = 1;
-  foreach(positions, int place) 
+  foreach(positions ;; int place) 
   {      
     template += "A" + (place - lastpos) + " ";
-    lastpos=place;     
+    lastpos = place;     
   }
   template += "A*";
   return template;
 }
 
-string fmt=cut2fmt(8, 14, 20, 26, 30);
-write(fmt+"\n");
+string fmt = cut2fmt(8, 14, 20, 26, 30);
+write("%s\n", fmt);
 //A7 A6 A6 A6 A4 A*         
 
 // @@PLEAC@@_1.2
@@ -129,7 +129,7 @@ a = b || c;
 
 // set x to y unless x is already true
 if(!x)
-  x=y;
+  x = y;
 
 // use b if b is defined, else c
 // an undefined variable would be a compile time error so this
@@ -154,8 +154,8 @@ if(!starting_point)
   starting_point = "Greenwich";
 
 if(!sizeof(a))                  
-  a=b;              // copy only if empty              
-a=(sizeof(b)?b:c);  // assign b if nonempty, else c
+  a = b;              // copy only if empty              
+a = (sizeof(b)?b:c);  // assign b if nonempty, else c
 
 // @@PLEAC@@_1.3
 [var1, var2] = ({ var2, var1 });  // gee, i love this example.        
@@ -179,7 +179,7 @@ int i;                          // declare a variable of type int
 i = 'a';                        // the ascii value of "a"
 i = '\n';                       // the ascii value of a "newline"
 //-----------------------------
-string char="foo";
+string char = "foo";
 int num = char[0];   // gets the ascii value from the first char (that's
                      // what ord() in perl does)
 char = String.int2char(num);
@@ -215,6 +215,92 @@ array ibm = map(ascii, `+, 1) // apply the function +, with the argument
 write(ibm+"\n");              // prints "IBM"
 
 // @@PLEAC@@_1.5
+string hello = "Hello world!";
+array(string) chars = hello/"";       // array of characters as strings
+
+foreach(chars;; string char)        // this also matches newlines
+  ;  // do stuff with char
+//-----------------------------
+string data = "an apple a day";
+array chars = data/"";
+mapping seen = ([]);
+
+foreach(chars ;; string char)
+  seen[char]++; 
+
+write("unique chars are: %s\n", sort(indices(seen))*"");
+// unique chars are:  adelnpy
+//-----------------------------
+string data = "an apple a day";
+string result = sort(indices(mkmapping(data/"", allocate(sizeof(data))))*"";
+
+write("unique chars are: %s\n", result);
+// unique chars are:  adelnpy
+//-----------------------------
+string data = "an apple a day";
+int sum;
+
+foreach(data ;; int char)
+  sum += char;
+
+write("sum is %d\n", sum);
+// sum is 1248
+//-----------------------------
+string data = "an apple a day";
+int sum=`+(@(array)data);  
+
+write("sum is %d\n", sum);
+// sum is 1248
+//-----------------------------
+#/usr/bin/pike
+void main(int argc, array(string) argv)
+{
+  string data = Stdio.read_file(argv[1]);
+  int checksum;
+
+  foreach(data ;; int char)
+    checksum += char;
+
+  checksum %= pow(2,16)-1;
+  write("%d\n", checksum);
+}
+//-----------------------------
+// alternate version
+#!/usr/bin/pike
+void main(int argc, array(string) argv)
+{
+  string data=Stdio.read_file(argv[1]);
+  int checksum = `+(@(array)data) % ((1<<16)-1);
+  write("%d\n", checksum);
+}
+//-----------------------------
+#!/usr/bin/pike
+# slowcat - emulate a   s l o w  line printer
+# usage: slowcat [-DELAY] [files ...]
+void main(int argc, array argv)
+{
+  array files;
+  int delay = 1;
+
+  if(argv[1][0] == '-')
+  {
+    files = argv[2..];
+    delay = (int)argv[1][1..];
+  }
+  else
+    files = argv[1..];
+
+  foreach(files, string file)
+  {
+    string data = Stdio.read_file(file);
+    foreach(data/"", string char)
+    {
+      write(char);
+      sleep(0.005*delay);
+    }
+  }
+}
+
 // @@PLEAC@@_1.6
 // #1.6 (reverse a string by char/word)
 // by Olivier Girondel
