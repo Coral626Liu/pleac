@@ -2564,6 +2564,56 @@ print " ".join(libdirs),"\n"
 re.search("\Bis\B","this thistle") # matches on thistle not on this
 re.search("\Bis\B","vis-a-vis")    # does not match
 
+# @@PLEAC@@_6.4
+#-----------------------------
+#!/usr/bin/python
+# resname - change all "foo.bar.com" style names in the input stream
+# into "foo.bar.com [204.148.40.9]" (or whatever) instead
+
+import socket               # load inet_addr
+import fileinput
+import re
+
+match = re.compile("""(?P<hostname>  # capture hostname
+                         (?:         # these parens for grouping only
+                            [\w-]+   # hostname component
+                            \.       # ant the domain dot
+                         ) +         # now repeat that whole thing a bunch of times
+                         [A-Za-z]    # next must be a letter
+                         [\w-] +     # now trailing domain part
+                      )              # end of hostname capture
+                   """,re.VERBOSE)   # for nice formatting
+
+def repl(match_obj):
+    try:
+        addr = socket.gethostbyname(match_obj.group("hostname"))
+    except:
+        addr = "???"
+    return "%s [%s]" % (
+                match_obj.group("hostname"), # the original hostname
+            	addr )
+for ln in fileinput.input():
+    print match.sub(repl, ln)
+#-----------------------------
+re.sub("""(?x)     # nicer formatting
+          \#       #   a pound sign
+          (\w+)    #   the variable name
+          \#       #   another pound sign
+          """,
+          lambda m: eval(m.group(1)),  # replace with the value of the global variable
+          line
+      )
+##-----------------------------
+re.sub("""(?x)     # nicer formatting
+          \#       #   a pound sign
+          (\w+)    #   the variable name
+          \#       #   another pound sign
+          """,
+          lambda m: eval(eval(m.group(1))),  # replace with the value of *any* variable
+          line
+      )
+##-----------------------------
+
 
 # @@PLEAC@@_7.0
 input = open("/usr/local/widgets/data")
