@@ -42,10 +42,14 @@ chars = string.unpack("A1" * string.length)
 
 
 @@@1.2
+# careful! "b is true" doesn't mean "b != 0" in Ruby
+# thus no problem of "defined" later since only nil is false
 a = b || c
 
 x ||= y
 
+# you will still want to use defined? in order to test
+# for scope existence of a given variable
 a = defined?(b) ? b : c
 
 dir = ARGV.shift || "/tmp"
@@ -59,9 +63,11 @@ alpha, beta, production = beta, production, alpha
 
 
 @@@1.4
-num = ?r                          # from character constant
-num = string[0]                   # from a position in a String
+num = char[0]
 char = num.chr
+
+# Ruby also supports having a char from character constant
+num = ?r
 
 char = sprintf("%c", num)
 printf("Number %d is character %c\n", num, num)
@@ -71,8 +77,9 @@ string = ascii.pack("C*")
 
 hal = "HAL"
 ascii = hal.unpack("C*")
-ascii.each_index { |i|
-    ascii[i] += 1                 # add one to each ASCII value
+# We can't use Array#each since we can't mutate a Fixnum
+ascii.collect! { |i|
+    i + 1                         # add one to each ASCII value
 }                
 ibm = ascii.pack("C*")
 puts ibm
@@ -100,7 +107,7 @@ puts "sum is #{sum & 0xffffffff}" # since Ruby will go Bignum if necessary
 #!/usr/bin/ruby
 # slowcat - emulate a   s l o w   line printer
 # usage: slowcat [-DELAY] [files ...]
-delay = ARGV[0] =~ /^-([.\d]+)/ ? ARGV.shift[1..-1].to_i : 1
+delay = if ARGV[0] =~ /^-([.\d]+)/ then ARGV.shift; $1.to_i else 1 end
 $stdout.sync = 1
 while gets
     for b in split('')
@@ -118,7 +125,7 @@ revwords = string.split(" ").reverse.join(" ")
 revwords = string.split(/(\s+)/).reverse.join
 
 long_palindromes = File.open("/usr/share/dict/words").read.
-  collect { |w| w.chomp }.select { |w| w.reverse == w && w.length > 5 }
+  select { |w| w.chomp!; w.reverse == w && w.length > 5 }
 
 
 @@@1.7
@@ -210,10 +217,16 @@ fields.each_index { |i|
 # uses a Perl module..
 
 
+@@@1.17
+# tis a program -> to come later..
+
+
+@@@1.18
+# tis a program -> to come later..
+
+
 @@@2.1
-num.is_a?(Fixnum)
-num.is_a?(Bignum)
-num.is_a?(Float)
+# (can't use String#to_i or #to_f directly)
 
 if string =~ /^[+-]?\d+$/
     p 'is an integer'
@@ -221,14 +234,10 @@ else
     p 'is not'
 end
 
-def getnum(n)
-    if n.respond_to?(:to_int)     # used by Ruby to coerce user classes into Integer!?
-        return n.to_int
-    end
-    if n.respond_to?(:to_i)       # implemented by Ruby in some classes
-        return n.to_i
-    end
-    nil
+if string =~ /^-?(?:\d+(?:\.\d*)?|\.\d+)$/
+    p 'is a decimal number'
+else
+    p 'is not'
 end
 
 
@@ -262,11 +271,11 @@ end
 
 @@@2.4
 def dec2bin(n)
-    n.to_a.pack("N").unpack("B32")[0].sub(/^0+(?=\d)/, '')
+    [n].pack("N").unpack("B32")[0].sub(/^0+(?=\d)/, '')
 end
 
 def bin2dec(n)
-    ("0"*32+n)[-32..-1].to_a.pack("B32").unpack("N")[0]
+    [("0"*32+n.to_s)[-32..-1]].pack("B32").unpack("N")[0]
 end
 
 
@@ -285,4 +294,197 @@ print "Infancy is: "
 }
 print "\n"
 
+
+@@@2.6
+# anyone really *needs* this?
+
+
+@@@2.7
+random = rand(y-x+1)+x
+
+chars = ["A".."Z","a".."z","0".."9"].collect { |r| r.to_a }.join + %q(!@$%^&*)
+password = (1..8).collect { chars[rand(chars.size)] }.pack("C*")
+
+
+@@@2.8
+srand        # uses a combination of the time, the process id, and a sequence number
+srand(val)   # for repeatable behaviour
+
+
+@@@2.9
+# uses a Perl module..
+
+
+@@@2.10
+def gaussian_rand
+    begin
+        u1 = 2 * rand() - 1
+        u2 = 2 * rand() - 1
+        w = u1*u1 + u2*u2
+    end while w>=1
+    w = Math.sqrt((-2*Math.log(w))/w)
+    [ u2*w, u1*w ]
+end
+
+mean = 25
+sdev = 2
+salary = gaussian_rand[0] * sdev + mean
+printf("You have been hired at \$%.2f\n", salary)
+
+
+@@@2.11
+def deg2rad(d)
+    (d/180.0)*Math::PI
+end
+
+def rad2deg(r)
+    (r/Math::PI)*180
+end
+
+
+@@@2.12
+sin_val = Math.sin(angle)
+cos_val = Math.cos(angle)
+tan_val = Math.tan(angle)
+
+# no asin/acos in Ruby??
+
+
+@@@2.13
+log_e = Math.log(val)
+log_10 = Math.log10(val)
+
+def log_base(base, val)
+    Math.log(val)/Math.log(base)
+end
+
+answer = log_base(10, 10_000)
+puts "log10(10,000) = #{answer}"
+
+
+@@@2.14
+require 'matrix.rb'
+
+a = Matrix[ [ 3, 2, 3 ], [ 5, 9, 8 ], ]
+b = Matrix[ [ 4, 7 ], [ 9, 3 ], [ 8, 1 ], ]
+c = a * b
+
+a.row_size
+a.column_size
+
+c.det
+a.transpose
+
+
+@@@2.15
+require 'complex.rb'
+require 'rational.rb'
+
+a = Complex(3, 5)              # 3 + 5i
+b = Complex(2, -2)             # 2 - 2i
+puts "c = #{a*b}"
+
+c = a * b
+d = 3 + 4*Complex::I
+
+printf "sqrt(#{d}) = %s\n", Math.sqrt(d)
+
+
+@@@2.16
+number = hexadecimal.hex
+number = octal.oct
+
+print "Gimme a number in decimal, octal, or hex: "
+num = gets.chomp
+exit unless defined?(num)
+num = num.oct if num =~ /^0/  # does both oct and hex  
+printf "%d %x %o\n", num, num, num
+
+print "Enter file permission in octal: "
+permissions = gets.chomp
+raise "Exiting ...\n" unless defined?(permissions)
+puts "The decimal value is #{permissions.oct}"
+
+
+@@@2.17
+def commify(n)
+    n.to_s =~ /([^\.]*)(\..*)?/
+    int, dec = $1.reverse, $2 ? $2 : ""
+    while int.gsub!(/(,|\.|^)(\d{3})(\d)/, '\1\2,\3')
+    end
+    int.reverse + dec
+end
+
+
+@@@2.18
+printf "It took %d hour%s\n", time, time == 1 ? "" : "s"
+
+# dunno if an equivalent to Lingua::EN::Inflect exists...
+
+
+@@@2.19
+# tis a program -> to come later..
+
+
+@@@3.0
+puts Time.now
+
+puts "Today is day ", Time.now.yday, " of the current year.\n"
+puts "Today is day ", Time.now.day, " of the current month.\n"
+
+
+@@@3.1
+t = Time.now
+day, month, year = t.day, t.month, t.year
+
+tl = Time.now.localtime
+printf("The current date is %04d %02d %02d\n", tl.year, tl.month, tl.day)
+
+Time.now.localtime.strftime("%Y-%m-%d")
+
+
+@@@3.4
+when_ = now + difference
+then_ = now - difference
+
+
+@@@3.5
+bree = 361535725
+nat  =  96201950
+
+difference = bree - nat
+puts "There were #{difference} seconds between Nat and Bree"
+
+seconds    =  difference % 60
+difference = (difference - seconds) / 60
+minutes    =  difference % 60
+difference = (difference - minutes) / 60
+hours      =  difference % 24
+difference = (difference - hours)   / 24
+days       =  difference % 7
+weeks      = (difference - days)    /  7
+
+puts "(#{weeks} weeks, #{days} days, #{hours}:#{minutes}:#{seconds})"
+
+
+@@@3.8
+string = Time.at(epoch_secs)
+Time.at(1234567890).gmtime       # gives: Fri Feb 13 23:31:30 UTC 2009
+
+time = Time.mktime(1973, "jan", 18, 3, 45, 50)  # Month: "jan" (better :) or 1
+print "In localtime it gives: ", time.localtime, "\n"
+
+
+@@@3.10
+sleep(0.005)              # Ruby is not a broken language :)
+
+
+@@@8.10
+begin
+    fh = File.open(file, "r+")
+    addr = fh.tell unless fh.eof while fh.gets
+    fh.truncate(addr)
+rescue SystemCallError
+    $stderr.puts "#$!"
+end
 
