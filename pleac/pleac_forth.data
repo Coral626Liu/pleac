@@ -1,97 +1,226 @@
-( -*- forth -*-
+( -*- forth -*- 
 
- @@PLEAC@@_NAME
- @@SKIP@@ Forth
+@@PLEAC@@_NAME
+@@SKIP@@ Forth
 
- @@PLEAC@@_WEB
- @@SKIP@@ http://www.forth.org/
+@@PLEAC@@_WEB
+@@SKIP@@ http://www.forth.org/
 
- @@PLEAC@@_INTRO
- Implementations vary wildly. 
- I'm pretty sure these are all legal ANS.
- They work on GFORTH on RH7.3. At least on mine. 
- Line-by-line stack description comments are optional, but recommended for
-the programmer's sanity on long words. 
- NB: hex digits for read-int are 0123456789:;<=>? )
+@@PLEAC@@_INTRO
+Implementations vary wildly. 
+I'm pretty sure these are all legal ANS. 
 
-( @@PLEAC@@_APPENDIX )
- ( a couple of basic I/O words )
- ( read-int isn't used directly yet in these examples, but helps a lot for testing )
-:  read-int  	( -- n ) 
-   0	     	( -- old )
-   begin     	( no stack effect )
-      key    	( old -- old input )
-      dup    	( old input -- old input input )
-      dup	( old input input -- old input input input ) 
-      47 	( old input input input -- old input input input '0' ) ( ASCII '0' )
-      > 	( old input input input '0' -- old input input flag ) ( > ASCII '0'? )
-      swap 	( old input input flag -- old input flag input )
-      47	( old input flag input -- old input flag input '0' ) ( ASCII '0' )
-      base	( old inut flag input '0' -- old input flag input '0' &base ) ( push address of 'base' global )
-      @		( old input flag input '0' &base -- old input flag input '0' *base ) ( dereference 'base' )
-      1+	( old input flag input '0' *base -- old input flag input '0' "10" ) ( 10 in base )
-      +  	( old input flag input '0' "10" -- old input flag input highest ) ( highest number in base )
-      < 	( old input flag input highest -- old input flag flag ) ( < highest digit expected in base? )
-      and 	( old input flag flag -- old input flag )
-   while 	( old input flag -- old input ) ( either test failed? terminate )
-      48 - 	( onld input -- old digit ) ( char2digit = char - 48 )
-      swap 	( old digit -- digit old )
-      base 	( digit old -- digit old &base ) 
-      @ 	( digit old -- digit old *base )
-      *		( digit old *base -- digit old*base ) 
-      + 	( digit old*base -- new_old )
-   repeat 	( new_old -- new_new_old ) 
-   drop  	( old input -- old: QEF )
+@@PLEAC@@_APPENDIX 
+Variable names tend to assume you have made a word with that name which leaves
+the value you want on the stack. 
+
+Some Forths have these and others do not, so to be safe: )
+
+-1 constant t 
+0 constant nil 
+: not ( f -- f ) 0= ;
+
+( @@PLEAC@@_1.0 
+---------------------------- )
+: string ( -- c- u ) s" \n" ; ( two characters, \ and an n )
+: string ( -- c- u ) s" John 'Maddog' Orwant" ; ( literal single quotes 
+---------------------------- )
+: string ( -- ) cr ; ( a "newline" character, or: )
+: string ( -- ) newline type ; ( a "newline" character, or: )
+: string ( -- c ) 13 ; ( depending, obviously, on your platform's newline )
+
+( double quotes must be entered manually )
+: put" ( c- u -- )
+	+ 34 swap c! 
 ;
+: string ( -- c- u ) 
+	s" Jon  Maddog  Orwant" 
+	over dup 4 put" 11 put" ( literal double quotes )
+; 
+( no q/ / type quoting options 
+----------------------------
+some words to make a here document: )
+: newline? ( c -- f )
+ dup 10 = swap 13 = or 
+( or whatever the newline is for your platform )
+;
+: get-terminator ( -- c- u )
+ here dup 
+ 12 chars allot 
+ 12 accept
+ ( change 12 if you absolutely must have a larger EOF marker than 12 characters )
+ cr
+;
+: get-char ( -- c )
+ key dup emit dup here 1 chars allot c!
+;
+: line-in ( -- u )
+ 0 begin 1 + get-char 13 = until 1 - 
+;
+: <<" ( -- c- u )
+\ A parsing <<" would be cute but I don't want to deal with writing one
+  get-terminator here -rot
+  begin
+  	line-in 
+	here over - 1 - swap 2over 
+  	compare not 
+  until
+  drop drop here over -
+;
+<<" EOF
+This is a multiline here document
+terminated by EOF on a line by itself
+EOF
+( --------------------------	
 
-( @@PLEAC@@_1.1 )
-: substr 	( addr strlen offset count -- ) ( types $count chars from &addr + $offset. ) ( require that substring is within original string )
- 2dup 		( addr strlen offset count -- addr strlen offset count offset count )
- 2>r		( addr strlen offset count offset count -- addr strlen offset count )
- +		( addr strlen offset count -- addr strlen last )
- >		( addr strlen last -- addr flag )
- if		( addr flag -- addr )
-  2r>		( addr -- addr offset count )
-  0 do		( addr offset count -- addr offset )
-  2dup		( addr offset -- addr offset addr offset )
-  i +		( addr offset addr offset -- addr offset addr new_offset )
-  +		( addr offset addr new_offset -- addr offset caddr )
-  c@		( addr offset caddr --addr offset char )
-  emit
+@@PLEAC@@_1.1 
+---------------------------- )
+: substr ( c- u u u -- c- u )
+  dup 0=  
+  if 
+    drop tuck -
+  else	
+    2dup + 2swap -rot dup -rot > 
+    if
+      rot drop 2dup swap - nip
+    else 
+      drop swap
+    then
+  then
+  -rot + 0 -rot swap here swap 2dup chars allot drop 0 
+  do
+    over i + c@ over i + c! rot 1+ -rot
   loop
- else
-  2r> 		( addr -- addr offset count )
-  drop drop drop ( addr offset count -- : QEF ) 
-  s" Error: exceeds string length" type
- then 
+  nip swap
+;  
+: value string offset count substr ;
+: value string offset 0 substr ;
+
+: reassign ( c- u u u c- u -- c- u )
+  { addr1 strlen1 offset count addr2 strlen2 }
+  strlen1 count - strlen2 + allocate throw
+  addr1 over offset cmove
+  addr2 over offset chars + strlen2 cmove
+  addr1 offset chars + count chars + 
+	over offset chars + strlen2 chars + strlen1 count - offset - cmove
+  strlen1 count - strlen2 +
+;
+string offset count newstring reassign
+( ----------------------------
+get a 5-byte string, skip 3, then grab 2 8-byte strings, then the rest. )
+: unpack ( c- u -- c-1 u1 c-2 u2 c-3 u3 c-4 u4 )
+  2>r
+  5 chars allocate throw 2r@ drop over 5 cmove 5 
+  8 chars allocate throw 2r@ drop 8 chars + over 8 cmove 8
+  8 chars allocate throw 2r@ drop 16 chars + over 8 cmove 8
+  2r> 24 - dup chars allocate throw dup 2swap >r r@ swap 24 + -rot cmove
+  r> 
 ;
 
-( @@PLEAC@@_1.2 )
-: enforce_default ( default addr -- ) dup @ 0= if ! then ;
+( split at five byte boundaries )
+: fivers ( c- u -- c-1 u1 c-2 u2 ... c-n un )
+  5 / 0 
+  do 
+    5 chars allocate throw 2dup swap i 5 * chars + swap 5 cmove 5 rot 
+  loop
+  drop
+;
+
+( chop string into individual characters )
+: chop ( c- u -- c1 c2 ... cn )
+  0 do dup i chars + c@ swap loop drop ;
+( ---------------------------- )
+: string s" This is what you have" ;
+: first string drop 1 ; ( "T" )
+: start string drop 5 chars + 2 ; ( "is" )
+: rest string 13 swap over - -rot chars + swap; ( "you have" )
+: last string 1 - chars + 1 ; ( "e" )
+: end string 4 - chars + 4 ; ( "have" )
+: piece string 8 - chars + 3 ; ( "you" )
+( ---------------------------- )
+: string s" This is what you have" ;
+string type
+( This is what you have )
+
+string 5 2 s" wasn't" reassign ( change "is" to "wasn't"
+This wasn't what you have )
+
+string 13 12 s" ondrous" reassign ( replace last 12 characters
+This wasn't wondrous )
+
+string swap 1 chars + swap 1 - ( delete first character
+his wasn't wondrous )
+
+string 10 - dup -rot resize throw swap ( delete last 10 characters
+his wasn' )
+( ----------------------------
+ TODO RE's
+------------------------------
+ exchange first and last letters in a string )
+: a s" make a hat" ;
+: exchange ( c- u -- )
+  1 - 2dup chars + c@ -rot over c@ -rot chars over + rot swap c! c!
+;
+a exchange type
+( take a ham
+
+------------------------------
+
+extract column )
+: a "To be or not to be" ;
+: b ( c- u u u -- c- u )
+  dup 
+  chars 
+  allocate throw swap ( c- len off cou c-2 )
+  >r >r nip chars + 2r@ cmove r> r>
+;
+
+a 6 6 ( skip 6, grab 6 ) 
+b type
+( or not )
+
+( @@PLEAC@@_1.2 
+ use b if b is true, else c )
+: default ( x a- -- ) dup @ not if ! else 2drop then ;
+c b default a !
+
+( set x to y unless x is already true )
+: !? dup if ! else drop then ;
+x dup @ 0= y @ and  swap !? 
+( ---------------------------- )
 
 ( @@PLEAC@@_1.3 )
-: swap_without_temporary_variables ( &x &y -- ) 
-  2dup 	( &x &y -- &x &y &x &y )
-  @ 	( &x &y &x &y -- &x &y &x *y )
-  swap  ( &x &y &x *y -- &x &y *y &x )
-  @ 	( &x &y *y &x -- &x &y *x *y )
-  -rot	( &x &y *x *y -- &x *y &y *x )
-  swap  ( &x *y &y *x -- &x *y *x &y )
-  ! 	( &x *y *x &y -- &x *y )
-  swap  ( &x *y -- *y &x )
-  ! 	( *y &x -- : QEF )
+: swap! ( x x -- ) 
+  2dup @ swap @ rot ! swap ! 
 ;
+var1 var2 swap!
+( ---------------------------- )
+variable temp
+a @ temp !
+b @ a !
+temp @ b !
+( ---------------------------- )
 
-( @@PLEAC@@_1.4 )
-: ord ( char -- int ) 48 - ( char -- int : QEF ) ;
-: chr ( int -- char ) emit ( int -- char : QEF ) ;
+( @@PLEAC@@_1.4 
+ not an issue, really; a char is just an integer and stored as a cell on the stack )
+: ord ( c -- u ) ;
+: chr ( u -- c ) ;
+( or, to see the char  )
+: chr ( u -- ) emit ;
+( but if it's an actual variable rather than a stack element: )
+: ord ( c- -- a- ) 1 cells allocate throw swap c@ swap ! ;
+: chr ( a- -- c- ) 1 chars allocate throw swap @ swap c! ;
 
 ( @@PLEAC@@_1.5 )
 
-( with address length pair )
-: process_string ( addr strlen -- variable stack effect )
-  0 do dup i + c@ ( some word that does whatever processing you want goes here ) swap loop drop ; 
+( with a literal word )
+: process-string ( c- u -- variable stack effect )
+  0 do dup i chars + c@ ( your-word ) swap loop drop 
+; 
 
-( with counted string )
-: process_counted_string ( addr -- variable stack effect )
- dup c@ 0 do dup i + c@ ( some word that does whatever processing you want goes here ) swap loop drop ;
+( or better yet, with an execution token )
+: map-xt ( xt c- u -- variable stack effect )
+ 0 do 2dup i chars + c@ swap execute loop
+;
+
+
