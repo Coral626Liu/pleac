@@ -9,17 +9,28 @@
 %% @@SKIP@@ http://www.erlang-fr.org/
 
 %% @@PLEAC@@_1.0
-%% In Erlang, strings are simply represented as lists of
-%% integers. This is usually enough. Sometimes, however, strings are
-%% better represented as binaries (usually where Perl would use
-%% pack/unpack). Here I use whatever feels natural.
 
-String = [ $\, $n ].				% two characters, \ and an n
+%% A character is simply an integer. For Latin-1 (and thus ASCII) we
+%% have some syntactic sugar.
+
+C = 110.					% an ASCII 'n'
+C = $ñ.						% a Latin1 tilde-n
+C = $\n.					% a newline
+
+%% Strings are simply represented as lists of characters. This is
+%% usually enough. Sometimes, however, strings are better represented
+%% as binaries (usually where Perl would use pack/unpack). Here I use
+%% whatever feels natural.
+
+String = "\\n".					% two characters, \ and an n
+String = [$\, $n].				% ditto, less sugar
+String = [92, 110].				% ditto, no sugar
 
 String = "\n".					% a "newline" character
 String = "Jon \"Maddog\" Orwant".		% literal double quotes
 
-String = "Jon 'Maddog' Orwant".			% literal single quote
+String = "Jon 'Maddog' Orwant".			% single quotes, no \ needed
+String = "Jon \'Maddog\' Orwant".		% ...but you can if you want
 
 A = "This is a multiline string\nspanning two lines". % use of '\n'
 
@@ -28,3 +39,191 @@ A = "This is a multiline string that spans two lines\n"
 
 A = "This is a multiline string that spans two lines
 using two source lines in a here-document style". % "real" newline
+
+A = << "This string is really a binary" >>.	% literal binary string
+
+%% This won't work well with "wide" encodings
+ListString = binary_to_list(BinaryString).
+BinaryString = list_to_binary(ListString).
+
+%% TODO: Maybe mention atoms.
+
+%% @@PLEAC@@_1.1
+
+Value = string:substr(String, Offset, Count).
+Value = string:substr(String, Offset).
+
+string:substr(String, 1, Offset) 
+  ++ Newstring 
+  ++ string:substr(String, 1+Offset+Count).
+string:substr(String, 1, Offset) 
+  ++ Newtail.
+
+%%-----------------------------
+%% get a 5-byte string, skip 3, then grab 2 8-byte strings, then the rest
+<<Leading:5/binary, _:3/binary, S1:8/binary, S2:8/binary, Trailing/binary>> = Data.
+
+%% split at five-byte boundaries.
+split_five(<<Bytes:5/binary, Rest/binary>>) ->
+    [Bytes | split_five(Rest)];
+split_five(<<All/binary) ->
+    [All].
+Fivers = split_five(String).
+
+%%-----------------------------
+S = "This is what you have",
+%%  +123456789012345678901   Indexing forwards  (left to right)
+%%   098765432109876543210-  Indexing backwards (right to left)
+%% note that 0 means 10, 20, etc. above
+%% note also that the forward indexing is 1-based, while the (faked)
+%% reverse indexing is 0-based.
+
+First = string:substr(S, 1, 1),			% "T"
+Start = string:substr(S, 6, 2),			% "is"
+Rest = string:substr(S, 14),			% "you have"
+Last = string:substr(S, string:len(S)),		% "e"
+End = string:substr(S, string:len(S)-3),	% "have"
+Piece = string:substr(S, string:len(S)-7, 3).	% "you"
+%%-----------------------------
+
+String = "This is what you have",
+io:put_chars(String),
+% -| This is what you have
+
+String2 = string:substr(String, 1, 5)		% change "is" to "wasn't"
+++ "wasn't" ++ string:substr(String, 8),
+% => This wasn't what you have
+
+String3 = string:substr(String2, 1, string:len(String2)-12)
+++ "ondrous",					% "This wasn't wondrous"
+% => This wasn't wondrous
+
+String4 = string:substr(String3, 2),		% delete first character
+% => his wasn't wondrous
+
+String5 = string:substr(String4, 1, string:len(String4)-10). % delete last 10
+% => his wasn'
+
+%%-----------------------------
+%% TODO: matching substrings. Let's see what the regexp module can do...
+
+%%-----------------------------
+%% exchange the first and last letters in a string
+A = "make a hat",
+B = string:substr(A, string:len(A))
+++  string:substr(A, 2, string:len(A)-2)
+++  string:substr(A, 1, 1),
+io:put_chars(B).
+% -| take a ham
+
+%%-----------------------------
+%% extract column with bitsyntax
+A = << "To be or not to be" >>,
+<< _:6/binary, B:6/binary, _/binary >> = A.
+% B = <<"or not">>
+
+%%-----------------------------
+
+%%% @@PLEAC@@_1.2
+%%-----------------------------
+
+%%-----------------------------
+%% use b if b is true, else c
+A = if
+	B -> B;
+	true -> C
+    end.
+
+%%-----------------------------
+%% While the Erlang language proper has no concept of not-defined most
+%% lookup-functions have it in some guise: The function erlang:get/1
+%% uses the atom 'undefined' (other functions use other atoms).
+
+%% use B if B is defined, else C
+A = case B of
+	undefined -> C;
+	_ -> B
+    end.
+	    
+%%-----------------------------
+Foo = case Bar of
+	  "" -> "DEFAULT VALUE";
+	  _ -> Bar
+      end.
+
+%%-----------------------------
+%% find the user name on Unix systems
+User = catch lists:foreach(fun(F) ->
+				   case F() of
+				       false -> go_on;
+				       "" -> go_on;
+				       X -> throw(X)
+				   end
+			   end,
+			   [fun() -> os:getenv("USER") end,
+			    fun() -> os:getenv("LOGNAME") end,
+			    fun() -> os:cmd("id -n -u") end,
+			    fun() -> "Unknown user" end]).
+
+%% TODO: Find out some way to get the uid (and do getlogin() and
+%% getpwuid() syscalls).
+	      
+%%-----------------------------
+starting_point() ->
+    starting_point_(greenwich).
+starting_point(Zone) ->
+    starting_point_(Zone).
+
+
+%% @@PLEAC@@_1.3
+%%-----------------------------
+
+%% As Erlang has write-once variables, a new scope is needed to juggle
+%% values around. Here, I use anonymous functions to get such a scope.
+
+fun(V1, V2) ->
+	%%...
+end(V2, V1).
+
+{Alpha, Beta, Production} = {january, march, august},
+fun(Alpha, Beta, Production) ->
+	%%...
+end(Beta, Production, Alpha).
+
+%% now with named functions
+
+f1(V1, V2) ->
+    f2(V2, V1).
+
+f2(V1, V2) ->
+    %%...
+    ok.
+
+f() ->
+    %%...
+    f1(january, march, august),
+    %%...
+    ok.
+
+f1(Alpha, Beta, Production) ->
+    f2(Beta, Production, Alpha).
+
+f2(Alpha, Beta, Production) ->
+    %%...
+    ok.
+
+%% @@PLEAC@@_1.4
+%%-----------------------------
+
+%% 
+io:format("Number ~w is character ~c\n", [101, 101]).
+% -| Number 101 is character e
+
+io:format("~w~n", ["sample"]).
+% -| [115,97,109,112,108,101]
+
+io:format("~s~n", [[115, 97, 109, 112, 108, 101]]).
+% -| sample
+
+io:format("~s~n", [lists:map(fun(C) -> C+1 end, "HAL")]).
+% -| IBM
