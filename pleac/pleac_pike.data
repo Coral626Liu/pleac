@@ -934,3 +934,42 @@ sleep(0.25, abort_on_signal);
 delay(0.25); // uses busy-wait for accuracy,
              // may be interrupted by signal handlers
 
+// @@PLEAC@@_3.11
+
+Calendar.dwim_time("Tue, 26 May 1998 23:57:38 -0400")->distance(
+    Calendar.dwim_time("Wed, 27 May 1998 05:04:03 +0100"))->format_elapsed();   
+// Result: "0:06:25"
+
+#!/usr/bin/pike
+
+int main()
+{
+  MIME.Message        mail = MIME.Message(Stdio.stdin.read());
+  
+  array           received = reverse(mail->headers->received/"\0");
+  Calendar.Second lasttime = Calendar.dwim_time(mail->headers->date);
+
+  array delays=({ ({ "Sender", "Recipient", "Time", "Delta" }) });
+  delays+=({ ({ mail->headers->from, 
+                array_sscanf(received[0], "from %[^ ]")[0], 
+                mail->headers->date, 
+                "" 
+          }) });
+          
+
+  foreach(received;; string hop)
+  {
+    string fromby, date;
+    [fromby, date] = hop/";";
+    Calendar.Second thistime = Calendar.dwim_time(date);
+
+    delays+= ({ array_sscanf(fromby, "from %[^ ]%*sby %[^ ]%*s") + 
+                ({ date, lasttime->distance(thistime)->format_elapsed() }) 
+             });
+
+    lasttime=thistime;
+  }
+
+  write("%{%-=22s %-=22s %-=20s %=10s\n%}\n", delays);
+  return 0;
+}
