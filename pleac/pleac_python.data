@@ -5150,6 +5150,58 @@ opts, rest = getopt.getopt(argv, "", [
 # TODO: Introduce 'optparse', a very powerful command line
 # option parsing module. New in 2.3.
 
+# @@PLEAC@@_15.6
+
+# Show ASCII values for keypresses
+
+# _Getch is from http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/134892
+class _Getch:
+    """Gets a single character from standard input.  Does not echo to the
+screen."""
+    def __init__(self):
+        try:
+            self.impl = _GetchWindows()
+        except ImportError:
+            self.impl = _GetchUnix()
+
+    def __call__(self):
+        return self.impl()
+
+
+class _GetchUnix:
+    def __init__(self):
+        import tty, sys
+
+    def __call__(self):
+        import sys, tty, termios
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        try:
+            tty.setraw(sys.stdin.fileno())
+            ch = sys.stdin.read(1)
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+        return ch
+
+
+class _GetchWindows:
+    def __init__(self):
+        import msvcrt
+
+    def __call__(self):
+        import msvcrt
+        return msvcrt.getch()
+
+
+getch = _Getch()
+
+print "Press keys to see their ASCII values.  Use Ctrl-C to quit.\n"
+while (1):
+    char = getch()
+    char = ord(char)
+    if char == 3:
+        break
+    print " Decimal: %3d   Octal: %3o   Hex: x%02x" % (char, char, char)
 
 # @@PLEAC@@_15.13
 
@@ -5260,6 +5312,11 @@ which = command.expect(choices)
 # (instead of raising exception)
 # 4: TIMEOUT
 # 5: EOF
+
+# @@PLEAC@@_15.17
+# Start Python scripts without the annoying DOS window on win32
+# Use extension ".pys":
+# "foo.pyw" instead of "foo.py"
 
 
 # @@PLEAC@@_19.1
@@ -5445,4 +5502,97 @@ if status != 0:
     sys.exit()
     
 
+# @@PLEAC@@_16.3
+# -----------------------------
+import os
+import sys
+import glob
 
+args = glob.glob("*.data")
+try:
+    os.execvp("archive", args)
+except OSError, e:
+    print "Couldn't replace myself with archive: %s" % str(e)
+    sys.exit()
+
+# The error message does not contain the line number like the "die" in
+# perl. But if you want to show more information for debuging, you can
+# delete the try...except and you get a nice traceback which shows all
+# line numbers and filenames.
+
+# -----------------------------
+os.execvp("archive", ["accounting.data"])
+
+# @@PLEAC@@_16.4
+# -------------------------
+# Read from a child process
+
+import sys
+import popen2
+pipe = popen2.Popen4("program arguments")
+pid = pipe.pid
+for line in pipe.fromchild.readlines():
+    sys.stdout.write(line)
+
+# Popen4 provides stdout and stderr.
+# This avoids deadlocks if you get data
+# from both streams.
+#
+# If you don't need the pid, you
+# can use popen2.popen4(...)
+
+# -----------------------------
+# Write to a child process
+
+import popen2
+
+pipe = popen2.Popen4("gzip > foo.gz")
+pid = pipe.pid
+pipe.tochild.write("Hello zipped world!\n")
+pipe.tochild.close() # programm will get EOF on STDIN
+
+# @@PLEAC@@_16.6
+# This script accepts several filenames
+# as argument. If the file is zipped, unzip
+# it first. Then read each line if the file
+import os
+import sys
+import popen2
+
+for file in sys.argv[1:]:
+    if file.endswith(".gz") or file.endswith(".Z"):
+        (stdout, stdin) = popen2.popen2("gzip -dc '%s'" % file)
+        fd = stdout
+    else:
+        fd = open(file)
+    for line in fd:
+        # ....
+        sys.stdout.write(line)
+    fd.close()
+#-----------------------------
+
+#-----------------------------
+# Ask for filename and open it
+import sys
+print "File, please?"
+line = sys.stdin.readline()
+file = line.strip() # chomp
+open(file)
+
+# @@PLEAC@@_16.7
+# Execute foo_command and read the output
+
+import popen2
+(stdout_err, stdin) = popen2.popen4("foo_command")
+for line in stdout_err.readlines():
+    # ....
+
+# @@PLEAC@@_16.8
+# Open command in a pipe
+# which reads from stdin and writes to stdout
+
+import popen2
+pipe = popen2.Popen4("wc -l") # Unix command
+pipe.tochild.write("line 1\nline 2\nline 3\n")
+pipe.tochild.close()
+output = pipe.fromchild.read()
