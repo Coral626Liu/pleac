@@ -3145,6 +3145,84 @@ in2.close
 outdb.close
 
 
+# @@PLEAC@@_14.8
+# example to store complex data in a database
+# uses marshall from the standard library
+require "sdbm"
+db = SDBM.open("pleac14-8-database", 0666)
+
+# convert the Objects into strings and back by using the Marshal module.
+# Most normal objects can be converted out of the box,
+# but not special things like procedure objects,
+# IO instance variables, singleton objects
+
+db["Tom Christiansen"] = Marshal.dump(["book author",  "tchrist@perl.com"])
+db["Tom Boutell"] = Marshal.dump(["shareware author",
+"boutell@boutell.com"])
+
+name1 = "Tom Christiansen"
+name2 = "Tom Boutell"
+
+tom1 = Marshal.load(db[name1])
+tom2 = Marshal.load(db[name2])
+
+puts "Two Toming: #{tom1} #{tom2}"
+
+if tom1[0] == tom2[0] && tom1[1] == tom2[1]
+   puts "You're having runtime fun with one Tom made two."
+else
+   puts "No two Toms are ever alike"
+end
+
+# To change parts of an entry, get the whole entry, change the parts,
+# and save the whole entry back
+entry = Marshal.load(db["Tom Boutell"])
+entry[0] = "Poet Programmer"
+db["Tom Boutell"] = Marshal.dump(entry)
+db.close
+
+
+# @@PLEAC@@_14.9
+# example to make data persistent
+# uses Marshal from the standard lib
+# Stores the data in a simple file,
+# see 14.8 on how to store it in a dbm file
+
+# The BEGIN block is executed before the rest of the script
+# we use global variables here because local variables
+# will go out of scope and are not accessible from the main script
+
+BEGIN {
+   $persistent_store = "persitence.dat"
+   begin
+     File.open($persistent_store) do |f|
+       $stringvariable1 = Marshal.load(f)
+       $arrayvariable2 = Marshal.load(f)
+     end
+   rescue
+     puts "Can not open #{$persistent_store}"
+     # Initialisation if this script runs the first time
+     $stringvariable1 = ""
+     $arrayvariable2 = []
+   end
+}
+
+END {
+   File.open($persistent_store, "w+") do |f|
+     Marshal.dump($stringvariable1, f)
+     Marshal.dump($arrayvariable2, f)
+   end
+}
+
+# simple test program
+puts $stringvariable1
+puts $arrayvariable2
+$stringvariable1 = "Hello World"
+$arrayvariable2.push(5)
+puts $stringvariable1
+puts $arrayvariable2
+
+
 # @@PLEAC@@_15.4
 buf = "\0" * 8
 $stdout.ioctl(0x5413, buf)
