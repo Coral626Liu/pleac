@@ -1,0 +1,718 @@
+# The examples are taken from the Perl Cookbook
+# By Tom Christiansen & Nathan Torkington
+# see http://www.oreilly.com/catalog/cookbook for more
+
+@@@NAME
+Merd
+
+@@@WEB
+http://merd.sf.net/
+
+@@@1.1
+
+s = "This is what you have"
+first = s[0]                            # "T"
+start = s[5..7]                         # "is"
+rest  = s[13..]                         # "you have"
+last  = s.last                          # "e"
+end   = s.lasts(4)                      # "have"
+piece = s.lasts(8 .. 5)                 # "you"
+
+# magic substr not usefull (?)
+
+s.subst!(G, "is", "at")
+
+
+@@@1.2
+
+2 &&& "ee" # -> "ee"
+0 &&& "ee" # -> ""
+
+"a" ||| "b" # -> "a"
+ "" ||| "b" # -> "b"
+
+x |||= "b"
+
+
+@@@1.3
+(a, b) = (b, a)
+
+@@@1.4
+# Char::ord !! int
+# Int::chr !! char
+
+"HAL".map(next)                         # "IBM"
+
+@@@1.5
+
+# a string is a list, no pb
+println(  "unique chars are: {"an apple a day".uniq.sort}")
+println(qq(unique chars are: {"an apple a day".uniq.sort}))
+
+@@@1.6
+println(s.rev)                          # reverse letters
+println(s.words.rev.join(" "))          # reverse words
+
+long_palindromes = cat("/usr/dict/words").map(chomp).filter(s -> s == s.rev && s.size > 4)
+
+@@@1.7
+s.expand_tabs = s.fixpoint(
+    break(, "\t",
+          a,b -> a + " ".times(8 - a.size modulo 8) + b
+    )
+)
+
+@@@1.8
+
+# forbidden, use one of:
+s = "You owe {debt} to me"
+fs(s) = "You owe {s} to me"
+fs':= sprintf("You owe %s to me",)
+
+"I am 17 years old".subst(G, "(\d+)", (n -> "{2 * n}"))
+"I am 17 years old".subst(G, "(\d+)", *2 ~ to_string)
+
+@@@1.9
+e = "bo peep".upcase
+e.downcase!
+e.capitalize!
+
+"thIS is a loNG liNE".words.map(capitalize)
+
+@@@1.10
+println("I have {n + 1} guanacos.")
+
+w = "work"
+very := () -> "very"
+well() = "well"
+"this is gonna {w} {very()} {well()}"
+
+@@@1.12
+s.wrap(width) =
+    s.words.foldl(
+        s, word ->
+            c = if "{s} {word}" > width then "\n" else " "
+            s + c + word
+    )
+
+@@@1.14
+s.subst!("^\s+", "")
+s.subst!("\s+$", "")
+
+s.trim = s.subst("^\s+", "").subst("\s+$", "")
+
+@@@2.5
+print("Infancy is: ") ; 0..2.map(e -> print "{e} ")
+print("Infancy is: ") ; 0..2.map(to_string).join(" ").print
+
+@@@2.7
+rand = random(25 .. 75)                 # rand is in [25,75[
+
+chars = "A".."Z" + "a".."z" + "0".."9" + q(!@$%^&*)
+password = 1..8.map(_ -> chars[random(chars.size)]).flatten
+
+@@@2.16
+number = hex(hexadecimal); # hexadecimal
+number = to_int(octal, 8); # octal
+
+print("Gimme a number in decimal, octal, or hex: ")
+num = Sys::stdin.line.chomp
+num = num.pattern_matches(
+    "^0x", hex(num),
+    "^0", to_string(num, 8),
+    "", num,
+)
+"%d %x %o\n".printf(num, num, num)
+
+@@@2.17
+s.commify =
+    (integer, decimal) = s.m("(.*)(\..*)?")
+    integer.subst!("(\d\{3})(\d)", (a,b -> "{a},{b}"))
+    "{integer}{decimal}"
+    
+@@@4.1
+a = ("quick", "brown", "fox")
+a = "Why are you teasing me?".words
+big_array = "mydatafile".open(Sep(crlf)).lines
+
+banner = "The Mines of Moria"
+banner = q(The Mines of Moria)
+
+name   = "Gandalf"
+banner = "Speak, {name}, and enter!"
+banner = qq(Speak, {name}, and welcome!)
+ships  = "Niña Pinta Santa María".words # WRONG
+ships  = ("Niña", "Pinta", "Santa María")
+
+@@@4.2
+commify_series =
+    [] -> ""
+    l ->
+        l', e = l.pop
+        [ l'.join(", "), e ].join(" and ")
+
+array = ("red", "yellow", "green")
+println("I have {array.join(", ")} marbles.") #=> I have red yellow green marbles.
+
+@@@4.3
+l.what_about_that_array =
+    println("The array now has {l.size} elements.")
+    println("The index of the last element is {l.size - 1}.")
+    println("Element #3 is `{l[3]}'.")
+
+"Crosby Stills Nash Young".words.what_about_that_array
+
+@@@4.4
+bad_users.each(complain)
+bad_users.each(user -> complain(user))
+
+Sys::env.keys.sort.each(var -> "{var}={Sys::env{var}}".println)
+Sys::env.each(var, val -> "{var}={val}".println) # but non-sorted
+Sys::env.sort_by(a,_ , b,_ -> a <=> b).each(var, val -> "{var}={val}".println)
+
+bad_users.each(user ->
+    if user.get_usage > Max_quota then
+        complain(user)
+)
+
+"who".popen.lines(s ->
+    s.m!("tchrist", s.print)
+)
+
+df.lines(s ->
+    s.words.each(s -> s.rev.println)
+)
+
+array.each(item -> "i = {item}".println)
+array.each(--)
+
+a = ( 0.5, 3 ); b = ( 0, 1 )
+(a,b).each(l ->
+    l.map(a ->
+        a *= 7
+        "{a} ".print
+    )
+)
+
+@@@4.6
+unique = list.uniq
+
+# generate a list of users logged in, removing duplicates
+users = "who".popen.lines.map(m(,"(\S+)")).sort.uniq
+println("users logged in: {users}")
+
+@@@4.7
+difference(a, b)
+
+@@@4.8
+union(a, b)
+intersection(a, b)
+difference(union(a,b), intersection(a,b))
+
+@@@4.9
+members = ("Time", "Flies");
+initiates = ("An", "Arrow");
+members += initiates
+# members is now ("Time", "Flies", "An", "Arrow")
+
+members = ("Time", "Flies");
+initiates = ("An", "Arrow");
+members.insert!(2, "Like" + initiates)
+# members is now ("Time", "Flies", "Like", "An", "Arrow")
+members[0] = "Fruit"
+members[2,3] = "A", "Banana"
+# members is now ("Fruit", "Flies", "Like", "A", "Banana")
+
+@@@4.10
+reversed = array.rev
+
+array.rev.each(e ->
+    # do something with e
+    ()
+)
+
+@@@4.11
+a.shift2 = a.shift!, a.shift!
+a.pop2 = swap(a.pop!, a.pop!)
+
+friends = "Peter Paul Mary Jim Tim".words
+(this, that) = friends.shift2
+# this contains Peter, that has Paul, and
+# friends has Mary, Jim, and Tim
+
+beverages = "Dew Jolt Cola Sprite Fresca".words
+pair = beverages.pop2
+# pair[0] contains Sprite, pair[1] has Fresca,
+# and beverages has (Dew, Jolt, Cola)
+
+@@@4.12
+highest_engineer = employees.find(employee -> employee.category == "engineer")
+println("Highest paid engineer is: {highest_engineer.name}")
+
+@@@4.13
+bigs = nums.filter(n -> n > 1_000_000)
+pigs = users.filter(_, n -> n > 1e7).keys
+
+matching = popen("who").lines.filter(m(, "^gnat "))
+engineers = employees.filter(employee -> employee.category == "engineer")
+
+secondary_assistance = applicants.filter(e -> e{Income} >= 26_000 && $e{Income} < 30_000)
+
+@@@4.14
+sorted = sort(non_sorted)               # if non_sorted !> Vector(Int)
+
+# pids is an unsorted array of process IDs
+pids.sort.each(println)
+
+println("Select a process ID to kill:")
+try
+    pid = Sys::stdin.line.chomp.to_int
+    pid.kill(TERM)
+    sleep(2)
+    pid.kill(KILL)
+with Failed(To_int) -> die("Exiting ... \n")
+
+descending = non_sorted.sort_by(a,b -> b <=> a)
+
+@@@4.15
+ordered = unordered.sort_by(compare)
+
+precomputed = unordered.map(e -> e.compute, e)
+ordered_precomputed = precomputed.sort_by(a,b -> a[0] <=> b[0])
+ordered = ordered_precomputed.map(a -> a[0])
+
+ordered = unordered.map(e -> e.compute, e)
+                   .sort_by(a,b -> a[0] <=> b[0])
+                   .map(a -> a[0])
+
+sorted = employees.sort_by(a,b -> a.name <=> b.name || b.age <=> a.age)
+
+# getpwent is an iterator
+users = getpwent().to_list
+users.sort_by!(a,b -> a{Name} <=> b{Name})
+users.each(user -> user{Name}.println)
+
+sorted = names.sort_by(a,b -> a[1] <=> b[1])
+sorted = string.sort_by(a,b -> a.size <=> b.size)
+
+sorted_fields = fields.map(e -> e.m("(\d+)"), e)
+                      .sort_by(a,b -> a[0] <=> b[0])
+                      .map(a -> a[0])
+
+"/etc/passwd".open
+    .lmap(e -> e.split(":")[3,2,0], e)
+    .sort_by(a,b ->
+        a[1] <=> b[1] ||| # gid
+        a[2] <=> b[2] ||| # uid
+        a[3] <=> b[3]     # login
+    )
+    .map(a -> a[0])
+
+@@@4.16
+circular.unshift!(circular.pop!)        # the last shall be first
+circular.push!(circular.shift!)         # and vice versa
+
+l.grab_and_rotate =
+    e = l.shift!
+    l.push!(e)
+    e
+
+processes = (1, 2, 3, 4, 5)
+loop
+    process = grab_and_rotate(processes)
+    println("Handling process {process}")
+    sleep(1)
+
+
+@@@4.17
+l.randomize!
+
+l.fisher_yates_shuffle =
+    (l.size - 1 .. 0).each(i ->
+        j = random(i+1)
+        l[i,j] = l[j,i] if i != j
+    )
+
+l.naive_shuffle =
+    l.each_with_index(_, i ->
+        j = random(l.size)
+        l[i,j] = l[j,i] if i != j
+    )
+
+@@@5.0
+
+age = {
+    "Nat"  , 24,
+    "Jules", 25,
+    "Josh" , 17,
+}
+age{"Nat"}   = 24
+age{"Jules"} = 25
+age{"Josh"}  = 17
+
+
+@@@5.1
+food_color = {
+    "Apple" , "red",
+    "Banana", "yellow",
+    "Lemon" , "yellow",
+    "Carrot", "orange",
+}
+food_color{"Raspberry"} = "pink"
+println("Known foods:")
+food_color.keys.each(println)
+
+@@@5.2
+("Banana", "Martini").each(name ->
+    println("{name} is a {if food_color.key?(name) then "food" else "drink"}")
+)
+# Banana is a food.
+# Martini is a drink.
+
+@@@5.3
+food_color.remove_key!("Banana")
+
+@@@5.4
+food_color.each(food, color -> "{food} is {color}.".println)
+food_color.keys.sort.each(food -> "{food} is {food_color{food}}.".println)
+
+@@@5.5
+hash.each(k,v -> "{k} => {v}".println)
+
+@@@5.6
+# the default should be to keep the order, so no pb here.
+
+@@@5.7
+ttys = {}
+popen("who").each(s ->
+    user, tty = s.words[0,1]
+    #ttys{user} = [] if not ttys.key?(user)    <- not needed, auto created with ***
+    ttys{user}.push!(tty)
+)
+ttys.keys.sort(user -> "{user}: {ttys{user}.join(", ")}".println)
+
+@@@5.8
+surname = { "Mickey","Mantle" , "Babe","Ruth" }
+println(surname.value2key("Mantle"))    # => Mickey
+
+@@@5.9
+food_color.keys.sort.each(food -> "{food} is {food_color{food}}.".println)
+
+@@@5.10
+merged = a + b
+
+drink_color = { "Galliano","yellow" , "Mai Tai","blue" }
+ingested_colors = drink_color + food_color
+
+substance_color = drink_color + food_color
+intersection(drink_color, food_color).each(k,_ ->
+    println("Warning: {k} seen twice. Using the last definition.")
+)
+
+@@@5.11
+all_colors += new_colors
+
+common = intersection(hash1, hash2).keys
+common = intersection(hash1.keys, hash2.keys)
+
+citrus_color = {
+    "Lemon", "yellow",
+    "Orange", "orange",
+    "Lime", "green",
+}
+non_citrus = difference(food_color, citrus_color).keys
+non_citrus = difference(food_color.keys, citrus_color.keys)
+
+@@@5.12
+# no pb, merd's dicts handle any kind of objects which have Eq
+
+@@@5.13
+# TODO
+
+@@@5.14
+count = {}
+array.each(e -> count{e}++)
+
+@@@5.15
+father = {
+    "Cain"      , "Adam",
+    "Abel"      , "Adam",
+    "Seth"      , "Adam",
+    "Enoch"     , "Cain",
+    "Irad"      , "Enoch",
+    "Mehujael"  , "Irad",
+    "Methusael" , "Mehujael",
+    "Lamech"    , "Methusael",
+    "Jabal"     , "Lamech",
+    "Jubal"     , "Lamech",
+    "Tubalcain" , "Lamech",
+    "Enos"      , "Seth",
+}
+Sys::stdall.each(e ->
+    e.chomp!
+    
+    #fathers = e : e.unfoldr1(e -> Some(father{e}) or None)
+    #println(fathers.join(" "))
+
+    print("{e}")
+    try loop
+        e = fathers{e}
+        print("{e} ")
+    with _ -> println("")
+)
+
+Sys::stdall.each(e ->
+    e.chomp!
+    children = father.key2values(e) ||| [ "nobody" ]
+    println("{e} begat {children.join(", ")}.")
+)
+
+includes = {}
+files.each(file ->
+    try
+        file.open.each(s ->
+            s.pattern_matches(
+                "^\s*#\s+include\s+<(.*?)>",
+                f -> includes.push!(f)
+            )
+        )
+    with File_error(err) -> warn("Couldn't read {file}: {err}; skipping.\n")
+)
+include_free =
+    # list of files that don't include others
+    difference(includes.values.flatten.uniq, includes.keys)
+
+@@@6.0
+meadow.m!(I, "\bovines?\b", println("Here be sheep!"))
+
+string = "good food";
+string.subst!("o*", "e")
+
+"ababacaca".m!(
+    "((a|ba|b)+(a|ac)+)",
+    s,_,_ -> s.println
+)                                       # => ababa
+
+s.m!(G, "(\d+)", e->println("Found number {e}"))
+numbers = s.m(G, "(\d+)")
+
+@@@6.1
+dst = src.subst("this", "that")
+
+# Make All Words Title-Cased
+capword = word.subst(G, "(\w+)", capitalize)
+
+# /usr/man/man3/foo.1 changes to /usr/man/cat3/foo.1
+catpage = manpage.subst("man(?=\d)", "cat")
+
+bindirs = " /usr/bin /bin /usr/local/bin ".words
+libdirs = bindirs.map(subst(, "bin", "lib"))
+println(libdirs.join(" "))              # /usr/lib /lib /usr/local/lib
+
+@@@6.5
+s = "One fish two fish red fish blue fish"
+want = 3
+count = 0
+s.m!(
+    G|I,
+    "(\w+)\s+fish\b",
+    s ->
+        count++
+        if count == want then
+            println("The third fish is a {s} one.") # => red
+)
+s.m!(
+    I, "(?:\w+\s+fish\s+)\{2}(\w+)\s+fish",
+    s -> println("The third fish is a {s} one.") # => red
+)
+colors = s.m(G|I, "(\w+)\s+fish\b")
+println("The third fish is a {colors[2]} one.") # => red
+
+pond = "One fish two fish red fish blue fish swim here."
+color = pond.m(G|I, "\b(\w+)\s+fish\b").last;
+println("Last fish is {color}.");        #=> Last fish is blue.
+
+@@@6.8
+file.open.to_list.each_with_index(s,i -> println(s) if i.member?(15 .. 17))
+
+r = Regexp::new_range(m?(, I, "<XMP>"), m?(, I, "</XMP>"))
+l.each(s -> if s.member?(r) then print(s))
+
+header = Regexp::new_range(_ -> True, == "")
+body = Regexp::new_range(== "", _ -> True)
+l.each(s ->
+    in_header = s.member?(header)
+    in_body = s.member?(body)
+)
+
+header = Regexp::new_range(m?(, I, "^From:?\s"), == "")
+Sys::stdall.collect(s ->
+    if s.member?(header) then
+        c = "[^<>(),;\s]"
+        s.m(G, "({c}+\@{c}+)")
+    else []
+).flatten.uniq.each(println)
+
+@@@6.9
+s.glob2pat =
+    patmap = {
+        "*", ".*",
+        "?", ".",
+        "[", "[",
+        "]", "]",
+    }
+    s.subst!(G, "(.)", (c -> patmap{c} or c.quotemeta))
+    "^{s}$"
+
+@@@6.10
+# no need
+
+@@@6.11
+# not possible? do not allow runtime constructed regexps?
+
+@@@7.0
+"/usr/local/widgets/data".open.each(
+    s -> s.m!("bleu", s.println)
+)
+
+Sys::stdall.lines(s ->
+    #s.m!("\d", warn("No digit found.\n"))
+    warn("No digit found.\n") if not s.m?("\d")
+    print("Read: {s}")
+)
+
+@@@7.1
+
+fd = open(filename, W)
+fd.print(s)
+
+filename.output(s)
+
+@@@7.2
+# ;pp
+
+@@@7.3
+"~".expand_path                         # a la ruby
+
+@@@7.4
+# default is exception on error => good error messages
+# with open(f, Safe), no exception on file access
+
+@@@7.5
+f = tmpfile("foo") or tmpfile("/tmp/fooXXXXXX") # "foo" gives file $TMPDIR/fooXXXXXX
+f.output("bar")                 # output "bar" to a temporary file named f
+
+@@@7.6
+# use a string:
+DATA = q(
+# your data goes here
+)
+
+@@@7.7
+
+@@@7.10
+l = file.open.lines.map(subst(, "DATE", localtime()))
+file.output(l)
+
+@@@7.11
+f = "numfile".open(R | W | Lock)
+# Now we have acquired the lock, it's safe for I/O
+num = f.whole.m("(\d+)") or 0
+f.truncate!(0)            # truncate! ensure the current seek is <= current size
+f.print("{num}\n")
+
+@@@7.12
+output_handle.autoflush!(True)
+
+@@@7.13
+l = [ fh1, fh2, fh3 ].select
+if fh1.mem?(l) then
+    # do something with fh1
+if fh2.mem?(l) then
+    # do something with fh2
+
+@@@7.14
+modem = "/dev/cua0".open(Non_block | W)
+
+@@@7.15
+# don't do it, use "whole" with Non_block
+
+@@@7.16
+# ;pp
+
+@@@7.18
+# maybe introduce Out_files !< Out_file
+
+@@@7.19
+fh = fdopen(fdnum, R); # open file descriptor 3 for reading
+
+@@@7.20
+alias = original
+outcopy = Sys::stdout.clone
+incopy = Sys::stdin.clone
+
+@@@8.0
+datafile.each(s ->
+    s.chomp!
+    s.size.println                      # output size of line
+)
+
+lines = datafile.lines
+whole_file = file.whole
+
+["One", "two", "three" ].each(print(handle,)) ; # "Onetwothree"
+println("Baa baa black sheep.")         # Sent to default output handle
+
+buffer = handle.read(4096)
+
+handle.truncate(length)
+"tmp/{Sys::pid}.pid".truncate(length)
+
+pos = datafile.tell_seek
+println("I'm {pos} bytes from the start of DATAFILE.")
+
+logfile.seek!(End)
+datafile.seek!(Start)
+out.seek!(-20)
+
+datafile = datafile.print(mystring)
+block = infile.read(256)                # can't do offset writing of 5
+
+@@@8.1
+
+while not fh.eo? do
+    lines = fh.take_while(substr!?(, "\\$", ""))
+    line = lines.join("")
+    # process full record in {line} here
+
+@@@8.2
+
+file.open.lines.size
+
+f = file.open(Sep_keep("\n+"))         # enable paragraph mode for "line", "lines", "each"...
+f.lines.size
+
+@@@8.3
+Sys::stdall.each(s ->
+    s.words.each(word ->
+        # do something with {word}
+    )
+)
+
+Sys::stdall.reopen(Sep("\s+")).each(s ->
+    # do something with {word}
+)
+
+# Make a word frequency count
+seen = {}
+Sys::stdall.reopen(Sep("\s+")).each(s -> seen{s.downcase}++)
+# output hash in a descending numeric sort of its values
+seen.keys.sort_by(a,b -> seen{b} <=> seen{a})
+    .iter(word -> "%5d %s\n".printf(seen{word}, word))
+
+# Line frequency count
+seen = {}
+Sys::stdall.each(s -> seen{s.downcase}++)
+# output hash in a descending numeric sort of its values
+seen.keys.sort_by(a,b -> seen{b} <=> seen{a})
+    .iter(line -> "%5d %s".printf(seen{line}, line))

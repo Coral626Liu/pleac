@@ -4,13 +4,285 @@ Ruby
 @@@WEB
 http://www.ruby-lang.org
 
-@@@1.1
-$value = $string[$offset..$count]
-$value = $string[$offset..-1]
 
-$string[$offset..$count] = $newvalue
-$string[$offset..-1] = $newtail
+@@@1.0
+string = '\n'                     # two characters, \ and an n
+string = 'Jon \'Maddog\' Orwant'  # literal single quotes
+
+string = "\n"                     # a "newline" character
+string = "Jon \"Maddog\" Orwant"  # literal double quotes
+
+string = %q/Jon 'Maddog' Orwant/  # literal single quotes
+
+string = %q[Jon 'Maddog' Orwant]  # literal single quotes
+string = %q{Jon 'Maddog' Orwant}  # literal single quotes
+string = %q(Jon 'Maddog' Orwant)  # literal single quotes
+string = %q<Jon 'Maddog' Orwant>  # literal single quotes
+
+a = <<"EOF"
+This is a multiline here document
+terminated by EOF on a line by itself
+EOF
+
+
+@@@1.1
+value = string[offset,count]
+value = string[offset..offs2]
+value = string[offset..-1]
+
+string[offset,count]  = newstring
+string[offset..offs2] = newstring
+string[offset..-1]    = newtail
+
+leading, s1, s2, trailing = data.unpack("A5 x3 A8 A8 A*")
+
+fivers = string.unpack("A5" * (string.length/5))
+
+chars = string.unpack("A1" * string.length)
+
 
 @@@1.2
-$a = $b || $c
-$x ||= $y
+a = b || c
+
+x ||= y
+
+a = defined?(b) ? b : c
+
+dir = ARGV.shift || "/tmp"
+
+
+@@@1.3
+v1, v2 = v2, v1
+
+alpha, beta, production = %w(January March August)
+alpha, beta, production = beta, production, alpha
+
+
+@@@1.4
+num = ?r                          # from character constant
+num = string[0]                   # from a position in a String
+char = num.chr
+
+char = sprintf("%c", num)
+printf("Number %d is character %c\n", num, num)
+
+ascii = string.unpack("C*")
+string = ascii.pack("C*")
+
+hal = "HAL"
+ascii = hal.unpack("C*")
+ascii.each_index { |i|
+    ascii[i] += 1                 # add one to each ASCII value
+}                
+ibm = ascii.pack("C*")
+puts ibm
+
+
+@@@1.5
+array = string.split('')
+
+array = string.unpack("C*")
+
+string.scan(/./) { |b|
+                                  # do something with b
+  }
+
+string = "an apple a day"
+print "unique chars are: ", string.split('').uniq.sort, "\n"
+
+sum = 0
+for ascval in string.unpack("C*") # or use Array#each for a pure OO style :)
+    sum += ascval
+end
+puts "sum is #{sum & 0xffffffff}" # since Ruby will go Bignum if necessary
+
+-----------------------------
+#!/usr/bin/ruby
+# slowcat - emulate a   s l o w   line printer
+# usage: slowcat [-DELAY] [files ...]
+delay = ARGV[0] =~ /^-([.\d]+)/ ? ARGV.shift[1..-1].to_i : 1
+$stdout.sync = 1
+while gets
+    for b in split('')
+	print b
+	sleep(0.005 * delay)
+    end
+end
+
+
+@@@1.6
+revbytes = string.reverse
+
+revwords = string.split(" ").reverse.join(" ")
+
+revwords = string.split(/(\s+)/).reverse.join
+
+long_palindromes = File.open("/usr/share/dict/words").read.
+  collect { |w| w.chomp }.select { |w| w.reverse == w && w.length > 5 }
+
+
+@@@1.7
+while string.sub!("\t+") { ' ' * ($&.length * 8 - $`.length % 8) }
+end
+
+
+@@@1.8
+'You owe #{debt} to me'.gsub(/\#{(\w+)}/) { eval("#{$1}") }
+
+rows, cols = 24, 80
+text = %q(I am #{rows} high and #{cols} long)
+text.gsub!(/\#{(\w+)}/) { eval("#{$1}") }
+puts text
+
+'I am 17 years old'.gsub(/\d+/) { 2 * $&.to_i }
+
+
+@@@1.9
+e = "bo peep".upcase
+e.downcase!
+e.capitalize!
+
+"thIS is a loNG liNE".gsub!(/\w+/) { $&.capitalize }
+
+
+@@@1.10
+"I have #{n+1} guanacos."
+print "I have ", n+1, " guanacos."
+
+
+@@@1.11
+var = <<'EOF'.gsub(/^\s+/, '')
+    your text
+    goes here
+EOF
+
+
+@@@1.12
+string = "Folding and splicing is the work of an editor,\n"+
+    "not a mere collection of silicon\n"+ 
+    "and\n"+
+    "mobile electrons!"
+
+def wrap(str, max_size)
+    all = []
+    line = ''
+    for l in str.split
+        if (line+l).length >= max_size
+            all.push(line)
+            line = ''
+        end
+        line += l + ' '
+    end
+    all.push(line).join("\n")
+end
+
+print wrap(string, 20)
+
+
+@@@1.13
+string = %q(Mom said, "Don't do that.")
+string.gsub(/['"]/) { '\\'+$& }
+string.gsub(/['"]/, '\&\&')
+string.gsub(/[^A-Z]/) { '\\'+$& }
+"is a test!".gsub(/\W/) { '\\'+$& }  # no function like quotemeta?
+
+
+@@@1.14
+string.strip!
+
+
+@@@1.15
+def parse_csv(text)
+    new  = []
+    new.push($+) while ($' ? $' : text) =~ /"([^\"\\]*(?:\\.[^\"\\]*)*)",?|([^,]+),?|,/
+    new.push(nil) if text[-1..-1] == ','
+    new
+end  
+
+line = %q<XYZZY,"","O'Reilly, Inc","Wall, Larry","a \"glug\" bit,",5,"Error, Core Dumped">
+fields = parse_csv(line)
+fields.each_index { |i|
+    print "#{i} : #{fields[i]}\n";
+}
+
+
+@@@1.16
+# uses a Perl module..
+
+
+@@@2.1
+num.is_a?(Fixnum)
+num.is_a?(Bignum)
+num.is_a?(Float)
+
+if string =~ /^[+-]?\d+$/
+    p 'is an integer'
+else
+    p 'is not'
+end
+
+def getnum(n)
+    if n.respond_to?(:to_int)     # used by Ruby to coerce user classes into Integer!?
+        return n.to_int
+    end
+    if n.respond_to?(:to_i)       # implemented by Ruby in some classes
+        return n.to_i
+    end
+    nil
+end
+
+
+@@@2.2
+# equal(num1, num2, accuracy) : returns true if num1 and num2 are
+#   equal to accuracy number of decimal places
+def equal(i, j, a)
+    sprintf("%.#{a}g", i) == sprintf("%.#{a}g", j)
+end
+
+wage = 536                        # $5.36/hour
+week = 40 * wage                  # $214.40
+printf("One week's wage is: \$%.2f\n", week/100.0)
+
+
+@@@2.3
+num.round                         # integer rounding
+
+a = 0.255
+b = sprintf("%.2f", a)
+print  "Unrounded: #{a}\nRounded: #{b}\n"
+printf "Unrounded: #{a}\nRounded: %.2f\n", a
+
+print "number\tint\tfloor\tceil\n"
+a = [ 3.3 , 3.5 , 3.7, -3.3 ]
+for n in a
+    printf("% .1f\t% .1f\t% .1f\t% .1f\n",  # at least I don't fake my output :)
+           n, n.to_i, n.floor, n.ceil)
+end
+
+
+@@@2.4
+def dec2bin(n)
+    n.to_a.pack("N").unpack("B32")[0].sub(/^0+(?=\d)/, '')
+end
+
+def bin2dec(n)
+    ("0"*32+n)[-32..-1].to_a.pack("B32").unpack("N")[0]
+end
+
+
+@@@2.5
+for i in x .. y
+    # i is set to every integer from x to y, inclusive
+end
+
+x.step(y,7) { |i|
+    # i is set to every integer from x to y, stepsize = 7
+}
+
+print "Infancy is: "
+(0..2).each { |i|
+    print i, " "
+}
+print "\n"
+
+

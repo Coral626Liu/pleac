@@ -14,18 +14,17 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-skeleton_file = 'skeleton.data'
-version = 1
+version = 2
 
-if ARGV.to_s =~ /-h/ || !ARGV[0] || !ARGV[1] || ARGV[2]
+if ARGV.to_s =~ /-h/ || !ARGV[0] || !ARGV[1] || !ARGV[2] || ARGV[3]
     puts 'PLEAC Project: http://pleac.sf.net/'
-    puts 'usage: pleac_generate <implementation_file> <output_file>'
-    exit 0
+    puts "usage: #$0 <skeleton_file> <implementation_file> <output_file>"
+    exit -1
 end
 
 
-skel_contents = File.open(skeleton_file).read
-impl_contents = File.open(ARGV[0]).readlines.push("@@@")
+skel_contents = File.open(ARGV[0]).read
+impl_contents = File.open(ARGV[1]).readlines.push("@@@")
 
 current_key = ''
 current_subst = []
@@ -36,18 +35,20 @@ for i in impl_contents
 	    while current_subst.last =~ /^$/
 		current_subst.pop
 	    end
-	    current_subst[-1].chop!
+	    if current_subst[-1]
+		current_subst[-1].chop!
+	    end
 	    skel_contents.gsub!(Regexp.escape("PLEAC:#{current_key}:CAELP"), current_subst)
 	    current_subst = []
 	end
 	current_key = new_key
     else
-	current_subst.push(i)
+	current_subst.push(i.gsub('<', '&lt;').gsub(/\\/, '\\\\\\'))  # escape for SGML, escape \ for further gsub
     end
 end
 
 skel_contents.gsub!("PLEAC:.*:CAELP", "")
 
-File.open(ARGV[1], 'w').write(skel_contents)
+File.open(ARGV[2], 'w').write(skel_contents)
 
 
