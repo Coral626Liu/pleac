@@ -2727,6 +2727,42 @@ file atime $file $statinfo(atime)
 file mtime $file $statinfo(mtime)
 #-----------------------------
 
+# @@PLEAC@@_9.2
+# feat. Bob Techentin
+#-----------------------------
+file delete $filename
+eval file delete $filenames
+#-----------------------------
+if {[catch {file delete $file}]} {
+	error "Can't unlink $file"
+}
+#-----------------------------
+
+if {[catch {eval file delete $filelist}]} {
+	set remaining 0
+	foreach f $filelist {
+		if {[file exists $f]} {incr remaining}
+	}
+	set count [expr {[llength $filelist] - $remaining}]
+	puts stderr "could only delete $count of $existing files"
+}
+#  Tcl's [file delete] command doesn't return a count,
+#  so we have to count files before and after deletion.
+set existing 0
+foreach f $filelist {
+	if {[file exists $f]} {incr existing}
+}
+catch {eval file delete $filelist}
+set remaining 0
+foreach f $filelist {
+	if {[file exists $f]} {incr remaining}
+}
+if {$remaining > 0} {
+	set count [expr {$existing-$remaining}]
+	puts stderr "could only delete $count of $existing files"
+}
+#-----------------------------
+
 
 # @@PLEAC@@_10.1
 
