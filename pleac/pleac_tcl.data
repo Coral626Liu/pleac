@@ -1616,6 +1616,8 @@ puts "Users logged in: $uniqueUsers"
  
 # @@PLEAC@@_4.7
  
+# Use the standard package TclX (contained in
+# the ActiveTcl distribution).
 package require Tclx
  
 set listA [list 1 1 2 2 3 3 3 4 5]
@@ -1631,6 +1633,8 @@ lindex $res 0
  
 # @@PLEAC@@_4.8
  
+# Use the standard package TclX (contained in
+# the ActiveTcl distribution).
 package require Tclx
  
 set listA [list 1 1 2 2 3 3 3 4 5]
@@ -1648,6 +1652,10 @@ set union [union $listA $listB]
 # Concatenating variables whose values are lists
 set dislist [concat $dislist $datlist]
  
+# Growing a list by adding new members
+set mylist [list athos porthos aramis]
+lappend mylist d'artagnan
+ 
 set members [list Time Flies]
 lappend members An Arrow
 # => Time Flies An Arrow
@@ -1658,4 +1666,95 @@ set members [linsert $members 2 Like]
 set members [lreplace $members 0 0 Fruit]
 set members [lreplace $members end-1 end A Banana]
 # => Fruit Flies Like A Banana
+ 
+# @@PLEAC@@_4.10
+ 
+set newlist [list]
+for {set i 0} {$i < [llength $list]} {incr i} {
+    lappend newlist [lindex $list end-$i]
+}
+
+
+# sort in decreasing order, i.e. largest values first
+set sorted [lsort -decreasing $list]
+ 
+# @@PLEAC@@_4.11
+ 
+# list operations in Tcl are generally non-destructive,
+# so one has to copy out the elements first, and then
+# update the list to have only the other elements.
+ 
+# set front to the first $n elements in $list;
+# remove those elements from list.
+ 
+set front [lrange $list 0 [expr {$n-1}]]
+set list [lrange $list $n end]
+
+
+# set end to the last $n elements in $list;
+# remove those elements from list.
+ 
+set end [lrange $list end-[expr {$n-1}] end]
+set list [lrange $list 0 end-$n]
+
+
+proc shift2 {listname} {
+    upvar $listname list
+    set front [lrange $list 0 1]
+    set list [lrange $list 2 end]
+    return $front
+}
+ 
+set friends [list Peter Paul Mary Jim Tim]
+foreach {this that} [shift2 friends] break
+
+
+proc pop2 {listname} {
+    upvar $listname list
+    set end [lrange $list end-1 end]
+    set list [lrange $list 0 end-2]
+    return $end
+}
+ 
+set beverages [list Dew Jolt Cola Sprite Fresca]
+set pair [pop2 beverages]
+ 
+# @@PLEAC@@_4.12
+ 
+set found {}
+foreach {item} $list {
+    if {[criterion]} {
+        set match $item    ;# must save
+        set found 1
+        break
+    }
+}
+if {$found} {
+    ## do something with $match
+} else {
+    ## unfound
+}
+ 
+set matchIdx {}
+for {set i 0} {$i < [llength $list]} {incr i} {
+    if {[criterion]} {
+        set matchIdx $i    ;# save the index
+        break
+    }
+}
+if {[string length $matchIdx]} {
+    ## found in [lindex $list $matchIdx]
+} else {
+    ## unfound
+}
+ 
+# assuming $employees is a list of lists, with each sublist
+# having the elements category, name, and salary:
+foreach employee $employees {
+    if {[string match [lindex $employee 0] engineer]} {
+        set highestEngineer $employee
+        break
+    }
+}
+puts "Highest paid engineer is: [lindex $highestEngineer 1]"
  
