@@ -144,8 +144,8 @@ array = string.split('')
 array = string.unpack("C*")
 
 string.scan(/./) { |b|
-                                  # do something with b
-  }
+    # do something with b
+}
 
 string = "an apple a day"
 print "unique chars are: ", string.split('').uniq.sort, "\n"
@@ -1482,6 +1482,11 @@ File.expand_path('~/tmp')
 #=> "/home/gc/tmp"
 
 
+# @@PLEAC@@_7.4
+# The exception raised in Ruby reports the filename
+File.open('afile')
+
+
 # @@PLEAC@@_7.5
 # Standard Ruby distribution provides the following useful extension
 require 'tempfile'
@@ -1500,6 +1505,53 @@ fh.sync = true                # autoflushes
 10.times { |i| fh.puts i }
 fh.rewind
 puts 'Tmp file has: ', fh.readlines
+
+
+# @@PLEAC@@_7.6
+while (DATA.gets) do
+    # process the line  
+end
+__END__
+# your data goes here
+
+# __DATA__ doesn't exist in Ruby
+
+# get info about the script (size, date of last modification)
+kilosize = DATA.stat.size / 1024
+last_modif = DATA.stat.mtime
+puts "<P>Script size is #{kilosize}"
+puts "<P>Last script update: #{last_modif}"
+__END__
+# DO NOT REMOVE THE PRECEDING LINE.
+# Everything else in this file will be ignored.
+
+
+# @@PLEAC@@_7.8
+old = File.open(old_file)
+new = File.open(new_file, "w")
+while old.gets do
+    # change $_, then...
+    new.print $_
+end
+old.close
+new.close
+File.rename(old_file, "old.orig")
+File.rename(new_file, old_file)
+
+while old.gets do
+    if $. == 20 then # we are at the 20th line
+        new.puts "Extra line 1"
+        new.puts "Extra line 2"
+    end
+    new.print $_
+end
+
+while old.gets do
+    next if 20..30 # skip the 20th line to the 30th
+                   # Ruby (and Perl) permit to write if 20..30 
+                   # instead of if (20 <= $.) and ($. <= 30)
+    new.print $_
+end
 
 
 # @@PLEAC@@_7.12
@@ -2403,6 +2455,109 @@ end
 #    5.0 **********
 #   14.0 *****************************
 #   18.0 **************************************
+
+
+# @@PLEAC@@_16.1
+output = `program args`       # collect output into one multiline string
+output = `program args`.split # collect output into array, one line per
+element
+
+readme = IO.popen("ls")
+output = ""
+while readme.gets do
+    output += $_
+end
+readme.close
+
+`fsck -y /dev/rsd1a`  # BAD AND SCARY in Perl because it's managed by the shell
+                      # I donna in Ruby ...
+
+# so the "clean and secure" version
+readme, writeme = IO.pipe
+pid = fork {
+    # child
+    $stdout = writeme
+    readme.close
+    exec('find', '..')
+}
+# parent
+Process.waitpid(pid, 0)
+writeme.close
+while readme.gets do
+    # do something with $_
+end
+
+
+# @@PLEAC@@_16.2
+status = system("xemacs #{myfile}")
+
+status = system("xemacs", myfile)
+
+system("cmd1 args | cmd2 | cmd3 >outfile")
+system("cmd args <infile >outfile 2>errfile")
+
+# stop if the command fails
+raise "$program exited funny: #{$?}" unless system("cmd", "args1", "args2")
+
+# get the value of the signal sent to the child
+# even if it is a SIGINT or SIGQUIT
+system(arglist)
+raise "program killed by signal #{$?}" if ($? & 127) != 0
+
+pid = fork {
+    trap("SIGINT", "IGNORE")
+    exec("sleep", "10")
+}
+trap ("SIGINT") {
+    puts "Tsk tsk, no process interruptus"
+}
+Process.waitpid(pid, 0)
+
+# Ruby doesn't permit to lie to the program called by a 'system'.
+# (ie specify what return argv[0] in C, $0 in Perl/Ruby ...)
+# A (dirty) way is to create a link (under Unix), run this link and
+# erase it. Somebody has a best idea ?
+
+
+# @@PLEAC@@_16.3
+exec("archive *.data")
+
+exec("archive", "accounting.data")
+
+exec("archive accounting.data")
+
+
+# @@PLEAC@@_16.4
+# read the output of a program
+IO.popen("ls") {|readme|
+    while readme.gets do
+        # ...
+    end
+}
+# or
+readme = IO.popen("ls")
+while readme.gets do
+    # ...
+end
+readme.close
+
+# "write" in a program
+IO.popen("cmd args","w") {|pipe|
+    pipe.puts("data")
+    pipe.puts("foo")
+}
+
+# close wait for the end of the process
+read = IO.popen("sleep 10000") # child goes to sleep
+read.close                     # and the parent goes to lala land
+
+writeme = IO.popen("cmd args", "w")
+writeme.puts "hello" # program will get hello\n on STDIN
+writeme.close        # program will get EOF on STDIN
+
+# send in a pager (eg less) all output
+$stdout = IO.popen("/usr/bin/less","w")
+print "huge string\n" * 10000
 
 
 # @@PLEAC@@_17.1
