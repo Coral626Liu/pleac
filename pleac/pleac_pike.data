@@ -628,6 +628,31 @@ write("Bree came %d days, %d:%d:%d after Nat\n",
                    (left/Calendar.Minute())%60,
                    (left/Calendar.Second())%60,
                    );
+
+// Bree came 3071 days, 0:49:36 after Nat
+
+// the following is more accurate, taking into account that the days where
+// daylight savings time is switched do not have 24, but 23 and 25 hours.
+// thanks to mirar on the pike list for pointing this out and providing a
+// correct solution.
+
+array(int) breakdown_elapsed(object u, void|array on)
+{  
+  array res=({});
+  if (!on) on=({Day,Hour,Minute,Second});
+  foreach (on;;program|TimeRange p)
+  {  
+    if (u==u->end()) { res+=({0}); continue; }
+    int x=u/p;
+    u=u->add(x,p)->range(u->end());
+    res+=({x});
+  }
+  return res;
+}
+
+write("Bree came %d days, %d:%d:%d after Nat\n",
+      @breakdown_elapsed(difference));
+
 // Bree came 3071 days, 0:49:36 after Nat
 
 // @@PLEAC@@_3.6
@@ -1468,7 +1493,11 @@ array list;
 list=set_shuffle(list);
 
 //-------------------------------------------------------------
-// TODO: sample using function from the permutations code
+
+inherit "mjd_permute";
+int permutations = factorial(sizeof(list));
+array shuffle = list[n2perm(random(permutations)+1, sizeof(list))[*]];
+
 //-------------------------------------------------------------
 
 void naive_shuffle(array list)
