@@ -67,6 +67,7 @@ web:
 	rm -f webcontents
 
 upload: all web
+	cvs up
 	rm -rf ../t
 	mkdir ../t
 	cp -a * ../t
