@@ -1023,3 +1023,171 @@ array(string) bigarray = Stdio.read_file("mydatafile")/"\n";
 array(string) ships = "Niña Pinta Santa María"/" ";         // wrong
 array(string) ships = ({ "Niña", "Pinta", "Santa María" }); // right
 
+ 
+// @@PLEAC@@_4.2
+#!/usr/bin/pike
+
+array(array(string)) lists =
+  ({
+    ({ "just one thing" }),
+    ({ "Mutt", "Jeff" }),
+    ({ "Peter", "Paul", "Mary" }),
+    ({ "To our parents", "Mother Theresa", "God" }),
+    ({ "pastrami", "ham and cheese", "peanut butter and jelly", "tuna" }),
+    ({ "recycle tired, old phrases", "ponder big, happy thoughts" }),
+    ({ "recycle tired, old phrases",
+       "ponder big, happy thoughts",
+       "sleep and dream peacefully" }),
+  });
+
+void main()
+{
+  write("The list is: %s.\n", commify_list(lists[*])[*]);
+}
+
+string commify_list(array(string) list)
+{
+  switch(sizeof(list))
+  {
+    case 1: return list[0];
+    case 2: return sprintf("%s and %s", @list);
+    default: 
+      string seperator=",";
+      int count;
+      while(count<sizeof(list) && search(list[count], seperator)==-1)
+        count++;
+      if(count<sizeof(list))
+        seperator=";";
+      return sprintf("%{%s"+seperator+" %}and %s", 
+                     list[..sizeof(list)-2], list[-1]);
+  }
+}
+
+// @@PLEAC@@_4.3
+
+void what_about_that_array(array list)
+{
+    write("The array now has %d elements.\n", sizeof(list));
+    write("The index of the last element is %d.\n", sizeof(list)-1);
+    write("Element #3 is %O.\n", list[3]);
+}
+
+array people = ({ "Crosby", "Stills", "Nash", "Young" });
+what_about_that_array(people);
+// The array now has 4 elements.
+// The index of the last element is 3.
+// Element #3 is "Young".
+
+people=people[..sizeof(people)-2];
+what_about_that_array(people);
+// The array now has 3 elements.
+// The index of the last element is 2.
+// Index 3 is out of array range -3..2.
+
+people+=allocate(10001-sizeof(people));
+what_about_that_array(people);
+// The array now has 10001 elements.
+// The index of the last element is 10000.
+// Element #3 is 0.
+
+array people = ({ "Crosby", "Stills", "Nash", "Young" }); // resetting the array
+people[10000]=0;
+// Index 10000 is out of array range -4..3.
+// accessing a nonexisting index is always an error.
+// arrays can not be enlarged this way.
+
+
+// @@PLEAC@@_4.4
+
+foreach(list; int index; mixed item)
+{
+  // do something with item (and possibly index)
+}
+
+foreach(bad_users;; object user)
+{
+  complain(user);
+}
+
+// for such simple cases pike provides a convenient automap feature:
+complain(user[*]);
+// will do the same as the foreach above.
+
+foreach(sort(indices(getenv()));; string var)
+{
+  write("%s=%s\n", var, getenv(var));
+}
+
+// if you don't need an assurance that the indices are sorted (they most likely
+// are sorted anyways) you may use:
+foreach(getenv(); string var; string value)
+{
+  write("%s=%s\n", var, value);
+}
+
+foreach(all_users;; string user)
+{
+  int disk_space = get_usage(user);
+  if(disk_space > MAX_QUOTA)
+    complain(user);
+}
+
+// continue; to jump to the next
+// break; to stop the loop
+// redo can be done by doing a loop with the proper checks in the block
+
+object pipe=Stdio.File();
+Process.create_process(({ "who" }), ([ "stdout":pipe->pipe() ]));
+foreach(pipe->line_iterator();; string line)
+{
+  if(search(line, "tchrist")>-1)
+    write(line+"\n");
+}
+
+object fh=Stdio.File("somefile");
+foreach(fh->line_iterator(); int linenr; string line)
+{
+  foreach(Process.split_quoted_string(line);; string word)//split on whitespace
+  {
+    write(reverse(word));
+  }
+}
+
+
+array(int) list = ({ 1,2,3 });
+foreach(list;; int item)
+{
+  item--;
+}
+write("%{%d %}\n", list);
+// Result: 1 2 3 
+
+// we can still use foreach instead of for, 
+// because foreach gives us the index as well:
+foreach(list; int index;)
+{
+  list[index]--;
+}
+write("%{%d %}\n", list);
+// Result: 0 1 2
+
+array a = ({ 0.5, 3 });
+array b = ({ 0, 1 });
+// foreach handles only one array so there is nothing to gain here. 
+// better use automap:
+array a_ = a[*]*7;
+array b_ = b[*]*7;
+write("%{%O %}\n", a_+b_);
+// 3.500000 21 0 7
+
+string scalar = " abc ";
+array(string) list = ({ " a ", " b " });
+mapping(mixed:string) hash = ([ "a":" a ", "b":" b " ]);
+
+scalar = String.trim_whites(scalar);
+list = String.trim_whites(list[*]);
+foreach(hash; int key;)
+{
+  hash[key]=String.trim_whites(hash[key]);
+}
+
