@@ -89,10 +89,9 @@ well() = "well"
 
 @@@1.12
 s.wrap(width) =
-    s.words.foldl(
-        s, word ->
-            c = if "{s} {word}" > width then "\n" else " "
-            s + c + word
+    s.words.foldl("", (s, word ->
+        c = if "{s} {word}" > width then "\n" else " "
+        s + c + word
     )
 
 @@@1.14
@@ -126,9 +125,7 @@ num = num.pattern_matches(
 
 @@@2.17
 s.commify =
-    (integer, decimal) = s.m("(.*)(\..*)?")
-    integer.subst!("(\d\{3})(\d)", (a,b -> "{a},{b}"))
-    "{integer}{decimal}"
+    integer.fixpoint(subst(, "(\d)(\d\{3})($|\.|,)", (a,b,c -> "{a},{b}{c}")))
     
 @@@4.1
 a = ("quick", "brown", "fox")
@@ -672,8 +669,8 @@ pos = datafile.tell_seek
 println("I'm {pos} bytes from the start of DATAFILE.")
 
 logfile.seek!(End)
-datafile.seek!(Start)
-out.seek!(-20)
+datafile.seek!(0)
+out.seek!(out.tell_seek - 20)
 
 datafile = datafile.print(mystring)
 block = infile.read(256)                # can't do offset writing of 5
@@ -716,3 +713,192 @@ Sys::stdall.each(s -> seen{s.downcase}++)
 # output hash in a descending numeric sort of its values
 seen.keys.sort_by(a,b -> seen{b} <=> seen{a})
     .iter(line -> "%5d %s".printf(seen{line}, line))
+
+@@@8.4
+file.lines.reverse.each(line ->
+    # do something with {line}
+)
+
+file.open(Sep_keep("\n+")).lines.reverse.each(paragraph ->
+    # do something with paragraph    
+)
+
+@@@8.5
+loop
+    fh.each(line ->
+        # ...
+    )
+    sleep sometime
+    # clearerr?
+
+@@@8.6
+i = 0
+line = stdall.find(_ -> i++ ; random(i) == 0)
+# {line} is the random line
+
+i = 0
+adage = "/usr/share/games/fortunes"
+    .open(Sep("%\n"))
+    .find(_ -> i++ ; random(i) == 0)
+adage.print 
+
+@@@8.7
+input.lines.randomize.each(s -> output.print(s))
+
+@@@8.8
+i = 0
+line = handle.find(_ -> i++ ; i == desired_line_number)
+
+line = handle.to_list[desired_line_number]
+
+
+build_index(data_file, index_file) =
+    offset = 0
+    in.each(_ ->
+        out.print(offset.pack("N"))
+        offset = in.tell_seek
+    )
+    
+line_with_index(data_file, index_file, line_number) =
+    i_offset = line_number-1 * pack_size("N")
+    index_file.seek!(i_offset) or return
+    
+    entry = index_file.read(pack_size("N"))
+    d_offset = entry.unpack("N")
+    data_file.seek!(d_offset)
+    data_file.line
+
+# usage:
+in = file.open
+index = "{file}.idx".open(R | W)
+build_index(in, index);
+line = line_with_index(in, index, seeking)
+
+@@@8.9
+"3+5-2".split("([+-])")                 #=> [ "3", "+", "5", "-", "2" ]
+fields = record.split(":")
+fields = record.split("\s+")
+fields = record.words
+
+@@@8.10
+fh = file.open(R | W)
+addr = 0
+fh.each(_ -> addr = fh.tell_seek if not file.eo?)
+fh.truncate!(addr)
+
+@@@8.11
+# don't care about non-UNIX ;pp
+
+@@@8.12
+address = recsize * recno
+fh.seek!(address)
+buffer = fh.read(recsize)
+
+@@@8.13
+address = recno * pack_size(format)
+fh.seek!(address)
+fields = fh.read_unpack(format)
+# update fields, then
+fh.seek!(address)
+fields.pack_print(format, fh)
+
+# weekearly -- set someone's login date back a week
+user    = Sys::args[0] or Sys::env{"USER"} or Sys::env{"LOGNAME"}
+
+typedef = "L A12 A16"                   # linux fmt; sunos is "L A8 A16"
+address = Sys::getpwnam(user){Uid} * pack_size(typedef)
+
+lastlog = "/var/log/lastlog".open(R | W)
+    or die("can't update /usr/adm/lastlog: {Sys::errno_string}")
+lastlog.seek!(address)
+
+(time, line, host) = lastlog.read_unpack(typedef)
+time -= 24 * 7 * 60 * 60                # back-date a week
+
+lastlog.seek!(address)
+(time, line, host).pack_print(typedef, lastlog)
+
+
+@@@8.14
+file : addrs = Sys::args
+if addrs == [] then die("usage: {Sys::progname} addr ...\n")
+        
+fh = file.open(Sep("\0"))
+addrs.each(s ->
+    fh.seek!(s.to_int)
+    qq(%#x %#o %d "%s"\n).printf(addr, addr, addr, fh.line)  
+)
+
+@@@8.15
+while not file.eo? do
+    fields = file.read_unpack(template)
+    # use fields
+
+@@@8.16
+config.each(s ->
+    s.chomp!                            # no newline
+    s.subst!("#.*", "")                 # no comments
+    s.chop_bounding_spaces!             # no leading white, no trailing white
+    s.m!(
+        "(\S*)\s*=\s*(.*)", 
+        var, value -> User_Preferences{var} = value
+    )
+)
+
+@@@8.17
+info = File::stat(filename)
+println("Superuser owns filename") if info{Uid} == 0
+println("filename has been read since it was written.") if info{Atime} > info{Mtime}
+
+@@@9.1
+
+(reatime, writetime) = File::stat(filename){Readtime, Writetime}
+# modify readtime, writetime
+filename.File::utime(readtime, writetime)
+
+@@@9.2
+File::delete(filename)
+
+@@@9.3
+File::copy(oldfile, newfile)
+File::rename(oldfile, newfile)
+File::move(oldfile, newfile)
+
+@@@9.4
+seen = {}
+files.each(f ->
+    seen{File::stat(f){Device, Inode}}.push!(f)
+)
+seen.to_list.sort.each((dev,ino), l ->
+    if l.size > 1 then
+        # l is a list of filenames for the same file
+)
+
+@@@9.5
+Dir::open(dirname, Absolute).each(file ->
+    # do something with "{file}"
+)
+
+@@@9.6
+list = Dir::glob("*.c")
+
+@@@9.7
+dirlist.each(dir ->
+    Dir::open(dir, Recursive | Absolute | Depth_only).each(f ->
+    )
+)
+
+@@@9.8
+Sys::args.each(dir ->
+    Dir::open(dir, Recursive | Absolute | Depth_first).each(File::delete)
+)
+
+@@@9.9
+names.each(file ->
+    newname = compute_newname(file)
+    File::rename(file, newname) or warn("Couldn't rename {file} to {newname}: {Sys::errno_string}\n")
+)
+
+@@@9.10
+File::basename(path)
+File::dirname(path)
