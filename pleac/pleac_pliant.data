@@ -603,6 +603,169 @@ function outer i -> j
   j := x+inner:x
 #-----------------------------------
 
+# ^^PLEAC^^_11.0
+#-----------------------------
+module "/pliant/lnaguage/unsafe.pli" # using pointers is unsafe
+var Pointer:Int sref  # declaration of a reference to an Int
+sref :> value         # reference assignment (sref "points" to value content)
+#-----------------------------
+var Link:Int sref2    # declaration of a link (concerns object, increments reference count)
+sref2 :> new Int      # typical use of "new" to create a new object
+#-----------------------------
+console sref # prints the scalar value that the reference sref refers to
+sref := 3    # assigns to sref's referent
+#-----------------------------
+var Pointer:(Array:Int) aref :> array
+#-----------------------------
+sref :> null map Int
+sref := 4            # runtime error
+#-----------------------------
+var Link:(Array Int) aref :> new Array:Int    # new array
+aref += 3; aref += 4; aref += 5
+gvar Link:(Dictionary Str Str) href :> new (Dictionary Str Str) # new hash
+implicit href
+  insert "How" "Now"
+  insert "Brown" "Cow"
+#-----------------------------
+aref :> null map Array:Int
+aref :> new Array:Int
+console (cast addressof:aref Int)
+1076501816
+#-----------------------------
+
+# ^^PLEAC^^_11.1
+#-----------------------------
+aref :> array
+anon_array :> new Array:Int; annon_array += 1; annon_array += 3;
+annon_array += 5; annon_array += 7; annon_array += 9;
+#-----------------------------
+annon_array += 11
+#-----------------------------
+one := annon_array 0
+#-----------------------------
+num_items := aref size
+#-----------------------------
+# check whether an Arrow is the address of an array of Int
+if entry_type:arrow <> Array:Int
+  error error_id_unexpected "Expected an array reference, not "+entry_type:arrow:name
+  return
+
+array_ref += item # append new element to orig array
+#-----------------------------
+function array_ref -> ref
+  arg Link:(Array:Int) ref
+  gvar Array:Int array
+  ref :> array
+
+var Link:(Array:Int) aref1 :> array_ref
+var Link:(Array:Int) aref2 :> array_ref
+#-----------------------------
+console array_ref:n            # access item in position n
+#-----------------------------
+each item array_ref
+  # item has data
+
+for (var Int idx) 0 array_ref:size-1
+  # array_ref:idx has data
+#-----------------------------
+
+# ^^PLEAC^^_11.3
+#-----------------------------
+var Link:(Dictionary Str Str) href :> hash
+var Link:(Dictionary Str Str) anon_hash
+implicit anon_hash
+  insert "key1" "value1"
+  insert "key2" "value2"
+#-----------------------------
+value := href key
+#-----------------------------
+if entry_type:arrow <> (Dictionary Str Str)
+  error error_id_unexpected "Expected a has reference, not "+entry_type:arrow:name
+#-----------------------------
+each item href
+  console (href key item) " => " item eol
+#-----------------------------
+
+# ^^PLEAC^^_11.4
+#-----------------------------
+module "/pliant/language/compiler.pli" # access to Function type
+function thefunc s -> i
+  arg Str s; arg Int i
+  #...
+var Link:Function fun :> the_function thefunc Str -> Int
+
+function wrapper s f -> i               # used to perform an indirect call
+  arg Str s; arg Function f; arg Int i
+  indirect
+
+value := wrapper "hello" fun            # actually calls the_func 
+#-----------------------------
+var (Dictionary Str (Link Function)) commands   # Function may not be copied, use links.
+var Link:Function fun
+implicit commands
+  fun :> thefunction joy -> Str; insert "happy" fun
+  fun :> thefunction sullen -> Str; insert "sad" fun
+  fun :> thefunction angry -> Str; insert "mad" fun
+
+module "/pliant/language/ui/ansi_terminal.pli" # access to terminal functions
+var Str string := keyboard_input "How are you? "
+
+function wrapper2 fun -> s  # wrapper function for indirect call
+  arg Function fun; arg Str s
+  indirect
+  
+if (commands exists string)
+  console (wrapper2 commands:string) eol
+else
+  console "No such command : " string eol
+#-----------------------------
+type Counter
+  field Int start <- 0
+
+function 'cast Int' c -> i   # counter is incremented when used as an Int
+  arg Counter c; arg Int i
+  implicit
+  i := c start
+  (addressof c:start) map Int += 1
+
+function make_counter -> counter
+  arg Link:Counter counter
+  counter :> new Counter
+
+var Link:Counter counter :> counter_maker
+for (var Int i) 0 5
+  var Int value := counter; console value eol
+#-----------------------------
+var Link:Counter counter1 :> counter_maker
+var Link:Counter counter2 :> counter_maker
+
+for (var Int i) 0 5
+  var Int value := counter1; console value eol
+
+console (cast counter1 Int) " " (cast counter2 Int) eol
+0
+1
+2
+3
+4
+5 0
+#-----------------------------
+
+# ^^PLEAC^^_11.5
+#-----------------------------
+scalar_ref :> scalar         # get reference to named scalar
+#-----------------------------
+console scalar_ref           # dereference it
+scalar_ref := 23             # alter referent's value
+#-----------------------------
+function new_anon_scalar -> s
+  arg Link:Int s
+  s :> new Int
+#-----------------------------
+sref :> new_anon_scalar
+sref := 3
+console "Three = " sref eol
+#-----------------------------------
 
 # @@PLEAC@@_17.0
 module "/pliant/language/os/socket.pli"         # for low level socket calls
