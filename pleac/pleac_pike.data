@@ -443,25 +443,109 @@ foreach(here/"\n";; string line)
 string there=tmp*"\n";
 
 // @@PLEAC@@_1.12
-// pike sprintf() provides a facility for wrapping:
-// sprintf("<string indent>%-=<int width>s", text);
+// pike sprintf() provides a facility for wrapping (column mode):
+// sprintf("%-=<int width>s", text);
+
+#!/usr/bin/pike
+
+void main()
+{
+  array input = ({ "Folding and splicing is the work of an editor,",
+                   "not a mere collection of silicon",
+                   "and",
+                   "mobile electrons!"});
+  int columns = 20;
+
+  write("0123456789"*2+"\n");
+  write(wrap(input*" ", 20, "  ", "  ")+"\n");
+}
 
 // unlike the perl version here leadtab is relative to nexttab, 
-// to get a shorter lead use negative values. this allows the default of 0 to
-// be a lead indent that is the same as nexttab, and it also has the advantage
-// of allowing you ti change the indent without having to worry about the lead
-// getting messed up.
-string wrap(string text, void|int width, void|int nexttab, void|int leadtab)
+// to get a shorter lead use a negative int value. this allows the default of 0
+// to be a lead indent that is the same as nexttab, and it also has the
+// advantage of allowing you to change the indent without having to worry about
+// the lead getting messed up.
+// a negative lead will cut away from the nexttab which will be visible if you
+// use something other than spaces
+string wrap(string text, void|int width, 
+            void|string|int nexttab, void|string|int leadtab)
 {
   string leadindent="";
-  string indent=" "*nexttab;
-  if(leadtab > 0)
-    leadindent=" "*leadtab;
-  else if(leadtab < 0)
+  string indent=""; 
+  string indent2="";
+
+  if(!width)
+    width=Stdio.stdout->tcgetattr()->columns;
+
+  if(stringp(nexttab))
   {
-    indent=" "*(nexttab+leadtab) + text[..-leadtab-1]; 
-    text=text[-leadtab..];
+    indent=nexttab;
+    width-=sizeof(nexttab);  // this will be off if there are chars that have a
+                             // different width than 1.
   }
-  return sprintf(indent+"%-=*s", width, leadindent+text);
+  else if(intp(nexttab))
+  {
+    indent=" "*nexttab;
+    width-=nexttab;
+  }
+
+  if(stringp(leadtab))
+    leadindent=leadtab;
+  else if(intp(leadtab))
+    if(leadtab > 0)
+      leadindent=" "*leadtab;
+    else if(leadtab < 0)
+    {
+      write(indent+".\n");
+      indent=indent[..(sizeof(indent)+leadtab)-1];
+      write(indent+".\n");
+      indent2=text[..-leadtab-1]; 
+      text=text[-leadtab..];
+    }
+  return sprintf("%^s%=*s%-=*s", indent, sizeof(indent2), indent2, 
+                                 width, leadindent+text);
 }
+//----------------------------------------------
+$ ./wrapdemo 
+01234567890123456789
+    Folding and     
+  splicing is the   
+  work of an editor,
+  not a mere        
+  collection of     
+  silicon and mobile
+  electrons!        
+
+// merge multiple lines into one, then wrap one long line
+wrap(replace(text, "\n", " "));
+
+// read stdin and split by paragraph,
+// remove \n in paragraphs
+// reformat
+// add paragraph break
+foreach(Stdio.stdin->read()/"\n\n";; string para)
+  write(wrap(replace(para, "\n", " "))+"\n\n");
+
+// @@PLEAC@@_1.13
+// we need to escape the \ for this example, ironic, eh?
+array charlist=({ "%", "\\" }); 
+string var="some input % text with \\";
+
+// backslash
+var=replace(var, charlist, "\\"+charlist[*]);
+
+// double
+var=replace(var, charlist, charlist[*]+charlist[*]);
+
+// @@PLEAC@@_1.14
+string line=" foo\n\t ";
+array many=({ " bar\n\t ", " baz\t " });
+
+// remove spaces and tabs
+line=String.trim_whites(line);
+many=String.trim_whites(many[*]);
+
+/remove spaces, tabs, newlines and carriage returns
+line=String.trim_all_whites(line);
+many=String.trim_all_whites(many[*]);
 
