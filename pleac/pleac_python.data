@@ -3243,12 +3243,15 @@ dirs = [x[1] for x in fileinfo]    # extract pathnames
 import os, sys
 def DeleteDir(dir):
     for name in os.listdir(dir):
-        file = dir + "/" + name
+        file = os.path.join(dir, name)
         if not os.path.islink(file) and os.path.isdir(file):
             DeleteDir(file)
         else:
             os.unlink(file)
     os.rmdir(dir)
+
+# Or use shutil.rmtree(path)
+
 #-----------------------------
 
 # ^^PLEAC^^_9.10
@@ -5399,3 +5402,46 @@ cgitb.enable(logdir="/var/local/cgi-logs/")
 # If this is not enough, (usually this is enough!) Python 2.3 comes
 # with a new standard module called 'logging', which is complex, but
 # very flexible and entirely customizable.
+
+# @@PLEAC@@_16.1
+import popen2
+
+# other popen methods than popen4 can lead to deadlocks
+# if there is much data on stdout and stderr
+
+(err_out, stdin) = popen2.popen4("program args")
+lines = err_out.read() # collect output into one multiline string
+
+(err_out, stdin) = popen2.popen4("program args")
+lines = err_out.readlines() # collect output into array, one line per element
+
+#-----------------------------
+
+(err_out, stdin) = popen2.popen4("program args")
+output = []
+while 1:
+    line = err_out.readline()
+    if not line:
+        break
+    output.appen(line)
+output = ''.join(output)
+
+# @@PLEAC@@_16.2
+import os
+myfile = "foo.txt"
+status = os.system("vi %s" % myfile)
+
+#-----------------------------
+import os
+import sys
+
+os.system("cmd1 args | cmd2 | cmd3 >outfile")
+os.system("cmd args <infile >outfile 2>errfile")
+
+status = os.system("%s %s %s" % (program, arg1, arg2))
+if status != 0:
+    print "%s exited funny: %s" % (program, status)
+    sys.exit()
+    
+
+
