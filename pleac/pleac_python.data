@@ -3448,6 +3448,50 @@ def extension(path):
 #-----------------------------
 
 
+# @@PLEAC@@_9.11
+
+#!/usr/bin/python
+# sysmirror - build spectral forest of symlinks
+import sys, os, os.path
+
+pgmname = sys.argv[0]
+if len(sys.argv)!=3:
+    print "usage: %s realdir mirrordir" % pgmname
+    sys.exit()
+
+(srcdir, dstdir) = sys.argv[1:3]
+if not os.path.isdir(srcdir):
+    print "%s: %s is not a directory" % (pgmname,srcdir)
+    sys.exit()
+if not os.path.isdir(dstdir):
+    try:
+        os.mkdir(dstdir)
+    except:
+        print "%s: can't make directory %s" % (pgmname,dstdir)
+        sys.exit()
+
+# fix relative paths
+srcdir = os.path.abspath(srcdir)
+dstdir = os.path.abspath(dstdir)
+
+def wanted(arg, dirname, names):
+    for direntry in names:
+        relname = "%s/%s" % (dirname, direntry)
+        if os.path.isdir(relname):
+            try:
+                os.mkdir("%s/%s" % (dstdir,relname))
+            except:
+                print "can't mkdir %s/%s" % (dstdir,relname)
+                sys.exit()
+        else:
+            if relname[:2] == "./":
+                relname = relname[2:]
+            os.symlink("%s/%s" % (srcdir, relname), "%s/%s" % (dstdir,relname))
+
+os.chdir(srcdir)
+os.path.walk(".",wanted,None)
+
+
 # ^^PLEAC^^_10.0
 #-----------------------------
 greeted = 0
