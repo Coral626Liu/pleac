@@ -15,10 +15,9 @@
 # Tcl's "..." corresponds to Perl's "...", while the other
 # quoting construct {...} is more similar to Perl's q{...}
 # operator.
-# 
+
 # It's not necessary to quote text data in Tcl as long as
 # it doesn't contain whitespace.
-
 
 set string {\n}                     ;# two characters, \ and n
 set string "jon 'maddog' orwant"    ;# literal single quotes
@@ -37,7 +36,6 @@ terminated by an unescaped and
 
 set empty {}                        ;# empty string
 
-
 # @@PLEAC@@_1.1
 
 set value [string range $string $first $last]
@@ -55,11 +53,11 @@ binary scan $data "A5 x3 A8 A8 A*" leading s1 s2 trailing
 # written and a character and a byte were the same size.  They still
 # are for some programming languages, but Tcl for one uses 16-bit
 # Unicode characters to encode strings.
-# 
+
 #   The above unpack/scan works for strings containing only character
 # codes in the range 0--255, but distorts other strings by truncating
 # all codes to 8 bits.
-# 
+
 #   To avoid this, the input string can be converted to an 8-bit
 # encoding before scanning:
 
@@ -86,7 +84,7 @@ set chars [split $data {}]
 # +012345678901234567890  Indexing forwards (left to right)
 #  098765432109876543210- Indexing from end (right to left)
 # note that 0 means 10 or 20, etc. above
-# 
+
 # end is a special value that is available in list and string 
 # commands.  It is defined as the index of the last element (in 
 # lists), or character (in strings).
@@ -150,7 +148,6 @@ set b [string range $a 6 7]
 append b : [string range $a 3 4]
 # => or:be
 
-
 proc cut2fmt {args} {
     set positions $args
     set template  {}
@@ -165,7 +162,6 @@ proc cut2fmt {args} {
     
 set fmt [cut2fmt 8 14 20 26 30]
 # => A7 A6 A6 A6 A4 A*
-
 
 # @@PLEAC@@_1.2
 
@@ -227,8 +223,10 @@ if {[string length $arg]} {
 if {[info exists argv] && [llength $argv]} {
     set dir [lindex $argv 0]
     set argv [lrange $argv 1 end]
+
 } else {
     set dir /tmp
+
 }
 # Perl: $dir = @ARGV ? $ARGV[0] : "/tmp";
 if {[llength $argv]} {
@@ -255,6 +253,7 @@ if {[info exist count($shell)]} {
 
 # find the user name on Unix systems; needs extension to
 # check getlogin() and getpwuid()
+
 if {![catch {string length $env(USER)}]} {
     set user $env(USER)
 } elseif {![catch {string length $env(LOGIN)}]} {
@@ -283,7 +282,6 @@ if {[llength $y]} {
     set x $z
 }
 
-
 # @@PLEAC@@_1.3
 
 # cross-assignment
@@ -301,13 +299,11 @@ foreach {alpha beta production} [list January March August] break
 # move alpha      to production
 foreach {alpha beta production} [list $beta $production $alpha] break
 
-
 # @@PLEAC@@_1.4
 
 set num [scan $char %c]
 
 set char [format %c $num]
-
 
 format "Number %d is character %c" 101 101
 # => Number 101 is character e
@@ -317,7 +313,6 @@ binary scan $utf8data c* codelist
 
 set utf8data [binary format c* $codelist]
 set string [encoding convertfrom utf-8 $utf8data]
-
 
 proc hal2ibm {} {
     set hal HAL
@@ -331,7 +326,6 @@ hal2ibm
 
 # => IBM
 
-
 # @@PLEAC@@_1.5
 
 set a [split $string {}]
@@ -342,8 +336,8 @@ binary scan $utf8data c* a
 # with -line, . never matches newline
 foreach 1 [regexp -inline -all -line . $string] {
     # do something with $1
-}
 
+}
 
 proc indChars-1 {s} {
     array set seen [list]
@@ -364,14 +358,12 @@ indChars-1 "an apple a day"
 # Of course, if all you care about are which unique 
 # characters appear, it's much easier:
 
-
 proc uniqueChars-1 {s} {
     return "unique chars are: {[join [lsort -unique [split $s {}]] {}]}"
 }
 uniqueChars-1 "an apple a day"
 
 # => unique chars are: { adelnpy}
-
 
 # simplistic checksum calculation
 proc simpleChecksum {string} {
@@ -392,14 +384,12 @@ simpleChecksum "an apple a day"
 # has several utilities for transforming data,
 # including message digests such as CRC and MD5.
 
-
 package require Trf
 
 binary scan [crc {an apple a day}] H* checksum
 set checksum
 
 # => 325295
-
 
 # slowcat - emulate a   s l o w   line printer
 # usage: slowcat [-DELAY] [files ...]
@@ -430,9 +420,7 @@ proc slowcat {args} {
     }
 }
 
-
 # @@PLEAC@@_1.6
-
 
 proc reverse {args} {
     set res [list]
@@ -445,61 +433,43 @@ proc reverse {args} {
     set res
 }
 
-
 # reverse characters
 join [reverse [split $string {}]] {}
 
 # reverse words
 join [reverse [split $string]]
 
-
 # reverse quoted words
 join [reverse [split {Yoda said, "can you see this?"}]]
 # => this?" see you "can said, Yoda
-
 
 set word reviver
 set is_palindrome [string equal $word [join [reverse [split $word]]]]
 
 # => 1
 
-
 # @@PLEAC@@_1.7
 
-while {[regexp -indices {\t+} $string where]} {
-    foreach {first last} $where break
-    set size [expr {$n*($last-$first+1)-$first%$n}]
-    regsub {\t+} $string [string repeat { } $size] string
-}
+package require textutil
+namespace import ::textutil::tabify::*
 
-# There is a standard module for exanding/collapsing
-# tabs, but all it does is straight substitution;
-# tabs <-> N spaces. (tcllib 1.0)
+tabify "...     zzz        xxx"
+# => ...     zzz	xxx
 
+untabify "...\tzzz\txxx"
+# => ...        zzz        xxx
 
-proc main {collapsedText expandedText} {
-    package require textutil
-    
-    set expandedText [::textutil::tabify::untabify $collapsedText]
-    set collapsedText [::textutil::tabify::tabify $expandedText]
+tabify2 "...     zzz     xxx"
+# => ...	zzz	xxx
 
-    while {[gets stdin line] >= 0} {
-        puts [::textutil::tabify::untabify $line 4]
-    }
-     
-    while {[gets stdin line] >= 0} {
-        puts [::textutil::tabify::tabify $line]
-    }
-}
-
+untabify2 "...\tzzz\txxx"
+# => ...     zzz     xxx
 
 # @@PLEAC@@_1.8
-
 
 set debt 100
 subst "You owe $debt to me."
 # => You owe 100 to me.
-
 
 set debt 100
 proc writeIt {string} {
@@ -509,12 +479,10 @@ proc writeIt {string} {
 writeIt {You owe $debt to me.}
 # => You owe 100 to me.
 
-
 foreach {rows cols} {24 80} break
 set text {I am $rows high and $cols long}
 set text [subst $text]
 # => I am 24 high and 80 long
-
 
 set string "I am 17 years old"
 regsub -all {(\d+)} $string {[expr {\1*2}]} string
@@ -540,7 +508,6 @@ proc expandOrError-1 {@text} {
 # hazard.  The solution is to let a "safe interpreter" (which has a
 # reduced set of commands by default) interpret the text data.
 
-
 proc safeExpand-1 {string} {
     set si [interp create -safe]
     set res [uplevel $si eval [list subst [list $string]]]
@@ -558,43 +525,35 @@ if {[catch {safeExpand-1 {[exec rm foo.bar]}} msg]} {
 # further reduce the command set of an interpreter, or to add new
 # commands, or to change the meaning of commands (i.e. exec would
 # allow *some* system commands but not all, etc).
-# 
+
 # But I digress...
 
-
 # @@PLEAC@@_1.9
-
 
 set little "bo peep"
 set big [string toupper $little]
 # => BO PEEP
 
-
 set big "BO PEEP"
 set little [string tolower $big]
 # => bo peep
-
 
 set little "bo peep"
 set title [string totitle $little]
 # => Bo peep
 
-
 set little "bo peep"
 set big [string toupper $little 0]
 # => Bo peep
-
 
 set big "BO PEEP"
 set little [string tolower $big 0]
 # => bO PEEP
 
-
 # convert case within a string
 set name {kirk}
 set string "Ship's Captain: [string totitle $name]."
 # => Ship's Captain: Kirk.
-
 
 # capitalize each word's first character, downcase the rest
 set text "thIS is a loNG liNE"
@@ -609,11 +568,9 @@ while {[regexp -indices -start $pos {(\w+)} $text where]} {
 set text
 # => This Is A Long Line
 
-
 # case insensitive string comparison
 string equal -nocase foo Foo
 # => 1
-
 
 # randcap: filter to randomly capitalize 20% of the letters
 set text {
@@ -646,9 +603,7 @@ set text
 
 001:003 AnD goD said, lEt there be light: aND there wAs LighT.
 
-
 # @@PLEAC@@_1.10
-
 
 # Interpolating functions and expressions within strings
 set var1 Tool
@@ -657,11 +612,9 @@ set var2 Language
 set answer "$var1 [func command] $var2"
 # => Tool Command Language
 
-
 set n 5
 set phrase "I have [expr {$n + 1}] guanacos."
 # => I have 6 guanacos.
-
 
 set rec foo:bar:baz
 interp alias {} some_cmd {} join
@@ -673,9 +626,12 @@ To: $naughty
 From: Your Bank
 Cc: [getManagerList $naughty]
 Date: [clock format [clock seconds]] (today)
+
 Dear $naughty,
+
 Today, you bounced check number [expr {500 + int(rand()*100)}] to us.
 Your account is now closed.
+
 Sincerely,
 the management
 }
@@ -683,9 +639,7 @@ if {![sendMail $text $target]} {
     error "Couldn't send mail"
 }
 
-
 # @@PLEAC@@_1.11
-
 
 # all in one
 regsub -line -all {^\s+} {
@@ -696,8 +650,6 @@ format %s \n$var
 # => 
 your text
 goes here
-
-
 
 # or with two steps
 set var {
@@ -710,8 +662,6 @@ format %s \n$var
 # => 
 your text
 goes here
-
-
 
 # one more time
 regsub -line -all {^\s+} {
@@ -734,8 +684,6 @@ fix {
 }
 # => My stuff goes here
 
-
-
 # the end-of-string right brace doesn't have to be flush left
 regsub -line -all {^\s+} {
     ...we will have peace, when you and all your works have
@@ -753,8 +701,6 @@ perished--and the works of your dark master to whom you would
 deliver us. You are a liar, Saruman, and a corrupter of men's
 hearts.
 --Theoden in /usr/src/perl/taint.c
-
-
 
 proc rememberTheMain {} {
     dequote {
@@ -799,13 +745,12 @@ proc dequote {text} {
     return [string trimright $text]\n
 }
 
-
 # @@PLEAC@@_1.12
 
-#     # The tcllib 1.0 textutil module can adjust text
-#     # to a specified line length, justify left, right,
-#     # and plain, and fill lines to the right margin.
-#     # However, it can't add indentation.
+      # The tcllib 1.0 textutil module can adjust text
+      # to a specified line length, justify left, right,
+      # and plain, and fill lines to the right margin.
+      # However, it can't add indentation.
 
 # A naive implementation of wrap.  Arguments:
 # text	the text
@@ -846,7 +791,6 @@ proc wrap {text {col 72} {lead {}} {follow {}}} {
     return $newtext
 }
 
-
 set input {"Folding and splicing is the work of an editor,"
       "not a mere collection of silicon"
       "and"
@@ -864,7 +808,6 @@ append res [wrap [join $input] 20 {    } {  }] \n
   of silicon and 
   mobile electrons!
 
-
 # @@PLEAC@@_1.13
 
 # backslash
@@ -873,36 +816,29 @@ regsub -all (\[$charlist]) $var {\\\1} var
 # double
 regsub -all (\[$charlist]) $var {\1\1} var
 
-
 set string {Mom said, "Don't do that."}
 regsub -all {(['"])} $string {\\\1} string
 set string
 # => Mom said, \"Don\'t do that.\"
-
 
 set string {Mom said, "Don't do that."}
 regsub -all {(['"])} $string {\1\1} string
 set string
 # => Mom said, ""Don''t do that.""
 
-
 set string {Mom said, "Don't do that."}
 regsub -all {([^A-Z])} $string {\\\1} string    ;# or: ([^[:upper:]])
 set string
 # => M\o\m\ \s\a\i\d\,\ \"D\o\n\'\t\ \d\o\ \t\h\a\t\.\"
 
-
 regsub -all {([^[:alnum:]])} "is a test!" {\\\1} string
 set string "this $string"
 # => this is\ a\ test\!
 
-
 # @@PLEAC@@_1.14
-
 
 string trim "\n\t Tcl \t\n"
 # => Tcl
-
 
 set string {
     foo bar
@@ -918,18 +854,15 @@ string trim [join $res]
 
 # The [gets] (get string) command always strips off the EOL
 # sequence, be it CR, LF, or CRLF (configurable for the stream).
-# 
+
 # Anyway, if you have a string that *might* have one or more
 # \n characters at the end, and in case it does, you want to
 # remove them:
 
-
 string trimright "foo bar\n\n" \n
 # => foo bar
 
-
 # @@PLEAC@@_1.15
-
 
 # csv is a part of the standard ActiveTcl distribution
 package require csv
@@ -950,9 +883,7 @@ set res
 5 : 5
 6 : Error, Core Dumped
 
-
 # @@PLEAC@@_1.17
-
 
 # fixstyle - switch one set of strings to another set
 #   usage: <scriptname> [-v] [files ...]
@@ -1052,13 +983,17 @@ fixstyle $text
 
 # => Yesterday we analyzed the efficiency of the builtin thingummies and were considerably chastised by the results. It seems that command-line invocation forced the whatchamacallit to deallocate drop-in maguffins. First, we tested instead to hard-code metadata -- especially when in multi-character and multi-way format (obviously only for nonempty data sets). However, that turned out to be a nonprofit improvement. Dr Egnarts then demonstrated using nontrappable signals in predefine mode to pre-extend save rates. When recompiling we saw the application re-enter acceptable ratings on turn-key operations.
 
+# @@PLEAC@@_2.0
+
+# @@INCOMPLETE@@
+
+# @@INCOMPLETE@@
 
 # @@PLEAC@@_2.1
 
 # The "backwards conditional" Perl form is useful here
 # to demonstrate the various regexps.  Tcl doesn't have
 # this syntax, but it can be fudged very easily:
-
 
 proc warn {msg cond pattern {string 0}} {
     if {[string equal if $cond]} {
@@ -1094,7 +1029,6 @@ if {[string is integer $x]} {
 }
 set res
 
-
 # @@PLEAC@@_2.2
 
 # limit number of decimals when determining equality of
@@ -1103,16 +1037,13 @@ proc floatEqual-1 {num1 num2 accuracy} {
     expr {[format %.${accuracy}f $num1] == [format %.${accuracy}f $num2]}
 }
 
-
 set wage 536                  ;# $5.36/hour
 set week [expr {40 * $wage}]  ;# $214.40
 format "One week's wage is: \$%.2f" [expr {$week/100.0}]
 
 # => One week's wage is: $214.40
 
-
 # @@PLEAC@@_2.3
-
 
 set a 0.255
 set b [format %.2f $a]
@@ -1123,7 +1054,6 @@ Rounded:   $b"
 # => 
 Unrounded: 0.255
 Rounded:   0.26
-
 
 set res \nnumber\tint\tfloor\tceil\n
 set a [list 3.3 3.5 3.7 -3.3]
@@ -1142,9 +1072,7 @@ number	int	floor	ceil
 3.7	3.0	3.0	4.0
 -3.3	-3.0	-4.0	-3.0
 
-
 # @@PLEAC@@_2.4
-
 
 proc dec2bin {string} {
     binary scan [binary format I $string] B32 str
@@ -1153,7 +1081,6 @@ proc dec2bin {string} {
 
 dec2bin 54
 # => 110110
-
 
 proc bin2dec {string} {
     set string [format %032s $string]
@@ -1164,19 +1091,15 @@ proc bin2dec {string} {
 bin2dec 110110
 # => 54
 
-
 # @@PLEAC@@_2.5
-
 
 for {set i $X} {$i <= $Y} {incr i} {
     # $i is set to every integer from X to Y, inclusive
 }
 
-
 for {set i $X} {$i <= $Y} {incr i 7} {
     # $i is set to every integer from X to Y, stepsize = 7
 }
-
 
 set res \n
 append res "Infancy is: "
@@ -1210,38 +1133,10 @@ Infancy is: 0 1 2
 Toddling is: 3 4 
 Childhood is: 5 6 7 8 9 10 11 12 
 
-
 # @@PLEAC@@_2.6
-
 
 # These procedures were written by Richard Suchenwirth.
 # See <URL: http://mini.net/tcl/1749.html>
-
-proc roman:number {i} {
-       set res ""
-       foreach {value roman} {
-       1000 M 900 CM 500 D 400 CD 100 C 90 XC 50 L 40 XL 10 X 9 IX 5 V 4 IV 1 I} {
-               while {$i>=$value} {
-                       append res $roman
-                       incr i -$value
-               }
-       }
-       set res
-}
-
-proc roman:get {s} {
-       array set r_v {M 1000 D 500 C 100 L 50 X 10 V 5 I 1}
-       set last 99999; set res 0
-       foreach i [split [string toupper $s] ""] {
-               if [catch {set val $r_v($i)}] {error "un-Roman digit $i in $s"}
-               incr res $val
-               if {$val>$last} {incr res [expr -2*$last]}
-               set last $val
-       }
-       set res
-} ;#RS
-
-
 
 roman:number 15
 # => XV
@@ -1249,28 +1144,24 @@ roman:number 15
 roman:get XV
 # => 15
 
-
 # @@PLEAC@@_2.7
 
 # The rand function returns a floating point number from zero to
 # just less than one or, in mathematical notation, the range [0,1).
 # The seed comes from the internal clock of the machine or may be
 # set manually with the srand function.
-# 
+
 # The math module of the standard distribution has a wrapper for
 # rand called random; it supports generation of pseudo-random
 # numbers in the [0,n) and [n,m) ranges.
 
-
 set random [expr {int(rand()*51)+25}]
 # => 32
-
 
 package require math
 
 set random [::math::random 25 76]
 # => 32
-
 
 set list [split {Demonstrate selecting a random element from a list.}]
 
@@ -1278,7 +1169,6 @@ package require math
 
 set elt [lindex $list [::math::random [llength $list]]]
 # => selecting
-
 
 package require math
 
@@ -1289,14 +1179,11 @@ for {set i 0} {$i < 8} {incr i} {
 set password
 # => JhzQ!p!$
 
-
 # @@PLEAC@@_2.8
-
 
 set value 1138
 expr {srand($value)}
 # => 0.00890640821723
-
 
 # @@PLEAC@@_2.9
 
@@ -1304,20 +1191,18 @@ expr {srand($value)}
 # random number generators than the one in the C library, but at
 # <URL: http://www.elf.org/etc/randomnumbers.html> there is Tcl
 # and C source for a ``very long period random number generator''.
-# 
+
 # Also see <URL: http://mini.net/cgi-bin/wikit/1551.html> for a
 # `post-processor' that improves the randomness of the output of
 # rand().
 
 # @@INCOMPLETE@@
 
-
 # @@PLEAC@@_2.10
 
 # @@INCOMPLETE@@
 
 # @@INCOMPLETE@@
-
 
 # @@PLEAC@@_2.11
 
@@ -1326,7 +1211,6 @@ expr {srand($value)}
 # set in the global namespace.  [namespace current]
 # returns the qualified name of the current namespace,
 # or :: for the global namespace.
-
 
 set [namespace current]::PI [expr {acos(-1)}]
 
@@ -1355,12 +1239,11 @@ proc degreeSine {degrees} {
     return [expr {sin($radians)}]
 }
 
-
 # @@PLEAC@@_2.12
 
 # The tangent function is already available in the [expr]
 # command, as is the arcus cosine and many more.
-# 
+
 # In some cases, the [expr] functions raise an error because
 # of overflow or division by zero.  To trap such errors, wrap
 # in [catch]:
@@ -1368,14 +1251,11 @@ proc degreeSine {degrees} {
 list [catch {expr {1/0}} msg] $msg
 # => 1 {divide by zero}
 
-
 # @@PLEAC@@_2.13
-
 
 set value 1138
 set logE [expr {log($value)}]
 # => 7.03702761469
-
 
 set value 1138
 set log10 [expr {log10($value)}]
@@ -1385,13 +1265,15 @@ proc logN {base value} {
     return [expr {log($value) / log($base)}]
 }
 
-
 # @@PLEAC@@_2.14
 
-# I don't know of any matrix arithmetic module for Tcl.  There
-# is a matrix module in the standard distribution library, but
-# it does not contain arithmetic.
+# There are a few non-standard matrix modules available for Tcl, e.g.
+# TiM: <URL: http://www-obs.univ-lyon1.fr/~thiebaut/TiM/TiM.html>.
+# In TiM, matrix multiplication seems to be an "a * b" matter.
 
+# There is also a matrix module in the standard distribution library,
+# but it does not contain arithmetic.  I have used it anyway, with
+# an adaptation of the mmult subroutine in the Perl Cookbook.
 
 package require struct 1.1.1
 
@@ -1421,8 +1303,6 @@ proc mmult {m1 m2} {
    return result
 }
 
-
-
 ::struct::matrix x
 x add columns 3
 x add row [list 3 2 3]
@@ -1439,15 +1319,12 @@ $res get rect 0 0 end end
 
 # => {39 30} {125 70}
 
-
 # @@PLEAC@@_2.15
 
-# I don't know of any complex arithmetic module for Tcl.
+# See <URL: http://www.mini.net/tcl/Complex> for complex arithmetic routines by Richard Suchenwirth.
 
-# @@INCOMPLETE@@
-
-# @@INCOMPLETE@@
-
+complex::* 3+5i 2-2i
+# => 16+4i
 
 # @@PLEAC@@_2.16
 
@@ -1473,7 +1350,6 @@ proc oct {string} {
     }
 }
 
-
 if {[string match *.test [info script]]} {
     # we are testing, supply known value
     set num 0x39a
@@ -1490,9 +1366,7 @@ if {[string length $num]} {
 
 # => 922 39a 1632
 
-
 # @@PLEAC@@_2.17
-
 
 # This procedure is written by Keith Vetter and is part of the Tcl
 # Cookbook (<URL: #http://aspn.activestate.com/ASPN/Cookbook/Tcl/Recipe/68381>)
@@ -1501,93 +1375,159 @@ proc comma {num {sep ,}} {
     while {[regsub {^([-+]?\d+)(\d\d\d)} $num "\\1$sep\\2" num]} {}
     return $num
 }
- 
+
+# @@PLEAC@@_2.18
+
+# See <URL: http://mini.net/tcl/EnglishPlurals> for an English pluralization function by Richard Suchenwirth.
+
+set data [split {fish fly ox
+species genus phylum
+cherub radius jockey
+index matrix mythos
+phenomenon formula}]
+
+set res {}
+foreach word $data {
+    append res "One $word, two [en:pl $word]\n"
+}
+set res
+
+# => One fish, two fish
+One fly, two flies
+One ox, two oxen
+One species, two species
+One genus, two genera
+One phylum, two phyla
+One cherub, two cherubim
+One radius, two radii
+One jockey, two jockeys
+One index, two indices
+One matrix, two matrices
+One mythos, two mythoi
+One phenomenon, two phenomena
+One formula, two formulae
+
+# @@PLEAC@@_2.19
+
+# See <URL: http://www.mini.net/tcl/AdditionalMath>:
+# the primefactors function by Richard Suchenwirth.
+
+primefactors 2178
+# => 2 3 3 11 11
+
+primefactors 2099999990
+# => 2 5 11 19090909
+
 # @@PLEAC@@_3.0
- 
-# A single command, [clock] is used for a wide range
+
+# A single command, [clock], is used for a wide range
 # of date/time-related tasks.  Subcommands include
 # seconds, which returns a seconds-since-epoch value,
 # and format, which formats a date/time-string like
 # the result of POSIX strftime.
- 
+
+# get current time in epoch seconds
 set now [clock seconds]
+
+# print default-formatted time
+puts [clock format $now]
+
+# print custom formatted time
 set fmt "Today is day %j of the current year."
 puts [clock format $now -format $fmt]
- 
+
 # @@PLEAC@@_3.1
- 
+
+set now [clock seconds]
 foreach {day month year} [clock format $now -format "%d %m %Y"] break
- 
+
 set now [clock seconds]
-set fmt "The current date is %Y %m %d"
-puts [clock format $now -format $fmt]
- 
+set fmt "%Y-%m-%d"
+puts "The current date is [clock format $now -format $fmt]."
+
 # @@PLEAC@@_3.2
- 
-# 'timelocal'
+
 # this is one of several possible variants of scannable
-# date/time strings
+# date/time strings; clock scan is considerably more
+# versatile than the Perl functions in this recipe.
 set time [clock scan "$hours:$min:$sec $year-$mon-$mday"]
- 
-# 'timegm'
+# => 999955820
+
 set time [clock scan "$hours:$min:$sec $year-$mon-$mday" -gmt yes]
- 
-# a time today in the current time zone.
-set time [clock scan "$hours:$min:$sec"]
- 
+# => 999963020
+
 # @@PLEAC@@_3.3
- 
-set now [clock seconds]
-set vars [list seconds minutes hours day_of_month month year wday yday]
-set desc [list S       M       H     d            m     Y    w    j]
+
+if {[string match *.test [info script]]} {
+    # we are testing, supply a known value
+    set now 1000000000
+} else {
+    set now [clock seconds]
+}
+set vars [list seconds minutes hours dayOfMonth month year wday yday]
+set desc [list S       M       H     d          m     Y    w    j]
 foreach v $vars d $desc {
     set $v [clock format $now -format %$d]
 }
- 
-# @@PLEAC@@_3.4
- 
-set when [expr {$now + $difference}]
-set when [expr {$now - $difference}]
- 
-# more idiomatic
-set when [clock scan "$difference seconds"]
-set when [clock scan "$difference seconds ago"]
-set when [clock scan "-$difference seconds"] ;# same as previous
+format %s-%s-%sT%s:%s:%s $year $month $dayOfMonth $hours $minutes $seconds
 
+# => 2001-09-09T03:46:40
 
-foreach {y2 m2 d2} [clock format [clock scan "$y-$m-$d $offset days"] -format "%Y %m %d"] break
-
-
-set vars [list year2 month2 day2 h2 m2 s2]
-set desc [list Y     m      d    H  M  S]
-set time [clock scan "$y-$m-$d $h:$m:$s
-    $days_offset days $hour_offset hours $minute_offset minutes $second_offset seconds"]
-foreach v $vars d $desc {
-    set $v [clock format $time -format %$d]
+if {[string match *.test [info script]]} {
+    # we are testing, supply a known value
+    set now 1000000000
+} else {
+    set now [clock seconds]
 }
+set vars [list seconds minutes hours dayOfMonth month year wday yday]
+set desc [list S       M       H     d          m     Y    w    j]
+foreach v $vars d $desc {
+    set $v [clock format $now -format %$d -gmt yes]
+}
+format %s-%s-%sT%s:%s:%s $year $month $dayOfMonth $hours $minutes $seconds
 
+# => 2001-09-09T01:46:40
 
-# The hard way
-set birthtime [clock scan "18-Jan-1973 3:45:50 am"]
-set interval [expr {5 + 17 * 60 + 2 * 60 * 60 + 55 * 60 * 60 * 24}]
-set then [expr {$birthtime + $interval}]
-puts [clock format $then]
-# => Wed Mar 14 06:02:55 1973
-# (note: I deleted time zone information from the above result)
- 
-# The easy way
-set then [clock scan "18-Jan-1973 3:45:50 am 5 seconds 17 minutes 2 hours 55 days"]
-puts [clock format $then]
- 
+# @@PLEAC@@_3.4
+
+      set when [expr {$now + $difference}]
+      set when [expr {$now - $difference}]
+
+# The following is slightly more idiomatic:
+
+      set when [clock scan "$difference seconds"]
+      set when [clock scan "$difference seconds ago"]
+      set when [clock scan "-$difference seconds"] ;# same as previous
+
+set newTime [clock scan "$y-$m-$d $offset days"]
+foreach {y2 m2 d2} [clock format $newTime -format "%Y %m %d"] break
+return [list $y2 $m2 $d2]
+
+set oldTime [clock scan $time]
+set newTime [clock scan "
+    $daysOffset days
+    $hourOffset hours
+    $minuteOffset minutes
+    $secondOffset seconds
+" -base $oldTime]
+
+puts "My birthday in 1994 occurred 55 days after my first son's birthday"
+
 # @@PLEAC@@_3.5
- 
+
 set bree [clock scan "16 Jun 1981 4:35:25"]
 set nat  [clock scan "18 Jan 1973 3:45:50"]
- 
+
 set difference [expr {$bree - $nat}]
-puts "There were $difference seconds between Nat and Bree"
+format "There were $difference seconds between Nat and Bree"
+
 # => There were 265333775 seconds between Nat and Bree
- 
+
+set bree [clock scan "16 Jun 1981 4:35:25"]
+set nat  [clock scan "18 Jan 1973 3:45:50"]
+
+set difference [expr {$bree - $nat}]
+
 set vars    {seconds minutes hours days}
 set factors {60      60      24    7}
 foreach v $vars f $factors {
@@ -1595,129 +1535,110 @@ foreach v $vars f $factors {
     set difference [expr {($difference-[set $v]) / $f}]
 }
 set weeks $difference
-puts "($weeks weeks, $days days, $hours:$minutes:$seconds)"
+
+format "($weeks weeks, $days days, $hours:$minutes:$seconds)"
+
 # => (438 weeks, 4 days, 23:49:35)
- 
+
 # @@PLEAC@@_3.6
- 
+
 set then [clock scan 6/16/1981]
-set dayname [clock format $then -format %A]
-set weeknum [expr {[clock format $then -format %W] + 1}]
-puts "6/16/1981 was a $dayname in week number $weeknum"
-# => 6/16/1981 was a Tuesday in week number 25
- 
+set format {
+%Y-%m-%d was a %A
+in week number %W,
+and day %j of the year.
+}
+clock format $then -format $format
+
+# => 
+1981-06-16 was a Tuesday
+in week number 24,
+and day 167 of the year.
+
 # @@PLEAC@@_3.7
- 
-set epoch_seconds [clock scan "1998-06-03"]
-set epoch_seconds [clock scan "2 weeks ago Friday"]
-set epoch_seconds [clock scan "today"]
- 
-# second Friday of 1996:
-set epoch_seconds [clock scan "friday" -base [clock scan "1996-01-01 1 week"]]
- 
+
+# The [clock scan] command parses a wide variety of date/time
+# strings, converting them to epoch seconds.
+
+# Examples:
+
+      set t [clock scan "1998-06-03"]
+      set t [clock scan "2 weeks ago Friday"]
+      set t [clock scan "today"]
+
+      # second Sunday of 1996:
+      set t [clock scan "Sunday" -base [clock scan "1996-01-01 1 week"]]
+
+# The result can be converted to lists of year, month, etc
+# values or to other date/time strings by the [clock format]
+# command.
+
 # @@PLEAC@@_3.8
- 
+
+puts [clock format [clock scan 01/18/73] -gmt yes]
+# => Wed Jan 17 23:00:00 GMT 1973
+
 puts [clock format [clock scan 01/18/73] -format "%A %D"]
 # => Thursday 01/18/73
- 
-puts [clock format [clock scan "18 Jan 1973 3:45:50"] \
-    -format "%a %b %e %H:%M:%S %Z %Y" -gmt yes]
-# => Thu Jan 18 02:45:50 GMT 1973
- 
+
+set format "%a %b %e %H:%M:%S %Z %Y"
+puts [clock format [clock scan "18 Jan 1973 3:45:50 GMT"] -format $format -gmt yes]
+# => Thu Jan 18 03:45:50 GMT 1973
+
 # @@PLEAC@@_3.9
- 
+
 puts "Press return when ready"
 set before [clock clicks -milliseconds]
-set line [gets stdin]
+gets stdin
 set elapsed [expr {([clock clicks -milliseconds] - $before) / 1000.0}]
 puts "You took $elapsed seconds"
- 
-# => Press return when ready
-# => You took 0.33 seconds
-
 
 set size 500
 set numberOfTimes 100
-set totalTime 0
- 
- 
-for {set i 0} {$i < $numberOfTimes} {incr i} {
-    set a [list]
-    for {set j 0} {$j < $size} {incr j} {
-        lappend a [expr {rand()}]
-    }
-    set begin [clock clicks -milliseconds]
-    set a [lsort -real $a]
-    set time [expr {[clock clicks -milliseconds]-$begin}]
-    incr totalTime $time
-}
-puts [format "On average, sorting %d random numbers takes %.5f seconds" \
-    $size [expr {(double($totalTime)/$numberOfTimes)/1000}]]
-# => On average, sorting 500 random numbers takes 0.00170 seconds
- 
-# Since one of Tcl's hats is software testing, this 'benchmark'
-# is of course better written as
-set size 500
-set numberOfTimes 100
- 
+
 set a [list]
 for {set j 0} {$j < $size} {incr j} {
     lappend a [expr {rand()}]
 }
+
 puts "Sorting $size random numbers:"
 puts [time {
     set a [lsort -real $a]
 } $numberOfTimes]
-# => Sorting 500 random numbers:
-# => 1100 microseconds per iteration
- 
+
 # @@PLEAC@@_3.10
- 
-# Sleep 25 milliseconds
+
+# wait 25 milliseconds
 after 25
- 
-# Interrupt a ticking timer
-set id [after 2500]
-# ...
-after cancel $id
- 
+
+# @@PLEAC@@_3.11
+
+# @@INCOMPLETE@@
+
+# @@INCOMPLETE@@
+
 # @@PLEAC@@_4.0
- 
-# after assignment, $list has 4 elements
-set list [list this that the other]
-# after assignment, $list has 3 elements, the last
-# of which is a list with 2 elements
-set list [list this that {the other}]
 
+set presidents [list Reagan Bush Clinton]
+# => Reagan Bush Clinton
 
-proc flatten {args} {
-    set res [list]
-    foreach {i} $args {
-        if {[llength $i] > 1} {
-            set res [concat $res [eval flatten $i]]
-        } else {
-            set res [concat $res $i]
-        }
-    }
-    set res
-}
- 
-# after assignment, $list has 4 elements
-set list [flatten this that {the other}]
+set nested [list this that [list the other]]
+llength $nested
+# => 3
 
+set tune [list The Star-spangled Banner]
+list #0 = [lindex $tune 0] #1 = [lindex $tune 1]
+# => #0 = The #1 = Star-spangled
 
-set tune [list the star-spangled banner]
-puts [lindex $tune 0]
-# => the
-puts [lindex $tune 1]
-# => star-spangled
- 
 # @@PLEAC@@_4.1
- 
-set a [list quick brown fox]
- 
-set a [list Why are you teasing me?]
- 
+
+set a [list quick brown fox] 
+# => quick brown fox
+
+set a {Why are you teasing me?}
+
+# => Why are you teasing me?
+
 set lines [list]
 foreach {l} [split {
     The boy stood on the burning deck,
@@ -1728,7 +1649,9 @@ foreach {l} [split {
         lappend lines $line
     }
 }
+set lines
 
+# => {The boy stood on the burning deck,} {It was as hot as glass.}
 
 set biglist [list]
 set data [open mydatafile]          ;# Automatically raises error on failure
@@ -1736,24 +1659,30 @@ while {[gets $data item] >= 0} {
     lappend biglist $item
 }
 
+lappend banner1 Costs only \$4.95
+set banner2 [list Costs only \$4.95]
+set banner3 [split {Costs only $4.95}]
+expr {"$banner1" == "$banner2" && "$banner2" == "$banner3"}
 
-# Three ways to create a three-element list
-# (in the first example, banner must be empty).
-lappend banner Costs only \$4.95
-set banner [list Costs only \$4.95]
-set banner [split {Costs only $4.95}]
-
+# => 1
 
 set ships [list Niña Pinta Santa María]   ;# WRONG (4 ships)
+llength $ships
+# => 4
+
 set ships [list Niña Pinta {Santa María}] ;# right (3 ships)
- 
+llength $ships
+# => 3
+
 # @@PLEAC@@_4.2
- 
+
 set list [list red yellow green]
- 
+puts [list I have $list marbles.]
+# => I have {red yellow green} marbles.
+
+set list [list red yellow green]
 puts "I have $list marbles."
 # => I have red yellow green marbles.
-
 
 set lists {
     {{just one thing}}
@@ -1762,12 +1691,9 @@ set lists {
     {{to our parents} {Mother Theresa} God}
     {{pastrami} {ham and cheese} {peanut butter and jelly} {tuna}}
     {{recycle tired, old phrases} {ponder big, happy thoughts}}
-    {{recycle tired, old phrases} \
-     {ponder big, happy thoughts} \
-     {sleep and dream peacefully} \
-    }
+    {{recycle tired, old phrases}  {ponder big, happy thoughts}  {sleep and dream peacefully}  }
 }
- 
+
 proc commifySeries {args} {
     if {[regexp , $args]} {
         set sepchar ";"
@@ -1785,161 +1711,183 @@ proc commifySeries {args} {
         }
     }
 }
- 
-foreach {list} $lists {
-    puts "The list is: [eval commifySeries $list]."
-}
- 
-# => The list is: just one thing.
-# => The list is: Mutt and Jeff.
-# => The list is: Peter, Paul, and Mary.
-# => The list is: to our parents, Mother Theresa, and God.
-# => The list is: pastrami, ham and cheese, peanut butter and jelly, and tuna.
-# => The list is: recycle tired, old phrases and ponder big, happy thoughts.
-# => The list is: recycle tired, old phrases; ponder big, happy thoughts; and sleep and dream peacefully.
- 
+
 # @@PLEAC@@_4.3
- 
-# Tcl lists (which more or less correspond to
-# Perl arrays) can be extended, but only by
-# appending to the end of the list:
- 
-set list [list a b c]
-lappend list d
-# => a b c d
- 
-lappend list e f g
-# => a b c d e f g
 
+# There is no equivalent to $#ARRAY in Tcl.
 
-# Shrinking a list:
-set list [lrange $list 0 4]
-# => a b c d e
- 
-# @@PLEAC@@_4.4
- 
-# A foreach loop
-foreach {item} {LIST} {
-     # do something with $item
+proc whatAboutThatList args {
+    variable people
+    append res "The list now has [set len [llength $people]] elements.\n"
+    append res "The index of the last element is [incr len -1].\n"
+    append res "Element #3 is `[lindex $people 3]'."
 }
- 
-foreach {user} $badUsers {
+
+set people [list Crosby Stills Nash Young]
+whatAboutThatList
+# => The list now has 4 elements.
+The index of the last element is 3.
+Element #3 is `Young'.
+
+set people [lrange $people 0 end-1]
+whatAboutThatList
+# => The list now has 3 elements.
+The index of the last element is 2.
+Element #3 is `'.
+
+# append 10001-(length of list) null elements to the list:
+for {set i [llength $people]} {$i <= 10000} {incr i} {
+    lappend people {}
+}
+whatAboutThatList
+# => The list now has 10001 elements.
+The index of the last element is 10000.
+Element #3 is `'.
+
+# @@PLEAC@@_4.4
+
+foreach user $badUsers {
     complain $user
 }
- 
+
 foreach key [lsort [array names env]] {
-    puts $key->$env($key)
+    puts $key=$env($key)
 }
- 
+
 foreach {user} $allUsers {
     set diskSpace [getUsage $user]
     if {$diskSpace > $MAXQUOTA} {
         complain $user
     }
 }
- 
-# There is no implicit variable like Perl's $_ in Tcl.
-foreach {user} [exec who] {
-    if {[regexp tchrist $user]} {
-        puts $user
+
+# Tcl has no implicit variables like Perl's $_.
+foreach _ [exec who] {
+    if [regexp tchrist $_] {
+        puts $_
     }
 }
-# You can't manipulate values by reference in Tcl.
+
+# Tcl does not sneak in references unexpectedly.
 # If you need to mutate a list, this is the preferred
 # idiom:
- 
-set mylist [mutate $mylist args]
- 
+
+      set mylist [mutate $mylist args]
+
 # You *can* 'simulate' manipulation by reference by
 # using call-by-name and connecting a local variable
 # to a variable with that name in the outer scope:
- 
-set mylist [list 1 2 3]
- 
+
 proc timesSeven {listname} {
     upvar $listname listref
-    set temp [list]
-    foreach {item} $listref {
-        lappend temp [expr {$item * 7}]
+    for {set i 0} {$i < [llength $listref]} {incr i} {
+        set listref [lreplace $listref $i $i [expr {[lindex $listref $i] * 7}]]
     }
-    set listref $temp
 }
- 
-timesSeven mylist
-# => 7 14 21
- 
+
+# @@PLEAC@@_4.5
+
+variable res {}
+set fruits [list Apple Blackberry]
+set fruitRef fruits
+# the variable fruitRef is now set to the name of the fruit list,
+# which makes it a kind of reference variable
+foreach fruit [set $fruitRef] {
+    append res "$fruit tastes good in a pie.\n"
+}
+set res
+
+# => Apple tastes good in a pie.
+Blackberry tastes good in a pie.
+
 # @@PLEAC@@_4.6
- 
-set uniq [lsort -unique $list]
 
+variable list [split {how much wood would a wood
+chuck chuck if a wood chuck would chuck wood}]
 
-set uniqueUsers [lsort -unique [exec who]]
-puts "Users logged in: $uniqueUsers"
- 
+lsort -unique $list
+
+# => a chuck how if much wood would
+
+# This is an order of magnitude slower than the previous solution.
+foreach e $list {
+    array set unique [list $e {}]
+}
+array names unique
+
+# => a wood much chuck how if would
+
 # @@PLEAC@@_4.7
- 
-# Use the standard package TclX (contained in
+
+# Use the TclX standard package (contained in
 # the ActiveTcl distribution).
 package require Tclx
- 
+
 set listA [list 1 1 2 2 3 3 3 4 5]
 set listB [list 1 2 4]
 set res [intersect3 $listA $listB]
- 
-# [intersect3] yields three result lists,
-# we want the first:
- 
+
+# [intersect3] yields three result lists;
+# we want the first one:
+
 lindex $res 0
- 
+
 # => 3 5
- 
+
 # @@PLEAC@@_4.8
- 
-# Use the standard package TclX (contained in
+
+# Use the TclX standard package (contained in
 # the ActiveTcl distribution).
 package require Tclx
- 
+
 set listA [list 1 1 2 2 3 3 3 4 5]
 set listB [list 1 2 4 4 6 7]
- 
+
 foreach {difference intersection -} [intersect3 $listA $listB] break
 set union [union $listA $listB]
- 
-# difference:   3 5
-# intersection: 1 2 4
-# union:        1 2 3 4 5 6 7
- 
+
+list $difference $intersection $union
+
+# => {3 5} {1 2 4} {1 2 3 4 5 6 7}
+
 # @@PLEAC@@_4.9
- 
-# Concatenating variables whose values are lists
-set dislist [concat $dislist $datlist]
- 
-# Growing a list by adding new members
-set mylist [list athos porthos aramis]
-lappend mylist d'artagnan
- 
+
 set members [list Time Flies]
 lappend members An Arrow
+
 # => Time Flies An Arrow
- 
+
+set members [list Time Flies]
+set initiates [list An Arrow]
+set members [concat $members $initiates]
+
+# => Time Flies An Arrow
+
+set members [list Time Flies An Arrow]
 set members [linsert $members 2 Like]
+
 # => Time Flies Like An Arrow
- 
+
+set members [list Time Flies Like An Arrow]
 set members [lreplace $members 0 0 Fruit]
 set members [lreplace $members end-1 end A Banana]
+
 # => Fruit Flies Like A Banana
- 
+
 # @@PLEAC@@_4.10
- 
-set newlist [list]
-for {set i 0} {$i < [llength $list]} {incr i} {
-    lappend newlist [lindex $list end-$i]
+
+set list [list 0 1 2 3 4 5 6 7 8 9]
+set rlist [list]
+for {set i [expr {[llength $list]-1}]} {$i >= 0} {incr i -1} {
+    lappend rlist [lindex $list $i]
 }
+set list $rlist
+# => 9 8 7 6 5 4 3 2 1 0
 
+set list [list 0 1 2 3 4 5 6 7 8 9]
+lsort -decreasing $list
+# => 9 8 7 6 5 4 3 2 1 0
 
-# sort in decreasing order, i.e. largest values first
-set sorted [lsort -decreasing $list]
- 
 # @@PLEAC@@_4.11
  
 # list operations in Tcl are generally non-destructive,
