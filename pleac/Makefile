@@ -38,8 +38,9 @@ skeleton/index.html: skeleton.sgml
 	db2html -d pleac.dsl $<
 
 %.html: %.data
-	ruby -pe 'sub(/^@@INCLUDE@@ (\S+)/) { File.open($$1).readlines }' $< > tmp.data
+	ruby -pe 'sub(/(@@INCLUDE@@ (\S+))/) { "#{$$1}\n" + File.open($$2).read }' $< > tmp.data
 	./code2html tmp.data
+	ruby -pi -e 'sub(/@@INCLUDE@@ (\S+)/) { "<font size=\"-1\"><a href=\"http://pleac.sourceforge.net/#{$$1}\">download the following standalone program</a></font>" }' tmp.html
 	mv -f tmp.html $@
 
 $(HTMLTARGETSDEP): %/index.html: %.html skeleton/index.html
