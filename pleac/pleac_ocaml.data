@@ -1,0 +1,151 @@
+(* -*- caml -*- *)
+
+(* @@PLEAC@@_NAME *)
+Objective CAML
+
+(* @@PLEAC@@_WEB *)
+http://caml.inria.fr/
+
+(* @@PLEAC@@_APPENDIX *)
+open Printf
+
+let rec readlines chan =
+  try 
+    let line = input_line chan in line :: readlines chan
+  with End_of_file -> []
+
+(* @@PLEAC@@_5.0 *)
+(*-----------------------------*)
+(* no builtin way in OCaml to build an hash table from a list,
+   but you may define your own function
+   TODO: may I give an example of such a function?
+ *)
+(*-----------------------------*)
+(* build an hash table element by element *)
+let age = Hashtbl.create 3   (* 3 is the supposed average size for the
+;;                              hash table *)
+Hashtbl.add age "Nat" 24 ;
+Hashtbl.add age "Jules" 25 ;
+Hashtbl.add age "Josh" 17 ;;
+(*-----------------------------*)
+let assoc_list2hashtbl assoc_list = 
+  let h = Hashtbl.create 0 in
+  List.iter (fun (k,v) -> Hashtbl.add h k v) assoc_list ;
+  h
+
+let food_color = assoc_list2hashtbl 
+    [ "Apple", "red" ; 
+      "Banana", "yellow" ; 
+      "Lemon", "yellow" ; 
+      "Carrot", "orange" ;
+    ] ;;
+(*-----------------------------*)
+
+(* @@PLEAC@@_5.1 *)
+(*-----------------------------*)
+Hashtbl.replace tbl key value ;;
+(*-----------------------------*)
+(* food_color defined per the introduction *)
+Hashtbl.add food_color "Raspberry" "pink" ;;
+
+
+let hashtbl_keys h = Hashtbl.fold (fun key _ l -> key :: l) h []
+let hashtbl_values h = Hashtbl.fold (fun _ value l -> value :: l) h []
+;;
+print_string "Known_foods:\n" ;
+Hashtbl.iter (fun food _ -> print_endline food) food_color ;
+print_string "Known_foods:\n" ;
+List.iter print_endline (hashtbl_keys food_color) ;;
+(*
+> Known_foods:
+> Banana
+> Raspberry
+> Apple
+> Carrot
+> Lemon
+*)
+(*-----------------------------*)
+
+(* @@PLEAC@@_5.2 *)
+(*-----------------------------*)
+(* does %HASH have a value for $KEY ?  *)
+if (Hashtbl.mem hash key) then
+  (* it exists *)
+else
+  (* id doesn't exists *)
+ ;;
+(*-----------------------------*)
+(* food_color defined per the introduction *)
+List.iter (fun name ->
+  let kind = if Hashtbl.mem food_color name then "food" else "drink" in
+  printf "%s is a %s.\n" name kind
+) ["Banana"; "Martini"] ;;
+(*
+> Banana is a food.
+> Martini is a drink.
+*)
+(*-----------------------------*)
+(* there's no such thing called "undef", "nil" or "null" in Caml
+   if you really want such a value, use type "option" as shown below *)
+let age = assoc_list2hashtbl 
+    [ "Toddler", 3 ; "Unborn", 0 ] ;;
+(*> val age : (string, int) Hashtbl.t = <abstr> *)
+
+List.iter (fun thing ->
+  printf "%s: %s\n" thing
+    (try match Hashtbl.find age thing with
+    | 0 -> "Exists"
+    | _ -> "Exists NonNull"
+    with Not_found -> "")
+) ["Toddler" ; "Unborn" ; "Phantasm" ; "Relic" ]
+
+let age = assoc_list2hashtbl 
+    [ "Toddler", Some 3 ; "Unborn", Some 0 ; "Phantasm", None ] ;;
+(*> val age : (string, int option) Hashtbl.t = <abstr> *)
+
+List.iter (fun thing ->
+  printf "%s: %s\n" thing
+    (try match Hashtbl.find age thing with
+    | None -> "Exists"
+    | Some 0 -> "Exists Defined"
+    | Some _ -> "Exists Defined NonNull"
+    with Not_found -> "")
+) ["Toddler" ; "Unborn" ; "Phantasm" ; "Relic" ]
+(*
+> Toddler: Exists Defined NonNull
+> Unborn: Exists Defined
+> Phantasm: Exists
+> Relic: 
+*)
+(*-----------------------------*)
+let size = Hashtbl.create 20 in
+List.iter (fun f -> 
+  if not (Hashtbl.mem size f) then
+    Hashtbl.add size f (Unix.stat f).Unix.st_size;
+) (readlines stdin);
+(*-----------------------------*)
+
+(* @@PLEAC@@_5.3 *)
+(*-----------------------------*)
+(* remove $KEY and its value from %HASH *)
+Hashtbl.remove hash key ;
+(*-----------------------------*)
+(* food_color as per Introduction *)
+open Printf
+
+let print_foods () =
+  printf "Keys: %s\n" (String.concat " " (hashtbl_keys food_color)) ;
+  printf "Values: %s\n" (String.concat " " (hashtbl_values food_color))
+;;
+print_string "Initially:\n";
+print_foods ();
+
+print_string "\nWith Banana deleted\n";
+Hashtbl.remove food_color "Banana";
+print_foods ()
+;;
+(*-----------------------------*)
+Hashtbl.clear food_color ;
+(*-----------------------------*)
+
+(* TODO continue from PLEAC 5.4 *)
