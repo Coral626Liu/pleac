@@ -3612,8 +3612,46 @@ assert isinstance(x, type([])) and isinstance(y, type([])), \
 
 # ^^PLEAC^^_10.6
 #-----------------------------
-## There is no concept of "Return Context" in Python.
-#-----------------------------
+# perl return context is not something standard in python...
+# but still you can achieve something alike if you really need it
+# (but you must really need it badly since you should never use this!!)
+#
+# see http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/284742 for more
+#
+# NB: it has been tested under Python 2.3.x and no guarantees can be given
+#     that it works under any future Python version.
+import inspect,dis
+
+def expecting():
+    """Return how many values the caller is expecting"""
+    f = inspect.currentframe().f_back.f_back
+    bytecode = f.f_code.co_code
+    i = f.f_lasti
+    instruction = ord(bytecode[i+3])
+    if instruction == dis.opmap['UNPACK_SEQUENCE']:
+        howmany = ord(bytecode[i+4])
+        return howmany
+    elif instruction == dis.opmap['POP_TOP']:
+        return 0
+    return 1
+
+def cleverfunc():
+    howmany = expecting()
+    if howmany == 0:
+        print "return value discarded"
+    if howmany == 2:
+        return 1,2
+    elif howmany == 3:
+        return 1,2,3
+    return 1
+
+cleverfunc()
+x = cleverfunc()
+print x
+x,y = cleverfunc()
+print x,y
+x,y,z = cleverfunc()
+print x,y,z
 
 # ^^PLEAC^^_10.7
 #-----------------------------
