@@ -1,0 +1,516 @@
+ # -*- tcl -*-
+ 
+# @@PLEAC@@_NAME
+Tcl
+ 
+# @@PLEAC@@_WEB
+http://purl.oclc.org/NET/tclhome
+ 
+# @@PLEAC@@_1.0
+#-----------------------------
+set string {\n}                     ;# two characters, \ and an n
+set string "Jon {Maddog} Orwant"    ;# literal braces
+#-----------------------------
+set string \n                       ;# a "newline" character
+set string "\n"                     ;# another "newline" character
+set string "Jon \"Maddog\" Orwant"  ;# literal double quotes
+set string {Jon "Maddog" Orwant}    ;# literal double quotes, again
+#-----------------------------
+set a {
+This is a multiline string
+terminated by an unescaped and
+{unnested} right brace (\})
+}
+#-----------------------------
+ 
+# @@PLEAC@@_1.1
+#-----------------------------
+set value [string range $string $first $last]
+set value [string range $string $first [expr {$first+$num-1}]]
+set value [string range $string $first end]
+ 
+set string [string replace $string $first $last $newstring]
+set string [string replace $string $first [expr {$first+$num-1}] $newstring]
+set string [string replace $string $first end $newtail]
+#-----------------------------
+ 
+# get a 5-byte string, skip 3, then grab 2 8-byte strings, then the rest
+binary scan $data "A5 x3 A8 A8 A*" leading s1 s2 trailing
+ 
+# Important note: this was all well and good when the Cookbook was 
+# written and a character and a byte were the same size.  They still
+# are for some programming languages, but Tcl for one uses 16-bit
+# Unicode characters to encode strings.
+#   The above unpack/scan works for strings containing only character
+# codes in the range 0--255, but distorts other strings by truncating
+# all codes to 8 bits.
+#   To avoid this, the input string can be converted to an 8-bit
+# encoding before scanning (\uhhhh is Tcl'ish for Unicode character
+# code; each h stands for one hexadecimal digit):
+ 
+set data "H\u2082O is the chemical formula for water"
+set utf8data [encoding convertto utf-8 $data]
+ 
+# split at five-byte boundaries (16-bit safe)
+set fivers [list]
+set temp [encoding convertto utf-8 $string]
+while {[binary scan $temp a5a* group tail]} {
+    lappend fivers $group
+    set temp $tail
+}
+if {[string length $tail]} { lappend fivers $tail }
+ 
+# To split at five-character boundaries, this is much more
+# convenient, *and* 16-bit safe without re-encoding the data
+set fivers [regexp -all -inline {.{1,5}} $data]
+ 
+# chop string into individual characters:
+# The binary command is a poor choice for this task.
+# split is more elegant, and 16-bit safe too.
+set chars [split $data {}]
+ 
+#-----------------------------
+set string "This is what you have"
+#          +012345678901234567890  Indexing forwards (left to right)
+#           098765432109876543210- Indexing from end (right to left)
+#           note that 0 means 10 or 20, etc. above
+ 
+set first [string index $string 0]            ;# => "T"
+set first [string range $string 0 0]          ;# => "T"
+set start [string range $string 5 6]          ;# => "is"
+set rest [string range $string 13 end]        ;# => "you have"
+set last [string index $string end]           ;# => "e"
+set end [string range $string end-3 end]      ;# => "have"
+set piece [string range $string end-7 end-5]  ;# => "you"
+ 
+#-----------------------------
+set string "This is what you have"
+puts $string
+# => This is what you have
+ 
+set string [string replace $string 5 6 wasn't]  ;# change "is" to "wasn't"
+# => This wasn't what you have
+ 
+set string [string replace $string end-11 end ondrous]
+# => This wasn't wondrous
+ 
+set string [string replace $string 0 0]  ;# delete first character
+# => his wasn't wondrous
+ 
+set string [string replace $string end-9 end]  ;# delete last 10 characters
+# => his wasn'
+ 
+#-----------------------------
+# you can test substrings with regular expressions
+if {[regexp $pattern [string range $string end-9 end]]} {
+    set report "Pattern matches in last 10 characters"
+}
+ 
+#-----------------------------
+# substitute "at" for "is", restricted to first five characters
+regsub -all is [string range $string 0 4] at newstring
+set string [string replace $string 0 4 $newstring]
+ 
+#-----------------------------
+# exchange the first and last letters in a string
+# inelegant solution using substrings
+set a "make a hat"
+set a "[string index $a end][string range $a 1 end-1][string index $a 0]"
+puts $a
+# => take a ham
+ 
+# better solution using regexp substitution:
+regsub {(.)(.*)(.)} $a {\3\2\1} a
+ 
+#-----------------------------
+# extract column with unpack
+set a "To be or not to be"
+# this solution is not 16-bit safe
+binary scan $a "x6 A6" b
+puts $b
+# => or not
+ 
+# but this one is
+set b [string range $a 6 11]
+ 
+#-----------------------------
+set b [string range $a 6 7]
+set c [string range $a 3 4]
+puts $b:$c
+# => or:be
+ 
+#-----------------------------
+proc cut2fmt args {
+    set positions $args
+    set template  {}
+    set lastpos   1
+    foreach {place} $positions {
+        append template "A[expr {$place-$lastpos}] "
+        set lastpos $place
+    }
+    append template A*
+    return $template
+}
+ 
+set fmt [cut2fmt 8 14 20 26 30]
+puts $fmt
+# => A7 A6 A6 A6 A4 A*
+#-----------------------------
+ 
+# @@PLEAC@@_1.2
+#-----------------------------
+# Perl: use $b if $b is true, else $c
+ 
+# Truth values are treated differently in Tcl compared to Perl:
+# "1", "true", "yes", and "on" are recognized as true, while
+# "0", "false", "no", and "off" are false values.
+#   In many cases, such as the condition expression in the "if"
+# command, the C convention nonzero=>true/zero=>false works too.
+#   The `boolean operators' return either "1" or "0".
+ 
+# use $b if b has characters, else $c
+if {[string length $b]} {
+    set a $b
+} else {
+    set a $c
+}
+ 
+# use $b if b is nonzero, else $c
+if {$b != 0} {
+    set a $b
+} else {
+    set a $c
+}
+ 
+# set x to $y if $x has no characters
+if {![string length $x]} {
+    set x $y
+}
+ 
+# set x to $y if $x is zero
+if {$x == 0} {
+    set x $y
+}
+ 
+#-----------------------------
+# set a to $b if b exists, else to $c
+if {[info exists b]} {
+    set a $b
+} else {
+    set a $c
+}
+ 
+#-----------------------------
+if {[string length $bar]} {
+    set foo $bar
+} else {
+    set foo "DEFAULT VALUE"
+}
+ 
+#-----------------------------
+# Perl: $dir = shift(@ARGV) || "/tmp";
+set arg [lindex $argv 0]
+set argv [lreplace $argv 0 0]
+if {[string length $arg]} {
+    set dir $arg
+} else {
+    set dir /tmp
+}
+ 
+#-----------------------------
+# Perl: $dir = $ARGV[0] || "/tmp";
+set arg [lindex $argv 0]
+if {[string length $arg]} {
+    set dir $arg
+} else {
+    set dir /tmp
+}
+ 
+#-----------------------------
+# Perl: $dir = defined($ARGV[0]) ? shift(@ARGV) : "/tmp";
+if {[info exists argv] && [llength $argv]} {
+    set dir [lindex $argv 0]
+    set argv [lreplace $argv 0 0]
+} else {
+    set dir /tmp
+}
+ 
+#-----------------------------
+# Perl: $dir = @ARGV ? $ARGV[0] : "/tmp";
+if {[llength $argv]} {
+    set dir [lindex $argv 0]
+} else {
+    set dir /tmp
+}
+ 
+#-----------------------------
+# Perl: $count{ $shell || "/bin/sh" }++;
+if {[string length $shell]} {
+    if {[info exist count($shell)]} {
+        incr count($shell)
+    } else {
+        set count($shell) 1
+    }
+} else {
+    if {[info exist count(/bin/sh)]} {
+        incr count(/bin/sh)
+    } else {
+        set count(/bin/sh) 1
+    }
+}
+ 
+#-----------------------------
+# find the user name on Unix systems
+if {![catch {string length $env(USER)}]} {
+    set user $env(USER)
+} elseif {![catch {string length $env(LOGIN)}]} {
+    set user $env(LOGIN)
+} else {
+    set user "Unknown user"
+}
+# needs extension to check getlogin() and getpwuid()
+ 
+#-----------------------------
+if {![string length $starting_point]} {
+    set starting_point Greenwich
+}
+ 
+#-----------------------------
+# copy list only if empty
+if {![llength $a]} {
+    set a $b
+}
+ 
+# assign b if nonempty, else c
+if {[llength $b]} {
+    set a $b
+} else {
+    set a $c
+}
+#-----------------------------
+ 
+# @@PLEAC@@_1.3
+#-----------------------------
+# cross-assignment
+foreach {b a} [list $a $b] break
+ 
+#-----------------------------
+# cross-assignment with temp
+set temp $a
+set a $b
+set b $temp
+ 
+#-----------------------------
+set a alpha
+set b omega
+foreach {b a} [list $a $b] break
+ 
+#-----------------------------
+foreach {alpha beta production} [list January March August] break
+# move beta       to alpha,
+# move production to beta,
+# move alpha      to production
+foreach {alpha beta production} [list $beta $production $alpha] break
+#-----------------------------
+ 
+# @@PLEAC@@_1.4
+#-----------------------------
+# works for 16-bit Unicode characters
+set num [scan $char %c]
+set char [format %c $num]
+ 
+#-----------------------------
+# works for 16-bit Unicode characters
+format "Number %d is character %c" $num $num
+# => "Number 101 is character e"
+ 
+#-----------------------------
+# works for 8-bit characters (skip encoding change) and
+# 8-bit encodings of Unicode characters
+set utf8data [encoding convertto utf-8 $string]
+binary scan $utf8data c* codelist
+ 
+set utf8data [binary format c* $codelist]
+set string [encoding convertfrom utf-8 $utf8data]
+ 
+#-----------------------------
+set char_code [scan e %c]      ;# now 101
+set character [format %c 101]  ;# now "e"
+ 
+#-----------------------------
+puts [format "Number %d is character %c" 101 101]
+ 
+#-----------------------------
+binary scan sample c* char_codes
+puts $char_codes
+# => 115 97 109 112 108 101
+ 
+set word [binary format c* $char_codes]
+set word [binary format c* [list 115 97 109 112 108 101]] ;# same
+puts $word
+# => sample
+ 
+#-----------------------------
+set hal HAL
+binary scan $hal c* codes
+foreach {num} $codes {
+    lappend newcodes [incr num]
+}
+set ibm [binary format c* $newcodes]
+puts $ibm
+# => prints "IBM"
+     
+#-----------------------------
+     
+# @@PLEAC@@_1.5
+#-----------------------------
+# 16-bit safe
+set a [split $string {}]
+ 
+# works for 8-bit characters and 8-bit encodings
+# of Unicode characters
+set utf8data [encoding convertto utf-8 $string]
+binary scan $utf8data c* a
+ 
+#-----------------------------
+ 
+# 16-bit safe
+# with -line, . never matches newline
+foreach ch [regexp -inline -all -line . $string] {
+    # do something with $ch
+}
+#-----------------------------
+ 
+# 16-bit safe
+array set seen [list]
+set string "an apple a day"
+foreach {char} [split $string {}] {
+    if {[info exists seen($char)]} {
+        incr seen($char)
+    } else {
+        set seen($char) 1
+    }
+}
+puts "unique chars are: [lsort [array names seen]]"
+# => unique chars are: { } a d e l n p y
+#-----------------------------
+ 
+# 16-bit safe
+array set seen [list]
+set string "an apple a day"
+foreach {byte} [regexp -inline -all -line . $string] {
+    if {[info exists seen($byte)]} {
+        incr seen($byte)
+    } else {
+        set seen($byte) 1
+    }
+}
+puts "unique chars are: [lsort [array names seen]]"
+# => unique chars are: { } a d e l n p y
+#-----------------------------
+ 
+# simplistic checksum calculation
+# not 16-bit safe unless string is 8-bit encoded
+set sum 0
+binary scan $string c* codes
+foreach {code} $codes {
+    incr sum $code
+}
+puts "sum is $sum"
+# => sum is 1248
+# if $string was "an apple a day"
+#-----------------------------
+ 
+#-----------------------------
+# ...I pass on the checksum tricks...
+#-----------------------------
+ 
+#-----------------------------
+# slowcat - emulate a   s l o w   line printer
+# usage: slowcat [-DELAY] [files ...]
+set delay 1
+if {[info exists argv] && [llength $argv]} {
+    if {[regexp {^-([.\d]+)} [lindex $argv 0] match delay]} {
+        set argv [lreplace $argv 0 0]
+    }
+}
+fconfigure stdout -buffering no
+if {[info exists argv] && [llength $argv]} {
+    foreach {arg} $argv {
+        set f [open $arg]
+        lappend channels $f
+    }
+} else {
+    set channels stdin
+}
+foreach {chan} $channels {
+    while {[gets $chan line] > -1} {
+        foreach {ch} [split $line {}] {
+            puts -nonewline $ch
+            after [expr {int(5 * $delay)}]
+        }
+        puts {}
+    }
+}
+#-----------------------------
+ 
+# @@PLEAC@@_1.6
+#-----------------------------
+set revchars {}
+for {set i [expr {[string length $string]-1}]} {$i >= 0} {incr i -1} {
+    append revchars [string index $string $i]
+}
+ 
+#-----------------------------
+# this works for strings that do not
+# contain list symbol characters, see below
+set revwords {}
+for {set i [expr {[llength $string]-1}]} {$i >= 0} {incr i -1} {
+    lappend revwords [lindex $string $i]
+}
+ 
+#-----------------------------
+# reverse letters in string
+set gnirts {}
+for {set i 0} {$i < [string length $string]} {incr i} {
+    append gnirts [string index $string end-$i]
+} ;# end for (i)
+ 
+# reverse elements in words
+set sdrow {}
+for {set i 0} {$i < [llength $words]} {incr i} {
+    lappend sdrow [lindex $words end-$i]
+} ;# end for (i)
+ 
+#-----------------------------
+# reverse word order where list symbols appear (braces, double quotes)
+set words [split "Yoda said, \"can you see this?\""]
+set revwords {}
+for {set i 0} {$i < [llength $words]} {incr i} {
+    lappend revwords [lindex $words end-$i]
+} ;# end for (i)
+puts [join $revwords]
+# => this?" see you "can said, Yoda
+ 
+#-----------------------------
+# this solution is equivalent to the previous one
+set revwords {}
+set list [split $string " "]
+for {set i [expr {[llength $list]-1}]} {$i >= 0} {incr i -1} {
+    lappend revwords [lindex $list $i]
+}
+set revwords [join $revwords " "]
+ 
+#-----------------------------
+proc reverse {string} {
+    for {set i [expr {[string length $string]-1}]} {$i >= 0} {incr i -1} {
+        append res [string index $string $i]
+    }
+    return $res
+}
+set word reviver
+set is_palindrome [string equal $word [reverse $word]]
+# => 1
+set word revive
+set is_palindrome [string equal $word [reverse $word]]
+# => 0
