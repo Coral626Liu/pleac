@@ -152,7 +152,7 @@ for ascval in string.unpack("C*") # or use Array#each for a pure OO style :)
 end
 puts "sum is #{sum & 0xffffffff}" # since Ruby will go Bignum if necessary
 
------------------------------
+#-----------------------------
 #!/usr/bin/ruby
 # slowcat - emulate a   s l o w   line printer
 # usage: slowcat [-DELAY] [files ...]
@@ -164,7 +164,7 @@ while gets
 	sleep(0.005 * delay)
     end
 end
------------------------------
+#-----------------------------
 
 
 # @@PLEAC@@_1.6
@@ -596,7 +596,8 @@ END_OF_HERE_DOC
 
 bigarray = IO.readlines("mydatafile").collect {|l| l.chomp }
 
-banner = %Q(Speak, $name, and welcome!)
+name = "Gandalf"
+banner = %Q(Speak, #{name}, and welcome!)
 
 host_info  = `host #{his_host}`
 
@@ -973,7 +974,7 @@ food_color.keys.sort.each { |food|
     puts "#{food} is #{food_color[food]}."
 }
 
------------------------------
+#-----------------------------
 #!/usr/bin/ruby
 # countfrom - count number of messages from each sender
 
@@ -987,7 +988,7 @@ end
 from.sort {|a,b| b[1]<=>a[1]}.each { |v|
     puts "#{v[1]}: #{v[0]}"
 }
------------------------------
+#-----------------------------
 
 
 # @@PLEAC@@_5.5
@@ -1004,12 +1005,10 @@ hash.sort{|a,b| a[1]<=>b[1]}.each { |e| puts "#{e[0]} => #{e[1]}" }
 
 
 # @@PLEAC@@_5.7
-# Default value is an Array
-ttys = Hash.new([])
+ttys = Hash.new
 for i in `who`
     user, tty = i.split
-    puts "User: #{user}; TTY: #{tty}"
-    ttys[user] = ttys[user].clone.push(tty)  # TOFIX
+    (ttys[user] ||= []) << tty               # see problems_ruby for more infos
 end
 ttys.keys.sort.each { |k|
     puts "#{k}: #{commify_series(ttys[k])}"  # from 4.2
@@ -1022,7 +1021,7 @@ puts surname.index("Mantle")
 
 # If you really needed to 'invert' the whole hash, use Hash#invert
 
------------------------------
+#-----------------------------
 #!/usr/bin/ruby -w
 # foodfind - find match for food or color
 
@@ -1062,7 +1061,7 @@ food_color.sort { |a,b| a[1].length <=> b[1].length }.each { |f|
 
 
 # @@PLEAC@@_5.10
-merged = a.clone.update(b)        # actually Hash#update changes object in place
+merged = a.clone.update(b)        # because Hash#update changes object in place
 
 drink_color = { "Galliano"  => "yellow", "Mai Tai" => "blue" }
 ingested_color = drink_color.clone.update(food_color)
@@ -1078,6 +1077,84 @@ for i in [ food_color, drink_color ]
     }
 end
 
+
+# @@PLEAC@@_5.11
+common = []
+hash1.each_key { |k|
+    common << k if hash2.key?(k)
+}
+
+this_not_that = []
+hash1.each_key { |k|
+    this_not_that << k unless hash2.key?(k)
+}
+
+
+# @@PLEAC@@_5.12
+# no problem here, Ruby handles any kind of object for key-ing
+# (it takes Object#hash, which defaults to Object#id)
+
+
+# @@PLEAC@@_5.13
+# AFAIK, not possible in Ruby
+
+
+# @@PLEAC@@_5.14
+# Be careful, the following is possible only because Fixnum objects are
+# special (documentation says: there is effectively only one Fixnum object
+# instance for any given integer value).
+count = Hash.new(0)
+array.each { |e|
+    count[e] += 1
+}
+
+
+# @@PLEAC@@_5.15
+father = {
+    "Cain"      , "Adam",
+    "Abel"      , "Adam",
+    "Seth"      , "Adam",
+    "Enoch"     , "Cain",
+    "Irad"      , "Enoch",
+    "Mehujael"  , "Irad",
+    "Methusael" , "Mehujael",
+    "Lamech"    , "Methusael",
+    "Jabal"     , "Lamech",
+    "Jubal"     , "Lamech",
+    "Tubalcain" , "Lamech",
+    "Enos"      , "Seth",
+}
+
+while gets
+    chomp
+    begin
+        print $_, " "
+    end while $_ = father[$_]
+    puts
+end
+
+children = {}
+father.each { |k,v|
+    (children[v] ||= []) << k
+}
+while gets
+    chomp
+    puts "#{$_} begat #{(children[$_] || ['Nobody']).join(', ')}.\n"
+end
+
+includes = {}
+files.each { |f|
+    begin
+        for l in IO.readlines(f)
+            next unless l =~ /^\s*#\s*include\s*<([^>]+)>/
+            (includes[$1] ||= []) << f
+        end
+    rescue SystemCallError
+        $stderr.puts "#$! (skipping)"
+    end
+}
+
+include_free = includes.values.flatten.uniq - includes.keys
 
 
 # @@PLEAC@@_8.10
