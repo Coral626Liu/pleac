@@ -1,21 +1,24 @@
 %%% -*- erlang -*-
 
-%% @@PLEAC@@_NAME
-%% @@SKIP@@ Erlang
+%%% @@PLEAC@@_NAME
+%%% @@SKIP@@ Erlang
 
-%% @@PLEAC@@_WEB
-%% @@SKIP@@ http://www.erlang.org/
-%% @@SKIP@@ http://www.erlang.se/
-%% @@SKIP@@ http://www.erlang-fr.org/
+%%% @@PLEAC@@_WEB
+%%% @@SKIP@@ http://www.erlang.org/
+%%% @@SKIP@@ http://www.erlang.se/
+%%% @@SKIP@@ http://www.erlang-fr.org/
 
-%% @@PLEAC@@_1.0
 
-%% A character is simply an integer. For Latin-1 (and thus ASCII) we
-%% have some syntactic sugar.
+%%% @@PLEAC@@_1.0
+
+%% A character is simply an integer. For Latin-1 (or any Latin-N) and
+%% thus ASCII we have some syntactic sugar.
 
 C = 110.					% an ASCII 'n'
-C = $ñ.						% a Latin1 tilde-n
+C = $ñ.						% Latin1 tilde-n, also Latin2 acute-n
 C = $\n.					% a newline
+C = $\^j					% another newline
+C = $\116.					% ASCII 'N' in octal
 
 %% Strings are simply represented as lists of characters. This is
 %% usually enough. Sometimes, however, strings are better represented
@@ -46,9 +49,11 @@ A = << "This string is really a binary" >>.	% literal binary string
 ListString = binary_to_list(BinaryString).
 BinaryString = list_to_binary(ListString).
 
+%% @@INCOMPLETE@@
 %% TODO: Maybe mention atoms.
 
-%% @@PLEAC@@_1.1
+
+%%% @@PLEAC@@_1.1
 
 Value = string:substr(String, Offset, Count).
 Value = string:substr(String, Offset).
@@ -84,8 +89,8 @@ Rest = string:substr(S, 14),			% "you have"
 Last = string:substr(S, string:len(S)),		% "e"
 End = string:substr(S, string:len(S)-3),	% "have"
 Piece = string:substr(S, string:len(S)-7, 3).	% "you"
-%%-----------------------------
 
+%%-----------------------------
 String = "This is what you have",
 io:put_chars(String),
 % -| This is what you have
@@ -105,7 +110,17 @@ String5 = string:substr(String4, 1, string:len(String4)-10). % delete last 10
 % => his wasn'
 
 %%-----------------------------
-%% TODO: matching substrings. Let's see what the regexp module can do...
+%% you can test substrings with regexp:first_match/3
+case regexp:first_match(string:substr(String, string:len(String)-10), 
+			Pattern) of
+    {match, _, _} ->
+	io:put_chars("Pattern matches in last 10 characters");
+    _ -> ok
+end.
+
+%% substitute "at" for "is", restricted to first five characters
+{ok, NewSub, _} = regexp:gsub(string:substr(String, 1, 5), "is", "at"),
+NewString = NewSub ++ string:substr(String, 6).
 
 %%-----------------------------
 %% exchange the first and last letters in a string
@@ -122,11 +137,38 @@ A = << "To be or not to be" >>,
 << _:6/binary, B:6/binary, _/binary >> = A.
 % B = <<"or not">>
 
+%% Bitsyntax cannot do Perl unpack's backward skip.
+
 %%-----------------------------
+
+%% This function returns a function (closure, actually) instead of an
+%% unpack format string --- so I call it cut2fun intead.
+
+cut2fun(Positions) ->
+    %% Translate from positions to distances
+    Distances = lists_map2(fun(LastPos, Pos) ->
+				   Pos - LastPos
+			   end,
+			   [1 | Positions], 
+			   Positions),
+    FunSeq = lists:foldl(
+	       fun(Dist, AccFn) ->
+		       fun(Bin, AccL) ->
+			       <<Hd:Dist/binary, Tl/binary>> = Bin,
+			       AccFn(Tl, [Hd | AccL])
+		       end
+	       end,
+	       fun(X, AccL) -> [X | AccL] end,
+	       lists:reverse(Distances)),
+    fun(Bin) -> lists:reverse(FunSeq(Bin, [])) end.
+
+Fun = cut2fun([8, 14, 20, 26, 30]).		% no point in printing it
+% => #Fun<tmp.3.14582076>
+Fun(Bin).					% so use it instead
+% => [Bin1, Bin2, Bin3, Bin4, Bin5, BinRest]
+
 
 %%% @@PLEAC@@_1.2
-%%-----------------------------
-
 %%-----------------------------
 %% use b if b is true, else c
 A = if
@@ -137,7 +179,7 @@ A = if
 %%-----------------------------
 %% While the Erlang language proper has no concept of not-defined most
 %% lookup-functions have it in some guise: The function erlang:get/1
-%% uses the atom 'undefined' (other functions use other atoms).
+%% uses, for example,  the atom 'undefined'.
 
 %% use B if B is defined, else C
 A = case B of
@@ -152,52 +194,74 @@ Foo = case Bar of
       end.
 
 %%-----------------------------
+Dir = case init:get_plain_arguments() of
+	  [] -> "/tmp";
+	  [Str | _ ] -> Str
+      end.
+
+Dir = case length(init:get_plain_arguments()) of
+	  0 -> "/tmp";
+	  _ -> hd(init:get_plain_arguments())
+      end.
+
+%%-----------------------------
+NewCount = dict:update_counter(case Shell of
+				   "" -> "/bin/sh";
+				   _ -> Shell
+			       end,
+			       1, Count).
+
+%%-----------------------------
 %% find the user name on Unix systems
-User = catch lists:foreach(fun(F) ->
-				   case F() of
-				       false -> go_on;
-				       "" -> go_on;
-				       X -> throw(X)
-				   end
-			   end,
-			   [fun() -> os:getenv("USER") end,
-			    fun() -> os:getenv("LOGNAME") end,
-			    fun() -> os:cmd("id -n -u") end,
-			    fun() -> "Unknown user" end]).
+User = catch lists:foreach(
+	       fun(F) ->
+		       case F() of
+			   false -> go_on;
+			   "" -> go_on;
+			   X -> throw(X)
+		       end
+	       end,
+	       [fun() -> os:getenv("USER") end,
+		fun() -> os:getenv("LOGNAME") end,
+		fun() -> os:cmd("id -n -u") end,
+		fun() -> "Unknown user" end]).
+%% As can be seen, chaining alteratives together is not trivial.
 
 %% TODO: Find out some way to get the uid (and do getlogin() and
-%% getpwuid() syscalls).
+%% getpwuid() syscalls). Should I dare count on env-var UID?
 	      
 %%-----------------------------
 starting_point() ->
     starting_point_(greenwich).
-starting_point(Zone) ->
-    starting_point_(Zone).
+starting_point(Place) ->
+    starting_point_(Place).
 
 
-%% @@PLEAC@@_1.3
+%%% @@PLEAC@@_1.3
 %%-----------------------------
 
-%% As Erlang has write-once variables, a new scope is needed to juggle
+%% As Erlang has write-once variables, a new scope is needed to swap
 %% values around. Here, I use anonymous functions to get such a scope.
 
 fun(V1, V2) ->
-	%%...
+	%% Swapped here...
 end(V2, V1).
+
 
 {Alpha, Beta, Production} = {january, march, august},
 fun(Alpha, Beta, Production) ->
-	%%...
+	%% Rotated here...
 end(Beta, Production, Alpha).
 
-%% now with named functions
+%% And here I use named functions
 
 f1(V1, V2) ->
     f2(V2, V1).
 
 f2(V1, V2) ->
-    %%...
+    %% Swapped here...
     ok.
+
 
 f() ->
     %%...
@@ -209,13 +273,14 @@ f1(Alpha, Beta, Production) ->
     f2(Beta, Production, Alpha).
 
 f2(Alpha, Beta, Production) ->
-    %%...
+    %% Rotated here...
     ok.
 
-%% @@PLEAC@@_1.4
+%%% @@PLEAC@@_1.4
 %%-----------------------------
 
-%% 
+%% XXX: Maybe move character stuff here from 1.1 
+
 io:format("Number ~w is character ~c\n", [101, 101]).
 % -| Number 101 is character e
 
@@ -227,3 +292,110 @@ io:format("~s~n", [[115, 97, 109, 112, 108, 101]]).
 
 io:format("~s~n", [lists:map(fun(C) -> C+1 end, "HAL")]).
 % -| IBM
+
+%%% @@PLEAC@@_1.5
+%%-----------------------------
+
+%% handle each character in a tail-recursive loop
+f([Char | Rest]) ->
+    %% do something with Char
+    f(Rest);
+f("") ->
+    ok.
+
+f(String).
+
+%% or with foreach/2 and an anonymous function
+lists:foreach(
+  fun(Char) ->
+	  %% do something with Char here
+	  ok
+  end,
+  String).
+
+%%-----------------------------
+String = "an apple a day",
+Seen = lists:foldl(fun(Byte, S) ->
+			   sets:add_element(Byte, S)
+		    end,
+		    sets:new(),
+		    String),
+io:format("unique chars are: ~s\n", [lists:sort(sets:to_list(Seen))]).
+% -| unique chars are:  adelnpy
+
+%%-----------------------------
+Sum = lists:foldl(fun(Ch, S) ->
+			  (Ch + S) band (1 bsl 32 - 1)
+		  end, 0, String),
+io:format("sum is ~w\n", [Sum]).
+% prints "sum is 1248" if String is "an apple a day".
+
+%% ...and with binaries
+
+Sum = binaries_fold(fun(Bin, S)->
+			    <<Ch:1/unit:8, Rest/binary>> = Bin,
+			    {(S + Ch) band (1 bsl 32 - 1), Rest}
+		    end, 0, BinString).
+
+%%-----------------------------
+
+%% TODO: Make this a standalone program. For now, say
+%%
+%%    sum:sum(["file", "file", "file"]).
+%%
+%% at the Erlang prompt.
+
+-module(sum).
+-author('sverkerw').
+
+-compile(export_all).
+
+sum(FNames) ->
+    Sum = lists:foldl(fun sum_/2, 0, FNames),
+    io:format("~w\n", [Sum]).
+
+sum_(FName, Acc) ->
+    case file:read_file(FName) of
+	{error, Err} ->
+	    io:format("[~w]", [Err]),
+	    Acc;
+	{ok, Bin} ->
+	    binaries_fold(
+	      fun(Bin, Acc)->
+		      <<Ch:1/unit:8, Rest/binary>> = Bin,
+		      {(Acc + Ch) band (1 bsl 16 - 1), Rest}
+	      end, Acc, Bin)
+    end.
+
+binaries_fold(_, Acc, << >>) ->
+    Acc;
+binaries_fold(Fun, Acc, Bin) ->
+    {Acc1, Bin1} = Fun(Bin, Acc),
+    binaries_fold(Fun, Acc1, Bin1).
+
+%%-----------------------------
+
+%% MISSING: slowcat
+    
+
+%%% @@PLEAC@@_APPENDIX
+
+
+%% Applies Fun/2 to each corresponding pair of elements from lists L1
+%% and L2. Returns a list of results.
+lists_map2(Fun, L1, L2) ->
+    lists:reverse(lists_map2_(Fun, L1, L2, [])).
+
+lists_map2_(_, [], _, RevLoP) ->
+    RevLoP;
+lists_map2_(_, _, [], RevLoP) ->
+    RevLoP;
+lists_map2_(Fun, [H1|T1], [H2|T2], RevLoP) ->
+    lists_map2_(T1, T2, [Fun(H1, H2) | RevLoP]).
+
+
+binaries_fold(_, Acc, << >>) ->
+    Acc;
+binaries_fold(Fun, Acc, Bin) ->
+    {Acc1, Bin1} = Fun(Bin, Acc),
+    binaries_fold(Fun, Acc1, Bin1).

@@ -1,216 +1,1889 @@
 // -*- java -*-
-
 // @@PLEAC@@_NAME
 // @@SKIP@@ Java
 
 // @@PLEAC@@_WEB
 // @@SKIP@@ http://java.sun.com
 
-
 // @@PLEAC@@_1.0
-//------------------------------------
-// single quotes are characters delimiters
+//----------------------------------------------------------------------------------
+// character are simple values, and use single quotes are delimiters
 char c = '\n';                           // a newline character
-char c = '\'';                           // a literal single quote character
-//-------------------------------------
-// double quotes are strings delimiters (no other delimiters are possibles)
-String string = "\n";                    // a string containing only a newline
-String string = "Jon \"Maddog\" Orwant"; // a string containing literal double quotes
-//-------------------------------------
-StringBuffer sb = new StringBuffer();
-sb.append("This is a multiline string declaration ");
-sb.append("using a StringBuffer to concatenate lines efficiently ");
-sb.append("as Strings are immutables.");
-String a = sb.toString();
-//-------------------------------------
+//----------------------------------------------------------------------------------
+// strings are immutable objects, and use double quotes as delimiters
+String s1 = "\n";                    // a string containing only a newline
+String s2 = "Jon \"Maddog\" Orwant"; // a string containing double quotes
+//----------------------------------------------------------------------------------
+// use concatenation for multiline string declation
+String s = "This is a multiline string declaration "
+         + "using the concatenation operator "
+         + "to append separate parts.";
+//----------------------------------------------------------------------------------
 
 // @@PLEAC@@_1.1
-//-------------------------------------
-String value = string.substring(firstPos, lastPos);
-String value = string.substring(firstPos);
+//----------------------------------------------------------------------------------
+// accessing substrings
+String s1 = data.substring(start, end);
+String s2 = data.substring(start);
+	    
+// String instances are immutable character sequences
+// recreating them on the fly is unefficient
+String variableString = data;
+variableString = variableString.substring(0, start) + newMiddle
+    + variableString.substring(start);
+variableString = variableString.substring(0, start) + newTail;
+
+// StringBuffer instances are mutable character sequences
+// they provides efficient modification methods
+StringBuffer variableStringBuffer = new StringBuffer(data);
+variableStringBuffer.replace(start, end, newMiddle);
+variableStringBuffer.replace(start, variableStringBuffer.length(), newTail);
+//----------------------------------------------------------------------------------
+// No real pack/unpack equivalent exist in Java. Exemples here use a custom
+// implementation to split an original string into chunks of specified length
+
+// get a 5-characters string, skip 3, then grab 2 8-characters strings,
+// then the rest
+try { 
+    String[] a = unpack("A5 x3 A8 A8 A*", data);
+} catch (ParseException ex) {}
+
+// split at five characters boundaries
+try { 
+    String[] fivers = unpack(aggregate("A5 ", data.length() / 5), data);
+} catch (ParseException ex) {}
+
+// chop string into unique character strings
+try { 
+    String[] chars = unpack(aggregate("A1 ", data.length()), data);
+} catch (ParseException ex) {}
+
+/**
+ * Unpacks a string into a string array following a given format.
+ */
+String[] unpack(String format, String data) throws ParseException {
+    ArrayList result = new ArrayList();
+    int formatOffset = 0;
+    int dataOffset = 0;
+    int minDataOffset = 0;
+    int maxDataOffset = data.length();
     
-// string are immutables: using them as left-value means reallocating them on the fly
-string = string.substr(0, firstPos) + newstring + string.substring(lastPos);
-string = string.substr(0, firstPos) + newtail;
-//-------------------------------------
-// using unpack() and aggregate() methods from ch01.Utils class:
+    StringTokenizer tokenizer = new StringTokenizer(format);
+    while (tokenizer.hasMoreTokens()) {
+	String token = tokenizer.nextToken();
+	int tokenLen = token.length();
+	
+	// count determination
+	int count = 0;
+	if (tokenLen == 1)
+	    count = 1;
+	else if (token.charAt(1) == '*')
+	    count = -1;
+	else {
+	    try {
+		count = new Integer(token.substring(1)).intValue();
+	    } catch (NumberFormatException ex) {
+		throw new ParseException("Unknown count token", formatOffset);
+	    }
+	}
+	
+	// action determination
+	char action = token.charAt(0);
+	switch (action) {
+	    case 'A':
+		if (count == -1) {
+		    int start = (dataOffset < maxDataOffset) ?
+			dataOffset : maxDataOffset;
+		    result.add(data.substring(start));
+		    dataOffset = maxDataOffset;
+		} else {
+		    int start = (dataOffset < maxDataOffset) ?
+			dataOffset : maxDataOffset;
+		    int end = (dataOffset + count < maxDataOffset) ?
+			dataOffset + count : maxDataOffset;
+		    result.add(data.substring(start, end));
+		    dataOffset += count;
+		}
+		break;
+	    case 'x':
+		if (count == -1)
+		    dataOffset = maxDataOffset;
+		else
+		    dataOffset += count;
+		break;
+	    case 'X':
+		if (count == -1)
+		    dataOffset = minDataOffset;
+		else
+		    dataOffset -= count;
+		break;
+	    default:
+		throw new ParseException("Unknown action token", formatOffset);
+	}
+	formatOffset += tokenLen + 1;
+    }
+    return (String[]) result.toArray(new String[result.size()]);
+}
 
-// get a 5-byte string, skip 3, then grab 2 8-byte strings, then the rest
-String[] result =  ch01.Tools.unpack("A5 x3 A8 A8 A*", data);
-String leading = result[0];
-String s1 = result[1];
-String s2 = result[2];
-String trailing = result[3];
+/**
+ * Aggregates repetitly a basic pattern.
+ */
+String aggregate(String pattern, int count) {
+    StringBuffer buffer = new StringBuffer();
+    for (int i=0; i < count; i++)
+	buffer.append(pattern);
+    return buffer.toString();
+}
+//----------------------------------------------------------------------------------
+String data = "This is what you have";
+// forward    +012345678901234567890 
+// backward    109876543210987654321-
 
-// split at five byte boundaries
-String[] fivers = ch01.Tools.unpack(aggregate("A5 ", string.length() / 5), string);
+// backward indexing doesn't exist, but can easily be translated into forward
+// indexing: forward = data.length() - backward;
 
-// chop string into individual characters
-String[] chars = ch01.Tools.unpack(aggregate("A1 ", string.length()), string);
-//-------------------------------------
-String string = "This is what you have";
-//              +012345678901234567890  Indexing forwards  (left to right)
-//               109876543210987654321- Indexing backwards (right to left)
-//                                        note that 0 means 10 or 20, etc. above
-
-// backward indexing doesn't exist, but can easily be translated into forward indexing
-// forwardIndex = string.length() - backwardIndex;
-
-String first = string.substring(0, 1);                                     // "T"
-String start = string.substring(5, 7);                                     // "is"
-String rest  = string.substring(13);                                       // "you have"
-String last  = string.substring(string.length() - 1);                      // "e"
-String end   = string.substring(string.length() - 4);                      // "have"
-String piece = string.substring(string.length() - 8, string.length() - 5); // "you"
-//-------------------------------------
-String string = "This is what you have";
-System.out.println(string);
-// This is what you have
-string = string.substring(0, 5) + "wasn't" + string.substring(7); // change "is" to "wasn't"
-// This wasn't what you have
-string = string.substring(0, string.length() - 12) + "ondrous";   // "This wasn't wondrous"
-// This wasn't wondrous
-string = string.substring(1);                                     // delete first character
-// his wasn't wondrous
-string = string.substring(0, string.length() - 10);               // delete last 10 characters
-//his wasn'
-//-------------------------------------
+String first = data.substring(0, 1);
+// "T"
+String start = data.substring(5, 7);
+// "is"
+String rest  = data.substring(13);
+// "you have"
+String last  = data.substring(data.length() - 1);
+// "e"
+String end   = data.substring(data.length() - 4);
+// "have"
+String piece = data.substring(data.length() - 8, data.length() - 5);
+// "you"
+//----------------------------------------------------------------------------------
+String data = "This is what you have";
+data = data.substring(0, 5) + "wasn't" + data.substring(7);
+// "This wasn't what you have"
+data = data.substring(0, data.length() - 12) + "ondrous";
+// "This wasn't wondrous"
+data = data.substring(1);
+// "his wasn't wondrous"
+data = data.substring(0, data.length() - 10);
+// "his wasn'"
+//----------------------------------------------------------------------------------
 import org.apache.oro.text.perl.Perl5Util;
+
 Perl5Util util = new Perl5Util();
 // you can test substrings with match() method
-if (util.match("/pattern/", string.substring(string.length() - 10)))
+if (util.match("/pattern/", data.substring(data.length() - 10)))
     System.out.println("Pattern matches in last 10 characters");
 
 // substitute "at" for "is", restricted to first five characters
-string = util.substitute("s/is/at/g", string.substring(0, 5)) + string.substring(5);
-//-------------------------------------
+data = util.substitute("s/is/at/g", data.substring(0, 5)) + data.substring(5);
+//----------------------------------------------------------------------------------
 // exchange the first and last letters in a string
-String a = "make a hat";
-a = a.charAt(a.length() -1) + a.substring(1, a.length() - 1) + a.charAt(0);
-System.out.println(a);
-// take a ham
-//-------------------------------------
+String data = "make a hat";
+data = data.charAt(data.length() -1) + data.substring(1, data.length() - 1)
+    + data.charAt(0); // "take a ham"
+//----------------------------------------------------------------------------------
 // extract column with unpack
-String a = "To be or not to be";
-String[] result = ch01.Tools.unpack("x6 A6", a);  // skip 6, grab 6
-System.out.println(result[0]);
-// or not
+String data = "To be or not to be";
 
-String[] result = ch01.Tools.unpack("x6 A2 X5 A2", a); // forward 6, grab 2; backward 5, grab 2
-System.out.println(result[0] + "\n" + result[1] + "\n");
-// or
-// be
-//-------------------------------------
-static String cut2fmt(int[] positions) {
-        StringBuffer sb = new StringBuffer();
-        int lastPos = 1;
-        for (int i=0; i < positions.length; i++) {
-            sb.append("A");
-            sb.append(positions[i] - lastPos);
-            sb.append(" ");
-            lastPos = positions[i];
-        }
-        sb.append("A*");
-        return sb.toString();
-    }
+// skip 6, grab 6
+try {
+    String[] a1 = unpack("x6 A6", data);       // {"or not"}
+} catch (ParseException ex) {}
 
-String fmt = cut2fmt(new int[] {8, 14, 20, 26, 30});
-System.out.println(fmt);
-// A7 A6 A6 A6 A4 A*
-//-------------------------------
-
-// @@PLEAC@@_APPENDIX
-/*
- * Tools.java
- */
-package ch01;
-
-import java.util.ArrayList;
-import java.util.StringTokenizer;
-import java.text.ParseException;
+// forward 6, grab 2, backward 5, grab 2
+try {
+    String[] a2 = unpack("x6 A2 X5 A2", data); // {"or", "be"}
+} catch (ParseException ex) {}
+//----------------------------------------------------------------------------------
 /**
- *
- * @author Guillaume Rousse
- * @version
+ * Creates a format suitable for unpack method.
  */
-public class Tools {
-    
-    /**
-     * Unpacks a string representation of a data structure into a string array.
-     * @param format the format used for unpacking
-     * @param data the data structure to unpack
-     * @throws ParseException if given format contains illegal token
-     * @return a string array
-     */
-    public static String[] unpack(String format, String data) throws ParseException {
-        ArrayList result = new ArrayList();
-        int formatOffset = 0;
-        int dataOffset = 0;
-        int minDataOffset = 0;
-        int maxDataOffset = data.length();
-        
-        StringTokenizer tokenizer = new StringTokenizer(format);
-        while (tokenizer.hasMoreTokens()) {
-            String token = tokenizer.nextToken();
-            int tokenLen = token.length();
-            
-            // count determination
-            int count = 0;
-            if (tokenLen == 1)
-                count = 1;
-            else if (token.charAt(1) == '*')
-                count = -1;
-            else {
-                try {
-                    count = new Integer(token.substring(1)).intValue();
-                } catch (NumberFormatException ex) {
-                    throw new ParseException("Unknown count token", formatOffset);
-                }
-            }
-            
-            // action determination
-            char action = token.charAt(0);
-            switch (action) {
-                case 'A':
-                    if (count == -1) {
-                        result.add(data.substring(dataOffset));
-                        dataOffset = maxDataOffset;
-                    } else {
-                        result.add(data.substring(dataOffset, (dataOffset + 
-							       count < maxDataOffset) ? dataOffset + count : maxDataOffset));
-                        dataOffset += count;
-                    }
-                    break;
-                case 'x':
-                    if (count == -1)
-                        dataOffset = maxDataOffset;
-                    else
-                        dataOffset += count;
-                    break;
-                case 'X':
-                    if (count == -1)
-                        dataOffset = minDataOffset;
-                    else
-                        dataOffset -= count;
-                    break;
-                default:
-                    throw new ParseException("Unknown action token", formatOffset);
-            }
-            formatOffset += tokenLen + 1;
+String cut2fmt(int[] positions) {
+    StringBuffer sb = new StringBuffer();
+    int end = 1;
+    for (int i=0; i < positions.length; i++) {
+        sb.append("A");
+        sb.append(positions[i] - end);
+        sb.append(" ");
+        end = positions[i];
+    }
+    sb.append("A*");
+    return sb.toString();
+}
+
+String fmt = cut2fmt(new int[] {8, 14, 20, 26, 30}); // "A7 A6 A6 A6 A4 A*"
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_1.2
+//----------------------------------------------------------------------------------
+// truth only concern boolean values
+
+// use b if b is true, else c
+boolean  b, c;
+// [..]
+boolean a = (b || c);              
+
+// set x to y unless x is already true
+boolean x, y;
+// [..]
+x = (x || y);
+//----------------------------------------------------------------------------------
+// other types must test default value
+// only instance variables have default values, depending of their type:
+// object -> null
+// int -> 0
+// char -> ?
+// boolean -> ?
+// local variables must always be explicitly initialised
+
+// creating a new variable: ternary operator
+//use b if b is not null, else c
+Object b, c;
+// [..]
+Object a = (b != null) ? b : c;
+
+// reallocating a variable: direct test
+// set x to y unless x is already true
+Object x, y;
+// [..]
+if (x == null)
+    x = y;
+//----------------------------------------------------------------------------------
+// strings are objects, so you must use the ternary operator
+String foo = (bar != null) ? bar : "DEFAULT VALUE";
+// you may also consider the empty string case
+// you must first test for nullity, to prevent a potential NullPointerException
+String foo = ((bar != null) && (bar.length != 0)) ? bar : "DEFAULT VALUE";
+//----------------------------------------------------------------------------------
+int index = 0;
+// lazy evaluation prevents various exceptions to occurs
+String dir = ((args.length > index) && (args[index] != null)
+    && (args[index].length != 0)) ? args[index] : "/tmp";
+index++;
+//----------------------------------------------------------------------------------
+int index = 0;
+// lazy evaluation prevents various exceptions to occurs
+String dir = ((args.length > index) && (args[index] != null)
+    && (args[index].length != 0)) ? args[index++] : "/tmp";
+//----------------------------------------------------------------------------------
+String dir = ((args.length != 0)) ? args[0] : "/tmp";
+//----------------------------------------------------------------------------------
+// Collection contains only objects, so values must be wrapped
+String key = (shell != null) ? shell : "/bin/sh";
+int value = 0;
+if (count.containsKey(key))
+    value = ((Integer) count.get(key)).intValue();
+count.put(key, new Integer(++value));
+//----------------------------------------------------------------------------------
+// chained conditional allocations can test preceding allocation value
+
+// find the user name on Unix systems
+String user;
+Properties environment = getEnvironment();
+int UID = getUID();
+if ((user = environment.getProperty("USER")) == null)
+    if ((user = environment.getProperty("LOGNAME")) == null)
+        if ((user = getLogin()) == null)
+            if ((user = getPWUID(UID)[0]) == null)
+                user = "Unknown uid number " + UID;
+
+/**
+ * Returns current environment.
+ */
+Properties getEnvironment() {
+    Properties environment = new Properties();
+    try {
+	Process process = Runtime.getRuntime().exec("env");
+	BufferedReader input =
+	    new BufferedReader(new InputStreamReader(process.getInputStream()));
+	String line;
+	while ((line = input.readLine()) != null) {
+	    int limit = line.indexOf('=');
+	    String key = line.substring(0, limit);
+	    String value = line.substring(limit + 1);
+	    environment.setProperty(key, value);
+	}
+    } catch (IOException ex) {
+	System.err.println("Error occured while processing environment");
+    }
+    return environment;
+}
+
+/**
+ * Returns current login.
+ */
+String getLogin() {
+    String login = "";
+    try {
+	Process process = Runtime.getRuntime().exec("cat /etc/utmp");
+	BufferedReader input = 
+	    new BufferedReader(new InputStreamReader(process.getInputStream()));
+	login = input.readLine();
+    } catch (IOException ex) {
+	System.err.println("Error occured while processing login");
+    }
+    return login;
+}
+
+/**
+ * Returns current UID.
+ */
+int getUID() {
+    int uid = 0;
+    try {
+	Process process = Runtime.getRuntime().exec("id -u");
+	BufferedReader input =
+	    new BufferedReader(new InputStreamReader(process.getInputStream()));
+	uid = new Integer(input.readLine()).intValue();
+    } catch (IOException ex) {
+	System.err.println("Error occured while processing login");
+    }
+    return uid;
+}
+
+/**
+ * Returns /etc/passwd line relative to given UID.
+ */
+String[] getPWUID(int uid) {
+    ArrayList pwuid = new ArrayList();
+    try {
+	Process process =
+	    Runtime.getRuntime().exec("grep ^[^:]*:[^:]*:" + uid + " /etc/passwd");
+	BufferedReader input =
+	    new BufferedReader(new InputStreamReader(process.getInputStream()));
+	StringTokenizer tokenizer = new StringTokenizer(input.readLine(), ":");
+	while (tokenizer.hasMoreTokens())
+	    pwuid.add(tokenizer.nextToken());
+    } catch (IOException ex) {
+	System.err.println("Error occured while processing login");
+    }
+    return (String[]) pwuid.toArray(new String[pwuid.size()]);
+}
+//----------------------------------------------------------------------------------
+// test for nullity then for emptyness
+if ((startingPoint == null) || (startingPoint.length() == 0))
+    startingPoint = "Greenwich";
+//----------------------------------------------------------------------------------
+Object[] a, b, c;
+
+// copy only if empty
+// test for nullity then for emptyness
+if ((a == null) || (a.length == 0))
+    a = b;
+
+// assign b if nonempty, else c
+// test for nullity then for emptyness
+a = ((b != null) && (b.length != 0)) ? b : c;
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_1.3
+//----------------------------------------------------------------------------------
+// Not possible in Java
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_1.4
+//----------------------------------------------------------------------------------
+// char and int are interchangables, apart precision difference
+// char use 16 bits while int use 32, requiring a cast from int to char
+int num;
+char ch;
+num = ch;        // no problem 
+ch = (char) num; // needs an explicit cast
+//----------------------------------------------------------------------------------
+System.out.println("Number " + num + " is character " + (char) num);
+// Number 101 is character e
+System.out.println("Character " + ch + " is number " + (int) ch);
+// Character e is number 101
+//----------------------------------------------------------------------------------
+char[] ascii = string.toCharArray();
+String string = new String(ascii);
+//----------------------------------------------------------------------------------
+int value      = 'e'; // now 101
+char character = 101; // now "e"
+//----------------------------------------------------------------------------------
+System.out.println("Number " + 101 + " is character " + (char) 101);
+//----------------------------------------------------------------------------------
+char[] ascii = "sample".toCharArray();
+// {115, 97, 109, 112, 108, 101}
+String s1 = new String(ascii);
+// "sample"
+String s2 = new String(new char[] {115, 97, 109, 112, 108, 101});
+// "sample"
+//----------------------------------------------------------------------------------
+String hal = "HAL";
+char[] ascii = hal.toCharArray();
+for (int i=0; i<ascii.length; i++)
+    ascii[i]++;                 // add one to each ASCII value
+String ibm = new String(ascii); // IBM
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_1.5
+//----------------------------------------------------------------------------------
+// You can process a string either by character or by string element:
+// using character is more efficient, as they are values
+// using string allow to use object-based methods, as collections 
+
+// splitting a string into elementary characters
+char[] charArray = string.toCharArray();
+//----------------------------------------------------------------------------------
+int size = string.length();
+// processing a string by elementary strings
+for (int i=0; i<size; i++) {
+    String s = string.substring(i, i + 1);
+    // do something with s
+}
+// processing a string by elementary characters
+for (int i=0; i<size; i++) {
+    char ch = string.charAt(i);
+    // do something with s
+}
+//----------------------------------------------------------------------------------
+// with an array, using chars
+String string = "an apple a day";
+boolean[] seen = new boolean[256];
+Arrays.fill(seen, false);
+
+char[] array = string.toCharArray();
+for (int i=0; i<array.length; i++)
+    seen[array[i]] = true;
+
+System.out.print("unique chars are: ");
+for (int i=0; i<seen.length; i++)
+    if (seen[i])
+        System.out.print((char) i);
+System.out.println(); 
+
+//=> unique chars are:  adelnpy
+//----------------------------------------------------------------------------------
+// with a loop, using strings
+String string = "an apple a day";
+TreeSet seen = new TreeSet();
+
+int size = string.length();
+for (int i=0; i<size; i++)
+    seen.add(string.substring(i, i + 1));
+
+System.out.print("unique chars are: ");
+Iterator it = seen.iterator();
+while (it.hasNext())
+    System.out.print(it.next());
+System.out.println();
+
+//=> unique chars are:  adelnpy
+//----------------------------------------------------------------------------------
+int sum = 0;
+char[] chars = string.toCharArray();
+for (int i=0; i<chars.length; i++)
+    sum += chars[i];
+System.out.println("sum is " + sum);
+
+// prints "1248" if string was "an apple a day"
+//----------------------------------------------------------------------------------
+/*
+ * Sum.java
+ */
+package pleac.ch01.part05;
+
+import java.io.*;
+/**
+ * Compute 16-bit checksum of input file
+ * Usage: java pleac.ch01.part05.Sum <file>
+ */
+public class Sum {
+
+    public static void main(String args[]) {
+        if (args.length < 1) {
+            System.err.println("Usage: java pleac.ch01.part05.Sum <file>");
+            System.exit(1);
         }
-        return (String[]) result.toArray(new String[result.size()]);
+        
+        int checksum = 0;
+        try {
+            Reader input = new FileReader(args[0]);
+            int ch;
+            while ((ch = input.read()) != -1)
+                checksum += ch;
+        } catch (IOException ex) {
+            System.err.println("Exception occured: " + ex);
+        }
+        checksum %= (java.lang.Math.pow(2, 16) - 1); 
+
+        System.out.println(checksum);
     }
     
-    /**
-     * Aggregates repetitly a basic pattern.
-     * @param pattern the basic pattern
-     * @param count the number of time to repeat it
-     * @return the aggregated pattern
-     */
-    public static String aggregate(String pattern, int count) {
-        StringBuffer buffer = new StringBuffer();
-        for (int i=0; i < count; i++)
-            buffer.append(pattern);
-        return buffer.toString();
+}
+//----------------------------------------------------------------------------------
+//=> % java Sum /etc/termcap
+//=> 53651
+//----------------------------------------------------------------------------------
+//=> % sum --sysv /etc/termcap
+//=> 53651 1373 /etc/termcap
+//----------------------------------------------------------------------------------
+/*
+ * Slowcat.java
+ */
+package pleac.ch01.part05;
+
+import java.io.*;
+/**
+ * Emulate a  s l o w line printer
+ * Usage: java pleac.ch01.part05.Slowcat <file>
+ */
+public class Slowcat {
+
+    public static void main(String args[]) {
+        if (args.length < 1) {
+            System.err.println("Usage: java pleac.ch01.part05.Slowcat <file> [delay]");
+            System.exit(1);
+        }
+        long delay = ((args.length > 1) && (args[1] != null)) ?
+	    1000 * new Long(args[1]).longValue() : 1000;
+        
+        try {
+            Reader input = new FileReader(args[0]);
+            int ch;
+            while ((ch = input.read()) != -1) {
+                System.out.print((char) ch);
+                try {
+                Thread.sleep(delay);
+                } catch (InterruptedException ex) {}
+            }
+        } catch (IOException ex) {
+            System.err.println("Exception occured: " + ex);
+        }
+    }
+    
+}
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_1.6
+//----------------------------------------------------------------------------------
+String reverseCharacters(String string) {
+    int length = string.length();
+    char[] chars = string.toCharArray();
+    char[] revChars = new char[length];
+    for (int i=0; i < length; i++)
+	revChars[i] = chars[length - i];
+    return new String(revChars);
+}
+//----------------------------------------------------------------------------------
+String reverseWords(String string) {
+    StringTokenizer tokenizer = new StringTokenizer(string, " ");
+    StringBuffer buffer = new StringBuffer();
+    while (tokenizer.hasMoreTokens())
+	buffer.insert(0, tokenizer.nextToken() + " ");
+    return buffer.toString();
+}
+//----------------------------------------------------------------------------------
+String string = 'Yoda said, "can you see this?"';
+System.out.println(reverseWords(string));
+
+this?" see you "can said, Yoda
+//----------------------------------------------------------------------------------
+// normalize whitespace
+StringTokenizer tokenizer = new StringTokenizer(string, " ");
+StringBuffer buffer = new StringBuffer();
+while (tokenizer.hasMoreTokens())
+    buffer.insert(0, tokenizer.nextToken() + " ");
+//----------------------------------------------------------------------------------
+// preserve whitespace
+StringTokenizer tokenizer = new StringTokenizer(string, " ", true);
+StringBuffer buffer = new StringBuffer();
+while (tokenizer.hasMoreTokens())
+    buffer.insert(0, tokenizer.nextToken());
+//----------------------------------------------------------------------------------
+String word = "reviver";
+boolean isPalindrome = word.equals(reverseCharacters(word));
+//----------------------------------------------------------------------------------
+String file = "/usr/share/dict/words";
+int length = 5;
+try {
+    BufferedReader input = new BufferedReader(new FileReader(file));
+    String word;
+    while ((word = input.readLine()) != null)
+	if ((word.length() > length) && (word.equals(reverseCharacters(word))))
+	    System.out.println(word);
+} catch (IOException ex) {
+    System.err.println("Exception occured: " + ex);
+}
+//=> redder
+//=> reviver
+//=> rotator
+
+// @@PLEAC@@_1.7
+//----------------------------------------------------------------------------------
+String expand(String string, int tabStop) {
+    int index = string.indexOf('\t');
+    if (index == -1)
+        return string;
+    else {
+	StringBuffer buffer = new StringBuffer(string);
+	int count = tabStop - index % tabStop;
+	buffer.deleteCharAt(index);
+	for (int i=0; i<count; i++)
+	    buffer.insert(index, " ");
+	return expand(buffer.toString(), tabStop);	
     }
 }
+
+String unexpand(String string, int tabStop) {
+    StringBuffer buffer = new StringBuffer(string);
+    int index = 0;
+    while (index + tabStop < buffer.length()) {
+	// cut original string in tabstop-length pieces
+	String piece = buffer.substring(index, index + tabStop);
+	// count trailing whitespace characters
+	int count = 0;
+	while ((count < tabStop)
+	    && (Character.isWhitespace(piece.charAt(tabStop - (count + 1)))))
+	    count++;
+	// replace in original string if any whitespace was found
+	if (count > 0) {
+	    piece = piece.substring(0, tabStop - count) + '\t';
+	    buffer.replace(index, index + tabStop, piece);
+	    index = index + tabStop - (count - 1);
+	} else 
+	    index = index + tabStop;
+    }
+    return buffer.toString();
+}
+//----------------------------------------------------------------------------------
+BufferedReader input;
+String line;
+// [..]
+while ((line = input.readLine()) != null)
+    System.out.println(expand(line), 4);
+//----------------------------------------------------------------------------------
+BufferedReader input;
+String line;
+// [..]
+while ((line = input.readLine()) != null)
+    System.out.println(unexpand(line), 8);
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_1.8
+//----------------------------------------------------------------------------------
+// No interpolation in Java
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_1.9
+//----------------------------------------------------------------------------------
+String big = little.toUpperCase(); // "bo peep" -> "BO PEEP"
+String little = big.toLowerCase(); // "JOHN"    -> "john"
+//----------------------------------------------------------------------------------
+String big = little.substring(0, 1).toUpperCase() + little.substring(1);
+// "bo"      -> "Bo"
+String little = big.substring(0, 1).toLowerCase() + big.substring(1);
+// "BoPeep" -> "boPeep"
+//----------------------------------------------------------------------------------
+String beast   = "dromedary";
+// capitalize various parts of beast
+String capit1   = beast.substring(0, 1).toUpperCase()
+    + beast.substring(1).toLowerCase();
+// Dromedary
+String capit2   = Character.toUpperCase(beast.charAt(0))
+    + beast.substring(1).toLowerCase();
+// Dromedary
+String capall   = beast.toUpperCase();
+// DROMEDARY
+String caprest1 = beast.substring(0, 1).toLowerCase()
+    + beast.substring(1).toUpperCase();
+// dROMEDARY
+String caprest2 = Character.toLowerCase(beast.charAt(0))
+    + beast.substring(1).toUpperCase();
+// dROMEDARY
+//----------------------------------------------------------------------------------
+// capitalize each word's first character, downcase the rest
+String text = "thIS is a loNG liNE";
+StringTokenizer tokenizer = new StringTokenizer(text);
+while (tokenizer.hasMoreTokens()) {
+    String word = tokenizer.nextToken();
+    System.out.print(word.substring(0, 1).toUpperCase() 
+                   + word.substring(1).toLowerCase()
+		   + " ");
+    }
+//=> This Is A Long Line
+//----------------------------------------------------------------------------------
+String a, b;
+if (a.equalsIgnoreCase(b))
+    System.out.println("a and b are the same");
+//----------------------------------------------------------------------------------
+private Random rand;
+char randomCase(char ch) {
+    return (rand.nextInt(100) < 20) ? Character.toLowerCase(ch): ch;
+}
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_1.10
+//----------------------------------------------------------------------------------
+// No interpolation in Java
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_1.11
+//----------------------------------------------------------------------------------
+// No here-document in Java
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_1.12
+//----------------------------------------------------------------------------------
+import java.text.BreakIterator();
+BreakIterator boundary = BreakIterator.getLineInstance();
+//----------------------------------------------------------------------------------
+/**
+ * WrapDemo.java
+ */
+package pleac.ch01.part12;
+
+import java.text.BreakIterator;
+/**
+ * Show how BreakIterator works
+ */
+public class WrapDemo {
+
+    private static BreakIterator iterator = BreakIterator.getLineInstance();
+
+    public static void main(String[] args) {
+        String input = "Folding and splicing is the work of an editor,"
+                 + " not a mere collection of silicon"
+                 + " and"
+                 + " mobile electrons!";
+        int column = 20;
+        String leadTab = "    ";
+        String nextTab = "  ";
+
+        System.out.println("01234567890123456789");
+        input = wrapLine(leadTab + input, column);
+        while (input != null)
+            input = wrapLine(nextTab + input, column);
+    }
+
+    private static String wrapLine(String line, int width) {
+        iterator.setText(line);
+        int end = iterator.first();
+        while ((end != BreakIterator.DONE) && (end <= width))
+            end = iterator.next();
+        if (end == BreakIterator.DONE) {
+            System.out.println(line);
+            return null;
+        } else {
+            end = iterator.previous();
+            System.out.println(line.substring(0, end));
+            return line.substring(end);
+        }
+    }
+
+}
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_1.13
+//----------------------------------------------------------------------------------
+Perl5Util util = new Perl5Util();
+// backslash
+var = util.substitute("s/([CHARLIST])/\\\\$1/g", var);
+
+// double
+var = util.substitute("s/([CHARLIST])/$1$1/g", var);
+//----------------------------------------------------------------------------------
+string = util.substitute("s/%/%%/g", string);
+//----------------------------------------------------------------------------------
+string = "Mom said, \"Don't do that.\"";
+string = util.substitute("s/(['\"])/\\\\$1/g", string);
+//----------------------------------------------------------------------------------
+string = util.substitute("s/([^A-Z])/\\\\$1/g", string);
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_1.14
+//----------------------------------------------------------------------------------
+string = string.trim();
+//----------------------------------------------------------------------------------
+// print what's typed, but surrounded by >< symbols
+try {
+    BufferedReader input = new BufferedReader(new InputStreamReader(System.in));
+    String line;
+    while((line = input.readLine()) != null) {
+	line = line.trim();
+	System.out.println(">" + line + "<");
+    }
+} catch (IOException ex) {
+    System.err.println("Exception occured: " + ex);
+}
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_1.15
+//----------------------------------------------------------------------------------
+static final String PATTERN =
+    "m/\"([^\\\"\\\\]*(?:\\\\.[^\\\"\\\\]*)*)\",? | ([^,]+),? | ,/x";
+Perl5Util util = new Perl5Util();
+
+Iterator parseCSV(String text) {
+    ArrayList list = new ArrayList();
+    while (util.match(PATTERN, text)) {
+	// find which group matched
+	if (util.group(1) != null)
+	    list.add(util.group(1));
+	else if (util.group(2) != null)
+	    list.add(util.group(2));
+	else
+	    list.add(null);
+	// loop on post-match string
+	text = util.postMatch();
+       };
+       return list.iterator();
+}  
+//----------------------------------------------------------------------------------
+String line = 
+    "XYZZY,\"\",\"O'Reilly, Inc\",\"Wall, Larry\",\"a \\\"glug\\\" bit,\",5,\"Error, Core Dumped\"";
+Iterator it = parseCSV(line);
+while (it.hasNext())
+    System.out.println(count++ + " : " + it.next());
+
+//=> 0 : XYZZY
+//=> 1 :
+//=> 2 : O'Reilly, Inc
+//=> 3 : Wall, Larry
+//=> 4 : a \"glug\" bit,
+//=> 5 : 5
+//=> 6 : Error, Core Dumped
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_1.16
+//----------------------------------------------------------------------------------
+// Sorry, no java soundex implementation found 
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_1.17
+//----------------------------------------------------------------------------------
+/*
+ * FixStyle.java
+ */
+package pleac.ch01.part17;
+
+import java.io.*;
+import java.util.*;
+/**
+ * Switch first set of strings from to second set according to STYLE_FILE
+ * Usage: see derived classes
+ */
+public abstract class FixStyle {
+
+    private static final String STYLE_FILE = "pleac/ch01/part17/style";
+    private static final String BACKUP_SUFFIX = ".orig";
+    private static final String VERBOSE_FLAG = "-v";
+
+    Properties changes;
+
+    FixStyle() {
+        changes = new Properties();
+        try {
+            InputStream input =
+		getClass().getClassLoader().getResourceAsStream(STYLE_FILE);
+            changes.load(input);
+        } catch (IOException ex) {
+            System.err.println("Style loading failed: " + ex);
+        }
+    }
+
+    void fix(String[] args) {
+        if (args.length < 1) {
+            System.out.println("usage: java " + getClass().getName()
+		+ " <file> [-v]");
+            System.exit(1);
+        }
+        String file = args[0];
+        boolean verbose = ((args.length > 1) && (args[1] != null)
+	    && (args[1].equals(VERBOSE_FLAG))) ? true: false;
+        fixFile(file, verbose);
+    }
+
+    void fixFile(String file, boolean verbose) {
+         try {
+            BufferedReader input = new BufferedReader(new FileReader(file));
+            BufferedWriter output =
+		new BufferedWriter(new FileWriter(file + BACKUP_SUFFIX));
+            String line;
+            int count = 0;
+            while ((line = input.readLine()) != null) {
+                output.write(fixLine(line, ++count, verbose));
+                output.newLine();
+            }
+            output.close();
+        } catch (IOException ex) {
+             System.err.println("Exception occured: " + ex);
+        }
+    }
+
+    abstract String fixLine(String line, int count, boolean verbose);
+
+}
+
+/*
+ * FixStyle1.java
+ */
+package pleac.ch01.part17;
+
+import java.util.*;
+import org.apache.oro.text.perl.Perl5Util;
+/**
+ * Fix style using substitutions
+ * Usage: java pleac.ch01.part17.FixStyle1 <file> [-v]
+ */
+public class FixStyle1 extends FixStyle {
+
+    private static Perl5Util util;
+
+    FixStyle1() {
+        util = new Perl5Util();
+    }
+
+    String fixLine(String line, int count, boolean verbose) {
+        Enumeration enum = changes.propertyNames();
+        while (enum.hasMoreElements()) {
+            String oldWord = (String) enum.nextElement();
+            if (util.match("/" + oldWord + "/", line)) {
+                String newWord = changes.getProperty(oldWord);
+                if (verbose)
+                    System.out.println("substituting " + newWord + " to "
+			+ oldWord + " in line " + count);
+                line = util.substitute("s/" + oldWord + "/" + newWord + "/g", line);
+            }
+        }
+        return line;
+    }
+
+    public static void main(String[] args) {
+        FixStyle fixer = new FixStyle1();
+        fixer.fix(args);
+    }
+
+}
+
+/*
+ * FixStyle2.java
+ */
+package pleac.ch01.part17;
+
+import java.util.*;
+import java.text.BreakIterator;
+/**
+ * Fix style using a break iterator
+ * Usage: java pleac.ch01.part17.FixStyle2 <file> [-v]
+ */  
+public class FixStyle2 extends FixStyle {
+
+    private BreakIterator iterator;
+
+    FixStyle2() {
+        iterator = BreakIterator.getWordInstance();
+    }
+
+    String fixLine(String line, int count, boolean verbose) {
+        // use a mutable string buffer to performs string modifications
+        StringBuffer buffer = new StringBuffer(line);
+	// use a break iterator to performs initial string analysis
+        iterator.setText(line);
+	// and keep track of offset between them
+        int offset = 0;
+
+        int start = iterator.first();
+        int end = iterator.first();
+        while ((end = iterator.next()) != BreakIterator.DONE) {
+            String oldWord = line.substring(start, end);
+            if (changes.containsKey(oldWord)) {
+                String newWord = changes.getProperty(oldWord);
+                if (verbose)
+                    System.out.println("substituting " + newWord + " to "
+			+ oldWord + " in line " + count);
+                buffer.replace(start + offset, end + offset, newWord);
+                offset += newWord.length() - oldWord.length();
+            }
+            start = end;
+        }
+        return buffer.toString();
+    }
+
+    public static void main(String[] args) {
+        FixStyle fixer = new FixStyle2();
+        fixer.fix(args);
+    }
+
+}
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_1.18
+//----------------------------------------------------------------------------------
+// To do...
+// @@INCOMPLETE@@
+// @@INCOMPLETE@@
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_2.1 
+//----------------------------------------------------------------------------------
+String s;
+NumberFormat nf = NumberFormat.getInstance(locale);
+Number nb;
+try {
+    nb = nf.parse(s);
+} catch (ParseException ex) {
+    // not a number
+}
+//----------------------------------------------------------------------------------
+String s1;
+try {
+    int i = Integer.parseInt(s1);
+} catch (NumberFormatException ex) {
+    System.out.println(s1 + " is not an integer");
+}
+
+String s2;
+try {
+    float f = Float.parseFloat(s);
+} catch (NumberFormatException ex) {
+    System.out.println(s2 + " is not a float");
+}
+//----------------------------------------------------------------------------------
+NumberFormat nf = NumberFormat.getInstance(locale);
+
+boolean isNumeric(String string) {
+    try {
+       nf.parse(string);
+       return true;
+   } catch (ParseException ex) {
+       return false;
+   }
+}
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_2.2
+//----------------------------------------------------------------------------------
+/**
+ * Returns true if given values are equal to accuracy number of decimal places
+ */
+boolean equal(double num1, double num2, int accuracy) {
+    BigDecimal bigNum1 = new BigDecimal(num1).setScale(accuracy, BigDecimal.ROUND_DOWN);
+    BigDecimal bigNum2 = new BigDecimal(num2).setScale(accuracy, BigDecimal.ROUND_DOWN);
+    return (bigNum1.compareTo(bigNum2) == 0);
+  }
+//----------------------------------------------------------------------------------
+// with a scaling factor
+int wage = 536;       // $5.36/hour
+int week = 40 * wage; // $214.40
+System.out.println("One week's wage is: $" + (double) week/100);
+//=> One week's wage is: $214.40
+//----------------------------------------------------------------------------------
+// with BigDecimal
+BigDecimal wage = new BigDecimal("5.36"); // $5.36/hour
+BigDecimal hours = new BigDecimal("40");  // 40 hours/week
+BigDecimal week = wage.multiply(hours);   // $214.40
+System.out.println("One week's wage is: $" + week);
+//=> One week's wage is: $214.40
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_2.3
+//----------------------------------------------------------------------------------
+BigDecimal rounded = unrounded.setScale(scale, roundingMode);
+//----------------------------------------------------------------------------------
+BigDecimal a = new BigDecimal("0.255");
+BigDecimal b = a.setScale(2, BigDecimal.ROUND_HALF_UP);
+System.out.println("Unrounded: " + a);
+System.out.println("Rounded: " + b);
+//=> Unrounded: 0.255
+//=> Rounded: 0.26
+//----------------------------------------------------------------------------------
+// caution, Math.rint() rounds to the nearest integer !
+double[] a = new double[] {3.3 , 3.5 , 3.7, -3.3};
+System.out.println("number\tint\tfloor\tceil");
+for (int i=0; i<a.length; i++)
+    System.out.println(Math.rint(a[i]) + "\t" + Math.floor(a[i]) + "\t" + Math.ceil(a[i]));
+
+//=> number  int     floor   ceil
+//=> 
+//=>  3.3     3.0     3.0     4.0
+//=> 
+//=>  3.5     3.0     3.0     4.0
+//=> 
+//=>  3.7     3.0     3.0     4.0
+//=> 
+//=> -3.3    -3.0    -4.0    -3.0
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_2.4
+//----------------------------------------------------------------------------------
+int i = Integer.parseInt(s, 2);
+//----------------------------------------------------------------------------------
+string s = Integer.toString(i, 2);
+//----------------------------------------------------------------------------------
+int i = Integer.parseInt("0110110", 2); // i = 54
+String s = Integer.toString(54, 2);     // s = 110110
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_2.5
+//----------------------------------------------------------------------------------
+for (int i=X, i<=Y, i++) {
+    i is set to every integer from X to Y, inclusive
+}
+
+for (int i=X, i<=Y, i+=7) {
+    i is set to every integer from X to Y, stepsize = 7
+}
+//----------------------------------------------------------------------------------
+System.out.print("Childhood is: ");
+for (int i=5; i<=12; i++) {
+    System.out.print(i + " ");
+}
+System.out.println();
+
+//=> Childhood is: 5 6 7 8 9 10 11 12 
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_2.6
+//----------------------------------------------------------------------------------
+// no roman module available
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_2.7
+//----------------------------------------------------------------------------------
+Random random = new Random();
+int i = random.nextInt(Y-X+1) + X;
+//----------------------------------------------------------------------------------
+int i = random.nextInt(51) + 25;
+System.out.println(i);
+//----------------------------------------------------------------------------------
+String elt = array[random.nextInt(array.length)];
+//----------------------------------------------------------------------------------
+StringBuffer buffer = new StringBuffer();
+for (int i=0; i<8; i++)
+    buffer.append((char) (random.nextInt(43) + 48));
+String password = buffer.toString();
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_2.8
+//----------------------------------------------------------------------------------
+long seed;
+Random random = new Random(seed);
+//----------------------------------------------------------------------------------
+try {
+    DataInputStream input = new DataInputStream(System.in);
+    Random random = new Random(input.readLong());
+} catch (IOException ex) {
+    System.err.println("Exception occured while initialising random seed");
+}
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_2.9
+//----------------------------------------------------------------------------------
+// java.util.Random class already uses a 48-bit seed
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_2.10
+//----------------------------------------------------------------------------------
+// use Random.nextGaussian() method
+//----------------------------------------------------------------------------------
+/*
+ * WeightedDistribution.java
+ */
+package pleac.ch02.part10;
+
+import java.util.Random;
+/**
+ * A weighted distribution of values
+ */
+public class WeightedDistribution {
+
+    private Random random;
+    private Object[] values;
+    private int[] limits;
+    private int total;
+
+    /**
+     * Creates a new weighted distribution with given values and given weights
+     */
+    public WeightedDistribution(Object[] values, int[] weights) {
+        if (values.length != weights.length)
+            throw new IllegalArgumentException(
+                    "values and weights array size don't match");
+
+        this.random = new Random();
+        this.values = new Object[values.length];
+        this.limits = new int[weights.length];
+        for (int i=0; i<values.length; i++) {
+            this.values[i] = values[i];
+            total += weights[i];
+            this.limits[i] = total;
+        }
+    }
+
+    /**
+     * Draws a random value
+     */
+    public Object draw() {
+        int token = random.nextInt(total + 1);
+        for (int i=0; i<limits.length; i++)
+            if (token <= limits[i])
+                return values[i];
+        return null;
+    }
+
+}
+
+Object values[];
+int weights[];
+
+// creates distribution
+WeightedDistribution distribution = new WeightedDistribution(values, weights);
+// draws a value from it
+Object value = distribution.draw();
+//----------------------------------------------------------------------------------
+Random random = new Random();
+int mean = 25;
+int sdev = 2;
+double salary = random.nextGaussian() * sdev + mean;
+System.out.println("You have been hired at " + salary);
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_2.11
+//----------------------------------------------------------------------------------
+// use Math.toDegrees() and Math.toRadians() methods
+//----------------------------------------------------------------------------------
+double radians = Math.toRadians(degrees);
+double degrees = Math.toDegrees(radians);
+//----------------------------------------------------------------------------------
+/**
+ * Returns sine of an angle expressed in degrees
+ */
+double degreeSine(double a) {
+    return Math.sin(Math.toRadians(a));
+}
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_2.12
+//----------------------------------------------------------------------------------
+// use Math.tan() method
+//----------------------------------------------------------------------------------
+double y = Math.acos(3.7);
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_2.13
+//----------------------------------------------------------------------------------
+double log = Math.log(10000.00);
+//----------------------------------------------------------------------------------
+/**
+ * Returns log in given base of given value
+ */
+double logBase(int base, double value) {
+    return Math.log(value)/Math.log(base);
+}
+//----------------------------------------------------------------------------------
+double answer = logBase(10, 10000.00);
+System.out.println("log10(10000) = " + answer);
+log10(10,000) = 4
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_2.14
+//----------------------------------------------------------------------------------
+/**
+ * Compute multiplication of two given matrices
+ */
+int[][] multiplyMatrix(int[][] matrix1, int[][] matrix2) {
+
+    if (matrix1 == null)
+        throw new IllegalArgumentException("Null height matrix1");
+    int rows1 = matrix1.length;
+
+    if (matrix1[0] == null)
+        throw new IllegalArgumentException("Null width matrix1");
+    int cols1 = matrix1[0].length;
+
+    if (matrix2 == null)
+        throw new IllegalArgumentException("Null height matrix2");
+    int rows2 = matrix2.length;
+
+    if (matrix2[0] == null)
+        throw new IllegalArgumentException("Null width matrix2");
+    int cols2 = matrix2[0].length;
+
+    if (cols1 != rows2) 
+        throw new IllegalArgumentException("Matrices don't match: " + cols1 + " != " + rows2);
+
+    int[][] result = new int[rows1][cols2];
+
+    for (int i=0; i<rows1; i++) 
+        for (int j=0; j<cols2; j++)
+	    for (int k=0; k<cols1; k++)
+                result[i][j] += matrix1[i][k] * matrix2[k][j];
+
+    return result;
+}
+//----------------------------------------------------------------------------------
+int[][] matrix1 = new int[][] {
+   {3, 2, 3},
+   {5, 9, 8}
+};
+
+int[][] matrix2 = new int[][] {
+   {4, 7},
+   {9, 3},
+   {8, 1}
+};
+
+int[][] product = multiplyMatrix(matrix1, matrix2);
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_2.15
+//----------------------------------------------------------------------------------
+/**
+ * A basic complex number implementation
+ */
+public class Complex {
+    
+    private int real;
+    private int imaginary;
+
+    public Complex(int real, int imaginary) {
+	this.real = real;
+	this.imaginary = imaginary;
+    }
+
+    public int getReal() {
+        return real;
+    }
+
+    public int getImaginary() {
+        return imaginary;
+    }
+
+    public Complex multiply(Complex other) {
+	return new Complex(
+           (this.real * other.getReal()) - (this.imaginary * other.getImaginary()),
+           (this.real * other.getImaginary()) + (this.imaginary * other.getReal())
+       );
+    }
+
+    public String toString() {
+        if (imaginary > 0)
+	    return real + "+" + Math.abs(imaginary) + "i";
+        if (imaginary < 0)
+	    return real + "-" + Math.abs(imaginary) + "i";
+	return real;
+    }
+
+}
+//----------------------------------------------------------------------------------
+Complex a = new Complex(3, 5);  // 3 + 5i
+Complex b = new Complex(2, -2); // 2 - 2i
+Complex c = a.multiply(b);
+
+System.out.println("c = " + c);
+//=> c = 16+4i
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_2.16
+//----------------------------------------------------------------------------------
+int number = Integer.parseInt(hexadecimal, 16); // hexadecimal
+int number = Integer.parseInt(octal, 8);        // octal
+//----------------------------------------------------------------------------------
+System.out.println("Gimme a number in decimal, octal, or hex: ");
+try {
+    BufferedReader input = new BufferedReader(new InputStreamReader(System.in));
+    String num = input.readLine().trim();
+    int number;
+    if (num.startsWith("0x"))
+	number = Integer.parseInt(num.substring(2), 16);
+	else if (num.startsWith("0"))
+	    number = Integer.parseInt(num.substring(1), 8);
+	    else
+		number = Integer.parseInt(num);
+
+    System.out.println("Decimal value: " + number);
+} catch (IOException ex) {
+    System.err.println("Exception occured while getting input");
+} catch (NumberFormatException ex) {
+    System.err.println("Exception occured while parsing input");
+}
+//----------------------------------------------------------------------------------
+System.out.println("Enter file permission in octal: ");
+try {
+    BufferedReader input = new BufferedReader(new InputStreamReader(System.in));
+    String num = input.readLine().trim();
+    int permission = Integer.parseInt(num, 8);
+
+    System.out.println("Decimal value: " + permission);
+} catch (IOException ex) {
+    System.err.println("Exception occured while getting input");
+} catch (NumberFormatException ex) {
+    System.err.println("Exception occured while parsing input");
+}
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_2.17
+//----------------------------------------------------------------------------------
+// using a localized number format
+NumberFormat format = NumberFormat.getInstance(locale);
+
+format.format(value);
+//----------------------------------------------------------------------------------
+// using a customized number format
+DecimalFormatSymbols symbols = new DecimalFormatSymbols();
+symbols.setGroupingSeparator(',');
+DecimalFormat format = new DecimalFormat();
+format.setDecimalFormatSymbols(symbols);
+
+format.format(value);
+//----------------------------------------------------------------------------------
+int hits = truly_random_value(); // negative hits!
+System.out.println("Your web page received " + format.format(hits) + " accesses last month.");
+//=> Your web page received -1,740,525,205 accesses last month.
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_2.18
+//----------------------------------------------------------------------------------
+System.out.println("It took " + time + " hour" + ((time == 1) ? "" : "s"));
+System.out.println(time + " hour" + ((time == 1) ? " is" : "s are") + " enough");  
+//----------------------------------------------------------------------------------
+double[] limits = new double[] {1, ChoiceFormat.nextDouble(1)};
+String[] names = new String[] {"century", "centuries"};
+ChoiceFormat format = new ChoiceFormat(limits, names);
+System.out.println("It took " + time + " " + format.format(time));
+//----------------------------------------------------------------------------------
+Perl5Util util = new Perl5Util();
+/**
+ * Compute plural of given noun
+ */
+String nounPlural(String noun) {
+    // order really matters here!
+    if (util.match("/ss$/", noun))
+	return util.substitute("s/ss$/sses", noun);
+    if (util.match("/([psc]h)$/", noun))
+	return util.substitute("s/([psc]h)$/${1}es/", noun);
+    if (util.match("/z$/", noun))
+	return util.substitute("s/z$/zes/", noun);
+    if (util.match("/ff$/", noun))
+	return util.substitute("s/ff$/ffs/", noun);
+    if (util.match("/f$/", noun))
+	return util.substitute("s/f$/ves/", noun);
+    if (util.match("/ey$/", noun))
+	return util.substitute("s/ey$/eys/", noun);
+    if (util.match("/y$/", noun))
+	return util.substitute("s/y$/ies/", noun);
+    if (util.match("/ix$/", noun))
+	return util.substitute("s/ix$/ices/", noun);
+    if (util.match("/([sx])$/", noun))
+	return util.substitute("s/([sx])$/$1es/", noun);
+    return util.substitute("s/$/s/", noun);
+}
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_2.19
+//----------------------------------------------------------------------------------
+//=> # java pleac.ch02.part19.BigFact 8 9 96 2178
+//=> 8: 2^3
+//=> 9: 3^2
+//=> 96: 2^5 3
+//=> 2178: 2 3^2 11^2
+//----------------------------------------------------------------------------------
+//=> # java pleac.ch02.part19.BigFact 25000000000000000000000000
+//=> 25000000000000000000000000: 2^24 5^26
+//=> # java pleac.ch02.part19.BigFact 239322000000000000000000
+//=> 239322000000000000000000: 2^19 3 5^18 39887
+//----------------------------------------------------------------------------------
+/*
+ * BigFact.java
+ */
+package pleac.ch02.part19;
+
+import java.math.BigInteger;
+import java.util.*;
+/**
+ * Calculate prime factors
+ * Usage: java pleac.ch02.part19.BigFact [-b] <number>
+ */
+public class BigFact {
+
+    private static final Integer ONE = new Integer(1);
+
+    private static TreeMap getFactors(int n) {
+        int orig = n;
+        TreeMap factors = new TreeMap();
+        int i, sqi;
+        for (i = 2, sqi = 4; sqi <= n; sqi += 2 * i++ + 1) {
+            while (n % i == 0) {
+                n /= i;
+                Integer factor = new Integer(i);
+                if (! factors.containsKey(factor))
+                    factors.put(factor, ONE);
+                else
+                    factors.put(factor, new Integer(((Integer) factors.get(factor)).intValue() + 1));
+            }
+        }
+        if ((n != 1) && (n != orig))
+            factors.put(new Integer(n), ONE);
+        return factors;
+    }
+
+    private static TreeMap getFactors(BigInteger n) {
+        BigInteger orig = n;
+        TreeMap factors = new TreeMap();
+        BigInteger i = new BigInteger("2");
+        BigInteger sqi = new BigInteger("4");
+        BigInteger step = new BigInteger("2");
+        while (sqi.compareTo(n) <= 0) {
+            while (n.mod(i).equals(BigInteger.ZERO)) {
+                n = n.divide(i);
+                if (! factors.containsKey(i))
+                    factors.put(i, BigInteger.ONE);
+                else
+                    factors.put(i, ((BigInteger) factors.get(i)).add(BigInteger.ONE));
+            }
+            sqi = sqi.add((i.multiply(step)).add(BigInteger.ONE));
+            i = i.add(BigInteger.ONE);
+        }
+        if ((! n.equals(BigInteger.ONE)) && (! n.equals(orig)))
+            factors.put(n, BigInteger.ONE);
+        return factors;
+    }
+
+    private static void displayFactors(int n, TreeMap factors) {
+        System.out.print(n + ": ");
+        if (factors.isEmpty())
+            System.out.println("PRIME");
+        else {
+            Iterator it = factors.keySet().iterator();
+            while (it.hasNext()) {
+                Object factor = it.next();
+                Object power = factors.get(factor);
+                System.out.print(factor + ((power.equals(ONE))? "": "^" + power) + " ");
+            }
+            System.out.println();
+        }
+    }
+
+    private static void displayFactors(BigInteger n, TreeMap factors) {
+        System.out.print(n + ": ");
+        if (factors.isEmpty())
+            System.out.println("PRIME");
+        else {
+            Iterator it = factors.keySet().iterator();
+            while (it.hasNext()) {
+                Object factor = it.next();
+                Object power = factors.get(factor);
+                System.out.print(factor + ((power.equals(BigInteger.ONE))? "": "^" + power) + " ");
+            }
+            System.out.println();
+        }
+    }
+
+    public static void main(String args[]) {
+        if (args.length < 1) {
+            System.err.println("Usage: java pleac.ch02.part19.BigFact [-b] <number>...");
+            System.exit(1);
+        }
+
+        boolean useBigInteger = false;
+        int index = 0;
+
+        if (args[0].equals("-b")) {
+            useBigInteger = true;
+            index = 1;
+        }
+
+        for (int i=index; i<args.length;i++) {
+            if (useBigInteger) {
+                BigInteger n = new BigInteger(args[i]);
+                displayFactors(n, getFactors(n));
+            } else {
+            try {
+                int n = Integer.parseInt(args[i]);
+                displayFactors(n, getFactors(n));
+                } catch (NumberFormatException ex) {
+                    BigInteger n = new BigInteger(args[i]);
+                    displayFactors(n, getFactors(n));
+                }
+            }
+        }
+
+    }
+    
+}
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_3.0
+//----------------------------------------------------------------------------------
+// use a calendar to compute year, month, day, hour, minute, and second values.
+GregorianCalendar calendar = new GregorianCalendar();
+System.out.println("Today is day " + calendar.get(Calendar.DAY_OF_YEAR) + " of the current year.");
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_3.1
+//----------------------------------------------------------------------------------
+GregorianCalendar calendar = new GregorianCalendar();
+int day = calendar.get(Calendar.DATE);
+int month = calendar.get(Calendar.MONTH);
+int year = calendar.get(Calendar.YEAR);
+//----------------------------------------------------------------------------------
+GregorianCalendar calendar = new GregorianCalendar();
+System.out.println("The current date is "
+    + calendar.get(Calendar.DATE) + " "
+    + (calendar.get(Calendar.MONTH) + 1) + " "
+    + calendar.get(Calendar.YEAR));
+//=> The current date is 1998 04 28
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_3.2
+//----------------------------------------------------------------------------------
+// create a calendar with current time and time zone
+GregorianCalendar calendar = new GregorianCalendar();
+// set time zone
+calendar.setTimezone(zone);
+// set date fields
+calendar.set(field, value);
+// get time in seconds
+long time = calendar.getTime().getTime() / 1000;
+//----------------------------------------------------------------------------------
+GregorianCalendar calendar = new GregorianCalendar();
+calendar.set(Calendar.HOUR_OF_DAY, hour);
+calendar.set(Calendar.MINUTE, minute);
+calendar.set(Calendar.SECOND, second);
+long time = calendar.getTime().getTime() / 1000;
+//----------------------------------------------------------------------------------
+// day is day in month (1-31)
+// month is month in year (1-12)
+// year is four-digit year e.g., 1967
+// hour, minute and second represent UTC time 
+GregorianCalendar calendar = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
+calendar.set(year, month - 1, day, hour, minute, second);
+long time = calendar.getTime().getTime() / 1000;
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_3.3
+//----------------------------------------------------------------------------------
+// create a calendar with current time and time zone
+GregorianCalendar calendar = new GregorianCalendar();
+// set time
+calendar.setTime(new Date(time * 1000));
+// get date fields
+int day = calendar.get(Calendar.DATE);
+int month = calendar.get(Calendar.MONTH);
+int year = calendar.get(Calendar.YEAR);
+//----------------------------------------------------------------------------------
+GregorianCalendar calendar = new GregorianCalendar();
+calendar.setTime(new Date(time * 1000));
+System.out.println("Dateline: "
+    + calendar.get(Calendar.HOUR_OF_DAY) + ":"
+    + calendar.get(Calendar.MINUTE) + ":"
+    + calendar.get(Calendar.SECOND) + "-"
+    + calendar.get(Calendar.YEAR) + "/"
+    + (calendar.get(Calendar.MONTH) + 1) + "/"
+    + calendar.get(Calendar.DATE));
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_3.4
+//----------------------------------------------------------------------------------
+long now, difference;
+long when = now + difference
+long then = now - difference
+//----------------------------------------------------------------------------------
+// any field of a calendar is incrementable via add() method
+GregorianCalendar calendar = new GregorianCalendar(year, month, day, hour, minute, second);
+calendar.add(Calendar.DATE, dayOffset);
+calendar.add(Calendar.HOUR_OF_DAY, hourOffset);
+calendar.add(Calendar.MINUTE, minuteOffset);
+calendar.add(Calendar.SECOND, secondOffset);
+year = calendar.get(Calendar.YEAR);
+month = calendar.get(Calendar.MONTH);
+day = calendar.get(Calendar.DATE);
+hour = calendar.get(Calendar.HOUR_OF_DAY);
+minute = calendar.get(Calendar.MINUTE);
+second = calendar.get(Calendar.SECOND);
+//----------------------------------------------------------------------------------
+long birthTime = 96176750;         // 18/Jan/1973, 3:45:50 am
+long interval = 5 +                // 5 second
+                17 * 60 +          // 17 minute
+                2  * 60 * 60 +     // 2 hour
+                55 * 60 * 60 * 24; // and 55 day
+Date then = new Date(birthTime + interval);
+SimpleDateFormat format = new SimpleDateFormat();
+System.out.println("Then is " + format.format(then));
+//----------------------------------------------------------------------------------
+GregorianCalendar calendar = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
+calendar.set(1973, 0, 18, 3, 45, 50);
+calendar.add(Calendar.DATE, 55);
+calendar.add(Calendar.HOUR_OF_DAY, 2);
+calendar.add(Calendar.MINUTE, 17);
+calendar.add(Calendar.SECOND, 5);
+SimpleDateFormat format = new SimpleDateFormat();
+System.out.println("To be precise " + format.format(calendar.getTime()));
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_3.5
+//----------------------------------------------------------------------------------
+long recent, earlier;
+long difference = recent - earlier;
+//----------------------------------------------------------------------------------
+GregorianCalendar calendar = new GregorianCalendar();
+// convert first date to time
+calendar.set(year1, month1, day1);
+Date date1 = calendar.getTime();
+// convert second date to time
+calendar.set(year2, month2, day2);
+Date date2 = calendar.getTime();
+// compute difference
+long difference = Math.abs(date2.getTime() - date1.getTime());
+long days = difference / (1000 * 60 * 60 * 24);
+//----------------------------------------------------------------------------------
+long bree = 361535725; // 16 Jun 1981, 4:35:25
+long nat  =  96201950; // 18 Jan 1973, 3:45:50
+
+long difference = bree - nat;
+System.out.println("There were " + difference + " seconds between Nat and Bree");
+
+long seconds =  difference % 60;
+difference  = (difference - seconds) / 60;
+long minutes =  difference % 60;
+difference  = (difference - minutes) / 60;
+long hours   =  difference % 24;
+difference  = (difference - hours)   / 24;
+long days    =  difference % 7;
+long weeks   = (difference - days)    /  7;
+
+System.out.println("weeks " + weeks + ", days " + days + ", "
+    + hours + ":" + minutes + ":" + seconds);
+//----------------------------------------------------------------------------------
+GregorianCalendar calendar = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
+calendar.set(1981, 5, 16); // 16 Jun 1981
+Date date1 = calendar.getTime();
+calendar.set(1973, 0, 18); // 18 Jan 1973
+Date date2 = calendar.getTime();
+long difference = Math.abs(date2.getTime() - date1.getTime());
+long days = difference / (1000 * 60 * 60 * 24);
+System.out.println("There were " + days + " days between Nat and Bree");
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_3.6
+//----------------------------------------------------------------------------------
+// create a calendar with current time and time zone
+GregorianCalendar calendar = new GregorianCalendar();
+// set time
+calendar.setTime(new Date(time * 1000));
+// get date fields
+int monthDay = calendar.get(Calendar.DAY_OF_MONTH);
+int weekDay = calendar.get(Calendar.DAY_OF_WEEK);
+int yearDay = calendar.get(Calendar.DAY_OF_YEAR);
+int yearWeek = calendar.get(Calendar.WEEK_OF_YEAR);
+//----------------------------------------------------------------------------------
+// create a calendar with given year, month and day
+GregorianCalendar calendar = new GregorianCalendar(year, month, day);
+int weekDay = calendar.get(Calendar.DAY_OF_WEEK);
+int yearDay = calendar.get(Calendar.DAY_OF_YEAR);
+int yearWeek = calendar.get(Calendar.WEEK_OF_YEAR);
+//----------------------------------------------------------------------------------
+int year  = 1981;
+int month = 6;
+int day   = 16;
+
+GregorianCalendar calendar = new GregorianCalendar(year, month - 1, day);
+
+Date date = calendar.getTime();
+SimpleDateFormat format1 = new SimpleDateFormat("mm/dd/yy");
+SimpleDateFormat format2 = new SimpleDateFormat("EEEE");
+System.out.println(format1.format(date) + " was a " + format2.format(date));
+
+int week = calendar.get(Calendar.WEEK_OF_YEAR);
+System.out.println("in the week number " + week);
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_3.7
+//----------------------------------------------------------------------------------
+String raw = "1998-06-03";
+SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+try {
+    Date date = format.parse(raw);
+    long time = time.getTime();
+} catch (ParseException ex) {
+    // bad date
+}
+//----------------------------------------------------------------------------------
+SimpleDateFormat in = new SimpleDateFormat("yyyy-MM-dd");
+SimpleDateFormat out = new SimpleDateFormat("MM/dd/yyyy");
+try {
+    BufferedReader input = new BufferedReader(new InputStreamReader(System.in));
+    String line;
+    while ((line = input.readLine()) != null) {
+	try {
+	    Date date = in.parse(line);
+	    System.out.println("Date was " + out.format(date));
+	} catch (ParseException ex) {
+	    System.err.println("Bad date string: " + line);
+	}
+    }
+} catch (IOException ex) {}
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_3.8
+//----------------------------------------------------------------------------------
+DateFormat format;
+String string = format.format(new Date(time));
+//----------------------------------------------------------------------------------
+GregorianCalendar calendar = new GregorianCalendar(1973, 0, 18, 3, 45, 50);
+DateFormat format = DateFormat.getInstance();
+System.out.println("Default locale format gives: " + format.format(calendar.getTime()));
+//----------------------------------------------------------------------------------
+GregorianCalendar calendar = new GregorianCalendar(1973, 0, 18, 3, 45, 50);
+SimpleDateFormat format = new SimpleDateFormat("E M d hh:mm:ss z yyyy");
+System.out.println("Customized format gives: " + format.format(calendar.getTime()));
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_3.9
+//----------------------------------------------------------------------------------
+long t0 = System.currentTimeMillis();
+// do your operation here
+long t1 = System.currentTimeMillis();
+long elapsed = t1-t0;
+// elapsed is the number of milliseconds between t0 and t1
+//----------------------------------------------------------------------------------
+System.out.println("Press return when ready");
+long before = System.currentTimeMillis();
+try {
+    BufferedReader input = new BufferedReader(new InputStreamReader(System.in));
+    input.readLine();
+} catch (IOException ex) {}
+long after = System.currentTimeMillis();
+long elapsed = (after - before) / 1000;
+System.out.println("You took " + elapsed + " seconds.");
+//----------------------------------------------------------------------------------
+// take mean sorting time
+int size = 500;
+int number = 100;
+long time = 0;
+
+for (int i=0; i<number; i++) {
+    double[] array = new double[size];
+    for (int j=0; j<size; j++)
+	array[j] = Math.random();
+
+    // sort it
+    long t0 = System.currentTimeMillis();
+    Arrays.sort(array);
+    long t1 = System.currentTimeMillis();
+    time += (t1 - t0);
+}
+
+System.out.println("On average, sorting " + size + " random numbers takes " +
+    (time / number) + " milliseconds");
+//----------------------------------------------------------------------------------
+
+// @@PLEAC@@_3.10
+//----------------------------------------------------------------------------------
+long delay; // time to sleep in milliseconds
+try {
+    Thread.sleep(delay);
+} catch (InterruptedException ex) {}
+//----------------------------------------------------------------------------------
+// excerpt from more complete exemple from PLEAC@@_1.5
+Reader input;
+int ch;
+while ((ch = input.read()) != -1) {
+    System.out.print((char) ch);
+    try {
+    Thread.sleep(delay);
+    } catch (InterruptedException ex) {}
+}
+//----------------------------------------------------------------------------------
+
+// vim: set sw=4 : set tw=85 :
