@@ -39,7 +39,7 @@ for i in impl_contents
 		current_subst[-1].chop!
 	    end
 	    if current_key
-		final_subst = [ "<font color=\"#f5deb3\" size=\"+2\">", current_subst, "PLEAC:#{current_key}:CAELP" ].flatten.to_s
+		final_subst = [ "<font color=\"#f5deb3\" size=\"+1\">", current_subst, "PLEAC:#{current_key}:CAELP" ].flatten.to_s
 		if current_key == "NAME" || current_key == "WEB"
 		    final_subst.gsub!("<[^>]+>", "")
 		end
