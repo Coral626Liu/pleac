@@ -2118,8 +2118,111 @@ pprint.pprint(dict)
 
 
 # @@PLEAC@@_5.6
-# No simple, native support in Python.  Would need to derive your
-# own version from UserDict (pre-2.2) or from the dictionary type (2.2).
+#-----------------------------
+class SequenceDict(dict):
+    """
+    Dictionary that remembers the insertion order.
+    The lists returned by keys(), values() and items() are
+    in the insertion order.
+    """
+    def __init__(self, *args):
+        self._keys={} # key --> id
+        self._ids={}      # id  --> key
+        self._next_id=0
+        
+    def __setitem__(self, key, value):
+        self._keys[key]=self._next_id
+        self._ids[self._next_id]=key
+        self._next_id+=1
+        return dict.__setitem__(self, key, value)
+    
+    def __delitem__(self, key):
+        id=self._keys[key]
+        del(self._keys[key])
+        del(self._ids[id])
+        return dict.__delitem__(self, key)
+
+    def values(self):
+        values=[]
+        ids=list(self._ids.items())
+        ids.sort()
+        for id, key in ids:
+            values.append(self[key])
+        return values
+
+    def items(self):
+        items=[]
+        ids=list(self._ids.items())
+        ids.sort()
+        for id, key in ids:
+            items.append((key, self[key]))
+        return items
+
+    def keys(self):
+        ids=list(self._ids.items())
+        ids.sort()
+        keys=[]
+        for id, key in ids:
+            keys.append(key)
+        return keys
+
+    def update(self, d):
+        for key, value in d.items():
+            self[key]=value
+
+    def clear(self):
+        dict.clear(self)
+        self._keys={}
+        self._ids={}
+        self._next_id=0
+        
+def testSequenceDict():
+    sd=SequenceDict()
+
+    # First Test
+    sd[3]="first"
+    sd[2]="second"
+    sd[1]="third"
+    print sd.keys()
+    print sd.items()
+    print sd.values()
+
+    del(sd[1])
+    del(sd[2])
+    del(sd[3])
+
+    print sd.keys(), sd.items(), sd.values()
+    print sd._ids, sd._keys
+
+    print "---------------"
+    # Second Test
+    sd["b"]="first"
+    sd["a"]="second"
+    sd.update({"c": "third"})
+    print sd.keys()
+    print sd.items()
+    print sd.values()
+
+    del(sd["b"])
+    del(sd["a"])
+    del(sd["c"])
+
+    print sd.keys(), sd.items(), sd.values()
+    print sd._ids, sd._keys
+
+def likePerlCookbook():
+    food_color=SequenceDict()
+    food_color["Banana"]="Yellow";
+    food_color["Apple"]="Green";
+    food_color["Lemon"]="Yellow"
+    print "In insertion order, the foods' color are:"
+    for food, color in food_color.items():
+        print "%s is colored %s" % (food, color)
+
+if __name__=="__main__":
+    #testSequenceDict()
+    likePerlCookbook()
+    
 
 # @@PLEAC@@_5.7
 import os
