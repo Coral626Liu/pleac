@@ -5319,6 +5319,469 @@ which = command.expect(choices)
 # "foo.pyw" instead of "foo.py"
 
 
+# @@PLEAC@@_16.1
+import popen2
+
+# other popen methods than popen4 can lead to deadlocks
+# if there is much data on stdout and stderr
+
+(err_out, stdin) = popen2.popen4("program args")
+lines = err_out.read() # collect output into one multiline string
+
+(err_out, stdin) = popen2.popen4("program args")
+lines = err_out.readlines() # collect output into array, one line per element
+
+#-----------------------------
+
+(err_out, stdin) = popen2.popen4("program args")
+output = []
+while 1:
+    line = err_out.readline()
+    if not line:
+        break
+    output.appen(line)
+output = ''.join(output)
+
+# @@PLEAC@@_16.2
+import os
+myfile = "foo.txt"
+status = os.system("vi %s" % myfile)
+
+#-----------------------------
+import os
+import sys
+
+os.system("cmd1 args | cmd2 | cmd3 >outfile")
+os.system("cmd args <infile >outfile 2>errfile")
+
+status = os.system("%s %s %s" % (program, arg1, arg2))
+if status != 0:
+    print "%s exited funny: %s" % (program, status)
+    sys.exit()
+    
+
+# @@PLEAC@@_16.3
+# -----------------------------
+import os
+import sys
+import glob
+
+args = glob.glob("*.data")
+try:
+    os.execvp("archive", args)
+except OSError, e:
+    print "Couldn't replace myself with archive: %s" % str(e)
+    sys.exit()
+
+# The error message does not contain the line number like the "die" in
+# perl. But if you want to show more information for debuging, you can
+# delete the try...except and you get a nice traceback which shows all
+# line numbers and filenames.
+
+# -----------------------------
+os.execvp("archive", ["accounting.data"])
+
+# @@PLEAC@@_16.4
+# -------------------------
+# Read from a child process
+
+import sys
+import popen2
+pipe = popen2.Popen4("program arguments")
+pid = pipe.pid
+for line in pipe.fromchild.readlines():
+    sys.stdout.write(line)
+
+# Popen4 provides stdout and stderr.
+# This avoids deadlocks if you get data
+# from both streams.
+#
+# If you don't need the pid, you
+# can use popen2.popen4(...)
+
+# -----------------------------
+# Write to a child process
+
+import popen2
+
+pipe = popen2.Popen4("gzip > foo.gz")
+pid = pipe.pid
+pipe.tochild.write("Hello zipped world!\n")
+pipe.tochild.close() # programm will get EOF on STDIN
+
+# @@PLEAC@@_16.6
+# This script accepts several filenames
+# as argument. If the file is zipped, unzip
+# it first. Then read each line if the file
+import os
+import sys
+import popen2
+
+for file in sys.argv[1:]:
+    if file.endswith(".gz") or file.endswith(".Z"):
+        (stdout, stdin) = popen2.popen2("gzip -dc '%s'" % file)
+        fd = stdout
+    else:
+        fd = open(file)
+    for line in fd:
+        # ....
+        sys.stdout.write(line)
+    fd.close()
+#-----------------------------
+
+#-----------------------------
+# Ask for filename and open it
+import sys
+print "File, please?"
+line = sys.stdin.readline()
+file = line.strip() # chomp
+open(file)
+
+# @@PLEAC@@_16.7
+# Execute foo_command and read the output
+
+import popen2
+(stdout_err, stdin) = popen2.popen4("foo_command")
+for line in stdout_err.readlines():
+    # ....
+
+# @@PLEAC@@_16.8
+# Open command in a pipe
+# which reads from stdin and writes to stdout
+
+import popen2
+pipe = popen2.Popen4("wc -l") # Unix command
+pipe.tochild.write("line 1\nline 2\nline 3\n")
+pipe.tochild.close()
+output = pipe.fromchild.read()
+
+# @@PLEAC@@_16.9
+
+# popen3: get stdout and stderr of new process
+# Attetion: This can lead to deadlock,
+# since the buffer of stderr or stdout might get filled.
+# You need to use select if you want to avoid this.
+
+import popen2
+(child_stdout, child_stdin, child_stderr) = popen2.popen3(...)
+
+# @@PLEAC@@_16.13
+#
+# Print avaibable signals an their value
+# See "man signal" "man kill" on unix.
+
+import signal
+for name in dir(signal):
+    if name.startswith("SIG"):
+        value = getattr(signal, name)
+        print "%s=%s" % (name, value)
+
+# @@PLEAC@@_16.14
+# You can send signals to processes
+# with os.kill(pid, signal)
+
+
+# @@PLEAC@@_16.15
+import signal
+
+def get_sig_quit(signum, frame):
+    ....
+
+signal.signal(signal.SIGQUIT, get_sig_quit)   # Install handler
+
+signal.signal(signal.SIGINT, signal.SIG_IGN)  # Ignore this signal
+signal.signal(signal.SIGSTOP, signal.SIG_DFL) # Restore to default handling
+
+# @@PLEAC@@_16.16
+# Example of handler: User must Enter Name ctrl-c does not help
+
+import sys
+import signal
+
+def ding(signum, frame):
+    print "\aEnter your name!"
+    return
+
+signal.signal(signal.SIGINT, ding)
+print "Please enter your name:"
+
+name = ""
+while not name:
+    try:
+        name = sys.stdin.readline().strip()
+    except:
+        pass
+
+print "Hello: %s" % name
+
+# @@PLEAC@@_16.18
+import signal
+
+# ignore signal INT
+signal.signal(signal.SIGINT, signal.SIG_IGN)
+
+# Install signal handler
+def tsktsk(signum, frame):
+    print "..."
+
+signal.signal(signal.SIGINT, tsktsk)
+
+# @@PLEAC@@_16.21
+import signal
+
+def handler(signum, frame):
+    raise "timeout"
+
+signal.signal(signal.SIGALRM, handler)
+
+try:
+    signal.alarm(5) # signal.alarm(3600)
+
+    # long-time operation
+    while 1:
+        print "foo"
+
+    signal.alarm(0)
+except:
+    signal.alarm(0)
+    print "timed out"
+else:
+    print "no time out"
+
+# @@PLEAC@@_17.0
+# Socket Programming (tcp/ip and udp/ip)
+
+import socket
+
+# Convert human readable form to 32 bit value
+packed_ip = socket.inet_aton("208.146.240.1")
+packed_ip = socket.inet_aton("www.oreilly.com")
+
+# Convert 32 bit value to ip adress
+ip_adress = socket.inet_ntoa(packed_ip)
+
+# Create socket object
+socketobj = socket(family, type) # Example socket.AF_INT, socket.SOCK_STREAM
+       
+# Get socketname
+socketobj.getsockname() # Example, get port adress of client
+
+# @@PLEAC@@_17.1
+
+# Example: Connect to a server (tcp)
+# Connect to a smtp server at localhost and send an email.
+# For real applications you should use smtplib.
+
+import socket
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.connect(("localhost", 25)) # SMTP
+print s.recv(1024)
+s.send("mail from: <pleac@localhost>\n")
+print s.recv(1024)
+s.send("rcpt to: <guettli@localhost>\n")
+print s.recv(1024)
+s.send("data\n")
+print s.recv(1024)
+s.send("From: Python Lover\nSubject: Python is better then perl\n\nYES!\n.\n")
+print s.recv(1024)
+s.close()
+
+# @@ PLEAC@@_17.2
+
+# Create a Server, calling handler for every client
+# You can test it with "telnet localhost 1029"
+
+from SocketServer import TCPServer
+from SocketServer import BaseRequestHandler
+
+class MyHandler(BaseRequestHandler):
+    def handle(self):
+        print "I got an request"
+        
+server = TCPServer(("127.0.0.1", 1029), MyHandler)
+server.serve_forever()
+
+# @@PLEAC@@_17.3
+# This is the continuation of 17.2
+
+import time
+from SocketServer import TCPServer
+from SocketServer import BaseRequestHandler
+
+class MyHandler(BaseRequestHandler):
+    def handle(self):
+        # self.request is the socket object
+        print "%s I got an request from ip=%s port=%s" % (
+            time.strftime("%Y-%m-%d %H:%M:%S"),
+            self.client_address[0],
+            self.client_address[1]
+            )
+        self.request.send("What is your name?\n")
+        bufsize=1024
+        response=self.request.recv(bufsize).strip() # or recv(bufsize, flags)
+        data_to_send="Welcome %s!\n" % response
+        self.request.send(data_to_send) # or send(data, flags)
+        print "%s connection finnished" % self.client_address[0]
+        
+server = TCPServer(("127.0.0.1", 1028), MyHandler)
+server.serve_forever()
+
+# -----------------
+# Using select
+
+import select
+import socket
+
+in_list = []
+in_list.append(mysocket)
+in_list.append(myfile)
+# ...
+
+out_list = []
+out_list.append(...)
+
+except_list = []
+except_list.append(...)
+
+(in_, out_, exc_) = select.select(in_list, out_list, except_list, timeout)
+
+for fd in in_:
+    print "Can read", fd
+for fd in out_:
+    print "Can write", fd
+for fd in exc_:
+    print "Exception on", fd
+
+# Missing: setting TCP_NODELAY
+
+# @@PLEAC@@_17.17
+
+# chroot
+
+import os
+import sys
+
+try:
+    os.chroot("/var/daemon")
+except:
+    print "Could not chroot"
+    sys.exit(1)
+
+#-----------------------------
+# fork (Unix): Create a new process
+# if pid == 0 --> parent process
+# else child process
+
+import os
+import sys
+
+pid = os.fork()
+if pid:
+    print "I am the new child %s" % pid
+    sys.exit()
+else:
+    print "I am still the parent"
+    
+
+# ----------------------------
+# setsid (Unix): Create a new session
+import os
+id=os.setsid()
+
+# ----------------------------
+# Work until INT TERM or HUP signal is received
+import time
+import signal
+
+time_to_die = 0
+
+def sighandler(signum, frame):
+    print "time to die"
+    global time_to_die
+    time_to_die = 1
+
+signal.signal(signal.SIGINT, sighandler)
+signal.signal(signal.SIGTERM, sighandler)
+signal.signal(signal.SIGHUP, sighandler)
+
+while not time_to_die:
+    print "work"
+    time.sleep(1)
+
+# @@PLEAC@@_17.16
+#------------------------------
+# Restart programm on signal SIGHUP
+# Script must be executable: chmod a+x foo.py
+
+#!/usr/bin/env python
+import os
+import sys
+import time
+import signal
+
+def phoenix(signum, frame):
+    print "Restarting myself: %s %s" % (self, args)
+    os.execv(self, args)
+
+self = os.path.abspath(sys.argv[0])
+args = sys.argv[:]
+signal.signal(signal.SIGHUP, phoenix)
+
+while 1:
+    print "work"
+    time.sleep(1)
+
+#--------------------
+# Read config file on SIGHUP
+import signal
+
+config_file = "/usr/local/etc/myprog/server_conf.py"
+
+def read_config():
+    execfile(config_file)
+
+signal.signal(signal.SIGHUP, read_config)
+
+# @@PLEAC@@_18.2
+from ftplib import FTP
+ftp = ftplib.FTP("ftp.host.com")
+ftp.login(username, password)
+ftp.cwd(directory)
+
+# get file
+outfile = open(filename, "wb")
+ftp.retrbinary("RETR %s" % filename, outfile.write)
+outfile.close()
+
+# upload file
+upfile = open(upfilename, "rb")
+ftp.storbinary("STOR %s" % upfilename, upfile)
+upfile.close()
+
+ftp.quit()
+
+# @@PLEAC@@_18.3
+
+#--------------------------
+
+# There is no API for sending via sendmail call
+# in python. Use smtplib or the next example instead.
+
+#--------------------------
+
+import popen2
+(std_out_err, std_in) = popen2.popen4("sendmail -oi -t odq")
+std_in.write("""From: User Originating Mail <me@host>
+To: Final Destination <you@localhost>
+Subject: A relevant subject line
+
+Body of the message goes here, in as many lines as you like.
+""")
+std_in.close()
+out = std_out_err.read().strip()
+print out
+
+
 # @@PLEAC@@_19.1
 # Partial implementation of PLEAC Python section 19.1
 # Written by Seo Sanghyeon
@@ -5460,139 +5923,3 @@ cgitb.enable(logdir="/var/local/cgi-logs/")
 # If this is not enough, (usually this is enough!) Python 2.3 comes
 # with a new standard module called 'logging', which is complex, but
 # very flexible and entirely customizable.
-
-# @@PLEAC@@_16.1
-import popen2
-
-# other popen methods than popen4 can lead to deadlocks
-# if there is much data on stdout and stderr
-
-(err_out, stdin) = popen2.popen4("program args")
-lines = err_out.read() # collect output into one multiline string
-
-(err_out, stdin) = popen2.popen4("program args")
-lines = err_out.readlines() # collect output into array, one line per element
-
-#-----------------------------
-
-(err_out, stdin) = popen2.popen4("program args")
-output = []
-while 1:
-    line = err_out.readline()
-    if not line:
-        break
-    output.appen(line)
-output = ''.join(output)
-
-# @@PLEAC@@_16.2
-import os
-myfile = "foo.txt"
-status = os.system("vi %s" % myfile)
-
-#-----------------------------
-import os
-import sys
-
-os.system("cmd1 args | cmd2 | cmd3 >outfile")
-os.system("cmd args <infile >outfile 2>errfile")
-
-status = os.system("%s %s %s" % (program, arg1, arg2))
-if status != 0:
-    print "%s exited funny: %s" % (program, status)
-    sys.exit()
-    
-
-# @@PLEAC@@_16.3
-# -----------------------------
-import os
-import sys
-import glob
-
-args = glob.glob("*.data")
-try:
-    os.execvp("archive", args)
-except OSError, e:
-    print "Couldn't replace myself with archive: %s" % str(e)
-    sys.exit()
-
-# The error message does not contain the line number like the "die" in
-# perl. But if you want to show more information for debuging, you can
-# delete the try...except and you get a nice traceback which shows all
-# line numbers and filenames.
-
-# -----------------------------
-os.execvp("archive", ["accounting.data"])
-
-# @@PLEAC@@_16.4
-# -------------------------
-# Read from a child process
-
-import sys
-import popen2
-pipe = popen2.Popen4("program arguments")
-pid = pipe.pid
-for line in pipe.fromchild.readlines():
-    sys.stdout.write(line)
-
-# Popen4 provides stdout and stderr.
-# This avoids deadlocks if you get data
-# from both streams.
-#
-# If you don't need the pid, you
-# can use popen2.popen4(...)
-
-# -----------------------------
-# Write to a child process
-
-import popen2
-
-pipe = popen2.Popen4("gzip > foo.gz")
-pid = pipe.pid
-pipe.tochild.write("Hello zipped world!\n")
-pipe.tochild.close() # programm will get EOF on STDIN
-
-# @@PLEAC@@_16.6
-# This script accepts several filenames
-# as argument. If the file is zipped, unzip
-# it first. Then read each line if the file
-import os
-import sys
-import popen2
-
-for file in sys.argv[1:]:
-    if file.endswith(".gz") or file.endswith(".Z"):
-        (stdout, stdin) = popen2.popen2("gzip -dc '%s'" % file)
-        fd = stdout
-    else:
-        fd = open(file)
-    for line in fd:
-        # ....
-        sys.stdout.write(line)
-    fd.close()
-#-----------------------------
-
-#-----------------------------
-# Ask for filename and open it
-import sys
-print "File, please?"
-line = sys.stdin.readline()
-file = line.strip() # chomp
-open(file)
-
-# @@PLEAC@@_16.7
-# Execute foo_command and read the output
-
-import popen2
-(stdout_err, stdin) = popen2.popen4("foo_command")
-for line in stdout_err.readlines():
-    # ....
-
-# @@PLEAC@@_16.8
-# Open command in a pipe
-# which reads from stdin and writes to stdout
-
-import popen2
-pipe = popen2.Popen4("wc -l") # Unix command
-pipe.tochild.write("line 1\nline 2\nline 3\n")
-pipe.tochild.close()
-output = pipe.fromchild.read()
