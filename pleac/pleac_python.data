@@ -5036,6 +5036,117 @@ opts, rest = getopt.getopt(argv, "", [
 # option parsing module. New in 2.3.
 
 
+# @@PLEAC@@_15.13
+
+#----------------------------------------
+# This entry uses pexpect, a pure Python Expect-like module.
+# http://pexpect.sourceforge.net/
+
+# for more information, check pexpect's documentation and example.
+
+import pexpect
+
+#----------------------------------------
+# spawn program
+try:
+    command = pexpect.spawn("program to run")
+except pexpect.ExceptionPexpect:
+    # couldn't spawn program
+    pass
+
+#----------------------------------------
+# you can pass any filelike object to setlog
+# passing None will stop logging
+
+# stop logging
+command.setlog(None)
+
+# log to stdout
+import sys
+command.setlog(sys.stdout)
+
+# log to specific file
+fp = file("pexpect.log", "w")
+command.setlog(fp)
+
+#----------------------------------------
+# expecting simple string
+command.expect("ftp>")
+
+# expecting regular expression
+# actually, string is always treated as regular expression
+
+# so it's the same thing
+command.expect("Name.*:")
+
+# you can do it this way, too
+import re
+regex = re.compile("Name.*:")
+command.expect(regex)
+
+#----------------------------------------
+# expecting with timeout
+try:
+    command.expect("Password:", 10)
+except pexpect.TIMEOUT:
+    # timed out
+    pass
+
+# setting default timeout
+command.timeout = 10
+
+# since we set default timeout, following does same as above
+try:
+    command.expect("Password:")
+except pexpect.TIMEOUT:
+    # timed out
+    pass
+
+#----------------------------------------
+# what? do you *really* want to wait forever?
+
+#----------------------------------------
+# sending line: normal way
+command.sendline("get spam_and_ham")
+
+# you can also treat it as file
+print >>command, "get spam_and_ham"
+
+#----------------------------------------
+# finalization
+
+# close connection with child process
+# (that is, freeing file descriptor)
+command.close()
+
+# kill child process
+import signal
+command.kill(signal.SIGKILL)
+
+#----------------------------------------
+# expecting multiple choices
+which = command.expect(["invalid", "success", "error", "boom"])
+
+# return value is index of matched choice
+# 0: invalid
+# 1: success
+# 2: error
+# 3: boom
+
+#----------------------------------------
+# avoiding exception handling
+choices = ["invalid", "success", "error", "boom"]
+choices.append(pexpect.TIMEOUT)
+choices.append(pexpect.EOF)
+
+which = command.expect(choices)
+
+# if TIMEOUT or EOF occurs, appropriate index is returned
+# (instead of raising exception)
+# 4: TIMEOUT
+# 5: EOF
+
+
 # @@PLEAC@@_19.1
 # Partial implementation of PLEAC Python section 19.1
 # Written by Seo Sanghyeon
