@@ -255,17 +255,7 @@ print "$checksum\n";
 #% sum --sysv /etc/termcap
 #1510 851 /etc/termcap
 #-----------------------------
-#!/usr/bin/perl
-# slowcat - emulate a   s l o w   line printer
-# usage: slowcat [-DELAY] [files ...]
-$DELAY = ($ARGV[0] =~ /^-([.\d]+)/) ? (shift, $1) : 1;
-$| = 1;
-while (<>) {
-    for (split(//)) {
-        print;
-        select(undef,undef,undef, 0.005 * $DELAY);
-    }
-}
+# ^^INCLUDE^^ include/perl/ch01/slowcat
 #-----------------------------
 
 # ^^PLEAC^^_1.6
@@ -429,12 +419,7 @@ if (uc($a) eq uc($b)) {
     print "a and b are the same\n";
 }
 #-----------------------------
-#!/usr/bin/perl -p
-# randcap: filter to randomly capitalize 20% of the letters
-# call to srand() is unnecessary in 5.004
-BEGIN { srand(time() ^ ($$ + ($$ << 15))) }
-sub randcase { rand(100) < 20 ? "\u$_[0]" : "\l$_[0]" }
-s/(\w)/randcase($1)/ge;
+# ^^INCLUDE^^ include/perl/ch01/randcap
 
 #% randcap < genesis | head -9
 #boOk 01 genesis
@@ -631,19 +616,7 @@ sub dequote {
 use Text::Wrap;
 @OUTPUT = wrap($LEADTAB, $NEXTTAB, @PARA);
 #-----------------------------
-#!/usr/bin/perl -w
-# wrapdemo - show how Text::Wrap works
-
-@input = ("Folding and splicing is the work of an editor,",
-          "not a mere collection of silicon",
-          "and",
-          "mobile electrons!");
-
-use Text::Wrap qw($columns &wrap);
-
-$columns = 20;
-print "0123456789" x 2, "\n";
-print wrap("    ", "  ", @input), "\n";
+# ^^INCLUDE^^ include/perl/ch01/wrapdemo
 #-----------------------------
 01234567890123456789
 
@@ -2230,32 +2203,7 @@ I have redyellowgreen marbles.
 
 I have red yellow green marbles.
 #-----------------------------
-#!/usr/bin/perl -w
-# commify_series - show proper comma insertion in list output
-
-@lists = (
-    [ 'just one thing' ],
-    [ qw(Mutt Jeff) ],
-    [ qw(Peter Paul Mary) ],
-    [ 'To our parents', 'Mother Theresa', 'God' ],
-    [ 'pastrami', 'ham and cheese', 'peanut butter and jelly', 'tuna' ],
-    [ 'recycle tired, old phrases', 'ponder big, happy thoughts' ],
-    [ 'recycle tired, old phrases', 
-      'ponder big, happy thoughts', 
-      'sleep and dream peacefully' ],
-    );
-
-foreach $aref (@lists) {
-    print "The list is: " . commify_series(@$aref) . ".\n";
-} 
-
-sub commify_series {
-    my $sepchar = grep(/,/ => @_) ? ";" : ",";
-    (@_ == 0) ? ''                                      :
-    (@_ == 1) ? $_[0]                                   :
-    (@_ == 2) ? join(" and ", @_)                       :
-                join("$sepchar ", @_[0 .. ($#_-1)], "and $_[-1]");
-}
+# ^^INCLUDE^^ include/perl/ch04/commify_series
 #-----------------------------
 #The list is: just one thing.
 #
@@ -2957,24 +2905,7 @@ use Math::BigInt;
 print factorial(Math::BigInt->new("500"));
 +1220136... (1035 digits total)
 #-----------------------------
-#!/usr/bin/perl -n
-# tsc_permute: permute each word of input
-permute([split], []);
-sub permute {
-    my @items = @{ $_[0] };
-    my @perms = @{ $_[1] };
-    unless (@items) {
-        print "@perms\n";
-    } else {
-        my(@newitems,@newperms,$i);
-        foreach $i (0 .. $#items) {
-            @newitems = @items;
-            @newperms = @perms;
-            unshift(@newperms, splice(@newitems, $i, 1));
-            permute([@newitems], [@newperms]);
-        }
-    }
-}
+# ^^INCLUDE^^ include/perl/ch04/permute
 #-----------------------------
 #!/usr/bin/perl -w
 # mjd_permute: permute each word of input
@@ -4091,31 +4022,9 @@ if ($pond =~ m{
 
 # ^^PLEAC^^_6.6
 #-----------------------------
-#!/usr/bin/perl
-# killtags - very bad html tag killer
-undef $/;           # each read is whole file
-while (<>) {        # get one whole file at a time
-    s/<.*?>//gs;    # strip tags (terribly)
-    print;          # print file to STDOUT
-}
+# ^^INCLUDE^^ include/perl/ch06/killtags
 #-----------------------------
-#!/usr/bin/perl
-# headerfy: change certain chapter headers to html
-$/ = '';
-while ( <> ) {              # fetch a paragraph
-    s{
-        \A                  # start of record
-        (                   # capture in $1
-            Chapter         # text string
-            \s+             # mandatory whitespace
-            \d+             # decimal number
-            \s*             # optional whitespace
-            :               # a real colon
-            . *             # anything not a newline till end of line
-        )
-    }{<H1>$1</H1>}gx;
-    print;
-}
+# ^^INCLUDE^^ include/perl/ch06/headerfy
 #-----------------------------
 #% perl -00pe 's{\A(Chapter\s+\d+\s*:.*)}{<H1>$1</H1>}gx' datafile
 #-----------------------------
@@ -4225,29 +4134,9 @@ while ($line = <>) {
 }
 #-----------------------------
 #!/usr/bin/perl
-# popgrep1 - grep for abbreviations of places that say "pop"
-# version 1: slow but obvious way
-@popstates = qw(CO ON MI WI MN);
-LINE: while (defined($line = <>)) {
-    for $state (@popstates) {
-        if ($line =~ /\b$state\b/) {
-            print; next LINE;
-       }
-    }
-}
+# ^^INCLUDE^^ include/perl/ch06/popgrep1
 #-----------------------------
-#!/usr/bin/perl
-# popgrep2 - grep for abbreviations of places that say "pop"
-# version 2: eval strings; fast but hard to quote
-@popstates = qw(CO ON MI WI MN);
-$code = 'while (defined($line = <>)) {';
-for $state (@popstates) {
-    $code .= "\tif (\$line =~ /\\b$state\\b/) { print \$line; next; }\n";
-}
-$code .= '}';
-print "CODE IS\n----\n$code\n----\n" if 0;  # turn on to debug
-eval $code;
-die if $@;
+# ^^INCLUDE^^ include/perl/ch06/popgrep2
 #-----------------------------
 while (defined($line = <>)) {
      if ($line =~ /\bCO\b/) { print $line; next; }
@@ -4257,16 +4146,7 @@ while (defined($line = <>)) {
      if ($line =~ /\bMN\b/) { print $line; next; }
 }
 #-----------------------------
-#!/usr/bin/perl
-# popgrep3 - grep for abbreviations of places that say "pop"
-# version 3: use build_match_func algorithm
-@popstates = qw(CO ON MI WI MN);
-    $expr = join('||', map { "m/\\b\$popstates[$_]\\b/o" } 0..$#popstates);
-$match_any = eval "sub { $expr }";
-die if $@;
-while (<>) {
-    print if &$match_any;
-}
+# ^^INCLUDE^^ include/perl/ch06/popgrep3
 #-----------------------------
 sub {
       m/\b$popstates[0]\b/o || m/\b$popstates[1]\b/o ||
@@ -4274,37 +4154,9 @@ sub {
       m/\b$popstates[4]\b/o
   }
 #-----------------------------
-#!/usr/bin/perl
-# grepauth - print lines that mention both Tom and Nat
-
-$multimatch = build_match_all(q/Tom/, q/Nat/);
-while (<>) {
-    print if &$multimatch;
-}
-exit;
-
-sub build_match_any { build_match_func('||', @_) }
-sub build_match_all { build_match_func('&&', @_) }
-sub build_match_func {
-    my $condition = shift;
-    my @pattern = @_;  # must be lexical variable, not dynamic one
-    my $expr = join $condition => map { "m/\$pattern[$_]/o" } (0..$#pattern);
-    my $match_func = eval "sub { local \$_ = shift if \@_; $expr }";
-    die if $@;  # propagate $@; this shouldn't happen!
-    return $match_func;
-}
+# ^^INCLUDE^^ include/perl/ch06/grepauth
 #-----------------------------
-#!/usr/bin/perl
-# popgrep4 - grep for abbreviations of places that say "pop"
-# version 4: use Regexp module
-use Regexp;
-@popstates = qw(CO ON MI WI MN);
-@poppats   = map { Regexp->new( '\b' . $_ . '\b') } @popstates;
-while (defined($line = <>)) {
-    for $patobj (@poppats) {
-        print $line if $patobj->match($line);
-    }
-}
+# ^^INCLUDE^^ include/perl/ch06/popgrep4
 #-----------------------------
 
 # ^^PLEAC^^_6.11
@@ -4321,15 +4173,7 @@ sub is_valid_pattern {
     return eval { "" =~ /$pat/; 1 } || 0;
 }
 #-----------------------------
-#!/usr/bin/perl
-# paragrep - trivial paragraph grepper
-die "usage: $0 pat [files]\n" unless @ARGV;
-$/ = '';
-$pat = shift;
-eval { "" =~ /$pat/; 1 }      or die "$0: Bad pattern $pat: $@\n";
-while (<>) {
-    print "$ARGV $.: $_" if /$pat/o;
-}
+# ^^INCLUDE^^ include/perl/ch06/paragrep
 #-----------------------------
 $pat = "You lose @{[ system('rm -rf *')]} big here";
 #-----------------------------
@@ -4501,12 +4345,7 @@ body overlaps in no-body-snatcher
 #-----------------------------
 /^(\w+?)(\w+) \2(\w+)$/, 
 #-----------------------------
-#!/usr/bin/perl
-# prime_pattern -- find prime factors of argument using pattern matching
-for ($N = ('o' x shift); $N =~ /^(oo+?)\1+$/; $N =~ s/$1/o/g) {
-    print length($1), " ";
-}
-print length ($N), "\n";
+# ^^INCLUDE^^ include/perl/ch06/prime-pattern
 #-----------------------------
 # solve for 12x + 15y + 16z = 281, maximizing x
 if (($X, $Y, $Z)  =
@@ -4555,12 +4394,7 @@ if ($string =~ /pat1/ || $string =~ /pat2/ ) {
 something
 () }
 #-----------------------------
-#!/usr/bin/perl
-# minigrep - trivial grep
-$pat = shift;
-while (<>) {
-    print if /$pat/o;
-}
+# ^^INCLUDE^^ include/perl/ch06/minigrep
 #-----------------------------
  "labelled" =~ /^(?=.*bell)(?=.*lab)/s
 #-----------------------------
@@ -4772,34 +4606,7 @@ $coderef      = $actions->{$expansion};
 #-----------------------------
 #% urlify ~/mail/*.inbox > ~/allmail.urlified
 #-----------------------------
-#!/usr/bin/perl
-# urlify - wrap HTML links around URL-like constructs
-
-$urls = '(http|telnet|gopher|file|wais|ftp)';
-$ltrs = '\w';
-$gunk = '/#~:.?+=&%@!\-';
-$punc = '.:?\-';
-$any  = "${ltrs}${gunk}${punc}";
-
-while (<>) {
-    s{
-      \b                    # start at word boundary
-      (                     # begin $1  {
-       $urls     :          # need resource and a colon
-       [$any] +?            # followed by on or more
-                            #  of any valid character, but
-                            #  be conservative and take only
-                            #  what you need to....
-      )                     # end   $1  }
-      (?=                   # look-ahead non-consumptive assertion
-       [$punc]*             # either 0 or more punctuation
-       [^$any]              #   followed by a non-url char
-       |                    # or else
-       $                    #   then end of the string
-      )
-     }{<A HREF="$1">$1</A>}igox;
-    print;
-}
+# ^^INCLUDE^^ include/perl/ch06/urlify
 #-----------------------------
 
 # ^^PLEAC^^_6.22
@@ -5500,9 +5307,7 @@ while (<>) {# loop over files on command line
     print if /login/;     
 }
 #-----------------------------
-#!/usr/bin/perl -n     
-# findlogin2 - print all lines containing the string "login"     
-print if /login/;
+# ^^INCLUDE^^ include/perl/ch07/findlogin2
 #-----------------------------
 #% perl -ne 'print if /login/'
 #-----------------------------
@@ -5705,12 +5510,7 @@ select($old_fh);
 use IO::Handle;
 OUTPUT_HANDLE->autoflush(1);
 #-----------------------------
-#!/usr/bin/perl -w
-# seeme - demo stdio output buffering
-$| = (@ARGV > 0);      # command buffered if arguments given
-print "Now you don't see it...";
-sleep 2;
-print "now you do\n";
+# ^^INCLUDE^^ include/perl/ch07/seeme
 #-----------------------------
     select((select(OUTPUT_HANDLE), $| = 1)[0]);
 #-----------------------------
@@ -6014,18 +5814,7 @@ close(OLDERR)                       or die "Can't close OLDERR: $!";
 
 # ^^PLEAC^^_7.21
 #-----------------------------
-#!/usr/bin/perl -w
-# drivelock - demo File::LockDir module
-use strict;
-use File::LockDir;
-$SIG{INT} = sub { die "outta here\n" };
-$File::LockDir::Debug = 1;
-my $path = shift                            or die "usage: $0 <path>\n";
-unless (nflock($path, 2)) {
-    die "couldn't lock $path in 2 seconds\n";
-}
-sleep 100;
-nunflock($path);
+# ^^INCLUDE^^ include/perl/ch07/drivelock
 #-----------------------------
 package File::LockDir;
 # module to provide very basic filename-level
@@ -6640,63 +6429,11 @@ $tie = tie(@lines, $FILE, "DB_File", O_RDWR, 0666, $DB_RECNO) or die
 # extract it
 $line = $lines[$sought - 1];
 #-----------------------------
-#!/usr/bin/perl -w
-# print_line-v1 - linear style
-
-@ARGV == 2 or die "usage: print_line FILENAME LINE_NUMBER\n";
-
-($filename, $line_number) = @ARGV;
-open(INFILE, "< $filename") or die "Can't open $filename for reading: $!\n";
-while (<INFILE>) {
-    $line = $_;
-    last if $. == $line_number;
-}
-if ($. != $line_number) {
-    die "Didn't find line $line_number in $filename\n";
-}
-print;
+# ^^INCLUDE^^ include/perl/ch08/print_line-v1
 #-----------------------------
-#!/usr/bin/perl -w
-# print_line-v2 - index style
-# build_index and line_with_index from above
-@ARGV == 2 or
-    die "usage: print_line FILENAME LINE_NUMBER";
-
-($filename, $line_number) = @ARGV;
-open(ORIG, "< $filename") 
-        or die "Can't open $filename for reading: $!";
-
-# open the index and build it if necessary
-# there's a race condition here: two copies of this
-# program can notice there's no index for the file and
-# try to build one.  This would be easily solved with
-# locking
-$indexname = "$filename.index";
-sysopen(IDX, $indexname, O_CREAT|O_RDWR)
-         or die "Can't open $indexname for read/write: $!";
-build_index(*ORIG, *IDX) if -z $indexname;  # XXX: race unless lock
-
-$line = line_with_index(*ORIG, *IDX, $line_number);
-die "Didn't find line $line_number in $filename" unless defined $line;
-print $line;
+# ^^INCLUDE^^ include/perl/ch08/print_line-v2
 #-----------------------------
-#!/usr/bin/perl -w
-# print_line-v3 - DB_File style
-use DB_File;
-use Fcntl;
-
-@ARGV == 2 or
-    die "usage: print_line FILENAME LINE_NUMBER\n";
-
-($filename, $line_number) = @ARGV;
-$tie = tie(@lines, "DB_File", $filename, O_RDWR, 0666, $DB_RECNO)
-        or die "Cannot open file $filename: $!\n";
-
-unless ($line_number < $tie->length) {
-    die "Didn't find line $line_number in $filename\n"
-}
-
-print $lines[$line_number-1];                        # easy, eh?
+# ^^INCLUDE^^ include/perl/ch08/print_line-v3
 #-----------------------------
 
 # ^^PLEAC^^_8.9
@@ -6764,34 +6501,7 @@ seek(FH, -$RECSIZE, SEEK_CUR)       or die "Seeking: $!";
 print FH $BUFFER;
 close FH                            or die "Closing: $!";
 #-----------------------------
-#!/usr/bin/perl
-# weekearly -- set someone's login date back a week
-use User::pwent;
-use IO::Seekable;
-
-$typedef = 'L A12 A16';         # linux fmt; sunos is "L A8 A16"
-$sizeof  = length(pack($typedef, ()));
-$user    = shift(@ARGV) || $ENV{USER} || $ENV{LOGNAME};
-
-$address = getpwnam($user)->uid * $sizeof;
-
-open (LASTLOG, "+</var/log/lastlog")
-    or die "can't update /usr/adm/lastlog: $!";
-seek(LASTLOG, $address, SEEK_SET)
-    or die "seek failed: $!";
-read(LASTLOG, $buffer, $sizeof) == $sizeof
-    or die "read failed: $!";
-
-($time, $line, $host) = unpack($typedef, $buffer);
-$time  -= 24 * 7 * 60 * 60;         # back-date a week
-$buffer = pack($typedef, $time, $line, $time);
-
-seek(LASTLOG, -$sizeof, SEEK_CUR)   # backup one record
-    or die "seek failed: $!";
-print LASTLOG $record;
-    
-close(LASTLOG)
-    or die "close failed: $!";
+# ^^INCLUDE^^ include/perl/ch08/weekearly
 #-----------------------------
 
 # ^^PLEAC^^_8.14
@@ -6821,14 +6531,7 @@ foreach $addr (@addrs) {
     printf qq{%#x %#o %d "%s"\n}, $addr, $addr, $addr, scalar <>;
 }
 #-----------------------------
-#!/usr/bin/perl
-# strings - pull strings out of a binary file
-$/ = "\0";
-while (<>) {
-    while (/([\040-\176\s]{4,})/g) {
-        print $1, "\n";
-    }
-}
+# ^^INCLUDE^^ include/perl/ch08/strings
 #-----------------------------
 
 # ^^PLEAC^^_8.15
@@ -6987,26 +6690,7 @@ if (open(FILE, "< $file")) {
 
 # ^^PLEAC^^_8.18
 #-----------------------------
-#!/usr/bin/perl
-# tailwtmp - watch for logins and logouts; 
-# uses linux utmp structure, from utmp(5)
-$typedef = 's x2 i A12 A4 l A8 A16 l';
-$sizeof = length pack($typedef, () );
-use IO::File;
-open(WTMP, '/var/log/wtmp') or die "can't open /var/log/wtmp: $!";
-seek(WTMP, 0, SEEK_END);
-for (;;) { 
-        while (read(WTMP, $buffer, $sizeof) == $sizeof) {
-        ($type, $pid,  $line, $id, $time, $user, $host, $addr) 
-            = unpack($typedef, $buffer);
-        next unless $user && ord($user) && $time;
-        printf "%1d %-8s %-12s %2s %-24s %-16s %5d %08x\n", 
-            $type,$user,$line,$id,scalar(localtime($time)), 
-            $host,$pid,$addr;
-    } 
-    for ($size = -s WTMP; $size == -s WTMP; sleep 1) {}
-    WTMP->clearerr();
-}
+# ^^INCLUDE^^ include/perl/ch08/tailwtmp
 #-----------------------------
 
 # ^^PLEAC^^_8.19
@@ -7149,14 +6833,7 @@ utime(time, $mtime, $file);
 use File::stat;
 utime(time, stat($file)->mtime, $file);
 #-----------------------------
-#!/usr/bin/perl -w
-# uvi - vi a file without changing its access times
-
-$file = shift or die "usage: uvi filename\n";
-($atime, $mtime) = (stat($file))[8,9];
-system($ENV{EDITOR} || "vi", $file);
-utime($atime, $mtime, $file)
-    or die "couldn't restore $file to orig times: $!";
+# ^^INCLUDE^^ include/perl/ch09/uvi
 #-----------------------------
 
 # ^^PLEAC^^_9.2
@@ -7351,13 +7028,7 @@ sub youngest {
 find(\&youngest, @ARGV);
 print "$name " . scalar(localtime($age)) . "\n";
 #-----------------------------
-#!/usr/bin/perl -lw
-# fdirs - find all directories
-@ARGV = qw(.) unless @ARGV;
-use File::Find ();
-sub find(&@) { &File::Find::find }
-*name = *File::Find::name;
-find { print $name if -d } @ARGV;
+# ^^INCLUDE^^ include/perl/ch09/fdirs
 #-----------------------------
 find sub { print $File::Find::name if -d }, @ARGV;
 #-----------------------------
@@ -7366,29 +7037,9 @@ find { print $name if -d } @ARGV;
 
 # ^^PLEAC^^_9.8
 #-----------------------------
-#!/usr/bin/perl
-# rmtree1 - remove whole directory trees like rm -r
-use File::Find qw(finddepth);
-die "usage: $0 dir ..\n" unless @ARGV;
-*name = *File::Find::name;
-finddepth \&zap, @ARGV;
-sub zap {
-    if (!-l && -d _) {
-        print "rmdir $name\n";
-        rmdir($name)  or warn "couldn't rmdir $name: $!";
-    } else {
-        print "unlink $name";
-        unlink($name) or warn "couldn't unlink $name: $!";
-    }
-}
+# ^^INCLUDE^^ include/perl/ch09/rmtree1
 #-----------------------------
-#!/usr/bin/perl
-# rmtree2 - remove whole directory trees like rm -r
-use File::Path;
-die "usage: $0 dir ..\n" unless @ARGV;
-    foreach $dir (@ARGV) {
-    rmtree($dir);
-}
+# ^^INCLUDE^^ include/perl/ch09/rmtree2
 #-----------------------------
 
 # ^^PLEAC^^_9.9
@@ -7400,16 +7051,7 @@ foreach $file (@NAMES) {
         warn "Couldn't rename $file to $newname: $!\n";
 }
 #-----------------------------
-#!/usr/bin/perl -w
-# rename - Larry's filename fixer
-$op = shift or die "Usage: rename expr [files]\n";
-chomp(@ARGV = <STDIN>) unless @ARGV;
-for (@ARGV) {
-    $was = $_;
-    eval $op;
-    die $@ if $@;
-    rename($was,$_) unless $was eq $_;
-}
+# ^^INCLUDE^^ include/perl/ch09/rename
 #-----------------------------
 #% rename 's/\.orig$//'  *.orig
 #% rename 'tr/A-Z/a-z/ unless /^Make/'  *
@@ -8111,28 +7753,9 @@ sub outer {
 
 # ^^PLEAC^^_10.17
 #-----------------------------
-#!/usr/bin/perl 
-# bysub1 - simple sort by subject
-my(@msgs, @sub);
-my $msgno = -1;
-$/ = '';                    # paragraph reads
-while (<>) {
-    if (/^From/m) {
-        /^Subject:\s*(?:Re:\s*)*(.*)/mi;
-        $sub[++$msgno] = lc($1) || '';
-    }
-    $msgs[$msgno] .= $_;
-} 
-for my $i (sort { $sub[$a] cmp $sub[$b] || $a <=> $b } (0 .. $#msgs)) {
-    print $msgs[$i];
-}
+# ^^INCLUDE^^ include/perl/ch10/bysub1
 #-----------------------------
-#!/usr/bin/perl -n00
-# bysub2 - awkish sort-by-subject
-BEGIN { $msgno = -1 }
-$sub[++$msgno] = (/^Subject:\s*(?:Re:\s*)*(.*)/mi)[0] if /^From/m;
-$msg[$msgno] .= $_;
-END { print @msg[ sort { $sub[$a] cmp $sub[$b] || $a <=> $b } (0 .. $#msg) ] }
+# ^^INCLUDE^^ include/perl/ch10/bysub2
 #-----------------------------
 #!/usr/bin/perl -00
 # bysub3
@@ -9314,20 +8937,7 @@ sub time() {
 
 1;
 #-----------------------------
-#!/usr/bin/perl -w
-# jam - stuff characters down STDIN's throat
-require 'sys/ioctl.ph';
-die "no TIOCSTI" unless defined &TIOCSTI;
-sub jam {
-    local $SIG{TTOU} = "IGNORE"; # "Stopped for tty output"
-    local *TTY;  # make local filehandle
-    open(TTY, "+</dev/tty")                 or die "no tty: $!";
-    for (split(//, $_[0])) {
-        ioctl(TTY, &TIOCSTI, $_)            or die "bad TIOCSTI: $!";
-    }
-    close(TTY);
-}
-jam("@ARGV\n");
+# ^^INCLUDE^^ include/perl/ch12/jam
 #-----------------------------
 #% cat > tio.c <<EOF && cc tio.c && a.out
 ##include <sys/ioctl.h>
@@ -9335,18 +8945,7 @@ jam("@ARGV\n");
 #EOF
 #0x005412
 #-----------------------------
-#!/usr/bin/perl
-# winsz - find x and y for chars and pixels
-require 'sys/ioctl.ph';
-die "no TIOCGWINSZ " unless defined &TIOCGWINSZ;
-open(TTY, "+</dev/tty")                     or die "No tty: $!";
-unless (ioctl(TTY, &TIOCGWINSZ, $winsize='')) {
-    die sprintf "$0: ioctl TIOCGWINSZ (%08x: $!)\n", &TIOCGWINSZ;
-}
-($row, $col, $xpixel, $ypixel) = unpack('S4', $winsize);
-print "(row,col) = ($row,$col)";
-print "  (xpixel,ypixel) = ($xpixel,$ypixel)" if $xpixel || $ypixel;
-print "\n";
+# ^^INCLUDE^^ include/perl/ch12/winsz
 #-----------------------------
 
 # ^^PLEAC^^_12.15
@@ -9642,148 +9241,7 @@ END { }       # module clean-up code here (global destructor)
 #
 #    ...
 #-----------------------------
-#!/usr/bin/perl -w
-# pmdesc - describe pm files
-# tchrist@perl.com
-
-use strict;
-use File::Find      qw(find);
-use Getopt::Std     qw(getopts);
-use Carp;
-
-use vars (
-    q!$opt_v!,              # give debug info
-    q!$opt_w!,              # warn about missing descs on modules
-    q!$opt_a!,              # include relative paths
-    q!$opt_s!,              # sort output within each directory
-);
-
-$| = 1;
-
-getopts('wvas')             or die "bad usage";
-
-@ARGV = @INC unless @ARGV;
-
-# Globals.  wish I didn't really have to do this.
-use vars (
-    q!$Start_Dir!,          # The top directory find was called with
-    q!%Future!,             # topdirs find will handle later
-);
-
-my $Module;
-
-# install an output filter to sort my module list, if wanted.
-if ($opt_s) {
-    if (open(ME, "-|")) {
-        $/ = '';
-        while (<ME>) {
-            chomp;
-            print join("\n", sort split /\n/), "\n";
-        }
-        exit;
-    }
-}
-
-MAIN: {
-    my %visited;
-    my ($dev,$ino);
-
-    @Future{@ARGV} = (1) x @ARGV;
-
-    foreach $Start_Dir (@ARGV) {
-        delete $Future{$Start_Dir};
-
-        print "\n<<Modules from $Start_Dir>>\n\n"
-            if $opt_v;
-
-        next unless ($dev,$ino) = stat($Start_Dir);
-        next if $visited{$dev,$ino}++;
-        next unless $opt_a || $Start_Dir =~ m!^/!;
-
-        find(\&wanted, $Start_Dir);
-    }
-    exit;
-}
-
-# calculate module name from file and directory
-sub modname {
-    local $_ = $File::Find::name;
-
-    if (index($_, $Start_Dir . '/') == 0) {
-        substr($_, 0, 1+length($Start_Dir)) = '';
-    }
-
-    s { /              }    {::}gx;
-    s { \.p(m|od)$     }    {}x;
-
-    return $_;
-}
-
-# decide if this is a module we want
-sub wanted {
-    if ( $Future{$File::Find::name} ) {
-        warn "\t(Skipping $File::Find::name, qui venit in futuro.)\n"
-            if 0 and $opt_v;
-        $File::Find::prune = 1;
-        return;
-    }
-    return unless /\.pm$/ && -f;
-    $Module = &modname;
-    # skip obnoxious modules
-    if ($Module =~ /^CPAN(\Z|::)/) {
-        warn("$Module -- skipping because it misbehaves\n");
-        return;
-    }
-
-    my    $file = $_;
-
-    unless (open(POD, "< $file")) {
-        warn "\tcannot open $file: $!";
-            # if $opt_w;
-        return 0;
-    }
-
-    $: = " -:";
-
-    local $/ = '';
-    local $_;
-    while (<POD>) {
-        if (/=head\d\s+NAME/) {
-            chomp($_ = <POD>);
-            s/^.*?-\s+//s;
-            s/\n/ /g;
-            #write;
-            my $v;
-            if (defined ($v = getversion($Module))) {
-                print "$Module ($v) ";
-            } else {
-                print "$Module ";
-            }
-            print "- $_\n";
-            return 1;
-        }
-    }
-
-    warn "\t(MISSING DESC FOR $File::Find::name)\n"
-        if $opt_w;
-
-    return 0;
-}
-
-# run Perl to load the module and print its verson number, redirecting
-# errors to /dev/null
-sub getversion {
-    my $mod = shift;
-
-    my $vers = `$^X -m$mod -e 'print \$${mod}::VERSION' 2>/dev/null`;
-    $vers =~ s/^\s*(.*?)\s*$/$1/; # remove stray whitespace
-    return ($vers || undef);
-}
-
-format  =
-^<<<<<<<<<<<<<<<<<~~^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-$Module,        $_
-.
+# ^^INCLUDE^^ include/perl/ch12/pmdesc
 #-----------------------------
 
 # ^^PLEAC^^_13.0
@@ -10806,30 +10264,7 @@ $color = 'green';
 print "$color $color $color $color $color $color\n";
 green red blue green red blue
 #-----------------------------
-package ValueRing;
-
-# this is the constructor for scalar ties
-sub TIESCALAR {
-    my ($class, @values) = @_;
-    bless  \@values, $class;
-    return \@values;
-} 
-
-# this intercepts read accesses
-sub FETCH {
-    my $self = shift;
-    push(@$self, shift(@$self));
-    return $self->[-1];
-} 
-
-# this intercepts write accesses
-sub STORE {
-    my ($self, $value) = @_;
-    unshift @$self, $value;
-    return $value;
-} 
-
-1;
+# ^^INCLUDE^^ include/perl/ch13/ValueRing
 #-----------------------------
 no UnderScore;
 #-----------------------------
@@ -11006,17 +10441,7 @@ while (<CH>) {
     print "Got $_\n";
 } 
 #-----------------------------
-package Counter;
-sub TIEHANDLE {
-    my $class = shift;
-    my $start = shift;
-    return bless \$start => $class;
-} 
-sub READLINE {
-    my $self = shift;
-    return ++$$self;
-} 
-1;
+# ^^INCLUDE^^ include/perl/ch13/Counter
 #-----------------------------
 use Tie::Tee;
 tie *TEE, 'Tie::Tee', *STDOUT, *STDERR;
@@ -11097,37 +10522,7 @@ if (exists $HASH{$KEY}) {         # check whether in database
 delete $HASH{$KEY};               # delete from database
 untie %hash;                      # close the database
 #-----------------------------
-#!/usr/bin/perl -w
-# userstats - generates statistics on who is logged in.
-# call with an argument to display totals
-
-use DB_File;
-
-$db = '/tmp/userstats.db';       # where data is kept between runs
-
-tie(%db, 'DB_File', $db)         or die "Can't open DB_File $db : $!\n";
-
-if (@ARGV) {
-    if ("@ARGV" eq "ALL") {
-        @ARGV = sort keys %db;
-    }
-    foreach $user (@ARGV) {
-            print "$user\t$db{$user}\n";
-    }
-} else {
-    @who = `who`;                                   # run who(1)
-    if ($?) {
-        die "Couldn't run who: $?\n";               # exited abnormally
-    }
-    # extract username (first thing on the line) and update
-    foreach $line (@who) {
-        $line =~ /^(\S+)/;
-        die "Bad line from who: $line\n" unless $1;
-        $db{$1}++;
-    }
-}
-
-untie %db;
+# ^^INCLUDE^^ include/perl/ch14/userstats
 #-----------------------------
 gnat     ttyp1   May 29 15:39   (coprolith.frii.com)
 #-----------------------------
@@ -11152,35 +10547,7 @@ dbmopen(%HASH, $FILENAME, 0666)
 
 # ^^PLEAC^^_14.3
 #-----------------------------
-#!/usr/bin/perl -w
-# db2gdbm: converts DB to GDBM
-
-use strict;
-
-use DB_File;
-use GDBM_File;
-
-unless (@ARGV == 2) {
-    die "usage: db2gdbm infile outfile\n";
-}
-
-my ($infile, $outfile) = @ARGV;                     
-my (%db_in, %db_out);                               
-
-# open the files
-tie(%db_in, 'DB_File', $infile)
-    or die "Can't tie $infile: $!";
-tie(%db_out, 'GDBM_File', $outfile, GDBM_WRCREAT, 0666)
-    or die "Can't tie $outfile: $!";
-
-# copy (don't use %db_out = %db_in because it's slow on big databases)
-while (my($k, $v) = each %db_in) {
-    $db_out{$k} = $v;
-}
-
-# these unties happen automatically at program exit
-untie %db_in;
-untie %db_out;
+# ^^INCLUDE^^ include/perl/ch14/db2gdbm
 #-----------------------------
 #% db2gdbm /tmp/users.db /tmp/users.gdbm
 #-----------------------------
@@ -11203,56 +10570,7 @@ foreach $href ( \%INPUT1, \%INPUT2 ) {
 
 # ^^PLEAC^^_14.5
 #-----------------------------
-#!/usr/bin/perl
-# dblockdemo - demo locking dbm databases
-use DB_File;
-use strict;
-
-sub LOCK_SH { 1 }                   # In case you don't have
-sub LOCK_EX { 2 }                   # the standard Fcntl module.  You
-sub LOCK_NB { 4 }                   # should, but who can tell
-sub LOCK_UN { 8 }                   # how those chips fall?
-
-my($oldval, $fd, $db, %db, $value, $key);
-
-$key    = shift || 'default';
-$value  = shift || 'magic';
-$value .= " $$";
-
-$db = tie(%db, 'DB_File', '/tmp/foo.db', O_CREAT|O_RDWR, 0666)
-    or die "dbcreat /tmp/foo.db $!";
-$fd = $db->fd;                      # need this for locking
-print "$$: db fd is $fd\n";
-open(DB_FH, "+<&=$fd")
-    or die "dup $!";
-
-unless (flock (DB_FH, LOCK_SH | LOCK_NB)) {
-    print "$$: CONTENTION; can't read during write update!
-                Waiting for read lock ($!) ....";
-    unless (flock (DB_FH, LOCK_SH)) { die "flock: $!" }
-}
-print "$$: Read lock granted\n";
-
-$oldval = $db{$key};
-print "$$: Old value was $oldval\n";
-flock(DB_FH, LOCK_UN);
-
-unless (flock (DB_FH, LOCK_EX | LOCK_NB)) {
-    print "$$: CONTENTION; must have exclusive lock!
-                Waiting for write lock ($!) ....";
-    unless (flock (DB_FH, LOCK_EX)) { die "flock: $!" }
-}
-
-print "$$: Write lock granted\n";
-$db{$key} = $value;
-$db->sync;  # to flush
-sleep 10;
-
-flock(DB_FH, LOCK_UN);
-undef $db;
-untie %db;
-close(DB_FH);
-print "$$: Updated db to $key=$value\n";
+# ^^INCLUDE^^ include/perl/ch14/dblockdemo
 #-----------------------------
 
 # ^^PLEAC^^_14.6
@@ -11321,75 +10639,7 @@ tie(@array, "DB_File", "/tmp/textfile", O_RDWR|O_CREAT, 0666, $DB_RECNO)
 $array[4] = "a new line";
 untie @array;
 #-----------------------------
-#!/usr/bin/perl -w
-# recno_demo - show how to use the raw API on recno bindings
-use strict;
-use vars qw(@lines $dbobj $file $i);
-use DB_File;
-
-$file = "/tmp/textfile";
-unlink $file;               # just in case
-
-$dbobj = tie(@lines, "DB_File", $file, O_RDWR|O_CREAT, 0666, $DB_RECNO)
-    or die "Cannot open file $file: $!\n";
-
-# first create a text file to play with
-$lines[0] = "zero";
-$lines[1] = "one";
-$lines[2] = "two";
-$lines[3] = "three";
-$lines[4] = "four";
-
-# Print the records in order.
-#
-# The length method is needed here because evaluating a tied
-# array in a scalar context does not return the number of
-# elements in the array.
-
-print "\nORIGINAL\n";
-foreach $i (0 .. $dbobj->length - 1) {
-    print "$i: $lines[$i]\n";
-}
-
-# use the push & pop methods
-$a = $dbobj->pop;
-$dbobj->push("last");
-print "\nThe last record was [$a]\n";
-
-# and the shift & unshift methods
-$a = $dbobj->shift;
-$dbobj->unshift("first");
-print "The first record was [$a]\n";
-
-# Use the API to add a new record after record 2.
-$i = 2;
-$dbobj->put($i, "Newbie", R_IAFTER);
-    
-# and a new record before record 1.
-$i = 1;
-$dbobj->put($i, "New One", R_IBEFORE);
-
-# delete record 3
-$dbobj->del(3);
-
-# now print the records in reverse order
-print "\nREVERSE\n";
-for ($i = $dbobj->length - 1; $i >= 0; -- $i) {
-    print "$i: $lines[$i]\n";
-}
-
-# same again, but use the API functions instead
-print "\nREVERSE again\n";
-my ($s, $k, $v)  = (0, 0, 0);
-for ($s = $dbobj->seq($k, $v, R_LAST);
-     $s == 0;
-     $s = $dbobj->seq($k, $v, R_PREV))
-{
-    print "$k: $v\n"
-}
-
-undef $dbobj;
-untie @lines;
+# ^^INCLUDE^^ include/perl/ch14/recno_demo
 #-----------------------------
 #ORIGINAL
 #
@@ -11915,20 +11165,7 @@ ReadMode('cbreak');
 $key = ReadKey(0);
 ReadMode('normal');
 #-----------------------------
-#!/usr/bin/perl -w
-# sascii - Show ASCII values for keypresses
-
-use Term::ReadKey;
-ReadMode('cbreak');
-print "Press keys to see their ASCII values.  Use Ctrl-C to quit.\n";
-
-while (1) {
-    $char = ReadKey(0);
-    last unless defined $char;
-    printf(" Decimal: %d\tHex: %x\n", ord($char), ord($char));
-}
-
-ReadMode('normal');
+# ^^INCLUDE^^ include/perl/ch15/sascii
 #-----------------------------
 
 # ^^PLEAC^^_15.7
@@ -12125,47 +11362,7 @@ $term->remove_history($line_number);
 #% rep netstat
 #% rep -2.5 lpq
 #-----------------------------
-#!/usr/bin/perl -w
-# rep - screen repeat command
-use strict;
-use Curses;
-
-my $timeout = 10;
-if (@ARGV && $ARGV[0] =~ /^-(\d+\.?\d*)$/) { 
-    $timeout = $1; 
-    shift; 
-} 
-
-die "usage: $0 [ -timeout ] cmd args\n" unless @ARGV;
-    
-initscr();          # start screen
-noecho();           
-cbreak(); 
-nodelay(1);         # so getch() is non-blocking
-
-$SIG{INT} = sub { done("Ouch!") };
-sub done { endwin(); print "@_\n"; exit; }
-
-while (1) {
-    while ((my $key = getch()) ne ERR) {    # maybe multiple keys
-        done("See ya") if $key eq 'q' 
-    }
-    my @data = `(@ARGV) 2>&1`;              # gather output+errors
-    for (my $i = 0; $i < $LINES; $i++) {
-        addstr($i, 0, $data[$i] || ' ' x $COLS);
-    } 
-
-    standout();
-    addstr($LINES-1, $COLS - 24, scalar localtime);
-    standend();
-
-    move(0,0); 
-    refresh();                              # flush new output to display
-
-    my ($in, $out) = ('', '');
-    vec($in,fileno(STDIN),1) = 1;           # look for key on stdin 
-    select($out = $in,undef,undef,$timeout);# wait up to this long
-}
+# ^^INCLUDE^^ include/perl/ch15/rep
 #-----------------------------
 keypad(1);                  # enable keypad mode
 $key = getch();
@@ -12341,62 +11538,7 @@ if ($button eq "Register") {
     # this shouldn't happen
 }
 #-----------------------------
-#!/usr/bin/perl -w
-# tksample3 - demonstrate dialog boxes
-
-use Tk;
-use Tk::DialogBox;
-
-$main = MainWindow->new();
-
-$dialog = $main->DialogBox( -title   => "Register",
-                            -buttons => [ "Register", "Cancel" ],
-                           );
-
-# the top part of the dialog box will let people enter their names,
-# with a Label as a prompt
-
-$dialog->add("Label", -text => "Name")->pack();
-$entry = $dialog->add("Entry", -width => 35)->pack();
-
-# we bring up the dialog box with a button
-$main->Button( -text    => "Click Here For Registration Form",
-               -command => \&register)    ->pack(-side => "left");
-$main->Button( -text    => "Quit",
-               -command => sub { exit } ) ->pack(-side => "left");
-
-MainLoop;
-
-#
-# register
-#
-# Called to pop up the registration dialog box
-#
-
-sub register {
-    my $button;
-    my $done = 0;
-
-    do {    
-        # show the dialog
-        $button = $dialog->Show;
-
-        # act based on what button they pushed
-        if ($button eq "Register") {
-                my $name = $entry->get;
-
-            if (defined($name) && length($name)) {
-                print "Welcome to the fold, $name\n";
-                $done = 1;
-            } else {
-                print "You didn't give me your name!\n";
-            }
-        } else {
-            print "Sorry you decided not to register.\n";
-            $done = 1;
-        }
-    } until $done;
-}
+# ^^INCLUDE^^ include/perl/ch15/tksample3
 #-----------------------------
 #!/usr/bin/perl -w
 # tksample4 - popup dialog boxes for warnings
@@ -12466,101 +11608,12 @@ $menubar->pack (-fill     => "x",
 
 # ^^PLEAC^^_15.17
 #-----------------------------
-#!/usr/bin/perl -w
-# loader - starts Perl scripts without the annoying DOS window
-use strict;
-use Win32;
-use Win32::Process;
-
-# Create the process object.
-
-Win32::Process::Create($Win32::Process::Create::ProcessObj,
-    'C:/perl5/bin/perl.exe',            # Whereabouts of Perl
-    'perl realprogram',                 #
-    0,                                  # Don't inherit.
-    DETACHED_PROCESS,                   #
-    ".") or                             # current dir.
-die print_error();
-
-sub print_error() {
-    return Win32::FormatMessage( Win32::GetLastError() );
-}
+# ^^INCLUDE^^ include/perl/ch15/loader
 #-----------------------------
 
 # ^^PLEAC^^_15.18
 #-----------------------------
-#!/usr/bin/perl -w
-# tcapdemo - show off direct cursor placement
-
-use POSIX;
-use Term::Cap;
-    
-init();                     # Initialize Term::Cap.
-zip();                      # Bounce lines around the screen.
-finish();                   # Clean up afterward.
-exit();
-
-# Two convenience functions.  clear_screen is obvious, and
-# clear_end clears to the end of the screen.
-sub clear_screen { $tcap->Tputs('cl', 1, *STDOUT) } 
-sub clear_end    { $tcap->Tputs('cd', 1, *STDOUT) } 
-
-# Move the cursor to a particular location.
-sub gotoxy {
-    my($x, $y) = @_;
-    $tcap->Tgoto('cm', $x, $y, *STDOUT);
-} 
-
-# Get the terminal speed through the POSIX module and use that
-# to initialize Term::Cap.
-sub init { 
-    $| = 1;
-    $delay = (shift() || 0) * 0.005;
-    my $termios = POSIX::Termios->new();
-    $termios->getattr;
-    my $ospeed = $termios->getospeed;
-    $tcap = Term::Cap->Tgetent ({ TERM => undef, OSPEED => $ospeed });
-    $tcap->Trequire(qw(cl cm cd));
-}
-
-# Bounce lines around the screen until the user interrupts with
-# Ctrl-C.
-sub zip { 
-    clear_screen();
-    ($maxrow, $maxcol) = ($tcap->{_li} - 1, $tcap->{_co} - 1);
-
-    @chars = qw(* - / | \ _ );
-    sub circle { push(@chars, shift @chars); }
-
-    $interrupted = 0;
-    $SIG{INT} = sub { ++$interrupted };
-
-    $col = $row = 0;
-    ($row_sign, $col_sign) = (1,1);
-
-    do {
-        gotoxy($col, $row);
-        print $chars[0];
-        select(undef, undef, undef, $delay);
-
-        $row += $row_sign;
-        $col += $col_sign;
-
-        if    ($row == $maxrow) { $row_sign = -1; circle; } 
-        elsif ($row == 0 )      { $row_sign = +1; circle; }
-
-        if    ($col == $maxcol) { $col_sign = -1; circle; } 
-        elsif ($col == 0 )      { $col_sign = +1; circle; }
-    
-    } until $interrupted;
-
-}
-
-# Clean up the screen.
-sub finish { 
-    gotoxy(0, $maxrow);
-    clear_end();
-}
+# ^^INCLUDE^^ include/perl/ch15/tcapdemo
 #-----------------------------
 #*     _                       /     |                       \     -
 # *   _ \                     - /   | /                     | \   - *
@@ -13038,135 +12091,17 @@ if ($pid = open(CHILD, "-|")) {
     # otherwise run child code here, writing to parent
 }
 #-----------------------------
-#!/usr/bin/perl -w
-# pipe1 - use pipe and fork so parent can send to child
-
-use IO::Handle;
-pipe(READER, WRITER);
-WRITER->autoflush(1);
-
-if ($pid = fork) {
-    close READER;
-    print WRITER "Parent Pid $$ is sending this\n";
-    close WRITER;
-    waitpid($pid,0);
-} else {
-    die "cannot fork: $!" unless defined $pid;
-    close WRITER;
-    chomp($line = <READER>);
-    print "Child Pid $$ just read this: `$line'\n";
-    close READER;  # this will happen anyway
-    exit;
-}
+# ^^INCLUDE^^ include/perl/ch16/pipe1
 #-----------------------------
-#!/usr/bin/perl -w
-# pipe2 - use pipe and fork so child can send to parent
-
-use IO::Handle;
-pipe(READER, WRITER);
-WRITER->autoflush(1);
-
-if ($pid = fork) {
-    close WRITER;
-    chomp($line = <READER>);
-    print "Parent Pid $$ just read this: `$line'\n";
-    close READER;
-    waitpid($pid,0);
-} else {
-    die "cannot fork: $!" unless defined $pid;
-    close READER;
-    print WRITER "Child Pid $$ is sending this\n";
-    close WRITER;  # this will happen anyway
-    exit;
-}
+# ^^INCLUDE^^ include/perl/ch16/pipe2
 #-----------------------------
-#!/usr/bin/perl -w
-# pipe3 - use forking open so parent can send to child
-
-use IO::Handle;
-if ($pid = open(CHILD, "|-")) {
-    CHILD->autoflush(1);
-    print CHILD "Parent Pid $$ is sending this\n";
-    close(CHILD);
-} else {
-    die "cannot fork: $!" unless defined $pid;
-    chomp($line = <STDIN>);
-    print "Child Pid $$ just read this: `$line'\n";
-    exit;
-}
+# ^^INCLUDE^^ include/perl/ch16/pipe3
 #-----------------------------
-#!/usr/bin/perl -w
-# pipe4 - use forking open so child can send to parent
-
-use IO::Handle;
-if ($pid = open(CHILD, "-|")) {
-    chomp($line = <CHILD>);
-    print "Parent Pid $$ just read this: `$line'\n";
-    close(CHILD);
-} else {
-    die "cannot fork: $!" unless defined $pid;
-    STDOUT->autoflush(1);
-    print STDOUT "Child Pid $$ is sending this\n";
-    exit;
-}
+# ^^INCLUDE^^ include/perl/ch16/pipe4
 #-----------------------------
-#!/usr/bin/perl -w
-# pipe5 - bidirectional communication using two pipe pairs
-#         designed for the socketpair-challenged
-use IO::Handle;
-pipe(PARENT_RDR, CHILD_WTR);
-pipe(CHILD_RDR,  PARENT_WTR);
-CHILD_WTR->autoflush(1);
-PARENT_WTR->autoflush(1);
-
-if ($pid = fork) {
-    close PARENT_RDR; close PARENT_WTR;
-    print CHILD_WTR "Parent Pid $$ is sending this\n";
-    chomp($line = <CHILD_RDR>);
-    print "Parent Pid $$ just read this: `$line'\n";
-    close CHILD_RDR; close CHILD_WTR;
-    waitpid($pid,0);
-} else {
-    die "cannot fork: $!" unless defined $pid;
-    close CHILD_RDR; close CHILD_WTR;
-    chomp($line = <PARENT_RDR>);
-    print "Child Pid $$ just read this: `$line'\n";
-    print PARENT_WTR "Child Pid $$ is sending this\n";
-    close PARENT_RDR; close PARENT_WTR;
-    exit;
-}
+# ^^INCLUDE^^ include/perl/ch16/pipe5
 #-----------------------------
-#!/usr/bin/perl -w
-# pipe6 - bidirectional communication using socketpair
-#   "the best ones always go both ways"
-
-use Socket;
-use IO::Handle;
-# We say AF_UNIX because although *_LOCAL is the
-# POSIX 1003.1g form of the constant, many machines
-# still don't have it.
-socketpair(CHILD, PARENT, AF_UNIX, SOCK_STREAM, PF_UNSPEC)
-    or  die "socketpair: $!";
-
-CHILD->autoflush(1);
-PARENT->autoflush(1);
-
-if ($pid = fork) {
-    close PARENT;
-    print CHILD "Parent Pid $$ is sending this\n";
-    chomp($line = <CHILD>);
-    print "Parent Pid $$ just read this: `$line'\n";
-    close CHILD;
-    waitpid($pid,0);
-} else {
-    die "cannot fork: $!" unless defined $pid;
-    close CHILD;
-    chomp($line = <PARENT>);
-    print "Child Pid $$ just read this: `$line'\n";
-    print PARENT "Child Pid $$ is sending this\n";
-    close PARENT;
-    exit;
-}
+# ^^INCLUDE^^ include/perl/ch16/pipe6
 #-----------------------------
 socketpair(READER, WRITER, AF_UNIX, SOCK_STREAM, PF_UNSPEC);
 shutdown(READER, 1);        # no more writing for reader
@@ -13190,50 +12125,9 @@ close(FIFO);
 #% mkfifo ~/.plan                    # isn't this everywhere yet?
 #% mknod  ~/.plan p                  # in case you don't have mkfifo
 #-----------------------------
-#!/usr/bin/perl -w
-# dateplan - place current date and time in .plan file
-while (1) {
-    open(FIFO, "> $ENV{HOME}/.plan")
-        or die "Couldn't open $ENV{HOME}/.plan for writing: $!\n";
-    print FIFO "The current time is ", scalar(localtime), "\n";
-    close FIFO;
-    sleep 1;
-}
+# ^^INCLUDE^^ include/perl/ch16/dateplan
 #-----------------------------
-#!/usr/bin/perl -w
-# fifolog - read and record log msgs from fifo
-
-use IO::File;
-
-$SIG{ALRM} = sub { close(FIFO) };   # move on to the next queued process
-
-while (1) {
-    alarm(0);                       # turn off alarm for blocking open
-    open(FIFO, "< /tmp/log")        or die "Can't open /tmp/log : $!\n";
-    alarm(1);                       # you have 1 second to log
-
-    $service = <FIFO>;
-    next unless defined $service;   # interrupted or nothing logged
-    chomp $service;
-
-    $message = <FIFO>;
-    next unless defined $message;   # interrupted or nothing logged
-    chomp $message;
-
-    alarm(0);                       # turn off alarms for message processing
-
-    if ($service eq "http") {
-        # ignoring
-    } elsif ($service eq "login") {
-        # log to /var/log/login
-        if ( open(LOG, ">> /tmp/login") ) {
-            print LOG scalar(localtime), " $service $message\n";
-            close(LOG);
-        } else {
-            warn "Couldn't log $service $message to /var/log/login : $!\n";
-        }
-    }
-}
+# ^^INCLUDE^^ include/perl/ch16/fifolog
 #-----------------------------
 use POSIX qw(:errno_h);
 
@@ -13251,38 +12145,7 @@ print _POSIX_PIPE_BUF, "\n";
 
 # ^^PLEAC^^_16.12
 #-----------------------------
-#!/usr/bin/perl 
-# sharetest - test shared variables across forks
-use IPC::Shareable;
-
-$handle = tie $buffer, 'IPC::Shareable', undef, { destroy => 1 };
-$SIG{INT} = sub { die "$$ dying\n" };
-
-for (1 .. 10) { 
-    unless ($child = fork) {        # i'm the child
-        die "cannot fork: $!" unless defined $child;
-        squabble();
-        exit;
-    } 
-    push @kids, $child;  # in case we care about their pids
-}
-
-while (1) {
-    print "Buffer is $buffer\n";
-    sleep 1;
-} 
-die "Not reached";
-
-sub squabble {
-    my $i = 0;
-    while (1) { 
-        next if $buffer =~ /^$$\b/o;  
-        $handle->shlock();
-        $i++;
-        $buffer = "$$ $i";
-        $handle->shunlock();
-    }
-} 
+# ^^INCLUDE^^ include/perl/ch16/sharetest
 #-----------------------------
 
 # ^^PLEAC^^_16.13
@@ -13971,26 +12834,7 @@ print "$host($portno) said $MSG\n";
 send(MYSOCKET, $msg_buffer, $flags, $remote_addr)
     or die "Can't send: $!\n";
 #-----------------------------
-#!/usr/bin/perl
-# clockdrift - compare another system's clock with this one
-use strict;
-use Socket;
-
-my ($host, $him, $src, $port, $ipaddr, $ptime, $delta);
-my $SECS_of_70_YEARS      = 2_208_988_800;
-
-socket(MsgBox, PF_INET, SOCK_DGRAM, getprotobyname("udp"))
-    or die "socket: $!";
-$him = sockaddr_in(scalar(getservbyname("time", "udp")), 
-    inet_aton(shift || '127.1'));
-defined(send(MsgBox, 0, 0, $him))
-    or die "send: $!";
-defined($src = recv(MsgBox, $ptime, 4, 0))
-    or die "recv: $!";
-($port, $ipaddr) = sockaddr_in($src);
-$host = gethostbyaddr($ipaddr, AF_INET);
-my $delta = (unpack("N", $ptime) - $SECS_of_70_YEARS) - time();
-print "Clock on $host is $delta seconds ahead of this one.\n";
+# ^^INCLUDE^^ include/perl/ch17/clockdrift
 #-----------------------------
 
 # ^^PLEAC^^_17.5
@@ -14004,58 +12848,9 @@ while ($him = $server->recv($datagram, $MAX_TO_READ, $flags)) {
     # do something
 } 
 #-----------------------------
-#!/usr/bin/perl -w
-# udpqotd - UDP message server
-use strict;
-use IO::Socket;
-my($sock, $oldmsg, $newmsg, $hisaddr, $hishost, $MAXLEN, $PORTNO);
-$MAXLEN = 1024;
-$PORTNO = 5151;
-$sock = IO::Socket::INET->new(LocalPort => $PORTNO, Proto => 'udp')
-    or die "socket: $@";
-print "Awaiting UDP messages on port $PORTNO\n";
-$oldmsg = "This is the starting message.";
-while ($sock->recv($newmsg, $MAXLEN)) {
-    my($port, $ipaddr) = sockaddr_in($sock->peername);
-    $hishost = gethostbyaddr($ipaddr, AF_INET);
-    print "Client $hishost said ``$newmsg''\n";
-    $sock->send($oldmsg);
-    $oldmsg = "[$hishost] $newmsg";
-} 
-die "recv: $!";
+# ^^INCLUDE^^ include/perl/ch17/udpqofd
 #-----------------------------
-#!/usr/bin/perl -w
-# udpmsg - send a message to the udpquotd server
-
-use IO::Socket;
-use strict;
-
-my($sock, $server_host, $msg, $port, $ipaddr, $hishost, 
-   $MAXLEN, $PORTNO, $TIMEOUT);
-
-$MAXLEN  = 1024;
-$PORTNO  = 5151;
-$TIMEOUT = 5;
-
-$server_host = shift;
-$msg         = "@ARGV";
-$sock = IO::Socket::INET->new(Proto     => 'udp',
-                              PeerPort  => $PORTNO,
-                              PeerAddr  => $server_host)
-    or die "Creating socket: $!\n";
-$sock->send($msg) or die "send: $!";
-
-eval {
-    local $SIG{ALRM} = sub { die "alarm time out" };
-    alarm $TIMEOUT;
-    $sock->recv($msg, $MAXLEN)      or die "recv: $!";
-    alarm 0;
-    1;  # return value from eval on normalcy
-} or die "recv from $server_host timed out after $TIMEOUT seconds.\n";
-
-($port, $ipaddr) = sockaddr_in($sock->peername);
-$hishost = gethostbyaddr($ipaddr, AF_INET);
-print "Server $hishost responded ``$msg''\n";
+# ^^INCLUDE^^ include/perl/ch17/udpmsg
 #-----------------------------
 
 # ^^PLEAC^^_17.6
@@ -14143,41 +12938,7 @@ $answer = <SERVER>;                 # but you can still read
 
 # ^^PLEAC^^_17.10
 #-----------------------------
-#!/usr/bin/perl -w
-# biclient - bidirectional forking client
-    use strict;
-use IO::Socket;
-my ($host, $port, $kidpid, $handle, $line);
-
-unless (@ARGV == 2) { die "usage: $0 host port" }
-($host, $port) = @ARGV;
-
-# create a tcp connection to the specified host and port
-$handle = IO::Socket::INET->new(Proto     => "tcp",
-                                PeerAddr  => $host,
-                                PeerPort  => $port)
-       or die "can't connect to port $port on $host: $!";
-
-$handle->autoflush(1);              # so output gets there right away
-print STDERR "[Connected to $host:$port]\n";
-
-# split the program into two processes, identical twins
-die "can't fork: $!" unless defined($kidpid = fork());
-
-if ($kidpid) {                      
-    # parent copies the socket to standard output
-    while (defined ($line = <$handle>)) {
-        print STDOUT $line;
-    }
-    kill("TERM" => $kidpid);        # send SIGTERM to child
-}
-else {                              
-    # child copies standard input to the socket
-    while (defined ($line = <STDIN>)) {
-        print $handle $line;
-    }
-}
-exit;
+# ^^INCLUDE^^ include/perl/ch17/biclient
 #-----------------------------
 my $byte;
 while (sysread($handle, $byte, 1) == 1) {
@@ -14805,17 +13566,7 @@ new
 #
 #30 alfw2.turner.com
 #-----------------------------
-#!/usr/bin/perl
-# hostaddrs - canonize name and show addresses
-use Socket;
-use Net::hostent;
-$name = shift;
-if ($hent = gethostbyname($name)) {
-    $name      = $hent->name;                # in case different
-    $addr_ref  = $hent->addr_list;
-    @addresses = map { inet_ntoa($_) } @$addr_ref;
-}
-print "$name => @addresses\n";
+# ^^INCLUDE^^ include/perl/ch18/hostaddrs
 #-----------------------------
 #% hostaddrs www.ora.com
 #helio.ora.com => 204.148.40.9
@@ -15290,19 +14041,7 @@ foreach my $combo (@ARGV) {
 
 # ^^PLEAC^^_19.1
 #-----------------------------
-#!/usr/bin/perl -w
-# hiweb - load CGI module to decode information given by web server
-use strict;
-
-use CGI qw(:standard escapeHTML);
-
-# get a parameter from a form
-my $value = param('PARAM_NAME');
-
-# output a document
-print header(), start_html("Howdy there!"),
-      p("You typed: ", tt(escapeHTML($value))),
-      end_html();
+# ^^INCLUDE^^ include/perl/ch19/hiweb
 #-----------------------------
 use CGI qw(:standard);
 $who   = param("Name");
@@ -15332,10 +14071,7 @@ die "Bad error here";
 
 # ^^PLEAC^^_19.3
 #-----------------------------
-#!/usr/bin/perl
-# webwhoami - show web users id
-print "Content-Type: text/plain\n\n";
-print "Running as ", scalar getpwuid($>), "\n";
+# ^^INCLUDE^^ include/perl/ch19/webwhoami
 #-----------------------------
 #% perl -wc cgi-script        # just compilation
 #
@@ -15568,19 +14304,7 @@ $url = "http://www.perl.com/CPAN/";
 print "Location: $url\n\n";
 exit;
 #-----------------------------
-#!/usr/bin/perl -w
-# oreobounce - set a cookie and redirect the browser
-use CGI qw(:cgi);
-
-$oreo = cookie( -NAME    => 'filling',
-                -VALUE   => "vanilla crème",
-                -EXPIRES => '+3M',    # M for month, m for minute
-                -DOMAIN  => '.perl.com');
-
-$whither  = "http://somewhere.perl.com/nonesuch.html";
-
-print redirect( -URL     => $whither,
-                -COOKIE  => $oreo);
+# ^^INCLUDE^^ include/perl/ch19/oreobounce
 #-----------------------------
 #Status: 302 Moved Temporarily
 #
@@ -15596,19 +14320,7 @@ print redirect( -URL     => $whither,
 #
 #B<<blank line here>>
 #-----------------------------
-#!/usr/bin/perl
-# os_snipe - redirect to a Jargon File entry about current OS
-$dir = 'http://www.wins.uva.nl/%7Emes/jargon';
-for ($ENV{HTTP_USER_AGENT}) {
-    $page  =    /Mac/            && 'm/Macintrash.html'
-             || /Win(dows )?NT/  && 'e/evilandrude.html'
-             || /Win|MSIE|WebTV/ && 'm/MicroslothWindows.html'
-             || /Linux/          && 'l/Linux.html'
-             || /HP-UX/          && 'h/HP-SUX.html'
-             || /SunOS/          && 's/ScumOS.html'
-             ||                     'a/AppendixB.html';
-}
-print "Location: $dir/$page\n\n";
+# ^^INCLUDE^^ include/perl/ch19/os_snipe
 #-----------------------------
 use CGI qw(:standard);
 print header( -STATUS => '204 No response' );
@@ -15742,73 +14454,14 @@ $packed_cookie = cookie( -NAME    => "preference name",
 #-----------------------------
 print header(-COOKIE => $packed_cookie);
 #-----------------------------
-#!/usr/bin/perl -w
-# ic_cookies - sample CGI script that uses a cookie
-use CGI qw(:standard);
-
-use strict;
-
-my $cookname = "favorite ice cream";
-my $favorite = param("flavor");
-my $tasty    = cookie($cookname) || 'mint';
-
-unless ($favorite) {
-    print header(), start_html("Ice Cookies"), h1("Hello Ice Cream"),
-          hr(), start_form(),
-            p("Please select a flavor: ", textfield("flavor",$tasty)),
-              end_form(), hr();
-    exit;
-}
-
-my $cookie = cookie(
-                -NAME    => $cookname,
-                -VALUE   => $favorite,
-                -EXPIRES => "+2y",
-            );
-
-print header(-COOKIE => $cookie),
-      start_html("Ice Cookies, #2"),
-      h1("Hello Ice Cream"),
-      p("You chose as your favorite flavor `$favorite'.");
+# ^^INCLUDE^^ include/perl/ch19/ic_cookies
 #-----------------------------
 
 # ^^PLEAC^^_19.11
 #-----------------------------
 print textfield("SEARCH");          # previous SEARCH value is the default
 #-----------------------------
-#!/usr/bin/perl -wT
-# who.cgi - run who(1) on a user and format the results nicely
-
-$ENV{IFS}='';
-$ENV{PATH}='/bin:/usr/bin';
-
-use CGI qw(:standard);
-
-# print search form
-print header(), start_html("Query Users"), h1("Search");
-print start_form(), p("Which user?", textfield("WHO")); submit(), end_form();
-
-# print results of the query if we have someone to look for
-$name = param("WHO");
-if ($name) {
-    print h1("Results");
-    $html = '';
-    
-    # call who and build up text of response
-    foreach (`who`) {
-        next unless /^$name\s/o;            # only lines matching $name
-        s/&/&amp;/g;                        # escape HTML
-        s/</&lt;/g;
-        s/>/&gt;/g;
-        $html .= $_;
-    }
-    # nice message if we didn't find anyone by that name
-    $html = $html || "$name is not logged in";
-    
-    print pre($html);
-}
-
-print end_html();
+# ^^INCLUDE^^ include/perl/ch19/who.cgi
 #-----------------------------
 
 # ^^PLEAC^^_19.12
@@ -16260,24 +14913,7 @@ if ($elt_type eq 'img' && $attr_name eq 'src') {
     print "IMAGE:  $attr_value\n";
 }
 #-----------------------------
-#!/usr/bin/perl -w
-# xurl - extract unique, sorted list of links from URL
-use HTML::LinkExtor;
-use LWP::Simple;
-
-$base_url = shift;
-$parser = HTML::LinkExtor->new(undef, $base_url);
-$parser->parse(get($base_url))->eof;
-@links = $parser->links;
-foreach $linkarray (@links) {
-    my @element  = @$linkarray;
-    my $elt_type = shift @element;
-    while (@element) {
-        my ($attr_name , $attr_value) = splice(@element, 0, 2);
-        $seen{$attr_value}++;
-    }
-}
-for (sort keys %seen) { print $_, "\n" }
+# ^^INCLUDE^^ include/perl/ch20/xurl
 #-----------------------------
 #% xurl http://www.perl.com/CPAN
 #ftp://ftp@ftp.perl.com/CPAN/CPAN.html
@@ -16299,26 +14935,7 @@ for (sort keys %seen) { print $_, "\n" }
 
 # ^^PLEAC^^_20.4
 #-----------------------------
-#!/usr/bin/perl -w -p00
-# text2html - trivial html encoding of normal text
-# -p means apply this script to each record.
-# -00 mean that a record is now a paragraph
-
-use HTML::Entities;
-$_ = encode_entities($_, "\200-\377");
-
-if (/^\s/) {
-    # Paragraphs beginning with whitespace are wrapped in <PRE> 
-    s{(.*)$}        {<PRE>\n$1</PRE>\n}s;           # indented verbatim
-} else {
-    s{^(>.*)}       {$1<BR>}gm;                    # quoted text
-    s{<URL:(.*?)>}    {<A HREF="$1">$1</A>}gs         # embedded URL  (good)
-                    ||
-    s{(http:\S+)}   {<A HREF="$1">$1</A>}gs;        # guessed URL   (bad)
-    s{\*(\S+)\*}    {<STRONG>$1</STRONG>}g;         # this is *bold* here
-    s{\b_(\S+)\_\b} {<EM>$1</EM>}g;                 # this is _italics_ here
-    s{^}            {<P>\n};                        # add paragraph tag
-}
+# ^^INCLUDE^^ include/perl/ch20/text2html
 #-----------------------------
 BEGIN {
     print "<TABLE>";
@@ -16404,22 +15021,7 @@ MyParser->new->parse_file(*F);
 #-----------------------------
 ($title) = ($html =~ m#<TITLE>\s*(.*?)\s*</TITLE>#is);
 #-----------------------------
-#!/usr/bin/perl
-# htitle - get html title from URL
-
-die "usage: $0 url ...\n" unless @ARGV;
-require LWP;
-
-foreach $url (@ARGV) {
-    $ua = LWP::UserAgent->new();
-    $res = $ua->request(HTTP::Request->new(GET => $url));
-    print "$url: " if @ARGV > 1;
-    if ($res->is_success) {
-        print $res->title, "\n";
-    } else {
-        print $res->status_line, "\n";
-    }
-}
+# ^^INCLUDE^^ include/perl/ch20/htitle
 #-----------------------------
 #% htitle http://www.ora.com
 #www.oreilly.com -- Welcome to O'Reilly & Associates!
@@ -16431,28 +15033,7 @@ foreach $url (@ARGV) {
 
 # ^^PLEAC^^_20.7
 #-----------------------------
-#!/usr/bin/perl -w
-# churl - check urls
-
-use HTML::LinkExtor;
-use LWP::Simple qw(get head);
-
-$base_url = shift
-    or die "usage: $0 <start_url>\n";
-$parser = HTML::LinkExtor->new(undef, $base_url);
-$parser->parse(get($base_url));
-@links = $parser->links;
-print "$base_url: \n";
-foreach $linkarray (@links) {
-    my @element  = @$linkarray;
-    my $elt_type = shift @element;
-    while (@element) {
-        my ($attr_name , $attr_value) = splice(@element, 0, 2);
-        if ($attr_value->scheme =~ /\b(ftp|https?|file)\b/) {
-            print "  $attr_value: ", head($attr_value) ? "OK" : "BAD", "\n";
-        }
-    }
-}
+# ^^INCLUDE^^ include/perl/ch20/churl
 #-----------------------------
 #% churl http://www.wizards.com
 #http://www.wizards.com:
@@ -16778,17 +15359,7 @@ $lastdate,  scalar(keys %hosts),
 # 
 # Grand Total    6050   100849    10090    3715    1248      250612120
 #-----------------------------
-#!/usr/bin/perl -w
-# aprept - report on Apache logs
-
-use Logfile::Apache;
-
-$l = Logfile::Apache->new(
-    File  => "-",                   # STDIN
-    Group => [ Domain, File ]);
-
-$l->report(Group => Domain, Sort => Records);
-$l->report(Group => File,   List => [Bytes,Records]);
+# ^^INCLUDE^^ include/perl/ch20/aprept
 #-----------------------------
 # Domain                  Records 
 # 
@@ -16860,37 +15431,7 @@ $l->report(Group => File,   List => [Bytes,Records]);
 #
 #</BODY></HTML>
 #-----------------------------
-#!/usr/bin/perl -w
-# htmlsub - make substitutions in normal text of HTML files
-# from Gisle Aas <gisle@aas.no>
-
-sub usage { die "Usage: $0 <from> <to> <file>...\n" }
-
-my $from = shift or usage;
-my $to   = shift or usage;
-usage unless @ARGV;
-
-# Build the HTML::Filter subclass to do the substituting.
-
-package MyFilter;
-require HTML::Filter;
-@ISA=qw(HTML::Filter);
-use HTML::Entities qw(decode_entities encode_entities);
-
-sub text
-{
-   my $self = shift;
-   my $text = decode_entities($_[0]);
-   $text =~ s/\Q$from/$to/go;       # most important line
-   $self->SUPER::text(encode_entities($text));
-}
-
-# Now use the class.
-
-package main;
-foreach (@ARGV) {
-    MyFilter->new->parse_file($_);
-}
+# ^^INCLUDE^^ include/perl/ch20/htmlsub
 #-----------------------------
 
 # ^^PLEAC^^_20.15
