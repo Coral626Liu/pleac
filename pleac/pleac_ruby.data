@@ -3498,6 +3498,86 @@ puts $stringvariable1
 puts $arrayvariable2
 
 
+# @@PLEAC@@_14.10
+#!/usr/bin/ruby -w
+# Ruby has a dbi module with an architecture similar
+# to the Perl dbi module: the dbi module provides an unified
+# interface and uses specialized drivers for each dbms vendor
+#
+begin
+    DBI.connect("DBI:driver:driverspecific", "username", "auth") {
+        |dbh|
+
+        dbh.do(SQL1)
+
+        dbh.prepare(SQL2){ |sth|
+            sth.execute
+            sth.fetch {|row|
+                # ...
+            }
+        } # end of block finishes the statement handle
+    } # end of block closes the database connection
+rescue DBI::DatabaseError => e
+    puts "dbi error occurred"
+    puts "Error code: #{e.err}"
+    puts "Error message: #{e.errstr}"
+end
+
+#!/usr/bin/ruby -w
+# dbusers - example for mysql which creates a table,
+# fills it with values, retrieves the values back,
+# and finally destroys the table.
+
+require "dbi"
+
+# replacement for the User::pwnt module
+def getpwent
+    result = []
+    File.open("/etc/passwd") {|file|
+        file.each_line {|line|
+            next if line.match(/^#/)
+            cols = line.split(":")
+            result.push([cols[2], cols[0]])
+        }
+    }
+    result
+end
+
+begin
+    DBI.connect("DBI:Mysql:pleacdatabase", "pleac", "pleacpassword") {
+        |conn|
+
+        conn.do("CREATE TABLE users (uid INT, login CHAR(8))")
+
+        users = getpwent
+
+        conn.prepare("INSERT INTO users VALUES (?,?)") {|sth|
+            users.each {|entry|
+                sth.execute(entry[0], entry[1])
+            }
+        }
+
+        conn.execute("SELECT uid, login FROM users WHERE uid < 50") {|sth|
+            sth.fetch {|row|
+                puts row.collect {|col|
+                    if col.nil?
+                        "(null)"
+                    else
+                        col
+                    end
+                }.join(", ")
+            }
+        }
+
+        conn.do("DROP TABLE users")
+    }
+rescue DBI::DatabaseError => e
+    puts "dbi error occurred"
+    puts "Error code: #{e.err}"
+    puts "Error message: #{e.errstr}"
+end
+
+
 # @@PLEAC@@_15.1
 # This test program demonstrates parsing program arguments.
 # It uses the optparse library, which is included with ruby 1.8
