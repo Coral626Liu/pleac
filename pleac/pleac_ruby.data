@@ -1635,6 +1635,59 @@ File.copy("datafile.dat", "datafile.bak")
 File.move("datafile.new", "datafile.dat")
 
 
+# @@PLEAC@@_9.4
+$seen = {} # must use global var to be seen inside of method below
+
+def do_my_thing(filename)
+    dev, ino = File.stat(filename).dev, File.stat(filename).ino
+    unless $seen[[dev, ino]]
+        # do something with $filename because we haven't
+        # seen it before
+    end
+    $seen[[dev, ino]] = $seen[[dev, ino]].to_i + 1
+end
+
+files.each do |filename|
+    dev, ino = File.stat(filename).dev, File.stat(filename).ino
+    if !$seen.has_key?([dev, ino])
+        $seen[[dev, ino]] = []
+    end
+    $seen[[dev, ino]].push(filename)
+end
+
+$seen.keys.sort.each do |devino|
+    ino, dev = devino
+    if $seen[devino].length > 1
+        # $seen[devino] is a list of filenames for the same file
+    end
+end
+
+
+# @@PLEAC@@_9.5
+Dir.open(dirname) do |dir|
+    dir.each do |file|
+        # do something with dirname/file
+        puts file
+    end
+end
+# Dir.close is automatic
+
+# No -T equivalent in Ruby
+
+dir.each do |file|
+    next if file =~ /^\.\.?$/
+    # ...
+end
+
+def plainfiles(dir)
+    dh = Dir.open(dir)
+    dh.entries.grep(/^[^.]/).
+        map      {|file| "#{dir}/#{file}"}.
+        find_all {|file| test(?f, file)}.
+        sort
+end
+
+
 # @@PLEAC@@_10.0
 def hello
     $greeted += 1      # in Ruby, a variable beginning with $ is global (can be any type of course)
