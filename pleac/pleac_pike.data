@@ -698,10 +698,56 @@ write("To be precise: %d:%d:%d, %d/%d/%d\n",
              then->month_no(), then->month_day(), then->year_no());
 // To be precise: 18:2:55, 3/14/1973
 
-int years=1973;
-int months=1;
-int days=18;
-int offset=55;
-object then=Calendar.Year(years)->month(months)->day(days)+Calendar.Day()*offset;
+int years   = 1973;
+int months  = 1;
+int days    = 18;
+int offset  = 55;
+object then = Calendar.Year(years)->month(months)->day(days)+Calendar.Day()*offset;
 write("Nat was 55 days old on: %d/%d/%d\n", then->month_no(), then->month_day(),then->year_no());
 // Nat was 55 days old on: 3/14/1973
+
+// @@PLEAC@@_3.5
+
+int bree = 361535725;         // 16 Jun 1981, 4:35:25
+int nat  = 96201950;          // 18 Jan 1973, 3:45:50
+
+int difference = bree-nat;
+write("There were %d seconds between Nat and Bree\n", difference);
+// There were 265333775 seconds between Nat and Bree
+
+int seconds = difference % 60;
+int minutes = difference % (60*60)/60;
+int hours   = difference % (60*60*24)/(60*60);
+int days    = difference % (60*60*24*7)/(60*60*24);
+int weeks   = difference / (60*60*24*7);
+write("(%d weeks, %d days, %d:%d:%d)\n", weeks, days, hours, minutes, seconds);
+// (438 weeks, 4 days, 23:49:35)
+
+object bree = Calendar.dwim_time("16 Jun 1981, 4:35:25");
+// Result: Second(Tue 16 Jun 1981 4:35:25 CEST)
+object nat  = Calendar.dwim_time("18 Jan 1973, 3:45:50");
+// Result: Second(Thu 18 Jan 1973 3:45:50 CET)
+object difference = nat->range(bree);
+// Result: Second(Thu 18 Jan 1973 3:45:50 CET - Tue 16 Jun 1981 4:35:26 CEST)
+
+write("There were %d days between Nat and Bree\n", difference/Calendar.Day());
+// There were 3071 days between Nat and Bree
+
+int days=difference/Calendar.Day();
+object left=difference->add(days,Calendar.Day)->range(difference->end());
+
+// Calendar handles timezone differences, and since the range crosses from
+// normal to daylight savings time, there is one day which has only 23 hours.
+// by adding the number of days we effectively move the beginning of the range
+// to the same day as the end, leaving us with a range that is less than a day
+// long. when adding the days, the daylight savings switch will be taken into
+// account.
+
+write("Bree came %d days, %d:%d:%d after Nat\n", 
+                   days, 
+                   (left/Calendar.Hour())%24,
+                   (left/Calendar.Minute())%60,
+                   (left/Calendar.Second())%60,
+                   );
+// Bree came 3071 days, 0:49:36 after Nat
+
