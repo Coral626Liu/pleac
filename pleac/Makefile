@@ -23,7 +23,7 @@ IMPLS = perl python ruby guile merd ada tcl haskell java pliant ocaml commonlisp
 
 
 HTMLTARGETS = $(addprefix pleac_, $(IMPLS))
-HTMLTARGETSDEP = $(addsuffix /t1.html, $(HTMLTARGETS))
+HTMLTARGETSDEP = $(addsuffix /index.html, $(HTMLTARGETS))
 
 PSTARGETS = $(addsuffix .ps, $(addprefix pleac_, $(IMPLS)))
 
@@ -33,18 +33,18 @@ all: $(HTMLTARGETSDEP)
 clean:
 	rm -rf index.html pleac_*.html skeleton $(HTMLTARGETS)
 
-skeleton/t1.html: skeleton.sgml
+skeleton/index.html: skeleton.sgml
 	rm -rf $@
-	db2html $<
+	db2html -d pleac.dsl $<
 
 %.html: %.data
 	./code2html $<
 
-$(HTMLTARGETSDEP): %/t1.html: %.html skeleton/t1.html
+$(HTMLTARGETSDEP): %/index.html: %.html skeleton/index.html
 	rm -rf $(@D)
 	cp -a skeleton $(@D)
 	for i in $(@D)/*.html; do ./substitute.rb $$i $(@D).html ; done
-	./genpercentages.rb $(@D)/t1.html $(@D).data skeleton.sgml
+	./genpercentages.rb $(@D)/index.html $(@D).data skeleton.sgml
 
 web:
 	total=`grep "PLEAC:[0-9].*:CAELP" skeleton.sgml | wc -l` ; \
@@ -58,7 +58,7 @@ web:
 		incomp=`grep "@@INCOMPLETE@@" pleac_$$i.data | wc -l`; \
 		percent=`ruby -e "printf \"%.2f\n\", ($$done-0.5*$$incomp)*100/Float($$total)"`; \
 		echo "" >> webcontents; \
-		echo "<a href=\"pleac_$$i/t1.html\">$$i</a>, $$percent% done " >> webcontents; \
+		echo "<a href=\"pleac_$$i/index.html\">$$i</a>, $$percent% done " >> webcontents; \
 		echo "(<a href=\"pleac_$$i.data\">raw source</a>, <a href=\"pleac_$$i.html\">colorized source</a>)" >> webcontents; \
 		echo "</li>" >> webcontents; \
 	done  
