@@ -23,27 +23,27 @@ if ARGV.to_s =~ /-h/ || !ARGV[1] || !ARGV[2] || ARGV[3]
 end
 
 
-chapters = {                                     
-    "Strings", 1,
-    "Numbers", 2,
-    "Dates and Times", 3,
-    "Arrays", 4,
-    "Hashes", 5,
-    "Pattern Matching", 6,
-    "File Access", 7,
-    "File Contents", 8,
-    "Directories", 9,
-    "Subroutines", 10,
-    "References and Records", 11,
-    "Packages, Libraries, and Modules", 12,
-    "Classes, Objects, and Ties", 13,
-    "Database Access", 14,
-    "User Interfaces", 15,
-    "Process Management and Communication", 16,
-    "Sockets", 17,
-    "Internet Services", 18,
-    "CGI Programming", 19,
-    "Web Automation", 20,
+chapters = {
+    'Strings', 1,
+    'Numbers', 2,
+    'Dates and Times', 3,
+    'Arrays', 4,
+    'Hashes', 5,
+    'Pattern Matching', 6,
+    'File Access', 7,
+    'File Contents', 8,
+    'Directories', 9,
+    'Subroutines', 10,
+    'References and Records', 11,
+    'Packages, Libraries, and Modules', 12,
+    'Classes, Objects, and Ties', 13,
+    'Database Access', 14,
+    'User Interfaces', 15,
+    'Process Management and Communication', 16,
+    'Sockets', 17,
+    'Internet Services', 18,
+    'CGI Programming', 19,
+    'Web Automation', 20,
 }
 
 toc_contents = File.open(ARGV[0]).read
@@ -52,17 +52,20 @@ skel_contents = File.open(ARGV[2]).read
 
 chapters.each { |k,v|
     actual = 0
+    what_in = nil
     for i in impl_contents
+	if i =~ /@@PLEAC@@/ || i =~ /\^\^PLEAC\^\^/
+	    what_in = nil
+	end
+	if i =~ /@@INCOMPLETE@@/ && what_in && what_in == v
+	    actual -= 0.5
+	end
 	if i =~ /^.*@@PLEAC@@_([^<\s]+).*$/ || i =~ /^.*\^\^PLEAC\^\^_([^<\s]+).*$/
-	   actual += 1 if $1.to_i == v
+	    what_in = $1.to_i
+	    actual += 1 if $1.to_i == v
 	end
     end
-    total = 0 
-    for i in skel_contents
-	if i =~ /PLEAC:(.*):CAELP/
-	   total += 1 if $1.to_i == v
-	end
-    end
+    total = skel_contents.select { |i| i =~ /PLEAC:(.*):CAELP/ && $1.to_i == v }.size
     percentage = Float(100*actual)/total
     toc_contents.sub!(">#{k}</A", sprintf ">#{k}</a> (%.1f%s)</br", percentage, "%")
 }
