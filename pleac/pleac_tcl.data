@@ -1536,3 +1536,126 @@ foreach {list} $lists {
 # => The list is: recycle tired, old phrases and ponder big, happy thoughts.
 # => The list is: recycle tired, old phrases; ponder big, happy thoughts; and sleep and dream peacefully.
  
+# @@PLEAC@@_4.3
+ 
+# Tcl lists (which more or less correspond to
+# Perl arrays) can be extended, but only by
+# appending to the end of the list:
+ 
+set list [list a b c]
+lappend list d
+# => a b c d
+ 
+lappend list e f g
+# => a b c d e f g
+
+
+# Shrinking a list:
+set list [lrange $list 0 4]
+# => a b c d e
+ 
+# @@PLEAC@@_4.4
+ 
+# A foreach loop
+foreach {item} {LIST} {
+     # do something with $item
+}
+ 
+foreach {user} $badUsers {
+    complain $user
+}
+ 
+foreach key [lsort [array names env]] {
+    puts $key->$env($key)
+}
+ 
+foreach {user} $allUsers {
+    set diskSpace [getUsage $user]
+    if {$diskSpace > $MAXQUOTA} {
+        complain $user
+    }
+}
+ 
+# There is no implicit variable like Perl's $_ in Tcl.
+foreach {user} [exec who] {
+    if {[regexp tchrist $user]} {
+        puts $user
+    }
+}
+# You can't manipulate values by reference in Tcl.
+# If you need to mutate a list, this is the preferred
+# idiom:
+ 
+set mylist [mutate $mylist args]
+ 
+# You *can* 'simulate' manipulation by reference by
+# using call-by-name and connecting a local variable
+# to a variable with that name in the outer scope:
+ 
+set mylist [list 1 2 3]
+ 
+proc timesSeven {listname} {
+    upvar $listname listref
+    set temp [list]
+    foreach {item} $listref {
+        lappend temp [expr {$item * 7}]
+    }
+    set listref $temp
+}
+ 
+timesSeven mylist
+# => 7 14 21
+ 
+# @@PLEAC@@_4.6
+ 
+set uniq [lsort -unique $list]
+
+
+set uniqueUsers [lsort -unique [exec who]]
+puts "Users logged in: $uniqueUsers"
+ 
+# @@PLEAC@@_4.7
+ 
+package require Tclx
+ 
+set listA [list 1 1 2 2 3 3 3 4 5]
+set listB [list 1 2 4]
+set res [intersect3 $listA $listB]
+ 
+# [intersect3] yields three result lists,
+# we want the first:
+ 
+lindex $res 0
+ 
+# => 3 5
+ 
+# @@PLEAC@@_4.8
+ 
+package require Tclx
+ 
+set listA [list 1 1 2 2 3 3 3 4 5]
+set listB [list 1 2 4 4 6 7]
+ 
+foreach {difference intersection -} [intersect3 $listA $listB] break
+set union [union $listA $listB]
+ 
+# difference:   3 5
+# intersection: 1 2 4
+# union:        1 2 3 4 5 6 7
+ 
+# @@PLEAC@@_4.9
+ 
+# Concatenating variables whose values are lists
+set dislist [concat $dislist $datlist]
+ 
+set members [list Time Flies]
+lappend members An Arrow
+# => Time Flies An Arrow
+ 
+set members [linsert $members 2 Like]
+# => Time Flies Like An Arrow
+ 
+set members [lreplace $members 0 0 Fruit]
+set members [lreplace $members end-1 end A Banana]
+# => Fruit Flies Like A Banana
+ 
