@@ -67,6 +67,6 @@ upload: all web
 	rm -rf ../t
 	mkdir ../t
 	cp -a * ../t
-#	cd ../t; rm -rf `find -type d -name CVS`; scp -r * ggc@shell.sourceforge.net:/home/groups/p/pl/pleac/htdoc
-	cd ../t; rm -rf `find -type d -name CVS`; scp -r * mandrakesoft.com:www/pleac
+	cd ../t; rm -rf `find -type d -name CVS`; scp -r * ggc@shell.sourceforge.net:/home/groups/p/pl/pleac/htdocs
+#	cd ../t; rm -rf `find -type d -name CVS`; scp -r * mandrakesoft.com:www/pleac
 	rm -rf ../t
