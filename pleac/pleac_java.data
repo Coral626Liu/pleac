@@ -1,0 +1,216 @@
+// -*- java -*-
+
+// @@PLEAC@@_NAME
+// @@SKIP@@ Java
+
+// @@PLEAC@@_WEB
+// @@SKIP@@ http://java.sun.com
+
+
+// @@PLEAC@@_1.0
+//------------------------------------
+// single quotes are characters delimiters
+char c = '\n';                           // a newline character
+char c = '\'';                           // a literal single quote character
+//-------------------------------------
+// double quotes are strings delimiters (no other delimiters are possibles)
+String string = "\n";                    // a string containing only a newline
+String string = "Jon \"Maddog\" Orwant"; // a string containing literal double quotes
+//-------------------------------------
+StringBuffer sb = new StringBuffer();
+sb.append("This is a multiline string declaration ");
+sb.append("using a StringBuffer to concatenate lines efficiently ");
+sb.append("as Strings are immutables.");
+String a = sb.toString();
+//-------------------------------------
+
+// @@PLEAC@@_1.1
+//-------------------------------------
+String value = string.substring(firstPos, lastPos);
+String value = string.substring(firstPos);
+    
+// string are immutables: using them as left-value means reallocating them on the fly
+string = string.substr(0, firstPos) + newstring + string.substring(lastPos);
+string = string.substr(0, firstPos) + newtail;
+//-------------------------------------
+// using unpack() and aggregate() methods from ch01.Utils class:
+
+// get a 5-byte string, skip 3, then grab 2 8-byte strings, then the rest
+String[] result =  ch01.Tools.unpack("A5 x3 A8 A8 A*", data);
+String leading = result[0];
+String s1 = result[1];
+String s2 = result[2];
+String trailing = result[3];
+
+// split at five byte boundaries
+String[] fivers = ch01.Tools.unpack(aggregate("A5 ", string.length() / 5), string);
+
+// chop string into individual characters
+String[] chars = ch01.Tools.unpack(aggregate("A1 ", string.length()), string);
+//-------------------------------------
+String string = "This is what you have";
+//              +012345678901234567890  Indexing forwards  (left to right)
+//               109876543210987654321- Indexing backwards (right to left)
+//                                        note that 0 means 10 or 20, etc. above
+
+// backward indexing doesn't exist, but can easily be translated into forward indexing
+// forwardIndex = string.length() - backwardIndex;
+
+String first = string.substring(0, 1);                                     // "T"
+String start = string.substring(5, 7);                                     // "is"
+String rest  = string.substring(13);                                       // "you have"
+String last  = string.substring(string.length() - 1);                      // "e"
+String end   = string.substring(string.length() - 4);                      // "have"
+String piece = string.substring(string.length() - 8, string.length() - 5); // "you"
+//-------------------------------------
+String string = "This is what you have";
+System.out.println(string);
+// This is what you have
+string = string.substring(0, 5) + "wasn't" + string.substring(7); // change "is" to "wasn't"
+// This wasn't what you have
+string = string.substring(0, string.length() - 12) + "ondrous";   // "This wasn't wondrous"
+// This wasn't wondrous
+string = string.substring(1);                                     // delete first character
+// his wasn't wondrous
+string = string.substring(0, string.length() - 10);               // delete last 10 characters
+//his wasn'
+//-------------------------------------
+import org.apache.oro.text.perl.Perl5Util;
+Perl5Util util = new Perl5Util();
+// you can test substrings with match() method
+if (util.match("/pattern/", string.substring(string.length() - 10)))
+    System.out.println("Pattern matches in last 10 characters");
+
+// substitute "at" for "is", restricted to first five characters
+string = util.substitute("s/is/at/g", string.substring(0, 5)) + string.substring(5);
+//-------------------------------------
+// exchange the first and last letters in a string
+String a = "make a hat";
+a = a.charAt(a.length() -1) + a.substring(1, a.length() - 1) + a.charAt(0);
+System.out.println(a);
+// take a ham
+//-------------------------------------
+// extract column with unpack
+String a = "To be or not to be";
+String[] result = ch01.Tools.unpack("x6 A6", a);  // skip 6, grab 6
+System.out.println(result[0]);
+// or not
+
+String[] result = ch01.Tools.unpack("x6 A2 X5 A2", a); // forward 6, grab 2; backward 5, grab 2
+System.out.println(result[0] + "\n" + result[1] + "\n");
+// or
+// be
+//-------------------------------------
+static String cut2fmt(int[] positions) {
+        StringBuffer sb = new StringBuffer();
+        int lastPos = 1;
+        for (int i=0; i < positions.length; i++) {
+            sb.append("A");
+            sb.append(positions[i] - lastPos);
+            sb.append(" ");
+            lastPos = positions[i];
+        }
+        sb.append("A*");
+        return sb.toString();
+    }
+
+String fmt = cut2fmt(new int[] {8, 14, 20, 26, 30});
+System.out.println(fmt);
+// A7 A6 A6 A6 A4 A*
+//-------------------------------
+
+// @@PLEAC@@_APPENDIX
+/*
+ * Tools.java
+ */
+package ch01;
+
+import java.util.ArrayList;
+import java.util.StringTokenizer;
+import java.text.ParseException;
+/**
+ *
+ * @author Guillaume Rousse
+ * @version
+ */
+public class Tools {
+    
+    /**
+     * Unpacks a string representation of a data structure into a string array.
+     * @param format the format used for unpacking
+     * @param data the data structure to unpack
+     * @throws ParseException if given format contains illegal token
+     * @return a string array
+     */
+    public static String[] unpack(String format, String data) throws ParseException {
+        ArrayList result = new ArrayList();
+        int formatOffset = 0;
+        int dataOffset = 0;
+        int minDataOffset = 0;
+        int maxDataOffset = data.length();
+        
+        StringTokenizer tokenizer = new StringTokenizer(format);
+        while (tokenizer.hasMoreTokens()) {
+            String token = tokenizer.nextToken();
+            int tokenLen = token.length();
+            
+            // count determination
+            int count = 0;
+            if (tokenLen == 1)
+                count = 1;
+            else if (token.charAt(1) == '*')
+                count = -1;
+            else {
+                try {
+                    count = new Integer(token.substring(1)).intValue();
+                } catch (NumberFormatException ex) {
+                    throw new ParseException("Unknown count token", formatOffset);
+                }
+            }
+            
+            // action determination
+            char action = token.charAt(0);
+            switch (action) {
+                case 'A':
+                    if (count == -1) {
+                        result.add(data.substring(dataOffset));
+                        dataOffset = maxDataOffset;
+                    } else {
+                        result.add(data.substring(dataOffset, (dataOffset + 
+							       count < maxDataOffset) ? dataOffset + count : maxDataOffset));
+                        dataOffset += count;
+                    }
+                    break;
+                case 'x':
+                    if (count == -1)
+                        dataOffset = maxDataOffset;
+                    else
+                        dataOffset += count;
+                    break;
+                case 'X':
+                    if (count == -1)
+                        dataOffset = minDataOffset;
+                    else
+                        dataOffset -= count;
+                    break;
+                default:
+                    throw new ParseException("Unknown action token", formatOffset);
+            }
+            formatOffset += tokenLen + 1;
+        }
+        return (String[]) result.toArray(new String[result.size()]);
+    }
+    
+    /**
+     * Aggregates repetitly a basic pattern.
+     * @param pattern the basic pattern
+     * @param count the number of time to repeat it
+     * @return the aggregated pattern
+     */
+    public static String aggregate(String pattern, int count) {
+        StringBuffer buffer = new StringBuffer();
+        for (int i=0; i < count; i++)
+            buffer.append(pattern);
+        return buffer.toString();
+    }
+}
