@@ -2747,6 +2747,110 @@ else:
     print "Failed!"
 
 
+# @@PLEAC@@_6.6
+#!/usr/bin/python
+# killtags - very bad html tag killer
+import re
+import sys
+
+text = open(sys.argv[1]).read()        # read the whole file
+text = re.sub("(?ms)<.*?>","",text)    # strip tags (terrible
+print text
+## ----------------------------
+#!/usr/bin/python
+# headerfy: change certain chapter headers to html
+import sys, re
+
+match = re.compile(r"""(?xms)
+                       \A              # start of the string
+                       (?P<chapter>    # capture in g<chapter>
+                         Chapter
+                         \s+           # mandatory whitespace
+                         \d+           # decimal number
+                         \s*           # optional whitespace
+                         :             # a real colon
+                         . *           # anything not a newline till end of line
+                       )
+                    """)
+text = open(sys.argv[1]).read()        # read the whole file
+for paragraph in text.split("\n\n"):   # split on unix end of lines
+    p = match.sub("<h1>\g<chapter></h1>",paragraph)
+    print p
+## ----------------------------
+# the one liner does not run.
+# python -c 'import sys,re; for p in open(sys.argv[1]).read().split("\n\n"): print re.sub(r"(?ms)\A(Chapter\s+\d+\s*:.*)","<h1>\g0</h1>",p)'
+## ----------------------------
+match = re.compile(r"(?ms)^START(.*?)^END")
+     # s makes . span line boundaries
+     # m makes ^ match at the beginning of the string and at the beginning of each line
+
+chunk = 0
+for paragraph in open(sys.argv[1]).read().split("\n\n"):
+    chunk += 1
+    fnd = match.findall(paragraph)
+    if len(fnd)>0:
+        print "chunk %d in %s has <<%s>>" % (chunk,sys.argv[1],">>,<<".join(fnd))
+## ----------------------------
+
+# @@PLEAC@@_6.7
+import sys
+# Read the whole file and split
+chunks = open(sys.argv[1]).read().split()      # on whitespace
+chunks = open(sys.argv[1]).read().split("\n")  # on line ends
+
+# splitting on pattern
+import re
+pattern = r"x"
+chunks = re.split(pattern,open(sys.argv[1]).read())
+##-----------------------------
+chunks = re.split(r"(?m)^\.(Ch|Se|Ss)$",open(sys.argv[1]).read())
+print "I read %d chunks." % (len(chunks))
+# without delimiters
+chunks = re.split(r"(?m)^\.(?:Ch|Se|Ss)$",open(sys.argv[1]).read())
+# with delimters
+chunks = re.split(r"(?m)^(\.(?:Ch|Se|Ss))$",open(sys.argv[1]).read())
+# with delimiters at chunkstart
+chunks = re.findall(r"""(?xms)       # multiline, dot matches lineend, allow comments
+                          ((?:^\.)?  # consume the separator if present
+                           .*?)      # match everything but not greedy
+                          (?=        # end the match on this but dont consume it
+                            (?:                  # dont put into group [1]
+                               ^\.(?:Ch|Se|Ss)$  # either end on one of the roff commands
+                               |\Z               # or end of text
+                            )
+                          )""",
+                    open(sys.argv[1]).read())
+# [1] if "?:" is removed the result holds tuples: ('.Ch\nchapter x','.Ch')
+#     which might be more usefull. 
+
+# @@PLEAC@@_6.9
+
+tests = (("list.?",r"^list\..$"),
+        ("project.*",r"^project\..*$"),
+        ("*old",r"^.*old$"),
+        ("type*.[ch]",r"^type.*\.[ch]$"),
+        ("*.*",r"^.*\..*$"),
+        ("*",r"^.*$"),
+        )
+
+# The book says convert "*","?","[","]" all other characters will be quoted.
+# The book uses "\Q" which escapes any characters that would otherwise be
+# treated as regular expression.
+# Escaping every char fails as "\s" is not "s" in a regex.
+
+import string      # donot need re for this
+
+def glob2pat(globstr):
+    pat = globstr.replace("\\",r"\\")
+    pat = pat.replace(".",r"\.").replace("?",r".").replace("*",r".*")
+    
+    return "^"+pat+"$"
+
+for t in tests:
+    if (glob2pat(t[0]) != t[1]):
+        print t[0],"failed! should be", t[1],"was",glob2pat(t[0])
+
+
 # @@PLEAC@@_7.0
 input = open("/usr/local/widgets/data")
 for line in input:
@@ -3539,7 +3643,6 @@ for block in SepReader(sys.stdin, "\0"):
         print match.group(1)
         pos = match.end(1)
 #-----------------------------
-
  
 
 # ^^PLEAC^^_8.15
@@ -3612,15 +3715,131 @@ def is_verysafe(path):
     return 1
 #-----------------------------
 
-# Program: tailwtmp
-# Not Implemented (don't know enough about Python's pack module)
-
 # Program: tctee
 # Not Implemented (requires reimplementing Perl's builtin '>>', '|',
 # etc. semantics)
 
-# Program: laston
-# Not Implemented (don't know enough about Python's pack module)
+# @@PLEAC@@_8.18
+#!/usr/bin/python
+# tailwtmp - watch for logins and logouts;
+# uses linux utmp structure, from /usr/include/bits/utmp.h
+
+# /* The structure describing an entry in the user accounting database.  */
+# struct utmp
+# {
+#   short int ut_type;            /* Type of login.  */
+#   pid_t ut_pid;                 /* Process ID of login process.  */
+#   char ut_line[UT_LINESIZE];    /* Devicename.  */
+#   char ut_id[4];                /* Inittab ID.  */
+#   char ut_user[UT_NAMESIZE];    /* Username.  */
+#   char ut_host[UT_HOSTSIZE];    /* Hostname for remote login.  */
+#   struct exit_status ut_exit;   /* Exit status of a process marked
+#                                    as DEAD_PROCESS.  */
+#   long int ut_session;          /* Session ID, used for windowing.  */
+#   struct timeval ut_tv;         /* Time entry was made.  */
+#   int32_t ut_addr_v6[4];        /* Internet address of remote host.  */
+#   char __unused[20];            /* Reserved for future use.  */
+# };
+
+# /* Values for the `ut_type' field of a `struct utmp'.  */
+# #define EMPTY       0   /* No valid user accounting information.  */
+# 
+# #define RUN_LVL     1   /* The system's runlevel.  */
+# #define BOOT_TIME   2   /* Time of system boot.  */
+# #define NEW_TIME    3   /* Time after system clock changed.  */
+# #define OLD_TIME    4   /* Time when system clock changed.  */
+# 
+# #define INIT_PROCESS    5   /* Process spawned by the init process.  */
+# #define LOGIN_PROCESS   6   /* Session leader of a logged in user.  */
+# #define USER_PROCESS    7   /* Normal process.  */
+# #define DEAD_PROCESS    8   /* Terminated process.  */
+# 
+# #define ACCOUNTING  9
+
+import time
+import struct
+import os
+
+class WTmpRecord:
+    fmt = "hI32s4s32s256siili4l20s";
+    _fieldnames = ["type","PID","Line","inittab","User","Hostname",
+                    "exit_status", "session", "time", "addr" ]
+    def __init__(self):
+        self._rec_size = struct.calcsize(self.fmt)
+    def size(self):
+        return self._rec_size
+    def unpack(self, bin_data):
+        rec = struct.unpack(self.fmt, bin_data)
+        self._rec = []
+        for i in range(len(rec)):
+            if i in (2,3,4,5):
+                # remove character zeros from strings
+                self._rec.append( rec[i].split("\0")[0] )
+            else:
+                self._rec.append(rec[i])
+        return self._rec
+    def fieldnames(self):
+        return self._fieldnames
+    def __getattr__(self,name):
+        return self._rec[self._fieldnames.index(name)]
+        
+rec = WTmpRecord()
+f = open("/var/log/wtmp","rb")
+f.seek(0,2)
+while 1:
+    while 1:
+        bin = f.read(rec.size())
+        if len(bin) != rec.size():
+            break
+        rec.unpack(bin)
+        if rec.type != 0:
+            print " %1d %-8s %-12s %-24s %-20s %5d %08x" % \
+                (rec.type, rec.User, rec.Line, 
+                 time.strftime("%a %Y-%m-%d %H:%M:%S",time.localtime(rec.time)),
+                 rec.Hostname, rec.PID, rec.addr)
+    time.sleep(1)
+f.close()
+
+# @@PLEAC@@_8.20
+#!/usr/bin/python
+# laston - find out when given user last logged on
+import sys
+import struct
+import pwd
+import time
+import re
+
+f = open("/var/log/lastlog","rb")
+
+fmt = "L32s256s"
+rec_size = struct.calcsize(fmt)
+
+for user in sys.argv[1:]:
+    if re.match(r"^\d+$", user):
+        user_id = int(user)
+    else:
+        try:
+            user_id = pwd.getpwnam(user)[2]
+        except:
+            print "no such uid %s" % (user)
+            continue
+    f.seek(rec_size * user_id)
+    bin = f.read(rec_size)
+    if len(bin) == rec_size:
+        data = struct.unpack(fmt, bin)
+        if data[0]:
+            logged_in = "at %s" % (time.strftime("%a %H:%M:%S %Y-%m-%d",
+                                    time.localtime(data[0])))
+            line = " on %s" % (data[1])
+            host = " from %s" % (data[2])
+        else:
+            logged_in = "never logged in"
+            line = ""
+            host = ""
+        print "%-8s UID %5d %s%s%s" % (user, user_id, logged_in, line, host)
+    else:
+        print "Read failed."
+f.close()
 
 
 # ^^PLEAC^^_9.0
