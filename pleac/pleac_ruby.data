@@ -5036,6 +5036,171 @@ puts "After garbage collection"
 RingNode.show_all_objects
 
 
+#@@PLEAC@@_13.14
+class String
+    def <=>(other)
+        self.casecmp other
+    end
+end
+
+# There is no way to directly overload the '""' (stringify) 
+# operator in Ruby.  However, by convention, classes which 
+# can reasonably be converted to a String will define a 
+# 'to_s' method as in the TimeNumber class defined below.
+# The 'puts' method will automatcally call an object's
+# 'to_s' method as is demonstrated below.
+# Furthermore, if a class defines a to_str method, an object of that
+# class can be used most any place where the interpreter is looking 
+# for a String value.
+
+#---------------------------------------
+# NOTE: Ruby has a builtin Time class which would usually be used 
+# to manipulate time objects, the following is supplied for
+# educational purposes to demonstrate operator overloading.
+#
+class TimeNumber
+    attr_accessor  :hours,:minutes,:seconds
+    def initialize( hours, minutes, seconds)
+        @hours = hours
+        @minutes = minutes
+        @seconds = seconds
+    end
+    
+    def to_s
+        return sprintf( "%d:%02d:%02d", @hours, @minutes, @seconds)
+    end
+
+    def to_str
+        to_s
+    end
+
+    def +( other)
+        seconds = @seconds + other.seconds
+        minutes = @minutes + other.minutes
+        hours = @hours + other.hours
+        if seconds >= 60
+            seconds %= 60
+            minutes += 1
+        end
+        if minutes >= 60
+            minutes %= 60
+            hours += 1
+        end
+        return TimeNumber.new(hours, minutes, seconds)
+    end
+
+    def -(other)
+        raise NotImplementedError
+    end
+
+    def *(other)
+        raise NotImplementedError
+    end
+
+    def /( other)
+        raise NotImplementedError
+    end
+end
+
+t1 = TimeNumber.new(0, 58, 59)
+sec = TimeNumber.new(0, 0, 1)
+min = TimeNumber.new(0, 1, 0)
+puts t1 + sec + min + min
+
+#-----------------------------
+# StrNum class example: Ruby's builtin String class already has the 
+# capabilities outlined in StrNum Perl example, however the '*' operator
+# on Ruby's String class acts differently: It creates a string which
+# is the original string repeated N times.
+#
+# Using Ruby's String class as is in this example:
+x = "Red"; y = "Black"
+z = x+y
+r = z*3 # r is "RedBlackRedBlackRedBlack"
+puts "values are #{x}, #{y}, #{z}, and #{r}"
+print "#{x} is ", x < y ? "LT" : "GE", " #{y}\n"
+# prints:
+# values are Red, Black, RedBlack, and RedBlackRedBlackRedBlack
+# Red is GE Black
+
+#-----------------------------
+class FixNum
+    REGEX = /(\.\d*)/
+    DEFAULT_PLACES = 0
+    attr_accessor :value, :places
+    def initialize(value, places = nil)
+        @value = value
+        if places
+            @places = places
+        else
+            m = REGEX.match(value.to_s) 
+            if m
+                @places = m[0].length - 1
+            else
+                @places = DEFAULT_PLACES
+            end
+        end
+    end
+
+    def +(other)
+        FixNum.new(@value + other.value, max(@places, other.places))
+    end
+
+    def *(other)
+        FixNum.new(@value * other.value, max(@places, other.places))
+    end
+
+    def /(other)
+        puts "Divide: #{@value.to_f/other.value.to_f}"
+        result = FixNum.new(@value.to_f/other.value.to_f)
+        result.places = max(result.places,other.places) 
+        result
+    end
+
+    def to_s
+        sprintf("STR%s: %.*f", self.class.to_s , @places, @value)
+    end  
+
+    def to_str
+        to_s
+    end
+
+    def to_i #convert to int
+        @value.to_i
+    end
+
+    def to_f #convert to float`
+        @value.to_f
+    end
+
+    private
+    def max(a,b)
+        a > b ? a : b
+    end
+end
+
+def demo()
+    x = FixNum.new(40)
+    y = FixNum.new(12, 0)
+
+    puts "sum of #{x} and #{y} is  #{x+y}"
+    puts "product of #{x} and #{y} is #{x*y}"
+
+    z = x/y
+    puts "#{z} has #{z.places} places"
+    unless z.places
+        z.places = 2
+    end
+
+    puts "div of #{x} by #{y} is #{z}"
+    puts "square of that is  #{z*z}"
+end
+
+if __FILE__ == $0
+    demo()
+end
+
+
 # @@PLEAC@@_14.1
 # There are dbm, sdbm, gdbm modules
 # and the bdb module for accessing the berkeley db
@@ -5751,6 +5916,52 @@ rescue
 end
 
 
+# @@PLEAC@@_16.14
+Process.kill(9, pid)                    # send $pid a signal 9
+Process.kill(-1, Process.getpgrp())     # send whole job a signal 1
+Process.kill("USR1", $$)                # send myself a SIGUSR1
+Process.kill("HUP", pid1, pid2, pid3)   # send a SIGHUP to processes in @pids
+#-----------------------------
+begin
+    Process.kill(0, minion)
+    puts "#{minion} is alive!"
+rescue Errno::EPERM                     # changed uid
+    puts "#{minion} has escaped my control!";
+rescue Errno::ESRCH
+    puts "#{minion} is deceased.";      # or zombied
+rescue
+    puts "Odd; I couldn't check the status of #{minion} : #{$!}"
+end
+
+
+# @@PLEAC@@_16.15
+Kernel.trap("QUIT", got_sig_quit)       # got_sig_quit = Proc.new { puts "Quit\n" }
+trap("PIPE", "got_sig_quit")            # def got_sig_pipe ...
+trap("INT") { ouch++ }                  # increment ouch for every SIGINT
+#-----------------------------
+trap("INT", "IGNORE")                   # ignore the signal INT
+#-----------------------------
+trap("STOP", "DEFAULT")                 # restore default STOP signal handling
+
+
+# @@PLEAC@@_16.16
+# the signal handler
+def ding
+    trap("INT", "ding")
+    puts "\aEnter your name!"
+end
+
+# prompt for name, overriding SIGINT
+def get_name
+    save = trap("INT", "ding")
+
+    puts "Kindly Stranger, please enter your name: "
+    name = gets().chomp()
+    trap("INT", save)
+    name
+end
+
+
 # @@PLEAC@@_17.1
 # A basic TCP client connection
 require 'socket'
@@ -5981,6 +6192,35 @@ ftp.nlst("/pub/ruby")
 # => ["/pub/ruby/1.0", ... ]
 #-----------------------------
 ftp.quit()
+
+
+# @@PLEAC@@_18.6
+require 'net/telnet'
+t = Net::Telnet::new( "Timeout" => 10,
+                      "Prompt"  => /%/,
+                      "Host"    => host )
+t.login(username, password)
+files = t.cmd("ls")
+t.print("top")
+process_string = t.waitfor(/\d+ processes/)
+t.close
+#-----------------------------
+/[$%#>] \z/n
+#-----------------------------
+# In case of an error, the telnet module throws an exception.
+# For control of the behavior in case of an error,
+# you just need to catch the exceptions and do your custom
+# error handling.
+#-----------------------------
+begin
+    telnet.login(username, password)
+rescue TimeoutError
+    fail "Login failed !\n"
+end
+#-----------------------------
+telnet.waitfor('/--more--/')
+#-----------------------------
+telnet.waitfor(String => 'greasy smoke', Timeout => 30)
 
 
 # @@PLEAC@@_18.7
