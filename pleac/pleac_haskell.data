@@ -11,23 +11,13 @@
 -- @@SKIP@@ You need hugs98 or ghc (tested with 5.002) and the external library: 
 -- @@SKIP@@ http://www.dcs.gla.ac.uk/~meurig/regexp/
 -- @@SKIP@@ The time section only work with ghc, s/--ghc // if you have ghc.
+-- @@SKIP@@ You need to enable multi-parameter class and functionnal depedencies
+-- @@SKIP@@  -98 with hugs, and -fglasgow-exts with ghc
 
 -- @@PLEAC@@_APPENDIX
 module Pleac where
 
-import Prelude hiding (($),(^))
-import Regexp
-import List
-import Random hiding (split)
-import Monad hiding (join,when,unless)
-import System
-import Complex
-
--- seems ghc need it for chr,ord, readHex, readOct
-import Char 
-import Numeric 
---ghc import Time
---ghc import Locale
+import Prelude hiding (($),(^),(.),(!!),map,take,lookup,drop,splitAt,reverse,filter,takeWhile,dropWhile,null,foldl)
 
 import Common
 
@@ -46,45 +36,47 @@ str5 = "This is a multiline here document\n" ++
 
 -- @@PLEAC@@_1.1
 s     = "This is what you have"
-first = s![0]                            -- "T"
-start = s![5..7]                         -- "is"
-rest  = s![13..]                         -- "you have"
-las   = s![-1]                           -- "e"
-las2  = s#last                           -- "e"
-end   = s![-4 .. -1]                     -- "have"
-piece = s![-8 .. -5]                     -- "you"
+first = s!![0]                            -- "T"
+start = s!![5,6]                          -- "is"
+rest  = s!![13..]                         -- "you have"
+las   = s!![-1]                           -- "e"
+las2  = s.last                            -- 'e'
+end   = s!![-4 .. -1]                     -- "have"
+piece = s!![-8 .. -5]                     -- "you"
 
 
-[lead,ss1,ss2,trailing]     = s#unpack [Grab 2, Forward 3, Grab 1, Grab 2, GrabAll] 
--- Regexp with repetition are better for this, why introduce extra concept (unpack)
-[lead2,ss12,ss22,trailing2] = s#match "^(..)...(.)(..)(.*)"
-fivers                      = s#unpack ((Grab 5)#replicate (s#length `div` 5))
+[lead,ss1,ss2,trailing]     = s.unpack [Grab 2, Forward 3, Grab 1, Grab 2, GrabAll] 
+-- Regexp are better for this, why introduce extra concept (unpack)
+[lead2,ss12,ss22,trailing2] = s.match "^(..)...(.)(..)(.*)"
+[lead3,ss13,ss23,trailing3] = s.match "^(.{2}).{3}(.)(.{2})(.*)" -- just to show how to use repetition
+
+fivers                      = s.unpack ((Grab 5).replicate (s.length `div` 5))
 
 -- in haskell string == [Char] => no need to do  unpack("A1" x length($string), $string)
 characters = s
 
 -- can't modify string in haskell
-s'    = s#substr 5 2 "wasn't"       -- "This wasn't what you have"
-s''   = s'#substr2 (-12) "ondrous"  -- "This wasn't wondrous",note the () arount negative number :(
-s'''  = s''#substr 0 1 ""           -- "his wasn't wondrous", delete first character <=> tail
-s'''' = s'''#substr2 (-10) ""       -- "his wasn'"  ,delete last 10 characters <=> reverse . drop 10 . reverse
+s'    = s.substr 5 2 "wasn't"       -- "This wasn't what you have"
+s''   = s'.substr2 (-12) "ondrous"  -- "This wasn't wondrous",note the () arount negative number :(
+s'''  = s''.substr 0 1 ""           -- "his wasn't wondrous", delete first character <=> tail
+s'''' = s'''.substr2 (-10) ""       -- "his wasn'"  ,delete last 10 characters <=> reverse . drop 10 . reverse
 
-m     = if s![-10 .. -1] =~ "have" 
+m     = if s!![-10 .. -1] =~ "have" 
 	then putStrLn "Pattern matches in last 10 characters" 
 	else return ()
-m'    = putStrLn "Pattern matches in last 10 characters" `when` (s![-10 .. -1] =~ "have" )
+m'    = putStrLn "Pattern matches in last 10 characters" `when` (s!![-10 .. -1] =~ "have" )
 
 -- cant do as short as in perl cos cant use affection in haskell
-news = s![0..5]#(substS "is" "at" [Global_Match]) ++ s![6..] -- "That at what you have"
+news = s!![0..5].(substS "is" "at" [Global_Match]) ++ s!![6..] -- "That at what you have"
 
 a1  = "make a hat"
-a1' = a1![-1] ++ a1![1..(a1#length -2)] ++ a1![0] -- "take a ham"
+a1' = a1!![-1] ++ a1!![1..(a1.length -2)] ++ a1!![0] -- "take a ham"
 
 b1 = "to be or not to be"
-b2      = b1#unpack [Forward 6, Grab 6]  -- "or not"
-[b3,c3] = b1#unpack [Forward 6, Grab 2, Backward 5, Grab 2] -- ["or","be"]
+b2      = b1.unpack [Forward 6, Grab 6]  -- "or not"
+[b3,c3] = b1.unpack [Forward 6, Grab 2, Backward 5, Grab 2] -- ["or","be"]
 
-cut2fmt xs = xs#foldl aux (1,[])#snd#(GrabAll:)#reverse 
+cut2fmt xs = xs.foldl aux (1,[]).snd.(GrabAll:).reverse 
     where aux (n,l) i = (i,(Grab (i - n)) : l)
 fmt = cut2fmt [8,14,20,26,30] -- [Grab 7,Grab 6,Grab 6,Grab 6,Grab 4,GrabAll]
 
@@ -101,7 +93,7 @@ v6 = (0::Int) &&& "ee" -- -> ""
 -- no x ||= y
 v3' = v3 ||| v4
 
-dir  = argv >>> (\x -> (x ||| ["/tmp"])#head)
+dir  = argv >>> (\x -> (x ||| ["/tmp"]).head)
 dir' = argv >>> ((||| ["/tmp"]) $ head) -- or even more cryptic
 
 -- @@PLEAC@@_1.3
@@ -113,44 +105,44 @@ c1 = chr 97
 
 -- ascii = string.unpack("C*"), string = ascii.pack("C*"), no need in haskell, String = [Char]
 --  there is also packedString that are more efficient but less cool cos not list anymore
-ibm = "HAL"#map next_char                   -- "IBM"
+ibm = "HAL".map next_char                   -- "IBM"
 
 -- @@PLEAC@@_1.5
-s1 = "unique chars are: " ++ ("an apple a day"#unique#sort)
-sum1 = ("sum is " ^ s1#map ord#sum)#putStrLn
+s1 = "unique chars are: " ++ ("an apple a day".unique.sort)
+sum1 = ("sum is " ^ s1.map ord.sum).putStrLn
 
 -- TODO, script.hs HERE
 
 
 -- @@PLEAC@@_1.6
-s2 = s1#reverse
+s2 = s1.reverse
 
 -- can do: s3 = (unwords . reverse . words) s1
 --         s3 = (words $ reverse $ unwords) s1
-s3 = s1#words#reverse#unwords 
+s3 = s1.words.reverse.unwords 
 
-s3' = s1#split " "#reverse#join " " -- not the same, cos words = split "\s+"
-s3''= s1#split "\\s+"#reverse#join " " 
+s3' = s1.split " ".reverse.join " " -- not the same, cos words = split "\s+"
+s3''= s1.split "\\s+".reverse.join " " 
 
 -- eval long_palindromes or long_palindromes >>= (mapM putStrLn)
-long_palindromes = cat "/usr/share/dict/words" >>> filter(\s -> s == s#reverse && s#length > 4) 
+long_palindromes = cat "/usr/share/dict/words" >>> filter(\s -> s == s.reverse && s.length > 4) 
 
 -- @@PLEAC@@_1.7
 -- TODO, must do: \s if s == [] then [] else foldr1 .... ? must make a foldr1sure
-expand_tabs = split "\t" $ (foldr1 (\a b -> a ++ (times (8 - a#length `mod` 8) ' ') ++ b)) -- more efficient
--- expand_tabs = fixpoint (break_char '\t' (\a b -> a ++ (' '#times (8 - a#length `mod` 8)) ++ b))
+expand_tabs = split "\t" $ (foldr1 (\a b -> a ++ (times (8 - a.length `mod` 8) ' ') ++ b)) -- more efficient
+-- expand_tabs = fixpoint (break_char '\t' (\a b -> a ++ (' '.times (8 - a.length `mod` 8)) ++ b))
 				
 -- @@PLEAC@@_1.8
 -- cant do eval in haskell, too meta, too reflexif
 
-s4 = "I am 17 years old"#subst "\\d+" (\n -> show ((read n) * 2))
+s4 = "I am 17 years old".subst "\\d+" (\n -> show ((read n) * 2))
 
 -- @@PLEAC@@_1.9
-s5 = "bo beep"#upcase
-s6 = s5#downcase
-s7 = s6#capitalize
+s5 = "bo beep".upcase
+s6 = s5.downcase
+s7 = s6.capitalize
 
-s8 = "thIS is a loNG liNE"#words#map capitalize
+s8 = "thIS is a loNG liNE".words.map capitalize
 
 -- @@PLEAC@@_1.10
 -- s9 = "I have " ++ (show (10+1)) ++ " guanacos."
@@ -159,15 +151,15 @@ s9 = "I have "^10+1^" guanacos."
 -- @@PLEAC@@_1.11
 -- cant put lines at beginning of line cos of layout pb
 -- Multi_line is to say that ^ match beginning of every line, not of the string
-multi = (substS "^\\s+" "" [Global_Match,Multi_Line] . unlines) [
+multi = (substS "^\\s+" "" [Global_Match,Multi_Line] ° unlines) [
  "       This is a multiline here document",
  "       terminated by nothing"
  ]
 
 -- @@PLEAC@@_1.12
 -- in fact this fonction is wrong, cos it insert a space at the front of the sentence (must use a foldl1)
-wrap width s = let (all, line) = (words s)#foldl (\ (all, line) w -> 
-					    if (line++" "++w)#length > width 
+wrap width s = let (all, line) = (words s).foldl (\ (all, line) w -> 
+					    if (line++" "++w).length > width 
 					    then (all++[line], w)
 					    else (all, line++" "++w)
 					    ) ([],"") in
@@ -175,30 +167,30 @@ wrap width s = let (all, line) = (words s)#foldl (\ (all, line) w ->
 
 -- @@PLEAC@@_1.13
 escaping = "Mom Said, \"Don't do that.\""
-esc1 = escaping#gsubst "['\"]" ("\\"++) -- section, <=> (\x -> "\\" ++ x)
-esc3 = escaping#gsubst "[^A-Z]" ("\\"++)
-esc4 = escaping#gsubst "[^\\w]" ("\\"++)
+esc1 = escaping.gsubst "['\"]" ("\\"++) -- section, <=> (\x -> "\\" ++ x)
+esc3 = escaping.gsubst "[^A-Z]" ("\\"++)
+esc4 = escaping.gsubst "[^\\w]" ("\\"++)
 
 -- @@PLEAC@@_1.14
-s10 = "    titi"#substS "^\\s+" "" []
-s11 = "  titi  "#substS "\\s+$" "" []
+s10 = "    titi".substS "^\\s+" "" []
+s11 = "  titi  ".substS "\\s+$" "" []
 
-trim = substS "^\\s+" "" [] . substS "\\s+$" "" []
+trim = substS "^\\s+" "" [] ° substS "\\s+$" "" []
 
 -- @@PLEAC@@_1.15
 parse_csv s = let re = ["\"([^\"\\\\]*(\\\\.[^\"\\\\]*)*)\",?" -- "toto,titi"
 		       ,"([^,]+),?" -- something that not start with " can not contain any , => go until next ,
 		       ,","
-                       ]#join "|"
-                  xxs  = s#gmatch re in
-	       xxs#map (\xs -> (xs!!0) ||| (xs!!2))
+                       ].join "|"
+                  xxs  = s.gmatch re in
+	       xxs.map (\xs -> (xs!(0::Int)) ||| (xs!(2::Int)))
 			 
 testline = "XYZZY,\"\",\"O'Reilly, Inc\",\"Wall, Larry\",\"a \\\"glug\\\" bit,\",5,\"Error, Core Dumped\""
-mparse = testline#parse_csv#foldM(\i x -> putStrLn (i^" : "^x) >>> (\_ -> i+1)) 0
+mparse = testline.parse_csv.foldM(\i x -> putStrLn (i^" : "^x) >>> (\_ -> i+1)) 0
 
 -- @@PLEAC@@_1.16
 -- from explanation from http://www.myatt.demon.co.uk/sxalg.htm
-soundex s = x:'-':((res++[0,0,0])#take 3#map show#concat) -- note that as haskell is lazy, this code is efficient
+soundex s = x:'-':((res++[0,0,0]).take 3.map show.concat) -- note that as haskell is lazy, this code is efficient
     where group      =  [("AEIOUYHW",0)
 			,("BFPV",1)
 			,("CGJKQSXZ",2)
@@ -207,15 +199,15 @@ soundex s = x:'-':((res++[0,0,0])#take 3#map show#concat) -- note that as haskel
 			,("MN",5)
 			,("R",6)
 			]
-	  code x = group#find (\(letters,_) -> x `elem` letters)#just#snd
-	  (x:xs) = s#upcase#substS "[^\\w]" "" [Global_Match]
+	  code x = group.find (\(letters,_) -> x `elem` letters).just.snd
+	  (x:xs) = s.upcase.substS "[^\\w]" "" [Global_Match]
 	  -- A consonant immediately following an initial letter from the same code group is ignored
-	  xs'    = if xs#length > 0 && xs#head#code == x#code && x#code > 0 then xs#tail else xs
-	  trim xs = xs#dropWhile (\x -> x#code == 0)
-	  next_code xs = xs#trim#(\xs -> if length xs > 0 then xs#head#code else 0)
+	  xs'    = if xs.length > 0 && xs.head.code == x.code && x.code > 0 then xs.tail else xs
+	  trim xs = xs.dropWhile (\x -> x.code == 0)
+	  next_code xs = xs.trim.(\xs -> if length xs > 0 then xs.head.code else 0)
 	  aux xs = case trim xs of
 		   []     -> []
-		   (x:xs) -> if x#code == xs#next_code then aux xs else x#code:aux xs
+		   (x:xs) -> if x.code == xs.next_code then aux xs else x.code:aux xs
 	  res    = aux xs'
 	  
 soundexes     =  ["holmes"           -- H-452
@@ -232,21 +224,21 @@ soundexes     =  ["holmes"           -- H-452
 		  ,"Kant"            -- K-530
 		  ,"Lloyd"           -- L-300
 		  ,"Ladd"            -- L-300
-		  ]#map soundex	     
+		  ].map soundex	     
 -- TODO, not complete ($quota,$comment,$gcos,$expire) = getpw*
 data Passwd_entry = Passwd_entry {pw_name,pw_passwd,pw_comment,pw_dir,pw_shell::String, pw_uid,pw_gid::Int}
 		  deriving (Eq,Show)
-getpwent s = let [name1,passwd1,uid1,gid1,comment1,dir1,shell1] = s#split ":" in
+getpwent s = let [name1,passwd1,uid1,gid1,comment1,dir1,shell1] = s.split ":" in
 		 Passwd_entry {pw_name=name1,pw_passwd=passwd1,pw_uid=read uid1,pw_gid=read gid1,
 			       pw_comment=comment1,pw_dir=dir1,pw_shell=shell1} 
 
 msoundex = do putStr "Lookup user: "
 	      user  <- getLine
 	      cat "/etc/passwd" >>=
-		  mapM (\l -> let Passwd_entry {pw_name=name,pw_comment=comment} = l#getpwent
-			          [firstname,lastname] = comment#match "(\\w+)[^,]*\\b(\\w+)"
-			          soundex' xs = if xs == [] then "" else xs#soundex in
-			       if user#soundex' `elem` (map soundex' [name,firstname,lastname])
+		  each (\l -> let Passwd_entry {pw_name=name,pw_comment=comment} = l.getpwent
+			          [firstname,lastname] = comment.match "(\\w+)[^,]*\\b(\\w+)"
+			          soundex' xs = if xs == [] then "" else xs.soundex in
+			       if user.soundex' `elem` (map soundex' [name,firstname,lastname])
 			       then putStrLn (name++": "++firstname++" "++lastname)
 			       else return ()
 			)
@@ -288,24 +280,24 @@ week = 40 * wage    -- $214.40
 weekwage = putStrLn ("One week's wage is: $"++show_float 2 (tonum week/100.0))
 
 -- @@PLEAC@@_2.3
-i = 2.3#round
+i = 2.3.round
 a2  = 0.255
 sa2 = show_float 2 a2
 mprinta = putStrLn ("Unrounded: "^a2^"\nRounded: "^sa2)
 
 -- TODO, i dont exactly produce the good ouput, negative number are not centered
 mprintfloat = do putStrLn "number\tint\tfloor\tceil"
-		 [3.3 , 3.5 , 3.7, -3.3]#mapM(\n -> putStrLn ((show_float 1 n)^"\t"^
-							      (n#round)^"\t"^
-							      (n#floor)^"\t"^
-							      (n#ceiling)))
+		 [3.3 , 3.5 , 3.7, -3.3].each(\n -> putStrLn ((show_float 1 n)^"\t"^
+							      (n.round)^"\t"^
+							      (n.floor)^"\t"^
+							      (n.ceiling)))
 
 -- @@PLEAC@@_2.4
 -- TODO? not exacly this, as 54 = 110 110 we dont see the pb of big endian
 bin2i xs = aux 1 (reverse xs)
     where aux power []     = 0
 	  aux power (x:xs) = aux (2*power) xs+(if x == '0' then 0 else power)
-bin2i' xs = xs#reverse#map (\c -> read [c])#zipWith (\a b -> b*(2^^a)) [0..]#sum
+bin2i' xs = xs.reverse.map (\c -> read [c]).zipWith (\a b -> b*(2^^a)) [0..].sum
 i10 = bin2i' "0110110" -- 54
 
 i2bin i = if i == 0 then "0" else aux i
@@ -313,12 +305,12 @@ i2bin i = if i == 0 then "0" else aux i
 bin10 = i2bin 54 -- "110110"
 
 -- @@PLEAC@@_2.5
-m1 = putStr "Infancy is: " >> [0..2]#mapM(\e -> putStr (e^" "))
-m2 = putStr "Infancy is: " >> [0..2]#map show#unwords#putStr
+m1 = putStr "Infancy is: " >> [0..2].each(\e -> putStr (e^" "))
+m2 = putStr "Infancy is: " >> [0..2].map show.unwords.putStr
 
 -- @@PLEAC@@_2.6
 -- code from comp.lang.functionnal
-inttorom n = (concat .reverse) (zipWith roman sets digits)  where
+inttorom n = (concat  ° reverse) (zipWith roman sets digits)  where
      digits = reverse (map (\x -> fromInt (read [x])) (show n))
      roman (i,v,x) n = case n of { 
          0 -> [];  1 -> [i];   2 -> [i,i];   3 -> [i,i,i];   4 -> [i,v]; 
@@ -332,9 +324,9 @@ ran = rand (25, 75) -- [25,75]
 
 chars = concat [['A'..'Z'],['a'..'z'],['0'..'9'],"!@$%^&*"]
 
---password = [1..8]#foldM (\a _ -> rand (0, chars#length -1) >>= (\i -> return (a++chars![i]))) "" 
---password = [1..8]#mapM (\_ -> rand (0, chars#length -1) >>= (\i -> return (chars!!i)))
-password = [1..8]#mapM (\_ -> rand (0, chars#length -1) >>> (chars!!)) -- no join, string = [Char] :) hihi section :)
+--password = [1..8].foldM (\a _ -> rand (0, chars.length -1) >>= (\i -> return (a++chars![i]))) "" 
+--password = [1..8].mapM (\_ -> rand (0, chars.length -1) >>= (\i -> return (chars!!i)))
+password = [1..8].mapM (\_ -> rand (0, chars.length -1) >>> (chars!)) -- no join, string = [Char] :) hihi section :)
 
 -- @@PLEAC@@_2.8
 randfixed = do srand 2
@@ -356,7 +348,7 @@ gaussian_rand = do r1 <- stdrand
 
 mean = 25
 sdev = 2
-salary = gaussian_rand >>> (\l -> l#head * (tonum sdev) + (tonum mean))
+salary = gaussian_rand >>> (\l -> l.head * (tonum sdev) + (tonum mean))
 msalary = do r <- salary
 	     putStrLn ("You have been hired at $"^show_float 2 r)
 
@@ -365,15 +357,15 @@ deg2rad d = d * pi / 180
 rad2deg r = r * 180 / pi
 
 -- @@PLEAC@@_2.12
-sin_val = sin(pi)
-cos_val = cos(pi)
-tan_val = tan(pi)
+sin_val = sin pi
+cos_val = cos pi
+tan_val = tan pi
 
-asin_val = asin(1)
-acos_val = acos(1)
+asin_val = asin 1
+acos_val = acos 1
 
 -- @@PLEAC@@_2.13
-log_e = log(10)
+log_e = log 10
 log_10 = log10 100 -- 2
 
 -- in haskell we dont have by default log10 but we have logBase
@@ -390,11 +382,11 @@ matrixb = Matrix[[4, 7],
 		 [8, 1]]
 matrixc = matrixa * matrixb
 
-masize = matrixa#row_size
-mbsize = matrixa#column_size
+masize = matrixa.row_size
+mbsize = matrixa.column_size
 
---TODO,transposed = matrixc#transpose
---determined = matrixa#det
+--TODO,transposed = matrixc.transpose
+--determined = matrixa.det
 
 -- @@PLEAC@@_2.15
 ca = 3 :+ 5
@@ -411,18 +403,18 @@ i3 = oct "0o45"
 
 m3 = do putStrLn "Gimme a number in decimal, octal, or hex: "
 	s <- getLine
-	let i = s#pattern_matches [("^0x", hex s),("^0o", oct s),("", read s)] in
+	let i = s.pattern_matches [("^0x", hex s),("^0o", oct s),("", read s)] in
 		putStrLn (concat [show i," ",tohex i," ", tooct i,"\n"])
 -- no printf :((
 
 m3' = do putStrLn "Enter file permission in octal: "
 	 permissions <- getLine
-	 putStrLn ("The decimal value is "^permissions#oct)
+	 putStrLn ("The decimal value is "^permissions.oct)
 
 
 -- @@PLEAC@@_2.17
-commify s = if s#length <= 3 then s else 
-	    let (a,b) = splitAt (s#length -3) s in commify a ++ "," ++ b
+commify s = if s.length <= 3 then s else 
+	    let (a,b) = splitAt (s.length -3) s in commify a ++ "," ++ b
 
 -- @@PLEAC@@_2.18
 plurals i   = if i > 1 then "s" else ""
@@ -440,8 +432,8 @@ mplural2 = putStrLn ("It took "^century^" centur"^(pluralies century))
 --ghc -- @@PLEAC@@_3.0
 --ghc mtime1 = now >>= (\d -> putStrLn (calendarTimeToString d))
 --ghc mtime2 = do d <- now
---ghc 		  putStrLn ("Today is day "^d#ctYDay^" of the current year")
---ghc 		  putStrLn ("Today is day "^d#ctDay^ " of the current month")
+--ghc 		  putStrLn ("Today is day "^d.ctYDay^" of the current year")
+--ghc 		  putStrLn ("Today is day "^d.ctDay^ " of the current month")
 --ghc 
 --ghc 
 --ghc -- @@PLEAC@@_3.1
@@ -449,7 +441,7 @@ mplural2 = putStrLn ("It took "^century^" centur"^(pluralies century))
 --ghc tl = now >>= localtime
 --ghc 
 --ghc mtime3 = do date <- tl
---ghc 		  putStrLn ("The current date is "^date#ctYear^" "^date#ctMonth^" "^date#ctDay)
+--ghc 		  putStrLn ("The current date is "^date.ctYear^" "^date.ctMonth^" "^date.ctDay)
 --ghc 
 --ghc mtime4 = do d <- now
 --ghc 		  putStrLn (strftime "%Y-%m-%d" d)
@@ -457,9 +449,9 @@ mplural2 = putStrLn ("It took "^century^" centur"^(pluralies century))
 --ghc -- TODO 3.2, 3.3
 --ghc 
 --ghc -- @@PLEAC@@_3.4
---ghc add_sec sec d = d#toClockTime#addToClockTime (nulltime {tdSec= sec})
---ghc when_ = now >>> (\d -> d#add_sec 100)
---ghc then_ = now >>> (\d -> d#add_sec (-100))
+--ghc add_sec sec d = d.toClockTime.addToClockTime (nulltime {tdSec= sec})
+--ghc when_ = now >>> (\d -> d.add_sec 100)
+--ghc then_ = now >>> (\d -> d.add_sec (-100))
 --ghc 
 --ghc -- @@PLEAC@@_3.5, TODO, not complete
 --ghc bree = 361535725
@@ -483,7 +475,7 @@ mplural2 = putStrLn ("It took "^century^" centur"^(pluralies century))
 --ghc -- @@PLEAC@@_3.6
 --ghc (monthday, weekday, yearday) = (now >>> ctDay, now >>> ctWDay, now >>> ctYDay)
 --ghc 
---ghc weeknum = now >>> (\d -> d#strftime "%U"#read + 1)
+--ghc weeknum = now >>> (\d -> d.strftime "%U".read + 1)
 --ghc 
 --ghc -- TODO 3.9
 --ghc usec = now >>> ctPicosec -- is this ?
@@ -498,7 +490,7 @@ single_level = [ "this", "that", "the", "other" ]
 
 -- @@PLEAC@@_4.1
 a  = ["quick", "brown", "fox"]
-a' = "Why are you teasing me?"#words
+a' = "Why are you teasing me?".words
 -- no multiline in haskell
 
 big_array = cat "pleac.hs" 
@@ -510,8 +502,8 @@ host_info = exec ("host "^his_host)
 
 psinfo1 = exec ("ps $$") -- that's the new shell's $$
 banner_array1 = ["Costs","only","$4.95"]
-banner_array2 = "Costs only $4.95"#words
-banner_array3 = "Costs only $4.95"#split " "
+banner_array2 = "Costs only $4.95".words
+banner_array3 = "Costs only $4.95".split " "
 
 -- @@PLEAC@@_4.2
 commify_series :: [String] -> String
@@ -529,29 +521,29 @@ marray2 = putStrLn ("I have "^(unwords array)^" marbles") -- I have red yellow g
 
 -- @@PLEAC@@_4.3
 -- grow/shring the array by assigning nil to past the end of array
-change_size n xs = if n <= xs#length then take n xs
-		   else xs++(null_val#replicate (n - xs#length))
+change_size n xs = if n <= xs.length then take n xs
+		   else xs++(null_val.replicate (n - xs.length))
 
-change_val ix e xs = let xs' = if ix <= xs#length then xs else change_size ix xs in
-			 xs'![0..ix-1]++[e]++xs'![ix+1..]
+change_val ix e xs = let xs' = if ix <= xs.length then xs else change_size ix xs in
+			 xs'!![0..ix-1]++[e]++xs'!![ix+1..]
 		     
-array2 = array#change_size 5
-array3 = array#change_val 5 "toto"
+array2 = array.change_size 5
+array3 = array.change_val 5 "toto"
 
-array4 = "toto"#replicate 5
+array4 = "toto".replicate 5
 
 what_about_that_array x = 
     "The array now has "^length x^"elements.\n"^
     "The index of the last element is "^length x - 1^".\n"^
-    "Element #3 is`"^x!!3^"'.\n"
+    "Element .3 is`"^x!(3::Int)^"'.\n"
 
-s13 = "Crosby Stills Nash Young"#words#what_about_that_array
+s13 = "Crosby Stills Nash Young".words.what_about_that_array
 
 -- @@PLEAC@@_4.4
 -- in hugs even this take time :), sort is insertion sort :) by default
-m4 = env >>= (\l -> l#keys#sort#mapM(\var -> (var ^"=" ^ (l@@var))#putStrLn))
-m5 = env >>= (\l -> l#mapM(\(var,val) -> (var^"="^val)#putStrLn)) -- but non-sorted
-m6 = env >>= (\l -> l#sortBy(\(a,_) (b,_) -> a <=> b)#mapM(\(var,val) -> (var^"="^val)#putStrLn))
+m4 = env >>= (\l -> l.keys.sort.each(\var -> (var ^"=" ^ (l!var)).putStrLn))
+m5 = env >>= (\l -> l.each(\(var,val) -> (var^"="^val).putStrLn)) -- but non-sorted
+m6 = env >>= (\l -> l.toList.sortBy(\(a,_) (b,_) -> a <=> b).each(\(var,val) -> (var^"="^val).putStrLn))
 
 -- @@PLEAC@@_4.5
 -- not relevant in haskell since we have always kind of references
@@ -560,7 +552,7 @@ m6 = env >>= (\l -> l#sortBy(\(a,_) (b,_) -> a <=> b)#mapM(\(var,val) -> (var^"=
 -- @@PLEAC@@_4.6
 users  = exec "who" >>> map (words $ head) $ sort $ unique
 users2 = exec "who" >>> map (match "(\\w+)" $ head) $ sort $ unique
--- cant do as short as ruby: puts("users logged in: #{commify_series(users)}")
+-- cant do as short as ruby: puts("users logged in: .{commify_series(users)}")
 --  monad are too intrusive and we need to introduce an extra var l, :(((  
 m10 = do l <- users 
          putStrLn ("users logged in:"++(commify_series l))
@@ -589,36 +581,36 @@ l6' = (l2 + l3) - (l2 * l3)
 members = ["Times","Flies"]
 initiates = ["An", "Arrow"]
 newmembers  = members ++ initiates
-newmembers2 = members#insert_at 2 ("Like":initiates)
+newmembers2 = members.insert_at 2 ("Like":initiates)
 
-newmembers3 = members#replace [(0, "Fruit")]
-newmembers4 = members#replace [(2, "Fruit"),(3,"Banana")]
+newmembers3 = members.replace [(0, "Fruit")]
+newmembers4 = members.replace [(2, "Fruit"),(3,"Banana")]
 
 -- @@PLEAC@@_4.10
 
-reversed = [1..5]#reverse
+reversed = [1..5].reverse
 array5 = [3,2,5,1]
-descending  = array5#sort#reverse
-descending' = array5#sortBy (\a b -> b <=> a)
-descending2 = array5#sortBy (flip (<=>))
+descending  = array5.sort.reverse
+descending' = array5.sortBy (\a b -> b <=> a)
+descending2 = array5.sortBy (flip (<=>))
 
 -- @@PLEAC@@_4.11
 -- remove n elements from front of ary (shift n)
-(front,newarray) = array5#splitAt 1
+(front,newarray) = array5.splitAt 1
 
 -- remove n elements from the end of ary (pop n)
-(newarray',end')  = array5#splitAt (array5#length - 1)
+(newarray',end')  = array5.splitAt (array5.length - 1)
 
 
 shift2 (x:y:ys) = ((x,y),ys) -- shift2 = zip ... shift ... TODO
-pop2 xs = let (a,[x,y]) = splitAt (xs#length -2) xs in ((x,y),a)
+pop2 xs = let (a,[x,y]) = splitAt (xs.length -2) xs in ((x,y),a)
 
 
-friends = "Peter Paul Mary Jim Tim"#words
-((this, that), newfriends) = friends#shift2
+friends = "Peter Paul Mary Jim Tim".words
+((this, that), newfriends) = friends.shift2
 
-beverages = "Dew Jolt Cola Sprite Fresca"#words
-(pair,newbeverages) = beverages#pop2
+beverages = "Dew Jolt Cola Sprite Fresca".words
+(pair,newbeverages) = beverages.pop2
 
 -- @@PLEAC@@_4.12
 data Employee = Employee {category,name:: String, income::Int} deriving (Show,Eq)
@@ -631,39 +623,39 @@ employees = [Employee {category="neuneu",name="ben",income=1000}
 -- employees = [("ben","neuneu1"),("pixel","neuneu2"),("pad","engineer"),("guit","engineer")]
 -- category = snd
 -- name = fst
-(Just highest_engineer) = employees#find(\employee -> employee#category == "engineer")
+(Just highest_engineer) = employees.find(\employee -> employee.category == "engineer")
 
-s14 = "Highest paid engineer is: "++ highest_engineer#name
+s14 = "Highest paid engineer is: "++ highest_engineer.name
 
 
 -- @@PLEAC@@_4.13
-bigs = [5..200]#filter (>50) -- hihi section :)
+bigs = [5..200].filter (>50) -- hihi section :)
 
 matching  = exec "who" >>> filter (=~ "^gnat")
 
 engineers  = [ x | x <- employees, category x == "engineer"]
-engineers' = employees#filter (\x -> category x == "engineer")
+engineers' = employees.filter (\x -> category x == "engineer")
 
-secondary_assistance = employees#filter(\x -> x#income >= 26000 && x#income < 30000)
+secondary_assistance = employees.filter(\x -> x.income >= 26000 && x.income < 30000)
 
 -- @@PLEAC@@_4.14
 -- normally you would have an array of Numeric (Float or
 -- Fixnum or Bignum), so you would use:
-sorted1 = [11,5,2,8]#sort
+sorted1 = [11,5,2,8].sort
 
 -- if you have strings representing Integers or Floats
 -- you may specify another sort method (not lexicographic ordering):
-sorted2  = ["11","5","1","8"]#sort -- ["1","11","5","8"]
-sorted2' = ["11","5","1","8"]#sortBy (\a b -> ((read a)::Int) <=> read b) -- ["1","5","8","11"]
+sorted2  = ["11","5","1","8"].sort -- ["1","11","5","8"]
+sorted2' = ["11","5","1","8"].sortBy (\a b -> ((read a)::Int) <=> read b) -- ["1","5","8","11"]
 
 -- cant inline expression :(
 pidsorted = do ps <- exec "ps ux" 
 	       myenv <- env
-	       ps![1..] -- avoid the indication string: USER TTY ....
-		     #filter (=~ (myenv@@"USER"))
-		     #map (words $ (!!1))
-		     #sortBy (\a b -> ((read a)::Int) <=> read b)
-		     #mapM_ putStrLn
+	       ps!![1..] -- avoid the indication string: USER TTY ....
+		     .filter (=~ (myenv!"USER"))
+		     .map (words $ (!1))
+		     .sortBy (\a b -> ((read a)::Int) <=> read b)
+		     .each putStrLn
 			 
 mkill = do putStr "Select a process ID to kill:"	   
 	   pids <- getLine
@@ -672,20 +664,21 @@ mkill = do putStr "Select a process ID to kill:"
 	   _ <- exec ("sleep 2")
 	   exec ("kill -9 "^pids)
 
+-- @@PLEAC@@_4.15
 unordered = [1,-3,2,6]
-ordered = unordered#sort
-precomputed = unordered#map (\e -> [abs e, e])
-ordered_precomputed = precomputed#sortBy (\a b -> (a!!0) <=> (b!!0))
-ordered' = ordered_precomputed#map (!!1)
+ordered = unordered.sort
+precomputed = unordered.map (\e -> [abs e, e])
+ordered_precomputed = precomputed.sortBy (\a b -> (a!0) <=> (b!0))
+ordered' = ordered_precomputed.map (!1)
 
-ordered'' = unordered#map (\e -> [abs e,e])#sortBy (\a b -> (a!!0) <=> (b!!0))#map (!!1)
+ordered'' = unordered.map (\e -> [abs e,e]).sortBy (\a b -> (a!0) <=> (b!0)).map (!1)
 
-employee_sorted = employees#sortBy (\a b -> (a#name) <=> (b#name))
+employee_sorted = employees.sortBy (\a b -> (a.name) <=> (b.name))
 
 musers  = cat "/etc/passwd" >>= (map (split ":" $ head) $ sort $ mapM putStrLn)
-musers' = cat "/etc/passwd" >>= (\x -> x#map (\l -> l#split ":"#head)#sort#mapM putStrLn)
+musers' = cat "/etc/passwd" >>= (\x -> x.map (\l -> l.split ":".head).sort.each putStrLn)
 
--- @@PLEAC@@_4.15
+-- @@PLEAC@@_4.16
 -- in haskell we can use infinite list
 circular = [1,2,3,4,5]++circular
 
@@ -704,85 +697,292 @@ mprocess2 = loop circular where
 			     return () -- forced, WHY?
 
 
--- @@PLEAC@@_4.16
+-- @@PLEAC@@_4.17
 -- brute force
 permut []     = []
 permut [x]    = [[x]]
-permut (x:xs) = xs#permut#map (insert x)#concat
+permut (x:xs) = xs.permut.map (insert x).concat
     where insert x []     = [[x]]
 	  insert x (y:ys) = (x:y:ys) : map (y:) (insert x ys)
 
 fact 0     = 1
 fact (n+1) = (n+1) * fact n
 
-randomizing xs = rand (0, xs#length#fact -1) >>> ((xs#permut)!!)
+randomizing xs = rand (0, xs.length.fact -1) >>> ((xs.permut)!)
 
--- @@PLEAC@@_4.18
+-- @@PLEAC@@_4.19
 bigint = fact 500
 -- on hugs, i have 1134 digits
 permute = permut
-
+----------------------------------
 #!/usr/bin/runhugs
 module Main where
--- 4.18
+import Prelude hiding ((.))
 
 -- usage: echo dog eat cat | ./script.hs
 permut []     = []
 permut [x]    = [[x]]
-permut (x:xs) = xs#permut#map (insert x)#concat
+permut (x:xs) = xs.permut.map (insert x).concat
     where insert x []     = [[x]]
 	  insert x (y:ys) = (x:y:ys) : map (y:) (insert x ys)
 
 fact 0     = 1
 fact (n+1) = (n+1) * fact n
 
-(#) o f = f o -- object notation for object fan
+(.) o f = f o -- object notation for object fan
+(°) f g x = f (g x)
 
 main = do line <- getLine
-	  line#words#permut#mapM_(putStrLn . unwords)
+	  line.words.permut.mapM_(putStrLn ° unwords)
+
+----------------------------------
 
 
-----------------------------------------------------------------------------------------------------
+
+-- @@PLEAC@@_5.0
+
+-- this choose for association the traditionnal assoc list representation
+age = [ ("Nat",24)
+	,("Jules",25)
+	,("Josh",17)]
+-- if you preprend the list with fromList, then you can decide what representaion to choose by typing age
+age':: Assoc String Int
+age' = fromList [ ("Nat",24)
+		  ,("Jules",25)
+		  ,("Josh",17)]
+
+age1:: Assoc String Int
+age1 = empty
+age2 = age1.insert ("Nat",24)
+age3 = age2.insert ("Jules",25)
+age4 = age3.insert ("Josh",17)
+
+food_color :: Assoc String String
+food_color =  fromList [ "Apple"  ==> "red"
+			,"Banana" ==> "yellow"
+			,"Lemon"  ==> "yellow"
+			,"Carrot" ==> "orange"
+			]
+
+-- In haskell, you cannot avoid the double quoting while manipulatin hashes
+
+-- @@PLEAC@@_5.1
+food_color' = food_color.insert ("Raspberry" ==> "pink")
+mfood_color = putStrLn ("Know foods: "^(unwords (food_color.keys)))
+
+-- @@PLEAC@@_5.2
+-- does hash have a value for key ?
+
+mhash = ["Banana", "Martini"].mapM(\name -> 
+	putStrLn (name^" is a "^(food_color.has_key name ? ("food","drink")))
+				  )
+-- @@PLEAC@@_5.3
+food_color2 = food_color.delete_key "Banana"
+
+-- @@PLEAC@@_5.4
+
+mhash2 = food_color.each (\(food,color) ->
+	 putStrLn (food^" is "^color)
+	 )
+mhash3 = food_color.each_key(\food -> 
+	 putStrLn (food^" is "^(food_color!food))
+	 )
+
+-- IMO too (as gc), this demonstrates that OO style is by far more readable
+mhash4 = food_color.keys.sort.each(\food ->
+	 putStrLn (food^" is "^(food_color!food))
+         )
+---------------------------------------
+#!/usr/bin/runhugs -98
+module Main where
+
+import Prelude hiding (($),(^),(.),(!!),map,take,lookup,drop,splitAt,reverse,filter,takeWhile,dropWhile,null,foldl,length)
+import Common
+-- TODO, very slow, try with ghc
+
+-- countfrom - count number of messages from each sender
+main = do lines <- (<>)
+	  lines.foldl(\from l -> 
+		     if l =~ "^From: " 
+		     then let [name] = l.match "^From: (.*)" in from.update name (+1)
+		     else from
+		     ) (empty::AssocDefault String Int)
+		.toList.sortBy (\(_,a) (_,b) -> b <=> a)
+		.each (\(a,b) -> putStrLn (b^": "^a))
+---------------------------------------
+			      
+			   
+-- @@PLEAC@@_5.5
+-- You may use the not built-in 'show' (poor ruby)
+mhash5 = putStrLn (age4.show)
+	 
+-- Or do it the Cookbook way:
+mhash5' = age4.each (\(k,v) -> putStrLn (k^" => "^v))
+
+-- Sorted by keys
+mhash6 = age4.toList.sortBy (\a b -> (a.fst) <=> (b.fst)).each(\(k,v) -> putStrLn (k^" => "^v))
+-- Sorted by values
+mhash7 = age4.toList.sortBy (\a b -> (a.snd) <=> (b.snd)).each(\(k,v) -> putStrLn (k^" => "^v))
+
+-- @@PLEAC@@_5.7
+mttys = do who <- exec "who"
+	   who.foldl(\ttys l -> 
+		    let (user:tty:_)= l.words in
+		    ttys.update tty (insert user)
+		    ) (empty::AssocDefault String (SetList String))
+		.toList.sortBy (\(a,_) (b,_) -> b <=> a)
+		.each (\(a,b) -> putStrLn (a^": "^commify_series (b.toList)))
+
+-- @@PLEAC@@_5.8
+surname:: Assoc String String
+surname = fromList ["Mickey" ==> "Mantle", "Babe"  ==> "Ruth"]
+mhash8 = surname.keyss "Mantle".head.putStrLn
+
+invert_surname:: Assoc String String
+invert_surname = surname.toList.map (\(a,b) -> (b,a)).fromList
+
+---------------------------------------
+#!/usr/bin/runhugs -98
+module Main where
+
+import Prelude hiding (($),(^),(.),(!!),map,take,lookup,drop,splitAt,reverse,filter,takeWhile,dropWhile,null,foldl,length)
+import Common
+
+color :: Assoc String String
+color = fromList [
+		 "Apple"  ==> "red",
+		 "Banana" ==> "yellow",
+		 "Lemon"  ==> "yellow",
+		 "Carrot" ==> "orange"
+		 ]
+
+
+-- foodfind - find match for food or color
+main = do args <- argv
+	  usage "foodfind food_or_color" `when` (args.null)
+	  let given = args.head in
+	      do putStrLn (given^" is a good with color "^(color!given)) 
+			      `when` (color.has_key   given)
+		 putStrLn (given^" is a color with food "^(color.keyss given.head)) 
+			      `when` (color.has_value given)
+---------------------------------------
+
+-- @@PLEAC@@_5.9
+-- Sorted by keys
+mhash9  = age4.toList.sortBy (\a b -> (a.fst) <=> (b.fst)).each (\(k,v) -> 
+	  putStrLn (k^" is "^v))
+-- Sorted by values
+mhash10 = age4.toList.sortBy (\a b -> (a.snd) <=> (b.snd)).each (\(k,v) -> 
+	  putStrLn (k^" is "^v))
+
+-- Sorted by length of values
+mhash11 = food_color.toList.sortBy (\a b -> (a.snd.length) <=> (b.snd.length)).each (\(k,v) -> 
+	  putStrLn (k^" is "^v))
+
+-- @@PLEAC@@_5.10
+drink_color:: Assoc String String
+drink_color = fromList ["Galliano" ==> "yellow", "Mai Tai" ==> "blue"]
+
+-- in haskell no clone, we do implictly always clone :)
+ingested_color = drink_color `union` food_color
+
+substance_color :: IO (Assoc String Int)
+substance_color = [food_color, drink_color]
+		  .foldM (\a i -> 
+			  i.keys.foldM (\a k -> 
+					if a.has_key k 
+					then putStrLn ("Warning: "^k^" seen twice") >> (return a)
+					else return (a.insert (k,1))
+					) a
+			  ) empty
+
+-- @@PLEAC@@_5.11
+common = food_color.keys * drink_color.keys
+
+this_not_that = food_color.keys - drink_color.keys
+
+-- @@PLEAC@@_5.12
+-- no problem here, haskell handles any kind of object for key-ing
+
+-- TODO 5.13 AFAIK, not possible in Ruby
+
+-- @@PLEAC@@_5.14
+count:: AssocDefault String Int
+count = ["toto","toto","toto","tata","tata","tutu"].foldl (\a s -> a.update s (+1)) empty
+
+--@PLEAC@@_5.15
+father:: Assoc String String
+father = fromList ["Cain"      ==> "Adam",
+		   "Abel"      ==> "Adam",
+		   "Seth"      ==> "Adam",
+		   "Enoch"     ==> "Cain",
+		   "Irad"      ==> "Enoch",
+		   "Mehujael"  ==> "Irad",
+		   "Methusael" ==> "Mehujael",
+		   "Lamech"    ==> "Methusael",
+		   "Jabal"     ==> "Lamech",
+		   "Jubal"     ==> "Lamech",
+		   "Tubalcain" ==> "Lamech",
+		   "Enos"      ==> "Seth"
+		   ]
+
+
+children :: AssocDefault String (SetList String)
+children = father.foldl (\a (k,v) -> a.update v (insert k)) empty
+
+-- TODO	   
+
 -- @@PLEAC@@_APPENDIX
 ----------------------------------------------------------------------------------------------------
-module Common where
+module Common ( module Common
+		, module Regexp
+		, module System
+		, module Complex
+		, module Char 
+		, module Numeric 
+		-- Monad
+		, foldM
+		-- List
+		, elemIndex, elemIndices,
+		find, findIndex, findIndices,
+		nub, nubBy, delete, deleteBy, (\\), deleteFirstsBy,
+		union, unionBy, intersect, intersectBy,
+		intersperse, transpose, partition, group, groupBy,
+		inits, tails, isPrefixOf, isSuffixOf,
+		mapAccumL, mapAccumR,
+		sort, sortBy, insert, insertBy, maximumBy, minimumBy,
+		genericLength, genericTake, genericDrop,
+		genericSplitAt, genericIndex, genericReplicate,
+		zip4, zip5, zip6, zip7,
+		zipWith4, zipWith5, zipWith6, zipWith7,
+		unzip4, unzip5, unzip6, unzip7, unfoldr
+--		,module Prelude
 
-import Prelude hiding (($),(^))
-import Regexp
-import List
+) where
+
+----------------------------------------------------------------------------------------------------
+import Prelude hiding (($),(^),(.),(!!),map,take,lookup,drop,splitAt,reverse,filter,takeWhile,dropWhile,null,foldl)
+import List hiding ((!!),map,take,lookup,drop,splitAt,reverse,filter,takeWhile,dropWhile,null,insert,union,intersect,delete,partition,foldl,length)
 import Random hiding (split)
 import Monad hiding (join,when,unless)
+
+import Regexp
 import System
 import Complex
 
 -- seems ghc need it for chr,ord, readHex, readOct
 import Char 
 import Numeric 
+--ghc import Time
+--ghc import Locale
 
-import Trace
-
-----------------------------------------------------------------------------------------------------
-
--- to allow s![1..]
--- note: a 'try (...) with' would be more efficient that constantly check for array bound
--- note: we stop as soon as we have a big index => xs ! [1000, 2,3] if length xs < 1000 will give [] 
---   (to handle infinite list)
-(!) :: [b] -> [Int] -> [b]
-(!) xs [] = []
-(!) xs (i:is) | i >= length xs = [] -- handle infinite list
-	      | i < 0          = xs!!(length xs + i) : xs!is
-	      | otherwise      = xs!!i : xs!is
--- TODO allow s![-4..]
-
--- less expressive, more elegant
-(!!!) :: [b] -> [Int] -> [b]
-(!!!) xs = map (xs !!) -- (!!!) xs is = map (xs !!) is
+--import Trace
 
 ----------------------------------------------------------------------------------------------------
 substr start len insert s = 
-    if start >= 0 then s![0..start-1] ++ insert ++ s![start+len..] -- [0.. -1] -> []
-    else s![0..(length s + start -1)] ++ insert ++ s![start+len.. -1]
---substr s start len insert = take s start ++ insert ++ s![start+len..]
+    if start >= 0 then s!![0..start-1] ++ insert ++ s!![start+len..] -- [0.. -1] -> []
+    else s!![0..(length s + start -1)] ++ insert ++ s!![start+len.. -1]
+--substr s start len insert = take s start ++ insert ++ s!![start+len..]
 substr2 start insert s = substr start (if start >= 0 then (length s - start) else -start) insert s
 
 data Unpack_option = Grab Int 
@@ -791,11 +991,11 @@ data Unpack_option = Grab Int
 		   | GrabAll 
 		     deriving Show
 unpack :: [Unpack_option] -> [a] -> [[a]]
-unpack opt s = opt#(foldl aux (0,[]))#snd#reverse --(snd $ reverse) (foldl aux (0,[]) opt)
-    where aux (n,l) (Grab i)      = (n+i, s![n..n+i-1] : l)
+unpack opt s = opt.foldl aux (0,[]).snd.reverse --(snd $ reverse) (foldl aux (0,[]) opt)
+    where aux (n,l) (Grab i)      = (n+i, s!![n..n+i-1] : l)
 	  aux (n,l) (Forward i)   = (n+i, l)
 	  aux (n,l) (Backward i)  = (n-i, l)
-	  aux (n,l) GrabAll       = (length s + 1, s![n..] : l)
+	  aux (n,l) GrabAll       = (length s + 1, s!![n..] : l)
 -- could do a foldr so that no need reverse but need reverse opt
 -- could to a str2Unpack_option so that str2Unpack_option "A5 A*" => [Grab 5,GrabAll]
 ----------------------------------------------------------------------------------------------------
@@ -815,7 +1015,8 @@ gsubst re f s = let matchresult = searchS re [] s in
 		      f (wholeMatch matchresult) ++ 
 			(gsubst re f (afterMatch matchresult))
 		   else s
-
+-- in perl, =~ do 2 things, first it returns a bool and bind $i
+-- in haskell we are forced to do it in 2 steps
 (=~) s re = let matchresult = searchS re [] s in
 	    matchedAny matchresult
 (==~) s re = s =~ ("^"++s++"$")
@@ -824,32 +1025,32 @@ gsubst re f s = let matchresult = searchS re [] s in
 -- like put name on this, prefer anonymous as in perl, that is "(...) (...)"
 -- TODO, handle |, for example when match .(..)|.(..) i would like to return a list of one element
 -- TODO, handle ?: of perl
-match re s = let (max,re2) = re#foldl (\(i,acc) c -> 
+match re s = let (max,re2) = re.foldl (\(i,acc) c -> 
 			    if c == '(' then (i+1,acc++" "++show i++"@(") else (i,acc++[c])
 				   ) (1,[])
-		 matchresult = searchS re2 [] s
+		 matchresult = s.searchS re2 []
 		 -- there is a pb cos in match "(\\w+)=(.*)" "MAIL=", we dont get ["MAIL",""]
 		 -- but only ["MAIL"], the lib does not handle well empty match
 		 subs  = allSubexps matchresult
-		 subs2 = if   (subs#length > 0  && subs#last#fst /= show (max-1))
-			     ||(subs#length == 0 && max > 1)
+		 subs2 = if   (subs.length > 0  && subs.last.fst /= show (max-1))
+			     ||(subs.length == 0 && max > 1)
 			  then subs++[(show (max-1),"")]
 			  else subs
-		 subs3 = subs2#foldl (\(i,acc) (j,str)-> 
+		 subs3 = subs2.foldl (\(i,acc) (j,str)-> 
 			      if show i == j then (i+1, acc++[str])
 			      else ((read j)+1, acc++replicate ((read j)-i) ""++[str])
 				       ) (1,[]) in
-		 subs3#snd
+		 subs3.snd
 -- cant make match and gmatch the same type, cos one give [] and gmatch give [[]]
-gmatch re s = let (max,re2) = re#foldl (\(i,acc) c -> 
+gmatch re s = let (max,re2) = re.foldl (\(i,acc) c -> 
 			    if c == '(' then (i+1,acc++" "++show i++"@(") else (i,acc++[c])
 				   ) (1,[])
-		  matchresult = searchS re2 [] s in
+		  matchresult = s.searchS re2 [] in
 		  if matchedAny matchresult then (match re s):(gmatch re (afterMatch matchresult))
 		  else []
 
 
---myl = "cava et toi"#match  "(a..) et (t)oi"
+--myl = "cava et toi".match  "(a..) et (t)oi"
 --myl = match "(\\w+)" "pad tty etrre"
 --myl = match "(\\w+)=" "PAD=/home/pad"
 --myl = match "(\\w+)=(.*)" "PAD_MAIL="
@@ -857,16 +1058,23 @@ gmatch re s = let (max,re2) = re#foldl (\(i,acc) c ->
 pattern_matches ((re, v):xs) s = if s =~ re then v else pattern_matches xs s
 
 ----------------------------------------------------------------------------------------------------
--- an imitation of the '?' C operator
+-- an imitation of the '?' C operator, could even define (:-) = (:) and then have bool ? v1 :- v2
 (?) True  (a,b) = a
 (?) False (a,b) = b
 
--- TODO, would like to overload # to behave as >>> when monad, but hard to do, and want that ?
--- it is cool that record get autogenerated func, => we could do object#record_selector
--- consistency
-(#) o f = f o -- object notation for object fan
+(==>) a b = (a,b)
 
-(f $ g) x = (g . f) x
+-- TODO, would like to overload . to behave as >>> when monad, but hard to do (a -> (a->b) -> b) does
+-- not unify with m a -> (a -> b) -> m b, and want that ?
+-- it is cool that record get autogenerated func, => we could do object.record_selector
+-- consistency
+
+(.) o f = f o -- object notation for object fan, use it if function have more than one parameter or
+	      -- if you want make an "oo-line" (ex o.words.reverse.unwords)
+(.>) m f = m >>= (\o -> return (f o)) -- <=> >>>
+
+(°) f g x = f (g x)
+(f $ g) x = (g ° f) x
 
 next_char c = chr (ord c + 1)
 
@@ -885,8 +1093,8 @@ join e xs = foldr1 (\a x -> a ++ e ++ x) xs
 
 -- string only split
 --split e xs = splitaux e [] xs
---splitaux e a xs | xs#length < e#length     = [a ++ xs]
---		  | take (e#length) xs == e  = a:(splitaux e [] (drop (e#length) xs))
+--splitaux e a xs | xs.length < e.length     = [a ++ xs]
+--		  | take (e.length) xs == e  = a:(splitaux e [] (drop (e.length) xs))
 --		  | otherwise                = splitaux e (a++[head xs]) (tail xs)
 -- better split, handle regexp
 split re xs = let matchresult = searchS re [] xs in
@@ -898,8 +1106,8 @@ split re xs = let matchresult = searchS re [] xs in
 break_char c f s = let (a,b) = break (== c) s in
 		   if b == [] then a else f a (tail b)
 
-upcase      = map toUpper
-downcase    = map toLower
+upcase xs     = map toUpper xs
+downcase xs   = map toLower xs
 capitalize (x:xs) = toUpper x : xs
 
 tonum x = fromInteger x
@@ -907,12 +1115,10 @@ tonum x = fromInteger x
 hex ('0':('x':s)) = fst (head (readHex s)) -- TODO do some check
 oct ('0':('o':s)) = fst (head (readOct s)) -- TODO do some check
 tohex i = "0x"++aux i 
-    where aux i = if i == 0 then "" else aux (i `div` 16)++((['0'..'9']++['A'..'F'])![i `mod` 16])
+    where aux i = if i == 0 then "" else aux (i `div` 16)++((['0'..'9']++['A'..'F'])!![i `mod` 16])
 tooct i = "0o"++aux i 
-    where aux i = if i == 0 then "" else aux (i `div` 8)++(['0'..'7']![i `mod` 8])
+    where aux i = if i == 0 then "" else aux (i `div` 8)++(['0'..'7']!![i `mod` 8])
 
-difference :: (Eq a) => [a] -> [a] -> [a] -- dont know why but forced to put the type
-difference = (\\)
 
 unique                     :: (Eq a) => [a] -> [a] -- dont know why but forced to put the type
 unique = nub
@@ -922,10 +1128,10 @@ insert_at i toadd xs = let (a,b) = splitAt i xs in
 			   a++toadd++b
 
 replace :: [(Int, a)] -> [a] -> [a]
-replace assoc xs = assoc#foldl (\a (i,e) -> let (x,y) = splitAt i a in x++[e]++y ) xs
+replace assoc xs = assoc.foldl (\a (i,e) -> let (x,y) = splitAt i a in x++[e]++y ) xs
 
 shift (x:xs) = (x,xs)
-pop xs = (init xs, last xs) -- more efficient let (a,[b]) = splitAt (xs#length - 1) xs in (a,b)
+pop xs = (init xs, last xs) -- more efficient let (a,[b]) = splitAt (xs.length - 1) xs in (a,b)
 
 foldl_index f acc xs = foldl f acc (zip [1..] xs)
 
@@ -933,43 +1139,44 @@ complex_i = 0 :+ 1
 
 (<=>) a b = compare a b
 
-debug expr = trace ("Debug:"++show expr++"\n") expr
+--debug expr = trace ("Debug:"++show expr++"\n") expr
 ----------------------------------------------------------------------------------------------------
 infixl 1 >>>
-(>>>) monad f = monad >>= (return . f)
-eval x = x >>= (putStrLn . show)
+(>>>) monad f = monad >>= (return ° f)
+eval x = x >>= (putStrLn ° show)
 
 action `when` bool   = if bool then action else return ()
 action `unless` bool = action `when` (not bool)
 cat file = readFile file >>> lines
-contents = do l <- getContents
-	      return (l#lines)
+contents = getContents >>> lines
 
 (<>) = do l <- argv
 	  if (l == []) then contents else foldM (\a e -> cat e >>> (a++)) [] l
 
 -- i know it is just poor code, but haskell force me
 -- TODO, dont work, seems monad are lazy too, dont understand io in haskell anymore :(
---  if do {l <- exec "ps ux"; l2 <- exec "who"; l#mapM putStrLn} print the contents of l2 !!
+--  if do {l <- exec "ps ux"; l2 <- exec "who"; l.mapM putStrLn} print the contents of l2 !!
 exec s = do _ <- system (s++" > /tmp/file")
 	    cat "/tmp/file"
 
 rand :: (Int, Int) -> IO Int -- force to do that to resolve overloading :(
-rand = getStdRandom . randomR
+rand = getStdRandom ° randomR
 stdrand :: IO Double
 stdrand = getStdRandom (randomR (0,1))
 
 srand val = setStdGen (mkStdGen val)
 
 -- in haskell we have getEnv::String -> String, but not getEnvs :(
-env = exec "env" >>> map (\s -> let [a,b] = s#match "(\\w+)=(.*)" in (a,b))
+env :: IO (Assoc String String)
+env = exec "env" >>> (map (\s -> let [a,b] = s.match "(\\w+)=(.*)" in (a,b)) $ fromList)
 -- env = getEnvironment  -- for ghc
 argv = getArgs
 
 just (Just x) = x
 just _ = error "Common:just"
 
-exit i = return () -- hugs primExitWith i
+exit i = primExitWith i
+usage s = putStrLn ("usage:"++s) >> exit 1
 
 -- printf a la danvy
 -- type fmt a = 
@@ -981,63 +1188,277 @@ exit i = return () -- hugs primExitWith i
 --ghc nulltime = TimeDiff {tdYear=0, tdMonth=0, tdDay=0, tdHour=0, tdMin=0, tdSec=0, tdPicosec = 0}
 
 ----------------------------------------------------------------------------------------------------
--- this class support only collection of kind/1 => :( cos assoc dont match this criteria
--- not that some new type variable are introduced (something impossible with ocaml oo, can not
---  define a list object and then a fold, cos the type of the accumulator is new
---  can do it in caml/C++ by making fold an external function of the class
 
--- Collects e [e] where ...                                                                          
--- Collects e (e -> Bool) where ...                                                                  
--- Collects Char BitSet where ...                                                                            
+-- Collects e [e] where ...
+-- Collects e (e -> Bool) where ...
+-- Collects Char BitSet where ...
 -- (Hashable e, Collects a ce) Collects e (Array Int ce)
+-- type Assoc a b = [(a,b)]
+--    
+-- -- this class support only collection of kind/1 => :( cos assoc dont match this criteria
+-- -- note that some new type variable are introduced (something impossible with ocaml oo, can not
+-- --  define a list object and then a fold, cos the type of the accumulator is new
+-- --  can do it in caml/C++ by making fold an external function of the class
+-- class Collection1 c where
+--     member1 :: Eq e => e -> c e -> Bool -- need Eq e, otherwise at instance declaration, when member = elem, pb (WHY?)
+--     cmap1   :: (a -> b) -> c a -> c b
+--     insert1 :: e -> c e -> c e
+-- instance Collection1 [] where
+--     member1 = elem
+--     cmap1   = map
+--     insert1 = (:)
+-- -- instance Collection1 Assoc ..., is not possible
+-- 
+-- -- class Collection2 e c where, useless constructor class do the same job
 
-type Assoc a b = [(a,b)]
-   
-class Collection1 c where
-    member1 :: Eq e => e -> c e -> Bool -- need Eq e, otherwise at instance declaration, when member = elem, pb (WHY?)
-    cmap1   :: (a -> b) -> c a -> c b
-    insert1 :: e -> c e -> c e
-instance Collection1 [] where
-    member1 = elem
-    cmap1   = map
-    insert1 = (:)
--- instance Collection1 Assoc where
--- class Collection2 e c where, useless constructor class do the same job
--- *class Collection2 e ce where
--- *	member2:: e -> ce -> Bool
--- *--    cmap2::   (e -> b), cant define, but can be put outside and use insert/observers
--- *	insert2:: e -> ce -> ce
+-- edison is cool, but they dont use depedencies => cant make a superclass Collection of Assoc and Sequence
+--  morover, there are too many classes, i prefer one class Collection, and then instance OrdSet,Bag,OrdBag,...
+-- edison use constructor class => if a type is not of the form c a, then it does not work
+-- as for the Functor class, this is a pb cos you cant make an instance Functor Assoc, cos Assoc is of kind/2
+-- TODO, to allow default null, need Eq ce =>, mais apres foldl need des Eq [b] =>
+--  must cut Collection in section CollectionEq, Collection
+class Collection e ce | ce -> e where
+    -- constructors
+    empty :: ce
+    single :: e -> ce
+    insert :: e -> ce -> ce
 
-keys = map fst
+    fromList :: [e] -> ce
+    fromList xs = xs.foldl (flip insert) empty
+    copy :: Int -> e -> ce
+--    union, intersect, difference :: ce -> ce -> ce
+        -- tabulate ?
 
-(@@)           :: Eq a => [(a,b)] -> a -> b
-(@@) [] k      = error "Common:@@"
-(@@) ((x,y):xys) k
-      | k==x      = y
-      | otherwise = xys@@k
+    -- destructors
+     -- simple
+    delete :: e -> ce -> ce
 
+    delete_all:: e -> ce -> ce -- not relevant for Set	      
+     -- predicate based
+
+    filter :: (e -> Bool) -> ce -> ce
+    partition:: (e -> Bool) -> ce -> (ce,ce)
+    -- observers
+    toList :: ce -> [e]
+
+    size :: ce -> Int
+--    member :: e -> ce -> Bool
+--    null :: ce -> Bool
+--    null ce = ce == empty
+    
+
+    -- iterators
+
+       --    concatMap, cfoldr + 1, reducer* ?
+    foldl:: (a -> e -> a) -> a -> ce -> a
+    each :: (e -> IO ()) -> ce -> IO ()
+
+    -- find each
+    -- zip unzip zippWith 
+--    map:: (e -> b) -> ce -> cb -- cant define as is, would like a depedency constraint
+	                       -- such as ce+b->cb
+	                       -- can be put outside and use insert/observers
+
+-- TODO make AssocOrd class, OrdColl, ...
+-- goal: Set,Bag
+-- implementation: list,ordlist, (if odererd => can use bintree), okasaki optimised
+
+null es = es == empty
+member e es = e `elem` (es.toList)
+
+-- TODO, could make union more cool, to allow each time different collection
+-- could allow to do in place of a.insert e, [e]+a 
+union :: (Collection a c) => c -> c -> c -- to force the same collection type
+union a b = b.foldl (flip insert) a
+intersect :: (Collection a c, Eq a) => c -> c -> c -- to force the same collection type
+intersect  a b = a.foldl (\a e -> if e `member` b then a.insert e else a) empty
+difference :: (Collection a c, Eq a) => c -> c -> c -- to force the same collection type
+difference a b = a.foldl (\a e -> if e `member` b then a else a.insert e) empty
+    
+class Collection e ce => Sequence e ce where
+    -- constructors
+    cons,snoc :: e -> ce -> ce
+    append :: ce -> ce -> ce
+    append = union
+    -- destructors
+     --simple
+    lview,rview :: ce -> (e,ce)
+
+    lhead,rhead :: ce -> e
+    ltail,rtail :: ce -> ce
+     -- int based
+    take,drop :: Int -> ce -> ce
+    splitAt :: Int -> ce -> (ce,ce)
+    subseq :: Int -> Int -> ce -> ce
+    takeWhile,dropWhile:: (e -> Bool) -> ce -> ce
+    splitWhile :: (e -> Bool) -> ce -> (ce,ce)
+    -- misc
+    reverse :: ce -> ce
+    --    concat :: [ce] -> ce; not [ce] but ce ce => how ?
+    -- update, inbounds, adjust, [map|foldl|foldr]WithIndex
+
+-- instance [a], Queue [a], okasaki optimised
+
+-- TODO, make too strong condition, Eq b for example, could make keyss outside the class
+class (Eq a, Eq b, Collection (a,b) cab) => Association a b cab | cab -> a, cab -> b where
+    keys :: cab -> [a]
+    values:: cab -> [b]
+    has_key:: a -> cab -> Bool
+    has_key k xs = k `elem` (xs.keys)
+    delete_key :: a -> cab -> cab
+    each_key :: (a -> IO ()) -> cab -> IO ()
+    keyss :: b -> cab -> [a]
+    keyss v cab = cab.toList.filter (snd $ (==v)).map fst
+    has_value:: b -> cab -> Bool
+    has_value v xs = v `elem` (xs.values)		  
+
+-- instance Assoc, okasaki optimised (bintree, ...)
+-- AssocMulti, key -> list
+
+map f []     = []
+map f (x:xs) = f x: map f xs
+cmap f = toList ° map f ° fromList -- cant make in the type that this must be the same collection
+
+class Indexable i ca a | ca -> a where
+    (!~) :: ca -> i -> Maybe a -- lookupM
+    (!) :: ca -> i -> a -- lookup, to be more esthetic do s!(0) rather than s!0
+    (!) xs i = (xs!~i).just
+    -- lookupWithDefaul
+    (!!) :: ca -> [i] -> [a]
+    (!!) xs is = map (\i -> xs ! i) is -- seems you can not define with infix notation default class value
+
+-------------------------------
+instance (Num b,Ord b) => Indexable b [a] a where
+-- to allow s![1..]
+-- note: a 'try (...) with' would be more efficient that constantly check for array bound
+-- note: we stop as soon as we have a big index => xs ! [1000, 2,3] if length xs < 1000 will give [] 
+--   (to handle infinite list)
+-- TODO allow s!![-4..]
+    (!!) xs [] = []
+    (!!) xs (i:is) | i >= (fromInt (length xs)) = [] -- handle infinite list
+		   | i < 0          = xs!((fromInt (length xs)) + i) : xs!!is
+		   | otherwise      = xs!(i) : xs!!is
+
+
+--    (x:_)  !~ 0       = Just x
+    (x:_)  !~ n | n < 1 && n >= 0  = Just x -- allow s!3.2
+    (_:xs) !~ n | n>0 = xs !~ (n-1)
+    _  !~ _       = Nothing
+
+
+instance Collection a [a] where
+    insert = (:)
+
+    foldl f z []      = z
+    foldl f z (x:xs)  = foldl f (f z x) xs
+    
+    filter p xs       = [ x | x <- xs, p x ]
+    each = mapM_
+    toList = id
+    fromList = id -- default fromList dont respect the order
+    empty = []
+
+
+instance Sequence a [a] where
+    reverse    = foldl (flip (:)) []
+
+-- this can be dangerous, cos insert for an Association is replace/add (key,val) whereas
+-- for a list with simply add, and so use Assoc if you want to choose
+-- same for each, each will print all the pair, even the obsolete
+instance (Eq a,Eq b) => Association a b [(a,b)] where    
+    keys xs = xs.map fst
+    delete_key k xs = xs.filter (\(a,b) -> a /= k)
+    each_key f = keys $ each f
+    
+-------------------------------
+data SetList a = SetList [a] deriving Show
+
+instance Eq a => Collection a (SetList a) where
+    insert e (SetList xs) = SetList (e:(xs.filter (/= e)))
+    toList (SetList xs) = xs			    
+    
+
+instance Eq (SetList a) => Default_val (SetList a)  where null_val = SetList []
+
+instance Eq a => Eq (SetList a) where
+    (SetList xs) == (SetList ys) = (xs.all (`elem` ys)) && (xs.length == ys.length)
+-------------------------------
+data Assoc a b = Assoc [(a,b)] deriving Eq
+instance (Show a, Show b) => Show (Assoc a b) where
+    show (Assoc xs) = xs.map (\(a,b) -> a^" => "^b).unlines
+
+
+instance Eq a => Collection (a,b) (Assoc a b) where
+    empty = Assoc []
+    insert (k,v) (Assoc xs) = Assoc ((k,v):xs.filter ((/= k) ° fst))  -- [ (k',v') | (k',v') <- xs, k /= k'])
+    toList (Assoc xs) = xs
+    each f (Assoc xs) = xs.each f
+    foldl f z (Assoc xs) = xs.foldl f z
+
+
+instance (Eq a,Eq b) => Association a b (Assoc a b) where
+    keys   (Assoc xs) = xs.map fst
+    values (Assoc xs) = xs.map snd
+
+instance Eq a => Indexable a (Assoc a b) b where
+    (!~) (Assoc []) k = Nothing
+    (!~) (Assoc ((x,y):xys)) k | k==x      = Just y
+			       | otherwise = (Assoc xys)!~k
+
+-- to do assoc with default value to allow 
+--  from.update (name,+1), better than
+--  from.insert(name,1+((from!~name ||| (Just 0)).just))
+data AssocDefault a b = AssocDefault (b,[(a,b)]) deriving Eq
+
+instance (Show a, Show b) => Show (AssocDefault a b) where
+    show (AssocDefault (b,xs)) = xs.map (\(a,b) -> a^" => "^b).unlines
+
+instance (Eq a,Default_val b) => Collection (a,b) (AssocDefault a b) where
+    empty = AssocDefault (null_val,[]) 
+    insert (k,v) (AssocDefault (b,xs)) = AssocDefault (b,((k,v):xs.filter ((/= k) ° fst)))  -- [ (k',v') | (k',v') <- xs, k /= k'])
+    toList (AssocDefault (b,xs)) = xs
+    each f (AssocDefault (b,xs)) = xs.each f
+    foldl f z (AssocDefault (b,xs)) = xs.foldl f z
+
+instance (Eq a,Default_val b) => Association a b (AssocDefault a b) where
+    keys (AssocDefault (b,xs)) = xs.map fst
+instance Eq a => Indexable a (AssocDefault a b) b where
+   (!~) (AssocDefault (b,xs)) k = (Assoc xs)!~ k
+
+-- TODO, could put update in classe Association ?
+update k f h@(AssocDefault (b,xs)) = h.insert(k, (h!~k ||| Just b).just.f)
+----------------------------------------------------------------------------------------------------
+
+-- make tuple indexable, oveload ! to work with all, but does not work
+-- instance Indexable Int (a,b) a where
+--     (!~) (a,b) 0 = Just a
+-- instance Indexable Int (a,b) b where
+--     (!~) (a,b) 1 = Just b
+
+
+    
 ----------------------------------------------------------------------------------------------------
 -- matrix, there exist some implementation on the web, TODO dont do list but fixed size vector =>
 -- could make compile-time check, ex *, we must have row_size a = column_size b
 -- TODO, could be made a class of FinitMap, and that we could have a generic accessor
 newtype Matrix a = Matrix [[a]] -- prefer a newtype, cos dont want to allow + on every list of list
     deriving (Eq,Show) -- newtype force you to redefine the deriving stuff
-row_size    (Matrix m) = m#length
-column_size (Matrix m) = m#head#length
-(%%) (Matrix m) (i,j)  = m!!i!!j
+row_size    (Matrix m) = m.length
+column_size (Matrix m) = m.head.length
+(%%) (Matrix m) (i,j)  = m!i!j
 
 -- could so straessen, this is very inefficient cos we dont have 0(1) access to element
 -- TODO, use list comprehension, cf hugs demo
 instance Num a => Num (Matrix a) where
-    ma * mb | ma#column_size == mb#row_size = Matrix aux
-	    where aux = [0..ma#row_size -1]
-			#foldl (\acc i -> 
+    ma * mb | ma.column_size == mb.row_size = Matrix aux
+	    where aux = [0..ma.row_size -1]
+			.foldl (\acc i -> 
 				acc++[
-				      [0..mb#column_size -1]
-				      #foldl (\acc j ->
+				      [0..mb.column_size -1]
+				      .foldl (\acc j ->
 					      acc++[
-						    [0..ma#column_size-1]
-						    #foldl (\acc k ->
+						    [0..ma.column_size-1]
+						    .foldl (\acc k ->
 							    acc+
 							    (ma%%(i,k) * (mb %%(k,j))))
 						    0]
@@ -1053,25 +1474,30 @@ class Eq a => Default_val a where
     is_null = (== null_val)
 
 -- not really logical, cos we dont really need to force Default_val a, we dont care about a
-instance Default_val a => Default_val [a]  where null_val = []
+--instance Default_val a => Default_val [a]  where null_val = []
 -- and need provide extra instance
-instance Default_val Char  where null_val = 'a'
+--instance Default_val Char  where null_val = 'a'
 
 -- need -98 option, still dont know why we need to put the constraint Eq [a] for working
---instance Eq [a] => Default_val [a]  where null_val = []
+instance Eq [a] => Default_val [a]  where null_val = []
+instance Eq (Maybe a) => Default_val (Maybe a) where null_val = Nothing
 
-instance Default_val Int    where null_val = 0
+-- instance Num b => Default_val b    where null_val = 0; cant do that :( hugs say it overlaps
+--  but it is not cos [a] is not member of the Num class
+instance Default_val Int  where null_val = 0
 instance Default_val Float  where null_val = 0.0
+-- would like to do that, but not possible cos Num is a class, not a type
+--instance Default_val (Num a) where null_val = 0
 
 -- v1 = (2::Int) &&& "ee" --  "ee" -- need the type annotation :(
 -- v2 = 0.0 &&& "ee" --  ""
 
 -- overloading on return value
 (&&&):: (Default_val a, Default_val b) => b -> a -> a
-a &&& b = if a#is_null then null_val else b
+a &&& b = if a.is_null then null_val else b
 
 (|||):: Default_val a => a -> a -> a
-a ||| b = if a#is_null then b else a
+a ||| b = if a.is_null then b else a
 
 ----------------------------------------------------------------------------------------------------
 -- class Show a => Showbis a where
@@ -1110,9 +1536,9 @@ update_anti_slash (x:xs) = x : update_anti_slash xs
 
 del_enclose :: String -> String
 del_enclose xs | length xs <= 1 = xs
-	       | head xs == '"' && last xs == '"' = xs#tail#init
+	       | head xs == '"' && last xs == '"' = xs.tail.init
 	       | otherwise = xs
-(^) a b = (update_anti_slash . del_enclose . show) a ++ (update_anti_slash . del_enclose . show) b 
--- (^) a b  = let op = update_anti_slash . del_enclose . show in op a ++ op b -- dont WORK !! AMAZING
+(^) a b = (update_anti_slash ° del_enclose ° show) a ++ (update_anti_slash ° del_enclose ° show) b 
+-- (^) a b  = let op = update_anti_slash ° del_enclose ° show in op a ++ op b -- dont WORK !! AMAZING
 infixl 1 ^
 
