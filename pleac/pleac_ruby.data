@@ -1979,11 +1979,40 @@ libdirs = bindirs.map { |l| l.sub('bin', 'lib') }
 
 
 # @@PLEAC@@_6.4
-contents =~ /
-    any
-    thing
-            /x
-# @@INCOMPLETE@@
+require 'socket'
+str = 'www.ruby-lang.org and www.rubygarden.org'
+re = /
+      (               # capture the hostname in $1
+        (?:           # these parens for grouping only
+          (?! [-_] )  # lookahead for neither underscore nor dash
+          [\w-] +     # hostname component
+          \.          # and the domain dot
+        ) +           # now repeat that whole thing a bunch of times
+        [A-Za-z]      # next must be a letter
+        [\w-] +       # now trailing domain part
+      )               # end of $1 capture
+     /x               # /x for nice formatting
+
+str.gsub! re do       # pass a block to execute replacement
+    host = TCPsocket.gethostbyname($1)
+    "#{$1} [#{host[3]}]"
+end
+
+puts str
+#-----------------------------
+# to match whitespace or #-characters in an extended re you need to escape
+# them.
+
+foo = 42
+str = 'blah #foo# blah'
+str.gsub! %r/       # replace
+              \#    #   a pound sign
+              (\w+) #   the variable name
+              \#    #   another pound sign
+          /x do
+              eval $1           # with the value of a local variable
+          end
+puts str  # => blah 42 blah
 
 
 # @@PLEAC@@_6.5
@@ -2108,6 +2137,76 @@ print "I read #{chunks.size} chunks.\n"
 #-----------------------------
 
 
+#@@PLEAC@@_6.8
+while gets
+    if ~/BEGIN/ .. ~/END/
+        # line falls between BEGIN and END inclusive
+    end
+end
+
+while gets
+    if ($. == firstnum) .. ($. == lastnum)
+        # operate between firstnum and lastnum line number
+    end
+end
+
+# in ruby versions prior to 1.8, the above two conditional
+# expressions could be shortened to:
+#     if /BEGIN/ .. /END/
+# and
+#     if firstnum .. lastnum
+# but these now only work this way from the command line  
+
+#-----------------------------
+
+while gets
+    if ~/BEGIN/ ... ~/END/
+        # line falls between BEGIN and END on different lines
+    end
+end
+
+while gets
+    if ($. == first) ... ($. == last)
+        # operate between first and last line number on different lines
+    end
+end
+
+#-----------------------------
+# command-line to print lines 15 through 17 inclusive (see below)
+ruby -ne 'print if 15 .. 17' datafile
+
+# print out all <XMP> .. </XMP> displays from HTML doc
+while gets
+    print if ~%r#<XMP>#i .. ~%r#</XMP>#i;
+end
+    
+# same, but as shell command
+# ruby -ne 'print if %r#<XMP>#i .. %r#</XMP>#i' document.html
+#-----------------------------
+# ruby -ne 'BEGIN { $top=3; $bottom=5 }; \
+#     print if $top .. $bottom' /etc/passwd                 #  FAILS
+# ruby -ne 'BEGIN { $top=3; $bottom=5 }; \
+#     print if $. == $top .. $. ==  $bottom' /etc/passwd    # works
+# ruby -ne 'print if 3 .. 5' /etc/passwd                    # also works
+#-----------------------------
+print if ~/begin/ .. ~/end/;
+print if ~/begin/ ... ~/end/;
+#-----------------------------
+while gets
+    $in_header = $. == 1  .. ~/^$/ ? true : false
+    $in_body   = ~/^$/ .. ARGF.eof ? true : false
+end
+#-----------------------------
+seen = {}
+ARGF.each do |line|
+    next unless line =~ /^From:?\s/i .. line =~ /^$/;
+    line.scan(%r/([^<>(),;\s]+\@[^<>(),;\s]+)/).each do |addr|
+        puts addr unless seen[addr]
+        seen[addr] ||= 1 
+    end
+end
+
+
 # @@PLEAC@@_6.9
 def glob2pat(globstr)
     patmap = {
@@ -2119,6 +2218,622 @@ def glob2pat(globstr)
     globstr.gsub!(/(.)/) { |c| patmap[c] || Regexp::escape(c) }
     '^' + globstr + '$'
 end
+
+
+#@@PLEAC@@_6.10
+# avoid interpolating patterns like this if the pattern
+# isn't going to change:
+pattern = ARGV.shift
+ARGF.each do |line|
+    print line if line =~ /#{pattern}/
+end
+
+# the above creates a new regex each iteration. Instead,
+# use the /o modifier so the regex is compiled only once
+
+pattern = ARGV.shift
+ARGF.each do |line|
+    print line if line =~ /#{pattern}/o
+end
+
+#-----------------------------
+
+#!/usr/bin/ruby
+# popgrep1 - grep for abbreviations of places that say "pop"
+# version 1: slow but obvious way
+popstates = %w(CO ON MI WI MN)
+ARGF.each do |line|
+    popstates.each do |state|
+        if line =~ /\b#{state}\b/
+            print line
+            last
+        end
+    end
+end
+
+#-----------------------------
+#!/usr/bin/ruby
+# popgrep2 - grep for abbreviations of places that say "pop"
+# version 2: eval strings; fast but hard to quote
+popstates = %w(CO ON MI WI MN)
+code = "ARGF.each do |line|\n"
+popstates.each do |state|
+    code += "\tif line =~ /\\b#{state}\\b/; print(line); next; end\n"
+end
+code += "end\n"
+print "CODE IS\n---\n#{code}\n---\n" if false # turn on for debugging
+eval code
+
+# CODE IS
+# ---
+# ARGF.each do |line|
+#         if line =~ /\bCO\b/; print(line); next; end
+#         if line =~ /\bON\b/; print(line); next; end
+#         if line =~ /\bMI\b/; print(line); next; end
+#         if line =~ /\bWI\b/; print(line); next; end
+#         if line =~ /\bMN\b/; print(line); next; end
+# end
+# 
+# ---
+
+## alternatively, the same idea as above but compiling 
+## to a case statement: (not in perlcookbook)
+#!/usr/bin/ruby -w
+# popgrep2.5 - grep for abbreviations of places that say "pop"
+# version 2.5: eval strings; fast but hard to quote
+popstates = %w(CO ON MI WI MN)
+code = "ARGF.each do |line|\n    case line\n"
+popstates.each do |state|
+    code += "        when /\\b#{state}\\b/ : print line\n"
+end
+code += "    end\nend\n"
+print "CODE IS\n---\n#{code}\n---\n" if false # turn on for debugging
+eval code
+
+# CODE IS
+# ---
+# ARGF.each do |line|
+#     case line
+#         when /\bCO\b/ : print line
+#         when /\bON\b/ : print line
+#         when /\bMI\b/ : print line
+#         when /\bWI\b/ : print line
+#         when /\bMN\b/ : print line
+#     end
+# end
+# 
+# ---
+
+# Note: (above) Ruby 1.8+ allows the 'when EXP : EXPR' on one line
+# with the colon separator.
+
+#-----------------------------
+#!/usr/bin/ruby
+# popgrep3 - grep for abbreviations of places that say "pop"
+# version3: build a match_any function
+popstates = %w(CO ON MI WI MN)
+expr = popstates.map{|e|"line =~ /\\b#{e}\\b/"}.join('||')
+eval "def match_any(line); #{expr};end"
+ARGF.each do |line|
+    print line if match_any(line)
+end
+#-----------------------------
+
+##  building a match_all function is a trivial
+##  substitution of && for ||
+##  here is a generalized example:
+#!/usr/bin/ruby -w
+## grepauth - print lines that mention both foo and bar
+class MultiMatch 
+    def initialize(*patterns)
+        _any = build_match('||',patterns)
+        _all = build_match('&&',patterns)
+        eval "def match_any(line);#{_any};end\n"
+        eval "def match_all(line);#{_all};end\n"
+      end
+    def build_match(sym,args)
+        args.map{|e|"line =~ /#{e}/"}.join(sym)
+    end
+end
+
+mm = MultiMatch.new('foo','bar')
+ARGF.each do |line|
+    print line if mm.match_all(line)
+end
+#-----------------------------
+
+#!/usr/bin/ruby
+# popgrep4 - grep for abbreviations of places that say "pop"
+# version4: pretty fast, but simple: compile all re's first:
+popstates = %w(CO ON MI WI MN)
+popstates = popstates.map{|re| %r/\b#{re}\b/}
+ARGF.each do |line|
+    popstates.each do |state_re|
+        if line =~ state_re
+            print line
+            break
+        end
+    end
+end
+
+## speeds trials on the jargon file(412): 26006 lines, 1.3MB
+## popgrep1   => 7.040s
+## popgrep2   => 0.656s
+## popgrep2.5 => 0.633s
+## popgrep3   => 0.675s
+## popgrep4   => 1.027s
+
+# unless speed is criticial, the technique in popgrep4 is a
+# reasonable balance between speed and logical simplicity.
+
+
+#@@PLEAC@@_6.11
+begin
+    print "Pattern? "
+    pat = $stdin.gets.chomp
+    Regexp.new(pat)
+rescue 
+    warn "Invalid Pattern"
+    retry
+end
+
+
+#@@PLEAC@@_6.13
+# uses the 'amatch' extension found on:
+# http://raa.ruby-lang.org/project/amatch/
+require 'amatch'
+matcher = Amatch.new('balast')
+#$relative, $distance = 0, 1
+File.open('/usr/share/dict/words').each_line do |line|
+    print line if matcher.search(line) <= 1
+end
+__END__
+ballast
+ballasts
+balustrade
+balustrades
+blast
+blasted
+blaster
+blasters
+blasting
+blasts
+
+
+#@@PLEAC@@_6.14
+str.scan(/\G(\d)/).each do |token|
+    puts "found #{token}"
+end
+#-----------------------------
+n = "   49 here"
+n.gsub!(/\G /,'0')
+puts n
+#-----------------------------
+str = "3,4,5,9,120"
+str.scan(/\G,?(\d+)/).each do |num|
+    puts "Found number: #{num}"
+end
+#-----------------------------
+# Ruby doesn't have the String.pos or a /c re modifier like Perl 
+# @@INCOMPLETE@@
+
+
+#@@PLEAC@@_6.15
+#-----------------------------
+# greedy pattern
+str.gsub!(/<.*>/m,'')   # not good
+
+# non-greedy (minimal) pattern
+str.gsub!(/<.*?>/m,'')   # not great
+
+
+#-----------------------------
+#<b><i>this</i> and <i>that</i> are important</b> Oh, <b><i>me too!</i></b>
+#-----------------------------
+%r{ <b><i>(.*?)</i></b> }mx
+#-----------------------------
+%r/BEGIN((?:(?!BEGIN).)*)END/
+#-----------------------------
+%r{ <b><i>(  (?: (?!</b>|</i>). )*  ) </i></b> }mx
+#-----------------------------
+%r{ <b><i>(  (?: (?!</[ib]>). )*  ) </i></b> }mx
+#-----------------------------
+%r{
+    <b><i> 
+    [^<]*  # stuff not possibly bad, and not possibly the end.
+    (?:
+ # at this point, we can have '<' if not part of something bad
+     (?!  </?[ib]>  )   # what we can't have
+     <                  # okay, so match the '<'
+     [^<]*              # and continue with more safe stuff
+    ) *
+    </i></b>
+ }mx
+
+
+#@@PLEAC@@_6.16
+#-----------------------------
+$/ = ""
+ARGF.each do |para|
+    para.scan %r/
+                  \b     # start at word boundary
+                  (\S+)  # find chunk of non-whitespace
+                  \b     # until a word boundary
+                  (      
+                    \s+  # followed by whitespace
+                    \1   # and that same chunk again
+                    \b   # and a word boundary
+                  ) +    # one or more times
+                /xi do
+        puts "dup word '#{$1}' at paragraph #{$.}" 
+    end
+end
+#-----------------------------
+astr = 'nobody'
+bstr = 'bodysnatcher'
+if "#{astr} #{bstr}" =~ /^(\w+)(\w+) \2(\w+)$/
+    print "#{$2} overlaps in #{$1}-#{$2}-#{$3}"
+end
+#-----------------------------
+#!/usr/bin/ruby -w
+# prime_pattern -- find prime factors of argument using patterns
+ARGV << 180
+cap = 'o' * ARGV.shift
+while cap =~ /^(oo+?)\1+$/
+    print $1.size, " "
+    cap.gsub!(/#{$1}/,'o')
+end
+puts cap.size
+#-----------------------------
+#diophantine
+# solve for 12x + 15y + 16z = 281, maximizing x
+if ('o' * 281).match(/^(o*)\1{11}(o*)\2{14}(o*)\3{15}$/)
+    x, y, z = $1.size, $2.size, $3.size
+    puts "One solution is: x=#{x}; y=#{y}; z=#{z}"
+else 
+    puts "No solution."
+end
+#    => One solution is: x=17; y=3; z=2
+
+#-----------------------------
+# using different quantifiers:
+('o' * 281).match(/^(o+)\1{11}(o+)\2{14}(o+)\3{15}$/)
+#    => One solution is: x=17; y=3; z=2
+
+('o' * 281).match(/^(o*?)\1{11}(o*)\2{14}(o*)\3{15}$/)
+#    => One solution is: x=0; y=7; z=11
+
+('o' * 281).match(/^(o+?)\1{11}(o*)\2{14}(o*)\3{15}$/)
+#    => One solution is: x=1; y=3; z=14
+
+
+#@@PLEAC@@_6.17
+# alpha OR beta
+%r/alpha|beta/
+
+# alpha AND beta
+%r/(?=.*alpha)(?=.*beta)/m
+
+# alpha AND beta,  no overlap
+%r/alpha.*beta|beta.*alpha/m
+
+# NOT beta
+%r/^(?:(?!beta).)*$/m
+
+# NOT bad BUT good
+%r/(?=(?:(?!BAD).)*$)GOOD/m
+#-----------------------------
+
+if !(string =~ /pattern/)   # ugly
+    something()
+end
+
+if string !~ /pattern/   # preferred
+    something()
+end
+
+
+#-----------------------------
+if string =~ /pat1/  && string =~ /pat2/
+    something()
+end
+#-----------------------------
+if string =~ /pat1/ || string =~ /pat2/
+    something()
+end
+#-----------------------------
+#!/usr/bin/ruby -w
+# minigrep - trivial grep
+pat = ARGV.shift
+ARGF.each do |line|
+    print line if line =~ /#{pat}/o
+end
+#-----------------------------
+ "labelled" =~ /^(?=.*bell)(?=.*lab)/m
+#-----------------------------
+$string =~ /bell/ && $string =~ /lab/
+#-----------------------------
+$murray_hill = "blah bell blah "
+if $murray_hill =~ %r{
+                         ^              # start of string
+                        (?=             # zero-width lookahead
+                            .*          # any amount of intervening stuff
+                            bell        # the desired bell string
+                        )               # rewind, since we were only looking
+                        (?=             # and do the same thing
+                            .*          # any amount of intervening stuff
+                            lab         # and the lab part
+                        )
+                     }mx                # /m means . can match newline
+
+    print "Looks like Bell Labs might be in Murray Hill!\n";
+end
+#-----------------------------
+"labelled" =~ /(?:^.*bell.*lab)|(?:^.*lab.*bell)/
+#-----------------------------
+$brand = "labelled";
+if $brand =~ %r{
+                (?:                 # non-capturing grouper
+                    ^ .*?           # any amount of stuff at the front
+                      bell          # look for a bell
+                      .*?           # followed by any amount of anything
+                      lab           # look for a lab
+                  )                 # end grouper
+            |                       # otherwise, try the other direction
+                (?:                 # non-capturing grouper
+                    ^ .*?           # any amount of stuff at the front
+                      lab           # look for a lab
+                      .*?           # followed by any amount of anything
+                      bell          # followed by a bell
+                  )                 # end grouper
+            }mx                     # /m means . can match newline
+    print "Our brand has bell and lab separate.\n";
+end
+#-----------------------------
+$map =~ /^(?:(?!waldo).)*$/s
+#-----------------------------
+$map = "the great baldo"
+if $map =~ %r{
+                ^                   # start of string
+                (?:                 # non-capturing grouper
+                    (?!             # look ahead negation
+                        waldo       # is he ahead of us now?
+                    )               # is so, the negation failed
+                    .               # any character (cuzza /s)
+                ) *                 # repeat that grouping 0 or more
+                $                   # through the end of the string
+             }mx                    # /m means . can match newline
+    print "There's no waldo here!\n";
+end
+#-----------------------------
+ 7:15am  up 206 days, 13:30,  4 users,  load average: 1.04, 1.07, 1.04
+
+USER     TTY      FROM              LOGIN@  IDLE   JCPU   PCPU  WHAT
+
+tchrist  tty1                       5:16pm 36days 24:43   0.03s  xinit
+
+tchrist  tty2                       5:19pm  6days  0.43s  0.43s  -tcsh
+
+tchrist  ttyp0    chthon            7:58am  3days 23.44s  0.44s  -tcsh
+
+gnat     ttyS4    coprolith         2:01pm 13:36m  0.30s  0.30s  -tcsh
+#-----------------------------
+#% w | minigrep '^(?!.*ttyp).*tchrist'
+#-----------------------------
+%r{
+    ^                       # anchored to the start
+    (?!                     # zero-width look-ahead assertion
+        .*                  # any amount of anything (faster than .*?)
+        ttyp                # the string you don't want to find
+    )                       # end look-ahead negation; rewind to start
+    .*                      # any amount of anything (faster than .*?)
+    tchrist                 # now try to find Tom
+}x
+#-----------------------------
+#% w | grep tchrist | grep -v ttyp
+#-----------------------------
+#% grep -i 'pattern' files
+#% minigrep '(?i)pattern' files
+#-----------------------------
+
+
+#@@PLEAC@@_6.20
+ans = $stdin.gets.chomp
+re = %r/^#{Regexp.quote(ans)}/
+case 
+    when "SEND"  =~ re : puts "Action is send"
+    when "STOP"  =~ re : puts "Action is stop"
+    when "ABORT" =~ re : puts "Action is abort"
+    when "EDIT"  =~ re : puts "Action is edit"
+end
+#-----------------------------
+require 'abbrev'
+table = Abbrev.abbrev %w-send stop abort edit-
+loop do
+    print "Action: "
+    ans = $stdin.gets.chomp
+    puts "Action for #{ans} is #{table[ans.downcase]}"
+end
+
+
+#-----------------------------
+# dummy values are defined for 'file', 'PAGER', and
+# the 'invoke_editor' and 'deliver_message' methods
+# do not do anything interesting in this example.
+#!/usr/bin/ruby -w
+require 'abbrev'
+
+file = 'pleac_ruby.data'
+PAGER = 'less'
+
+def invoke_editor
+    puts "invoking editor"
+end
+
+def deliver_message
+    puts "delivering message"
+end
+
+actions = {
+    'edit'  => self.method(:invoke_editor),
+    'send'  => self.method(:deliver_message),
+    'list'  => proc {system(PAGER, file)},
+    'abort' => proc {puts "See ya!"; exit},
+    ""      => proc {puts "Unknown Command"}
+}
+
+dtable = Abbrev.abbrev(actions.keys)
+loop do
+    print "Action: "
+    ans = $stdin.gets.chomp.delete(" \t")
+    actions[ dtable[ans.downcase] || "" ].call
+end
+
+
+#@@PLEAC@@_6.19
+#-----------------------------
+# basically, the Perl Cookbook categorizes this as an
+# unsolvable problem ...
+#-----------------------------
+1 while addr.gsub!(/\([^()]*\)/,'')
+#-----------------------------
+Dear someuser@host.com,
+
+Please confirm the mail address you gave us Wed May  6 09:38:41
+MDT 1998 by replying to this message.  Include the string
+"Rumpelstiltskin" in that reply, but spelled in reverse; that is,
+start with "Nik...".  Once this is done, your confirmed address will
+be entered into our records.
+
+
+#@@PLEAC@@_6.21
+#-----------------------------
+#% gunzip -c ~/mail/archive.gz | urlify > archive.urlified
+#-----------------------------
+#% urlify ~/mail/*.inbox > ~/allmail.urlified
+#-----------------------------
+#!/usr/bin/ruby -w
+# urlify - wrap HTML links around URL-like constructs
+
+urls = '(https?|telnet|gopher|file|wais|ftp)';
+ltrs = '\w';
+gunk = '/#~:.?+=&%@!\-';
+punc = '.:?\-';
+any  = "#{ltrs}#{gunk}#{punc}";
+
+ARGF.each do |line|
+    line.gsub! %r/
+        \b                    # start at word boundary
+        (                     # begin $1  {
+         #{urls}     :        # need resource and a colon
+         [#{any}] +?          # followed by on or more
+                              #  of any valid character, but
+                              #  be conservative and take only
+                              #  what you need to....
+        )                     # end   $1  }
+        (?=                   # look-ahead non-consumptive assertion
+         [#{punc}]*           # either 0 or more punctuation
+         [^#{any}]            #   followed by a non-url char
+         |                    # or else
+         $                    #   then end of the string
+        )
+    /iox do 
+        %Q|<A HREF="#{$1}">#{$1}</A>|
+    end
+    print line
+end
+
+
+#@@PLEAC@@_6.23
+%r/^m*(d?c{0,3}|c[dm])(l?x{0,3}|x[lc])(v?i{0,3}|i[vx])$/i
+#-----------------------------
+str.sub!(/(\S+)(\s+)(\S+)/, '\3\2\1')
+#-----------------------------
+%r/(\w+)\s*=\s*(.*)\s*$/             # keyword is $1, value is $2
+#-----------------------------
+%r/.{80,}/
+#-----------------------------
+%r|(\d+)/(\d+)/(\d+) (\d+):(\d+):(\d+)|
+#-----------------------------
+str.gsub!(%r|/usr/bin|,'/usr/local/bin')
+#-----------------------------
+str.gsub!(/%([0-9A-Fa-f][0-9A-Fa-f])/){ $1.hex.chr }
+#-----------------------------
+str.gsub!(%r{
+    /\*                    # Match the opening delimiter
+    .*?                    # Match a minimal number of characters
+    \*/                    # Match the closing delimiter
+}xm,'')
+#-----------------------------
+str.sub!(/^\s+/, '')
+str.sub!(/\s+$/, '')
+
+# but really, in Ruby we'd just do:
+str.strip!
+#-----------------------------
+str.gsub!(/\\n/,"\n")
+#-----------------------------
+str.sub!(/^.*::/, '')
+#-----------------------------
+%r/^([01]?\d\d|2[0-4]\d|25[0-5])\.([01]?\d\d|2[0-4]\d|25[0-5])\.
+    ([01]?\d\d|2[0-4]\d|25[0-5])\.([01]?\d\d|2[0-4]\d|25[0-5])$/x
+#-----------------------------
+str.sub!(%r|^.*/|, '')
+#-----------------------------
+cols = ( (ENV['TERMCAP'] || " ") =~ /:co#(\d+):/ ) ? $1 : 80;
+#-----------------------------
+name = " #{$0} #{ARGV}".gsub(%r| /\S+/|, ' ')
+#-----------------------------
+require 'rbconfig'
+include Config
+raise "This isn't Linux" unless CONFIG['target_os'] =~ /linux/i;
+#-----------------------------
+str.gsub!(%r/\n\s+/, ' ')
+#-----------------------------
+nums = str.scan(/(\d+\.?\d*|\.\d+)/)
+#-----------------------------
+capwords = str.scan(%r/(\b[^\Wa-z0-9_]+\b)/)
+#-----------------------------
+lowords = str.scan(%r/(\b[^\WA-Z0-9_]+\b)/)
+#-----------------------------
+icwords = str.scan(%r/(\b[^\Wa-z0-9_][^\WA-Z0-9_]*\b)/)
+#-----------------------------
+links = str.scan(%r/<A[^>]+?HREF\s*=\s*["']?([^'" >]+?)[ '"]?>/mi)
+#-----------------------------
+initial = str =~ /^\S+\s+(\S)\S*\s+\S/ ? $1 : ""
+#-----------------------------
+str.gsub!(%r/"([^"]*)"/, %q-``\1''-)
+#-----------------------------
+
+$/ = ""
+sentences = []
+ARGF.each do |para|
+    para.gsub!(/\n/, ' ')
+    para.gsub!(/ {3,}/,'  ')
+    sentences << para.scan(/(\S.*?[!?.])(?=  |\Z)/)
+end
+
+#-----------------------------
+%r/(\d{4})-(\d\d)-(\d\d)/            # YYYY in $1, MM in $2, DD in $3
+#-----------------------------
+%r/ ^
+      (?:
+       1 \s (?: \d\d\d \s)?            # 1, or 1 and area code
+       |                               # ... or ...
+       \(\d\d\d\) \s                   # area code with parens
+       |                               # ... or ...
+       (?: \+\d\d?\d? \s)?             # optional +country code
+       \d\d\d ([\s\-])                 # and area code
+      )
+      \d\d\d (\s|\1)                   # prefix (and area code separator)
+      \d\d\d\d                         # exchange
+        $
+ /x
+#-----------------------------
+%r/\boh\s+my\s+gh?o(d(dess(es)?|s?)|odness|sh)\b/i
+#-----------------------------
+lines = []
+lines << $1 while input.sub!(/^([^\012\015]*)(\012\015?|\015\012?)/,'')
 
 
 # @@PLEAC@@_7.0
