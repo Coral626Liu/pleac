@@ -560,6 +560,548 @@ begin
 end Prime_Factors;
 ------------------------------------------------------------------------------
 
+-- @@PLEAC@@_3.0
+------------------------------------------------------------------------------
+-- All standard Ada date / time subprograms are defined in the packages
+-- Ada.Calendar and Ada.Real_Time
+--
+-- Time values can be split into a Year number, a Month number, a Day 
+-- (of the month) number, and a Seconds number.
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_3.1
+------------------------------------------------------------------------------
+Now : Time;
+
+Now := Clock; -- A parameter-less function returning the current time value.
+Put("The current date is ");
+Put(Item => Year(Now), Width => 4);
+Put(Item => Month(Now), Width => 3);
+Put(Item => Day(Now), Width => 3);
+
+The current date is 2002  2 25
+------------------------------
+Now : Time;
+This_Year  : Year_Number;
+This_Month : Month_Number;
+This_Day   : Day_Number;
+This_Seconds : Day_Duration;
+
+Split(Date => Now, Year => This_Year, Month => This_Month,
+      Day => This_Day, Seconds => This_Seconds);
+Put("The current date is ");
+Put(Item => This_Year, Width => 4);
+Put(Item => This_Month, Width => 3);
+Put(Item => This_Day, Width => 3);
+
+The current date is 2002  2 25
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_3.2
+------------------------------------------------------------------------------
+-- Ada does not directly deal with minutes. Minutes are contained in the
+-- Seconds value, which is the number of seconds into the day for the current
+-- time. Seconds is a value from 0.0 through 86400.0
+This_Year    : Year_Number;
+This_Month   : Month_Number;
+This_Day     : Day_Number;
+This_Seconds : Day_Duration;
+The_Time     : Time;
+
+The_Time := Time_Of(Year => This_Year, Month => This_Month,
+                    Day => This_Day, Seconds => This_Seconds);
+-------------------------------
+-- Year_Number is an integer from 1901 through 2099
+-- Month_Number is an integer from 1 through 12
+-- Day_Number is an integer from 1 through 31
+-- Day_Duration is a Fixed Point type from 0.0 through 86400.0
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_3.3
+------------------------------------------------------------------------------
+The_Time     : Time;
+The_Year     : Year_Number;
+The_Month    : Month_Number;
+The_Day      : Day_Number;
+The_Seconds  : Day_Duration;
+The_Minutes  : Integer;
+The_Hour     : Integer;
+Seconds      : Integer;
+
+Split(Date => The_Time, Year => The_Year, Month => The_Month,
+      Day => The_Day, Seconds => The_Seconds);
+The_Hour := The_Seconds / 3600;
+The_Minutes := (The_Seconds - (3600 * The_Hour)) / 60;
+Seconds := The_Seconds mod 60;
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_3.4
+------------------------------------------------------------------------------
+-- Time addition involves adding a Duration to a Time.
+-- A Duration is a total number of seconds.
+Birthtime : Time;
+Interval  : Duration;
+Then      : Time;
+
+Birthtime := Time_Of(Year => 1973, Month => 1, Day => 18,
+             Seconds => ((3.0 * 3600.0) +  -- 3:45:50
+                         (45.0 * 60.0) + 50.0));  
+Interval := 5.0 +               -- 5 seconds
+            (17.0 * 60.0) +     -- 17 minutes
+            (2.0 * 3600.0) +    -- 2 hours
+            (55.0 * 86400.0);   -- 55 days
+Then := Birthtime + Interval; --
+-- or
+Then := Interval + Birthtime;
+
+Put("Then is ");
+Put(Item => Month(Then), Width => 2);
+Put(Item => Day(Then), Width => 3);
+Put(Item => Year(Then), Width => 5);
+Put(Item => Seconds(Then) / 3600, Width => 3);
+Put(":");
+Put(Item => (Seconds(Then) - (Seconds(Then) / 3600 * 3600)) / 60, 
+    Width => 2);
+Put(":");
+Put(Item => Seconds(Then) mod 60, Width => 2);
+New_Line;
+
+Then is 3 14 1973  6: 2:55
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_3.5
+------------------------------------------------------------------------------
+Seconds : Duration;
+Recent  : Time;
+Earlier : Time;
+
+Seconds := Recent - Earlier;
+
+Earlier := Recent - Seconds;
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_3.6
+------------------------------------------------------------------------------
+-- Ada provides no standard subprogram for calculation of week number, day of
+-- week, Julian Date, or Month name.
+-- Those calculations can be performed, with month names localized to the
+-- current locale, by simple user defined functions.
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_3.7
+------------------------------------------------------------------------------
+date : String := "1998-06-03"; -- YYYY-MM-DD format
+The_Year : Year_Number;
+The_Month : Month_Number;
+The_Day : Day_Number;
+Index : Positive;
+
+Get(From => date, Item => The_Year, Last => Index); -- Get YYYY as an integer
+Get(From => date(Index + 2..date'Last),  -- Get MM skipping first "-"
+    Item => The_Month, Last => Index);
+Get(From => date(Index + 2..date'Last),  -- Get DD skipping second "-"
+    Item => The_Day, Last => Index);
+-- Calculate the time value at midnight of that date
+The_Time : Time;
+
+The_Time := Time_Of(Year => The_Year, Month => The_Month,
+                    Day => The_Day, Seconds => 0.0);
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_3.8
+------------------------------------------------------------------------------
+function Month_Name(Month : Month_Number) return String is
+   type Months is (JAN, FEB, MAR, APR, MAY, JUN, JUL, AUG, SEP, OCT,
+                        NOV, DEC);
+begin
+   -- convert month number to enumeration value then convert enumeration
+   -- value to a string
+   return Months'Image(Months'Val(Month - 1)); 
+end Month_Name;
+-------------------------------
+SEP 21 15:33:36 1997
+-------------------------------
+The_Time : Time;
+The_Time := Time_Of(Year => 1997,
+                    Month => 9,
+                    Day   => 21,
+                    Seconds => 36.0 +
+                               (33.0 * 60.0) +
+                               (15.0 * 3600.0));
+Put(Month_Name(Month(The_Time)) & " ");
+Put(Item => Day(The_Time), Width => 2);
+Put(Item => Seconds(The_Time) / 3600, Width => 3);
+Put(":");
+Put(Item => (Seconds(The_Time) - (Seconds(The_Time) / 3600 * 3600)) / 60,
+    Width => 2);
+Put(":");
+Put(Item => Seconds(The_Time) mod 60, Width => 2);
+Put(Item => Year(The_Time), Width => 5);
+New_Line;
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_3.9
+------------------------------------------------------------------------------
+-- High resolution time is provided by the Ada.Real_Time package.
+-- High resolution time values shall be sufficient to uniquely represent the
+-- range of real times from program start up to 50 years later.
+-- Tick (the avearage time interval during which the clock value remains constant)
+-- shall be no greater than 1 millisecond. Time_Unit (the smallest amount of real 
+-- time representable by the time type) shall be less than or equal to 20 
+-- microseconds.
+
+with Ada.Real_Time; use Ada.Real_Time;
+
+t0 : Time;
+t1 : Time;
+
+t0 := Clock; -- Get initial time stamp;
+-- Perform some operation
+t1 := Clock; -- Get ending time stamp;
+
+elapsed : Time_Span;
+
+elapsed := t1 - t0; -- Time in seconds i.e 0.0015
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_3.10
+------------------------------------------------------------------------------
+-- sleeps are achieved in Ada using the "delay" statement.
+-- The parameter to the delay command is a Duration expressing a number of
+-- seconds.
+
+delay 0.0025;
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_3.11
+------------------------------------------------------------------------------
+-- To Be Done
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_7.0
+------------------------------------------------------------------------------
+-- Normal textual input and output is accomplished using the pacakge
+-- Ada.Text_IO. The following I/O routines are taken from that package
+
+file : File_Type;
+
+begin
+   Open(File => file, Name => "/usr/local/widgets/data", Mode => In_File);
+exception
+   when Name_Error =>
+      Put(File => Standard_Error, Item => "File name not found.");
+   when Status_Error =>
+      Put(File => Standard_Error, Item => "File already open.");
+   when Use_Error =>
+      Put(File => Standard_Error, 
+          Item => "You do not have permission to open the file");
+end;
+-------------------------------
+file : File_Type;
+length : Natural;
+line   : String(1..1024); -- some string large enough to hold any line in
+                          -- the file
+begin
+   Open(File => file, Name => "/usr/local/widgets/data", Mode => In_File);
+   while not End_Of_File(file) loop
+      Get_Line(File => file, Item => line, Last => length); 
+      Put_Line(Item => line(1..length)); -- writes to stdout
+   end loop;
+   Close(file);
+exception
+   when Name_Error =>
+      Put(File => Standard_Error, Item => "File name not found.");
+   when Status_Error =>
+      Put(File => Standard_Error, Item => "File already open.");
+   when Use_Error =>
+      Put(File => Standard_Error,  -- writes to stderr
+          Item => "You do not have permission to open the file");
+end;
+-------------------------------
+num : float;
+
+while not End_Of_File loop
+   begin
+      Get(Item => num); -- read a float from stdin
+      Put_Line(float'Image(num)); -- write to stdout 
+   exception
+      when Data_Error =.
+         Put(File => Standard_Error, -- write to stderr
+             Item => "File contains non-numeric data");
+         Skip_Line; -- skip the rest of the current input line
+   end;
+end loop;
+-------------------------------
+logfile : File_Type;
+
+begin
+   Open(File => logfile, 
+        Name => "/tmp/log", 
+        Mode => Out_File);  -- open for output
+exception
+   when Name_Error =>
+      Put(File => Standard_Error, Item => "File name not found.");
+   when Status_Error =>
+      Put(File => Standard_Error, Item => "File already open.");
+   when Use_Error =>
+      Put(File => Standard_Error,  -- writes to stderr
+          Item => "You do not have permission to open the file");
+end;
+-------------------------------
+oldfile : File_Type;
+
+oldfile := Current_Output; -- save old file handle
+Set_Output(logfile); -- switch standard output
+Put_Line("Countdown initiated ...");
+Set_Output(oldfile); -- return to original output
+Put_Line("You have 30 seconds to reach maximum safety distance.");
+------------------------------------------------------------------------------
+
+--@@PLEAC@@_7.1
+------------------------------------------------------------------------------
+source : file_type;
+sink   : file_type;
+
+-- open file for reading
+begin
+   Open(File => source, Name => path, Mode => In_File);
+exception
+   when Name_Error =>
+      Put(File => Standard_Error, Item => "File name not found.");
+   when Status_Error =>
+      Put(File => Standard_Error, Item => "File already open.");
+   when Use_Error =>
+      Put(File => Standard_Error, 
+          Item => "You do not have permission to open the file");
+end;
+
+-- open file for writing
+begin
+   Open(File => sink, Name => path, Mode => Out_File);
+exception
+   when Name_Error =>
+      Put(File => Standard_Error, Item => "File name not found.");
+   when Status_Error =>
+      Put(File => Standard_Error, Item => "File already open.");
+   when Use_Error =>
+      Put(File => Standard_Error, 
+          Item => "You do not have permission to open the file");
+end;
+
+-- Open file for writing, creating a new file
+begin
+   Create(File => sink, Name => path);
+exception
+   when Name_Error =>
+      Put(File => Standard_Error, Item => "File name not found.");
+   when Status_Error =>
+      Put(File => Standard_Error, Item => "File already open.");
+   when Use_Error =>
+      Put(File => Standard_Error, 
+          Item => "You do not have permission to open the file");
+end;
+-------------------------------
+-- You must instantiate the package Ada.Direct_Io to perform both input
+-- and output on a file.
+package dir_text is new Ada.Direct_Io(Character);
+use dir_text;
+
+direct : File_Type;
+
+begin
+   Open(File => direct, Name => path, Mode => InOut_File);
+exception
+   when Name_Error =>
+      Put(File => Standard_Error, Item => "File name not found.");
+   when Status_Error =>
+      Put(File => Standard_Error, Item => "File already open.");
+   when Use_Error =>
+      Put(File => Standard_Error, 
+          Item => "You do not have permission to open the file");
+end;
+-------------------------------
+sink : File_Type;
+
+begin
+   Open(File => sink, Name => path, Mode => Append_File);
+exception
+   when Name_Error =>
+      Put(File => Standard_Error, Item => "File name not found.");
+   when Status_Error =>
+      Put(File => Standard_Error, Item => "File already open.");
+   when Use_Error =>
+      Put(File => Standard_Error, 
+          Item => "You do not have permission to open the file");
+end;
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_7.2
+------------------------------------------------------------------------------
+-- Ada does not provide any rules about file names. Unusual file names are
+-- opened the same as common file names.
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_7.3
+------------------------------------------------------------------------------
+-- Ada provides no facilities for expanding tildes in file names.
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_7.4
+------------------------------------------------------------------------------
+-- (The Ada equivalent)
+sink : File_Type;
+
+begin
+   Open(File => sink, Name => path, Mode => Append_File);
+exception
+   when Name_Error =>
+      Put(File => Standard_Error, Item => "File " & path " not found.");
+   when Status_Error =>
+      Put(File => Standard_Error, Item => "File " & path & " already open.");
+   when Use_Error =>
+      Put(File => Standard_Error, 
+          Item => "You do not have permission to open file " & path);
+end;
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_7.5
+------------------------------------------------------------------------------
+-- Passing in a null string for the file name creates a temporary file
+
+begin
+   Create(File => sink, Name => "");
+exception
+   when Use_Error =>
+      Put(File => Standard_Error, 
+          Item => "You do not have permission to open the file");
+end;
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_7.6
+------------------------------------------------------------------------------
+-- Not allowed in Ada.
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_7.7
+------------------------------------------------------------------------------
+line : String(1..256);
+length : Natural;
+
+while not End_Of_File loop
+   Get_Line(Item => line, Last => length);
+   -- ...  -- do something with the input line
+end loop;   
+-------------------------------
+-- The GNAT extension package Gnat.Command_Line provides some high level 
+-- command line parsing capabilities.
+-- Simple command line parsing is provided by the standard package
+-- Ada.Command_Line.
+
+source : File_Type;
+for argnum in 1..Argument_Count loop
+   begin
+      Open(File => Source, Name => Argument(argnum), 
+           Mode => In_File);
+      while not End_Of_File(source) loop
+         -- process the file from the command line
+      end loop;
+   exception
+      when Name_Error =>
+         Put(File => Standard_Error, Item => "File name not found.");
+      when Status_Error =>
+         Put(File => Standard_Error, Item => "File already open.");
+      when Use_Error =>
+         Put(File => Standard_Error, 
+             Item => "You do not have permission to open the file");
+   end;
+end loop;
+-------------------------------
+-- arg demo 1: Process optional -c flag
+loop
+   case GetOpt("-c") is
+      when ASCII.NUL => 
+         exit; -- exit loop
+      when 'c' =>
+         -- set whatever internal flag corresponds to the "-c" option
+      when Others =>
+         raise Program_Error; -- cannot occur!
+   end case;
+end loop;
+-------------------------------
+-- arg demo 2: Process optional -NUMBER flag
+loop
+   case GetOpt("1 2 3 4 5 6 7 8 9") is
+      when ASCII.NUL =>
+         exit;
+      when '1' =>
+         -- process 1
+      when '2' => 
+         -- process 2
+      when '3' => 
+         -- process 3
+      when '4' => 
+         -- process 4
+      when '5' => 
+         -- process 5
+      when '6' => 
+         -- process 6
+      when '7' =>
+         -- process 7
+      when '8' =>
+         -- process 8
+      when '9' =>
+         -- process 9
+      when Others =>
+         raise Program_Error;
+   end case;
+end loop;
+-------------------------------
+-- arg demo 3: Process clustering -a, -i, -n, or -u flags
+
+loop
+   case Get_Opt("a i n u") is
+      when ASCII.NUL =>
+         exit;
+      when 'a' =>
+         append := true;
+      when 'i' => 
+         ignore_ints := true;
+      when 'n' =>
+         nostdout := true;
+      when 'u' =>
+         unbuffer := true;
+      when Others =>
+         raise Program_Error;
+   end case;
+end loop;
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_7.8
+------------------------------------------------------------------------------
+-- Ada has no "rename" built in. It can, however, call existing programs
+-- to achieve the same purpose.
+with Interfaces.C; use Interfaces.C;
+procedure Rename_File(From, To : String) is
+   function system(Command : Char_Array) return Int;
+   pragma Import(C, system, "system");
+   rc : Int;
+begin
+   rc := system(To_C("mv " & From & " " & To));
+end Rename_File;
+-------------------------------
+Open(File => Old, Name => old_file, Mode => In_File);
+Create(File => New, Name => new_file);
+while not End_Of_File(Old) loop
+   Get_Line(File => Old, Item => Line, Last => Length);
+   -- process the data in Line
+   Put_Line(File => New, Item => Line(1..Length));
+end loop;
+Close(Old);
+Close(New);
+Rename_File(old_file, old_file & ".orig");
+Rename_File(new_file, old_file);
+------------------------------------------------------------------------------
+
 -- @@PLEAC@@_10.0
 ------------------------------------------------------------------------------
 -- Ada makes a distinction between functions and procedures.
@@ -628,14 +1170,14 @@ end Counter;
 -- Ada provides no way to determine a function's name at run time
 ------------------------------------------------------------------------------
 
--- @@PLEAC@@10.5
+-- @@PLEAC@@_10.5
 ------------------------------------------------------------------------------
 -- Ada parameter modes will always pass arrays by reference
 -- The GNAT compiler provides a Hash as an extension, but the Ada language
 -- does not define a Hash as part of its standard.
 ------------------------------------------------------------------------------
 
--- @@PLEAC@@10.6
+-- @@PLEAC@@_10.6
 ------------------------------------------------------------------------------
 -- Ada return context is always determined at compile time.
 -- There is no way to determine return context at run time.
@@ -741,10 +1283,365 @@ begin -- Outer
 end Outer;
 ------------------------------------------------------------------------------
 
--- @@PLEAC@@_10.16
+-- @@PLEAC@@_10.17
 -- @@SKIP@@ Program: Sorting Your Mail
 ------------------------------------------------------------------------------
 -- To Be Done
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_11.0
+------------------------------------------------------------------------------
+type Int_Ptr is access all Integer;
+ref : Int_Ptr;
+num : aliased Integer := 5;
+ref := num'Access;
+
+Put(Item => ref.all); -- Print the value ref refers to
+ref.all := 3;         -- Assign to ref's referant
+-------------------------------
+type Flt_Ptr is access all Float;
+ref : Flt_Ptr;
+pi : Float := 3.14159;
+pi'Access := 4; -- Compile time error. The Access attribute cannot be used
+                -- on the left hand side of an assignment.
+                -- Also, "pi" is not defined as "aliased". This will also
+                -- generate a compiler error
+-------------------------------
+-- There is no direct relationship between arrays and references in Ada.
+-- An array is a collection of like objects. An array name is NOT an
+-- access or reference to the first element of the array as in C.
+-------------------------------
+-- Ada provides two kinds of access types, general access types and
+-- pool-specific acess types. Referants for pool-specific access types
+-- must always be dynamically allocated. Referants for general access
+-- types may be dynamically allocated, or may refer to aliased objects
+-- generated on the stack.
+type Pool_Ptr is access Float; -- Pool specific access type
+type Gen_Ptr is access all Float; -- General access type
+------------------------------------------------------------------------------ 
+
+-- @@PLEAC@@_11.1
+------------------------------------------------------------------------------
+type Sales is array (Integer range 1..7) of Float;
+type Sales_Access is access Sales; -- Pool specific example
+
+Weekly_Sales : Sales_Access := new Sales; -- dynamically allocate 
+                                          -- the Sales array
+                                          -- and assign its reference to 
+                                          -- Weekly_Sales
+-------------------------------
+last_index : Integer := Sales'Last;
+first_index : Integer := Sales'First;
+num_items : Integer := Sales'Length;
+-------------------------------
+-- Ada arrays are all fixed size. They cannot be enlarged after creation
+-- Ada array types may be unconstrained in size, allowing the size of a
+-- particular instance to be specified upon creation.
+
+type String is array(Positive range <>) of Character;
+s1 : String(1..10); -- s1 is a 10 element string
+s2 : String(1..34); -- s2 is a 34 element string
+s3 : String(11..20); -- s3 is a 10 element string with a
+                     -- a starting index of 11
+-------------------------------
+type String_Ref is access String;
+r1 : String_Ref;
+
+r1 := new String(1..20); -- Dynamically allocate an array
+Put(r1(N)); -- Print the character at index N
+-------------------------------
+r1(3..5)  -- Array slice
+-------------------------------
+r1(3..5) := r1(9..11);
+-------------------------------
+-- Ada provides no way to make a reference to a slice
+-------------------------------
+for index in r1'Range loop
+  -- iterate through all elements in the array
+  -- referenced by r1
+end loop;
+-------------------------------
+for index in s1'Range loop
+   -- iterate through all elements in array s1
+end loop;
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_11.2
+------------------------------------------------------------------------------
+-- Ada provides no standard implementation of hashes
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_11.3
+------------------------------------------------------------------------------
+-- Ada provides no standard implemenation of hashes
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_11.4
+------------------------------------------------------------------------------
+-- Define an access type to a function taking two integer parameters and
+-- returning a boolean
+type func_ref is access function (A, B : Integer) return Boolean;
+
+-- Define an access type to a procedure taking no parameters
+type proc_ref is access procedure;
+
+-- Define a function taking two integers and returning a boolean
+function Less_Than(X, Y : Integer) return Boolean;
+
+-- Define an instance of the func_ref access type
+compare : func_ref;
+
+compare := Less_Than'Access; -- Less than matches the signature defined in
+                             -- the func_ref type declaration
+-- Calling the function through the referenc
+if compare(num1, num2) then
+   ...  -- act on the comparison
+end if;
+
+-- Define a procedure taking no parameters
+procedure Print_Header;
+
+-- Define an instance of proc_ref access type
+
+action : proc_ref := Print_Header'Access;
+
+-- Call the parameter-less procedure
+action.all;
+-------------------------------
+-- Ada does not provide closures, or functions with static data
+-- The same effect can be produced using Ada tasks.
+package counters is
+   task type Counter_Maker is
+      entry Get_Count(Num : out Integer);
+   end Counter_Maker
+   type Counter_Ref is access Counter_Maker;
+end counters;
+
+package body counters is
+   task body Counter_Maker is
+      start : Integer := 0;
+   begin
+      loop
+         accept Get_Count(Num : out Integer)
+         do
+            Num := start;
+         end Get_Count;
+         start := start + 1;
+      end loop;
+   end Counter_Maker;
+end counters;
+
+counter1 : Counter_Ref := new Counter;
+the_count : Integer;
+
+for iter in 0..4 loop
+   counter1.Get_Count(the_count);
+   Put_Line(Integer'Image(the_count));
+end loop;
+-------------------------------
+counter1 : Counter_Ref := new Counter;
+counter2 : Counter_Ref := new Counter;
+count1, count2 : Integer;
+
+for iter in 0..4 loop
+   counter1.Get_Count(count1);
+   Put_Line(Integer'Image(count1));
+end loop;
+counter1.Get_Count(count1);
+counter2.Get_Count(count2);
+Put_Line(Integer'Image(count1) & " " &
+         Integer'Image(count2));
+0
+1
+2
+3
+4
+5 0
+-------------------------------
+function Time_Diff(Base_Time : Time) return Duration is
+   Now : Time := Clock;
+begin
+   return Now - Base_Time;
+end Time_Diff;
+
+early : Time;
+later : Time;
+
+early := Clock;
+delay 20.0;
+later := Clock;
+delay 10.0;
+Put_Line("It's been " & Duration'Image(Time_Diff(early)) &
+         " seconds since early.");
+Put_Line("It's been " & Duration'Image(Time_Diff(later)) &
+         " seconds since later");
+-- It's been  30.007172430 seconds since early.
+-- It's been  10.003749644 seconds since later.
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_11.5
+------------------------------------------------------------------------------
+-- Ada does not provide special syntax for obtaining reference to scalars
+-- compared to vectors.
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_11.6
+------------------------------------------------------------------------------
+type Num_Ref is access all Integer;
+type Ref_Array is array (1..10) of Num_Ref;
+-------------------------------
+array_of_refs : Ref_Array;
+array_of_refs := (Others => null); -- Set all values to null references
+
+for index in Ref_Array'Range loop
+   array_of_refs(index) := new Integer'(index);
+end loop
+-------------------------------
+for index in Ref_Array'Range loop
+   Put_Line(Integer'Image(array_of_refs(index).all));
+end loop;
+-------------------------------
+for index in Ref_Array'Range loop
+   array_of_refs(index).all := index * 10;
+end loop;
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_11.7
+------------------------------------------------------------------------------
+
+
+
+
+-- @@PLEAC@@_11.15
+------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+-- Binary Tree Example
+-------------------------------------------------------------------------------
+
+package Binary_Trees is
+   type Tree is private;
+   procedure insert(Item : in Integer; Into : in out Tree);
+   procedure in_order(Item : in Tree);
+   procedure pre_order(Item : in Tree);
+   procedure post_order(Item : in Tree);
+   function search(Item : in Integer; From : in Tree) return boolean;
+private
+   type node;
+   type Tree is access Node;
+   type Node is record
+      Value : Integer;
+      Left  : Tree := Null;
+      Right : Tree := Null;
+   end record;
+end Binary_Trees;
+
+with Ada.Text_IO;
+use Ada.Text_Io;
+
+package body Binary_Trees is
+
+   procedure insert(Item : in Integer; Into : in out Tree) is
+   begin
+     if Into /= null then
+        if Into.Value > Item then
+           insert(Item, Into.Left);
+        elsif Into.Value < Item then
+           insert(Item, Into.Right);
+        end if; -- Do nothing if duplicate
+     else
+        Into := new Node;
+        Into.Value := Item;
+     end if;
+	end insert;
+	
+   procedure in_order(Item : in Tree) is
+   begin
+     if Item = null then
+        return;
+     end if;
+     in_order(Item.Left);
+     Put(Integer'Image(Item.Value) & " ");
+     in_order(Item.Right);
+   end in_order;
+	
+   procedure pre_order(Item : in Tree) is
+   begin
+      if Item = null then
+         return;
+      end if;
+      Put(Integer'Image(Item.Value) & " ");
+      pre_order(Item.Left);
+      pre_order(Item.Right);
+   end pre_order;
+	
+   procedure post_order(Item : in Tree) is
+   begin
+      if Item = null then
+         return;
+      end if;
+      post_order(Item.Left);
+      post_order(Item.Right);
+      Put(Integer'Image(Item.Value) & " ");
+   end post_order;
+	
+   function search(Item : Integer; From : Tree) return Boolean is
+      Result : Boolean;
+   begin
+      if From /= null then
+         if From.Value = Item then
+            Result := True;
+         elsif From.Value > Item then
+            Result := search(Item, From.Left);
+         else
+            Result := search(Item, From.Right);
+         end if;
+      else
+         Result := False;
+      end if;
+      return Result;
+   end search;	
+end Binary_Trees;
+
+with Binary_Trees; use Binary_Trees;
+with Ada.Numerics.Discrete_Random;
+with Ada.Text_Io; use Ada.Text_Io;
+with Ada.Integer_Text_Io; use Ada.Integer_Text_Io;
+
+procedure Tree_Test is
+   package Rand_Num is new Ada.Numerics.Discrete_Random(Integer);
+   use Rand_Num;
+   Seed : Generator;
+   Val  : Integer;
+   The_Tree : Tree;
+begin
+   Reset(Seed);
+   for num in 1..20 loop
+      Val := Random(Seed);
+      insert(Item => Val, Into => The_Tree);
+   end loop;
+	-- now dump out the tree all three ways
+   Put("Pre Order: ");
+   pre_order(The_Tree);
+   New_Line;
+   Put("In order: ");
+   in_order(The_Tree);
+   New_Line;
+   Put("Post_Order: ");
+   post_order(The_Tree);
+   New_Line;
+
+	-- prompt until EOF
+   loop
+      Put("Search? ");
+      exit when Ada.Text_IO.End_Of_File;
+      Get(Val); -- read input as an integer
+      if search(Item => Val, From => The_Tree) then
+         Put_Line("Found " & Integer'Image(Val));
+      else
+         Put_Line("No " & Integer'Image(Val) & " in tree");
+      end if;
+   end loop;
+end Tree_Test;
 
 
 
@@ -1047,3 +1944,270 @@ end Cards;
 -- Not possible in Ada. All such determinations are done at compile time
 ------------------
 
+
+-- @@PLEAC@@_13.0
+------------------------------------------------------------------------------
+-- Ada separates aspects of classes into packages, for encapsulation, and
+-- tagged types, for type inheritance and type expansion.
+-- Ada does not have constructors or destructors.
+
+with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+
+package People is
+   type Person is tagged private;
+   procedure SetAge(Subject : out Person; Age : in Natural);
+   function GetAge(Subject : Person) return Natural;
+   procedure SetName(Subject : out Person; Name : in String);
+   function Get_Name(Subject : Person) return String;
+private
+   type Person is tagged record
+      Age : Natural := 0;
+      Name : Unbounded_String := Null_Unbounded_String;
+   end record;
+end People;
+
+package body People is
+   procedure SetAge(Subject : out Person; Age : in Natural) is
+   begin
+      Subject.Age := Age;
+   end SetAge;
+   
+   function GetAge(Subject : Person) return Natural is
+   begin
+      return Subject.Age;
+   end GetAge;
+   
+   procedure SetName(Subject : out Person; Name : in String) is
+   begin
+      Subject.name := To_Unbounded_String(Name);
+   end SetName;
+   
+   procedure GetName(Subject : Person) return String is
+   begin
+      return To_String(Subject.GetName);
+   end GetName;
+end People;
+-------------------------------
+-- Creating an instance of a class
+
+Charley : Person;
+
+-- Using a class
+
+SetName(Charley, "Charles");
+SetAge(Charley, 15);
+
+Put_Line(GetName(Charley) & " is " & Integer'Image(GetAge(Charley)) &
+         " years old.");
+-- Charles is 15 years old.
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_13.1
+------------------------------------------------------------------------------
+-- Objects can be constructed on the stack, or dynamically
+
+-- Constructing an object on the stack
+Student : Person;
+
+-- Constructing an object dynamically
+type Person_Ptr is access Person;
+
+Student_P : Person_Ptr := new Person;
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_13.2
+------------------------------------------------------------------------------
+-- Only dynamically allocated objects need to be destroyed.
+-- Instantiate an instance of Unchecked_Deallocation for the type
+
+procedure free is new Ada.Unchecked_Deallocation(Person, Person_Ptr);
+
+Student_P : Person_Ptr := new Person;
+
+free(Student_p);
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_13.3
+------------------------------------------------------------------------------
+-- Public instance data can be accessed directly
+-- Private instance data can only be accessed directly by subprograms defined
+-- in the same package as the type definition.
+
+package People is
+   type Person is tagged private;
+   procedure SetAge(Subject : out Person; Age : in Natural);
+   function GetAge(Subject : Person) return Natural;
+   procedure SetName(Subject : out Person; Name : in String);
+   function Get_Name(Subject : Person) return String;
+private
+   type Person is tagged record
+      Age : Natural := 0;
+      Name : Unbounded_String := Null_Unbounded_String;
+   end record;
+end People;
+
+package body People is
+   procedure SetAge(Subject : out Person; Age : in Natural) is
+   begin
+      Subject.Age := Age;
+   end SetAge;
+   
+   function GetAge(Subject : Person) return Natural is
+   begin
+      return Subject.Age;
+   end GetAge;
+   
+   procedure SetName(Subject : out Person; Name : in String) is
+   begin
+      Subject.name := To_Unbounded_String(Name);
+   end SetName;
+   
+   procedure GetName(Subject : Person) return String is
+   begin
+      return To_String(Subject.GetName);
+   end GetName;
+end People;
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_13.4
+------------------------------------------------------------------------------
+-- Class data is defined in the package body, and is not accessable by any
+-- subprograms outside the package body.
+package body Counters is
+   type Modular_Counter is mod 100;
+   Internal_Counter : Modular_Counter := 0;
+   --....
+end Counters;
+------------------------------------------------------------------------------
+
+
+-- @@PLEAC@@_13.5
+------------------------------------------------------------------------------
+-- Ada allows public definition of records without tags. 
+-- These approximate structs in C.
+
+package Complex_Nums is
+   type Complex_Number is record
+      Real : Float := 0.0;
+      Imaginary : Float := 0.0;
+   end record;
+end Complex_Nums;
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_13.6
+------------------------------------------------------------------------------
+-- cloning dynamically allocated objects
+P1 : new Person_Ptr;
+P2 : new Person_Ptr;
+P2.all := P1.all;
+
+-- cloning stack based objects
+P1 : Person;
+P2 : Person := P1;
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_13.7
+
+
+-- @@PLEAC@@_13.8
+------------------------------------------------------------------------------
+type Person is tagged private;
+type Employee is new Person with private;
+type Salaried_Employee is new Employee with private;
+type Person_Pointer is access Person'Class;
+
+P : Person_Pointer;
+
+if P in Employee then
+   -- P points to a member of Employee or Salaried_Employee
+end if;
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_13.9
+------------------------------------------------------------------------------
+package People is
+   type Person is tagged private;
+   procedure SetAge(Subject : out Person; Age : in Natural);
+   function GetAge(Subject : Person) return Natural;
+   procedure SetName(Subject : out Person; Name : in String);
+   function Get_Name(Subject : Person) return String;
+private
+   type Person is tagged record
+      Age : Natural := 0;
+      Name : Unbounded_String := Null_Unbounded_String;
+   end record;
+end People;
+
+package body People is
+   procedure SetAge(Subject : out Person; Age : in Natural) is
+   begin
+      Subject.Age := Age;
+   end SetAge;
+   
+   function GetAge(Subject : Person) return Natural is
+   begin
+      return Subject.Age;
+   end GetAge;
+   
+   procedure SetName(Subject : out Person; Name : in String) is
+   begin
+      Subject.name := To_Unbounded_String(Name);
+   end SetName;
+   
+   procedure GetName(Subject : Person) return String is
+   begin
+      return To_String(Subject.GetName);
+   end GetName;
+end People;
+-------------------------------
+Dude : Person;
+SetName(Dude, "Jason);
+SetAge(Dude, 23);
+-------------------------------
+-- inheriting from Person
+type Employee is new Person with record
+   Salary : Float := 0.0;
+end record;
+-------------------------------
+emp1 : Employee;
+-------------------------------
+SetName(emp1, "Jason"); -- call the inherited procedures
+SetAge(emp1, 23);       -- to access the inherited private fields
+emp1.Salary := 200.0; -- access the public salary field
+Put_Line(GetName(emp1) & " is age " & Integer'Image(GetAge(emp1)) &
+         ", the salary is " & Float'Image(emp1.Salary));
+-------------------------------
+-- Ada does not provide any built in tagged types
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_13.10
+------------------------------------------------------------------------------
+package Employees is
+   subtype Title_String is string(1..20);
+   type Employee is new Person with record
+      Salary : Float := 0;
+      Title  : Title_String;
+   end record;
+   
+   function GetName(Subject : Employee) return String;
+end Employees;
+
+package body Employees is
+   function GetName(Subject : Employee) return String is
+   begin
+      -- call the inherited GetName function:
+      return GetName(Person(Subject)) & " : " & Title;
+   end GetName;
+end Employees;
+------------------------------------------------------------------------------
+
+-- @@PLEAC@@_13.14
+------------------------------------------------------------------------------
+type Nums_Array is array(Positive range 1..10) of Integer;
+
+-- Overload the "+" operator to allow addition of integers and items of
+-- type Num_Array
+
+function "+" (left : Num_Array; Right : Integer) return Num_Array;
+function "+" (left : Integer; Right : Num_Array) return Num_Array;
+------------------------------------------------------------------------------

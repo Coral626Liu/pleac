@@ -2214,3 +2214,231 @@ your data goes here
 (define (extension path . args)
   (caddr (apply file-parse path args)))
 
+;; @@PLEAC@@_13.0
+;; Guile OOP is in the (oop goops) module (based on CLOS).  All
+;; following sections assume you have (oop goops loaded).
+(use-modules (oop goops))
+(define-class <data-encoder> ())
+(define obj (make <data-encoder>))
+
+(define obj #(3 5))
+(format #t "~A ~A\n" (class-of obj) (array-ref obj 1))
+(change-class v <human-cannibal>) ; has to be defined
+(format #t "~A ~A\n" (slot-ref obj stomach) (slot-ref obj name))
+
+(slot-ref obj 'stomach)
+(slot-set! obj 'stomach "Empty")
+(name obj)
+(set! (name obj) "Thag")
+
+;; inheritance
+(define-class <lawyer> (<human-cannibal>))
+
+(define lector (make <human-cannibal>))
+(feed lector "Zak")
+(move lector "New York")
+
+;; @@PLEAC@@_13.1
+(define-class <my-class> ()
+  (start #:init-form (current-time))
+  (age #:init-value 0))
+
+;; classes must have predefined slots, but you could use one as a
+;; dictionary:
+(define-class <my-class> ()
+  (start #:init-form (current-time))
+  (age #:init-value 0)
+  (properties #:init-value '()))
+(define (initialize (m <my-class>) initargs)
+  (and-let* ((extra (memq #:extra initargs)))
+    (slot-set! m 'properties (cdr extra))))
+
+;; @@PLEAC@@_13.2
+;; For smobs (external C objects), you can specify a callback to be
+;; performed when the object is garbage collected with the C API
+;; function `scm_set_smob_free'.  This solves the problem of cleaning up
+;; after external objects and connections.  Guile doesn't use reference
+;; count garbage collection, so circular data structures aren't a
+;; problem.
+
+;; @@PLEAC@@_13.3
+;; either use slot-ref/set!
+(slot-ref obj 'name)
+(slot-set! obj 'name value)
+
+;; or define the class with accessors
+(define-class <my-class> ()
+  (name #:accessor name))
+(name obj)
+(set! (name obj) value)
+
+;; or use getters/setters to implement read/write-only slots
+(define-class <my-class> ()
+  (name #:getter name)
+  (age #:setter age))
+(name obj)
+(set! (age obj) value)
+
+;; or implement getters/setters manually
+(define-method ((setter name) (obj <my-class>) value)
+  (cond ((string-match "[^-\\w0-9']" value)
+         (warn "funny characters in name"))
+        ((string-match "[0-9]" value)
+         (warn "numbers in name"))
+        ((not (string-match "\\w+\\W+\\w+" value))
+         (warn "prefer multiword names"))
+        ((not (string-match "\\w" value))
+         (warn "name is blank")))
+  (slot-set! obj 'name (string-downcase value)))
+
+;; @@PLEAC@@_13.4
+;; override the initialize method
+(define body-count 0)
+
+(define-method (initialize (obj <person>) initargs)
+  (set! body-count (1+ body-count))
+  (next-method))
+
+(define people '())
+(do ((i 1 (1+ i)))
+    ((> i 10))
+  (set! people (cons (make <person>) people)))
+
+(format #t "There are ~A people alive.\n" body-count)
+
+(define him (make <person>))
+(slot-set! him 'gender "male")
+
+(define her (make <person>))
+(slot-set! her 'gender "female")
+
+;; use the :class allocation method
+(slot-set! (make <fixed-array>) 'max-bounds 100) ; set for whole class
+(define alpha (make <fixed-array>))
+(format #t "Bound on alpha is ~D\n" (slot-ref alpha 'max-bounds))
+;; 100
+
+(define beta (make <fixed-array>))
+(slot-set! beta 'max-bounds 50)          ; still sets for whole class
+(format #t "Bound on alpha is ~D\n" (slot-ref alpha 'max-bounds))
+;; 50
+
+;; defined simply as
+(define-class <fixed-array> ()
+  (max-bounds #:init-value 7 #:allocation #:class))
+
+;; @@PLEAC@@_13.5
+;; Guile classes are basically structs by definition.  If you don't care
+;; about OO programming at all, you can use records, which are portable
+;; across most Schemes.  This is, however, an OO chapter so I'll stick
+;; to classes.
+(define-class <person> () name age peers)
+
+(define p (make <person>))
+(slot-set! p 'name "Jason Smythe")
+(slot-set! p 'age 13)
+(slot-set! p 'peers '("Wilbur" "Ralph" "Fred"))
+(format #t "At age ~D, ~A's first friend is ~A.\n"
+        (slot-ref p 'age) (slot-ref p 'name) (car (slot-ref p 'peers)))
+
+;; For type-checking and field validation, define the setters
+;; accordingly.
+(define-class <person> ()
+  (name #:accessor name)
+  (age #:accessor age))
+
+(define-method ((setter age) (p <person>) a)
+  (cond ((not (number? a))
+         (warn "age" a "isn't numeric"))
+        ((> a 150)
+         (warn "age" a "is unreasonable")))
+  (slot-set! p 'age a))
+
+(define-class <family> ()
+  (head #:init-form (make <person>) #:accessor head)
+  (address #:init-value "" #:accessor address)
+  (members #:init-value '() #:accessor members))
+
+(define folks (make <family>))
+
+(define dad (head folks))
+(set! (name dad) "John")
+(set! (age dad) 34)
+
+(format #t "~A's age is ~D\n" (name dad) (age dad))
+
+;; Macros are the usual way to add syntactic sugar
+
+;; For all fields of the same type, let's use _ to mean the slot name in
+;; the options expansion.
+(define-macro (define-uniform-class name supers slots . options)
+  `(define-class ,name ,supers
+     ,@(map (lambda (s) (cons s (map (lambda (o) (if (eq? o '_) s o)) options)))
+            slots)))
+
+(define-uniform-class <card> (name color cost type release text)
+  #:accessor _ #:init-value "")
+
+;; If you *really* wanted to enforce slot types you could use something
+;; like the above with the custom setter.  To illustrate reversing
+;; normal slot definition args, we'll reverse an init-value:
+(define-macro (define-default-class name supers . default&slots)
+  `(define-class ,name ,supers
+     ,@(map (lambda (d&s) (list (cadr d&s)
+                                #:init-value (car d&s)
+                                #:accessor (cadr d&s)))
+            default&slots)))
+
+(define-default-class hostent ()
+  ("" name)
+  ('() aliases)
+  ("" addrtype)
+  (0  length)
+  ('() addr-list))
+
+;; Nothing special needed for Aliases - all names are equal
+(define type addrtype)
+(define-method (addr (h <hostent>))
+  (car (addr-list h)))
+
+;; @@PLEAC@@_13.6
+;; A little more clear than the Perl, but not very useful.
+(define obj1 (make <some-class>))
+(define obj2 (make (class-of obj1)))
+
+;; Use the shallow-clone or deep-clone methods to initialize from
+;; another instance.
+(define obj1 (make <widget>))
+(define obj2 (deep-clone obj1))
+
+;; @@PLEAC@@_13.7
+;; Use eval or a variant to convert from a symbol or string to the
+;; actual method.  As shown in 13.5 above, methods are first class and
+;; you'd be more likely to store the actual method than the name in a
+;; real Scheme program.
+(define methname "flicker")
+(apply-generic (eval-string methname) obj 10)
+
+(for-each (lambda (m) (apply-generic obj (eval-string m)))
+          '("start" "run" "stop"))
+
+;; really, don't do this...
+(define methods '("name" "rank" "serno"))
+(define his-info
+  (map (lambda (m) (cons m (apply-generic (eval-string m) obj)))
+       methods))
+
+;; same as this:
+(define his-info (list (cons "name" (name obj))
+                       (cons "rank" (rank obj))
+                       (cons "serno" (serno obj))))
+
+;; a closure works
+(define fnref (lambda args (method obj args)))
+(fnref 10 "fred")
+(method obj 10 fred)
+
+;; @@PLEAC@@_13.8
+;; use is-a?
+(is-a? obj <http-message>)
+(is-a? <http-response> <http-message>)
