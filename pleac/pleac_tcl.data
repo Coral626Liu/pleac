@@ -1,7 +1,7 @@
  # -*- tcl -*-
  
 # @@PLEAC@@_NAME
-Tcl
+Tcl 8.3
  
 # @@PLEAC@@_WEB
 http://purl.oclc.org/NET/tclhome
@@ -74,6 +74,12 @@ set string "This is what you have"
 #          +012345678901234567890  Indexing forwards (left to right)
 #           098765432109876543210- Indexing from end (right to left)
 #           note that 0 means 10 or 20, etc. above
+
+# end is a special value that is available in list and string 
+# commands.  It is defined as the index of the last element (in 
+# lists), or character (in strings).
+#   Likewise, end-1 is defined as the element/character
+# preceding the last, and so on.
  
 set first [string index $string 0]            ;# => "T"
 set first [string range $string 0 0]          ;# => "T"
@@ -160,12 +166,12 @@ puts $fmt
 # @@PLEAC@@_1.2
 #-----------------------------
 # Perl: use $b if $b is true, else $c
- 
-# Truth values are treated differently in Tcl compared to Perl:
-# "1", "true", "yes", and "on" are recognized as true, while
-# "0", "false", "no", and "off" are false values.
-#   In many cases, such as the condition expression in the "if"
-# command, the C convention nonzero=>true/zero=>false works too.
+# In Tcl, commands such as if or while require the value of the
+# condition expression to be a proper boolean value.  If the 
+# value is numeric, 0 is false and anything else is true.  For
+# non-numeric strings, "true", "on", or "yes" is true and 
+# "false", "off", or "no" is false.  Any other value for the
+# condition expression raises an error.
 #   The `boolean operators' return either "1" or "0".
  
 # use $b if b has characters, else $c
@@ -245,18 +251,13 @@ if {[llength $argv]} {
  
 #-----------------------------
 # Perl: $count{ $shell || "/bin/sh" }++;
-if {[string length $shell]} {
-    if {[info exist count($shell)]} {
-        incr count($shell)
-    } else {
-        set count($shell) 1
-    }
+if {![string length $shell]} {
+    set shell /bin/sh
+}
+if {[info exist count($shell)]} {
+    incr count($shell)
 } else {
-    if {[info exist count(/bin/sh)]} {
-        incr count(/bin/sh)
-    } else {
-        set count(/bin/sh) 1
-    }
+    set count($shell) 1
 }
  
 #-----------------------------
@@ -364,7 +365,6 @@ puts $ibm
      
 # @@PLEAC@@_1.5
 #-----------------------------
-# 16-bit safe
 set a [split $string {}]
  
 # works for 8-bit characters and 8-bit encodings
@@ -374,14 +374,12 @@ binary scan $utf8data c* a
  
 #-----------------------------
  
-# 16-bit safe
 # with -line, . never matches newline
 foreach ch [regexp -inline -all -line . $string] {
     # do something with $ch
 }
 #-----------------------------
  
-# 16-bit safe
 array set seen [list]
 set string "an apple a day"
 foreach {char} [split $string {}] {
@@ -395,7 +393,6 @@ puts "unique chars are: [lsort [array names seen]]"
 # => unique chars are: { } a d e l n p y
 #-----------------------------
  
-# 16-bit safe
 array set seen [list]
 set string "an apple a day"
 foreach {byte} [regexp -inline -all -line . $string] {
@@ -410,7 +407,6 @@ puts "unique chars are: [lsort [array names seen]]"
 #-----------------------------
  
 # simplistic checksum calculation
-# not 16-bit safe unless string is 8-bit encoded
 set sum 0
 binary scan $string c* codes
 foreach {code} $codes {
@@ -514,3 +510,11 @@ set is_palindrome [string equal $word [reverse $word]]
 set word revive
 set is_palindrome [string equal $word [reverse $word]]
 # => 0
+ 
+# @@PLEAC@@_1.7
+#-----------------------------
+while {[regexp -indices {\t+} $string where]} {
+    foreach {first last} $where break
+    regsub {\t+} $string \
+        [string repeat { } [expr {8*($last-$first+1)-$first%8}]] string
+}
