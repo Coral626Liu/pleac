@@ -4406,42 +4406,19 @@ while (<>) {
     close ARGV if eof;     
 }
 #-----------------------------
-#!/usr/bin/perl   
-# findlogin1 - print all lines containing the string "login"   
-while (<>) {# loop over files on command line 	
-    print if /login/;     
-}
+# ^^INCLUDE^^ include/perl/ch07/findlogin1
 #-----------------------------
 # ^^INCLUDE^^ include/perl/ch07/findlogin2
 #-----------------------------
 #% perl -ne 'print if /login/'
 #-----------------------------
-#!/usr/bin/perl    
-# lowercase - turn all lines into lowercase
-
-use locale;
-while (<>) {                 # loop over lines on command line
-    s/([^\W0-9_])/\l$1/g;    # change all letters to lowercase
-print;
-}
+# ^^INCLUDE^^ include/perl/ch07/lowercase1
 #-----------------------------
-#!/usr/bin/perl -p     
-# lowercase - turn all lines into lowercase     
-use locale;     
-s/([^\W0-9_])/\l$1/g;# change all letters to lowercase
+# ^^INCLUDE^^ include/perl/ch07/lowercase2
 #-----------------------------
 #% perl -Mlocale -pe 's/([^\W0-9_])/\l$1/g'
 #-----------------------------
-#!/usr/bin/perl -n    
-# countchunks - count how many words are used.    
-# skip comments, and bail on file if __END__   
-# or __DATA__ seen.    
-for (split /\W+/) { 
-    next LINE if /^#/; 
-    close ARGV if /__(DATA|END)__/; 
-    $chunks++;     
-}     
-END { print "Found $chunks chunks\n" }
+# ^^INCLUDE^^ include/perl/ch07/countchunks
 #-----------------------------
 #+0894382237
 #less /etc/motd
@@ -4630,23 +4607,7 @@ use IO::Handle;
 autoflush REMOTE_CONN  1;           # unbuffer for clarity
 autoflush DISK_FILE    0;           # buffer this for speed
 #-----------------------------
-#!/usr/bin/perl
-# getpcomidx - fetch www.perl.com's index.html document     #'
-use IO::Socket;
-$sock = new IO::Socket::INET (PeerAddr => 'www.perl.com',
-                              PeerPort => 'http(80)');
-die "Couldn't create socket: $@" unless $sock;
-# the library doesn't support $! setting; it uses $@
-
-$sock->autoflush(1);
-
-# Mac *must* have \015\012\015\012 instead of \n\n here.
-# It's a good idea for others, too, as that's the spec,
-# but implementations are encouraged to accept "\cJ\cJ" too,
-# and as far as we've seen, they do.
-$sock->print("GET /index.html http/1.1\n\n");
-$document = join('', $sock->getlines());
-print "DOC IS: $document\n";
+# ^^INCLUDE^^ include/perl/ch07/getpcomidx
 #-----------------------------
 
 # ^^PLEAC^^_7.13
@@ -4822,20 +4783,7 @@ use FileCache;
 cacheout ($path);         # each time you use a filehandle
 print $path "output";
 #-----------------------------
-#!/usr/bin/perl
-# splitwulog - split wuftpd log by authenticated user
-use FileCache;
-$outdir = '/var/log/ftp/by-user';
-while (<>) {
-    unless (defined ($user = (split)[-4])) {
-       warn "Invalid line: $.\n";
-       next;
-    }
-    $path = "$outdir/$user";
-    cacheout $path;
-    print $path $_;
-
-}
+# ^^INCLUDE^^ include/perl/ch07/splitwulog
 #-----------------------------
 
 # ^^PLEAC^^_7.18
@@ -5036,215 +4984,7 @@ END {
 #% lockarea 5 &
 #% rep -1 'cat /tmp/lkscreen'
 #-----------------------------
-#!/usr/bin/perl -w
-# lockarea - demo record locking with fcntl
-
-use strict;
-
-my $FORKS = shift || 1;
-my $SLEEP = shift || 1;
-
-use Fcntl;
-use POSIX qw(:unistd_h :errno_h);
-
-my $COLS = 80;
-my $ROWS = 23;
-
-# when's the last time you saw *this* mode used correctly?
-open(FH, "+> /tmp/lkscreen")            or  die $!;
-
-select(FH);
-$| = 1;
-select STDOUT;
-
-# clear screen
-for (1 .. $ROWS) {
-        print FH " " x $COLS, "\n";
-}
-
-my $progenitor = $$;
-fork while $FORKS-- > 0;
-
-print "hello from $$\n";
-
-if ($progenitor == $$) {
-        $SIG{INT} = \&genocide;
-} else {
-        $SIG{INT} = sub { die "goodbye from $$" };
-}
-
-while (1) {
-        my $line_num = int rand($ROWS);
-        my $line;
-        my $n;
-
-        # move to line
-        seek(FH, $n = $line_num * ($COLS+1), SEEK_SET)              or next;
-
-        # get lock
-        my $place = tell(FH);
-        my $him;
-        next unless defined($him = lock(*FH, $place, $COLS));
-
-        # read line
-        read(FH, $line, $COLS) == $COLS                             or next;
-        my $count = ($line =~ /(\d+)/) ? $1 : 0;
-        $count++;
-
-        # update line
-        seek(FH, $place, 0)                                         or die $!;
-        my $update = sprintf($him
-                            ? "%6d: %d ZAPPED %d"
-                            : "%6d: %d was just here",
-                        $count, $$, $him);
-        my $start = int(rand($COLS - length($update)));
-        die "XXX" if $start + length($update) > $COLS;
-        printf FH "%*.*s\n", -$COLS, $COLS, " " x $start . $update;
-
-        # release lock and go to sleep
-        unlock(*FH, $place, $COLS);
-        sleep $SLEEP if $SLEEP;
-}
-die "NOT REACHED";                              # just in case
-
-# lock($handle, $offset, $timeout) - get an fcntl lock
-sub lock {
-        my ($fh, $start, $till) = @_;
-        ##print "$$: Locking $start, $till\n";
-        my $lock = struct_flock(F_WRLCK, SEEK_SET, $start, $till, 0);
-        my $blocker = 0;
-        unless (fcntl($fh, F_SETLK, $lock)) {
-            die "F_SETLK $$ @_: $!" unless $! == EAGAIN || $! == EDEADLK;
-            fcntl($fh, F_GETLK, $lock)          or die "F_GETLK $$ @_: $!";
-            $blocker = (struct_flock($lock))[-1];
-            ##print "lock $$ @_: waiting for $blocker\n";
-            $lock = struct_flock(F_WRLCK, SEEK_SET, $start, $till, 0);
-            unless (fcntl($fh, F_SETLKW, $lock)) {
-                warn "F_SETLKW $$ @_: $!\n";
-                return;  # undef
-            }
-        }
-        return $blocker;
-}
-
-# unlock($handle, $offset, $timeout) - release an fcntl lock
-sub unlock {
-        my ($fh, $start, $till) = @_;
-        ##print "$$: Unlocking $start, $till\n";
-        my $lock = struct_flock(F_UNLCK, SEEK_SET, $start, $till, 0);
-        fcntl($fh, F_SETLK, $lock) or die "F_UNLCK $$ @_: $!";
-}
-
-# OS-dependent flock structures
-
-# Linux struct flock
-#   short l_type;
-#   short l_whence;
-#   off_t l_start;
-#   off_t l_len;
-#   pid_t l_pid;
-BEGIN {
-        # c2ph says: typedef='s2 l2 i', sizeof=16
-        my $FLOCK_STRUCT = 's s l l i';
-
-        sub linux_flock {
-            if (wantarray) {
-                my ($type, $whence, $start, $len, $pid) =
-                    unpack($FLOCK_STRUCT, $_[0]);
-                return ($type, $whence, $start, $len, $pid);
-            } else {
-                my ($type, $whence, $start, $len, $pid) = @_;
-                return pack($FLOCK_STRUCT,
-                        $type, $whence, $start, $len, $pid);
-            }
-        }
-
-}
-
-# SunOS struct flock:
-#   short   l_type;         /* F_RDLCK, F_WRLCK, or F_UNLCK */
-#   short   l_whence;       /* flag to choose starting offset */
-#   long    l_start;        /* relative offset, in bytes */
-#   long    l_len;          /* length, in bytes; 0 means lock to EOF */
-#   short   l_pid;          /* returned with F_GETLK */
-#   short   l_xxx;          /* reserved for future use */
-BEGIN {
-        # c2ph says: typedef='s2 l2 s2', sizeof=16
-        my $FLOCK_STRUCT = 's s l l s s';
-
-        sub sunos_flock {
-            if (wantarray) {
-                my ($type, $whence, $start, $len, $pid, $xxx) =
-                    unpack($FLOCK_STRUCT, $_[0]);
-                return ($type, $whence, $start, $len, $pid);
-            } else {
-                my ($type, $whence, $start, $len, $pid) = @_;
-                return pack($FLOCK_STRUCT,
-                        $type, $whence, $start, $len, $pid, 0);
-            }
-        }
-
-}
-
-# (Free)BSD struct flock:
-#   off_t   l_start;        /* starting offset */
-#   off_t   l_len;          /* len = 0 means until end of file */
-#   pid_t   l_pid;          /* lock owner */
-#   short   l_type;         /* lock type: read/write, etc. */
-#   short   l_whence;       /* type of l_start */
-BEGIN {
-        # c2ph says: typedef="q2 i s2", size=24
-        my $FLOCK_STRUCT = 'll ll i s s';   # XXX: q is ll
-
-        sub bsd_flock {
-            if (wantarray) {
-                my ($xxstart, $start, $xxlen, $len, $pid, $type, $whence) =
-                    unpack($FLOCK_STRUCT, $_[0]);
-                return ($type, $whence, $start, $len, $pid);
-            } else {
-                my ($type, $whence, $start, $len, $pid) = @_;
-                my ($xxstart, $xxlen) = (0,0);
-                return pack($FLOCK_STRUCT,
-                    $xxstart, $start, $xxlen, $len, $pid, $type, $whence);
-            }
-        }
-}
-
-# alias the fcntl structure at compile time
-BEGIN {
-        for ($^O) {
-            *struct_flock =                do                           {
-
-                                    /bsd/  &&  \&bsd_flock
-                                           ||
-                                /linux/    &&    \&linux_flock
-                                           ||
-                              /sunos/      &&      \&sunos_flock
-                                           ||
-                      die "unknown operating system $^O, bailing out";
-            };
-        }
-}
-
-# install signal handler for children
-BEGIN {
-        my $called = 0;
-
-        sub genocide {
-            exit if $called++;
-            print "$$: Time to die, kiddies.\n" if $$ == $progenitor;
-            my $job = getpgrp();
-            $SIG{INT} = 'IGNORE';
-            kill -2, $job if $job;  # killpg(SIGINT, job)
-            1 while wait > 0;
-            print "$$: My turn\n" if $$ == $progenitor;
-            exit;
-        }
-
-}
-
-END { &genocide }
-
+# ^^INCLUDE^^ include/perl/ch07/lockarea
 #-----------------------------
 
 # ^^PLEAC^^_8.0
@@ -5623,18 +5363,7 @@ $/ = $old_rs;                       # restore old $/
     # ...
 }                           # $/ is automatically restored
 #-----------------------------
-#!/usr/bin/perl 
-# bgets - get a string from an address in a binary file
-use IO::Seekable;
-($file, @addrs) = @ARGV             or die "usage: $0 addr ...";
-open(FH, $file)                     or die "cannot open $file: $!";
-$/ = "\000";
-foreach $addr (@addrs) {
-    $addr = oct $addr if $addr =~ /^0/;
-    seek(FH, $addr, SEEK_SET)
-        or die "can't seek to $addr in $file: $!";
-    printf qq{%#x %#o %d "%s"\n}, $addr, $addr, $addr, scalar <>;
-}
+# ^^INCLUDE^^ include/perl/ch08/bgets
 #-----------------------------
 # ^^INCLUDE^^ include/perl/ch08/strings
 #-----------------------------
@@ -5804,62 +5533,7 @@ if (open(FILE, "< $file")) {
 #-----------------------------
 #% someprog | tctee f1 "|cat -n" f2 ">>f3"
 #-----------------------------
-#!/usr/bin/perl
-# tctee - clone that groks process tees 
-# perl3 compatible, or better.
-
-while ($ARGV[0] =~ /^-(.+)/ && (shift, ($_ = $1), 1)) {
-    next if /^$/;
-    s/i// && (++$ignore_ints, redo);
-    s/a// && (++$append,      redo);
-    s/u// && (++$unbuffer,    redo);
-    s/n// && (++$nostdout,    redo);
-    die "usage tee [-aiun] [filenames] ...\n";
-}
-
-if ($ignore_ints) {
-    for $sig ('INT', 'TERM', 'HUP', 'QUIT') { $SIG{$sig} = 'IGNORE'; }
-}
-
-$SIG{'PIPE'} = 'PLUMBER';
-$mode = $append ? '>>' : '>';
-$fh = 'FH000';
-
-unless ($nostdout) {
-    %fh = ('STDOUT', 'standard output'); # always go to stdout
-    }
-
-$| = 1 if $unbuffer;
-
-for (@ARGV) {
-    if (!open($fh, (/^[^>|]/ && $mode) . $_)) {
-        warn "$0: cannot open $_: $!\n"; # like sun's; i prefer die
-        $status++;
-        next;
-    }
-    select((select($fh), $| = 1)[0]) if $unbuffer;
-    $fh{$fh++} = $_;
-}
-
-while (<STDIN>) {
-    for $fh (keys %fh) {
-        print $fh $_;
-    }
-}
-
-for $fh (keys %fh) {
-    next if close($fh) || !defined $fh{$fh};
-    warn "$0: couldnt close $fh{$fh}: $!\n";
-    $status++;
-}
-
-exit $status;
-
-sub PLUMBER {
-    warn "$0: pipe to \"$fh{$fh}\" broke!\n";
-    $status++;
-    delete $fh{$fh};
-}
+# ^^INCLUDE^^ include/perl/ch08/tctee
 #-----------------------------
 
 # ^^PLEAC^^_8.20
@@ -5867,28 +5541,7 @@ sub PLUMBER {
 #% laston gnat
 #gnat  UID 314 at Mon May 25 08:32:52 1998 on ttyp0 from below.perl.com
 #-----------------------------
-#!/usr/bin/perl
-# laston - find out when given user last logged on
-use User::pwent;
-use IO::Seekable qw(SEEK_SET);
-
-open (LASTLOG, "/var/log/lastlog") or die "can't open /usr/adm/lastlog: $!";
-
-$typedef = 'L A12 A16';  # linux fmt; sunos is "L A8 A16"
-$sizeof  = length(pack($typedef, ()));
-
-for $user (@ARGV) {
-    $U = ($user =~ /^\d+$/) ? getpwuid($user) : getpwnam($user);
-    unless ($U) { warn "no such uid $user\n"; next; }
-    seek(LASTLOG, $U->uid * $sizeof, SEEK_SET) or die "seek failed: $!";
-    read(LASTLOG, $buffer, $sizeof) == $sizeof or next;
-    ($time, $line, $host) = unpack($typedef, $buffer);
-    printf "%-8s UID %5d %s%s%s\n", $U->name, $U->uid,
-          $time ? ("at " . localtime($time)) : "never logged in",
-          $line && " on $line", 
-          $host && " from $host";
-
-} 
+# ^^INCLUDE^^ include/perl/ch08/laston
 #-----------------------------
 
 # ^^PLEAC^^_9.0
@@ -6205,46 +5858,7 @@ sub extension {
 
 # ^^PLEAC^^_9.11
 #-----------------------------
-#!/usr/bin/perl -w
-# symirror - build spectral forest of symlinks
-use strict;
-use File::Find;
-use Cwd;
-
-my ($srcdir, $dstdir);
-my $cwd = 
-getcwd();
-
-die "usage: $0 realdir mirrordir" unless @ARGV == 2;
-
-for (($srcdir, $dstdir) = @ARGV) {
-    my $is_dir = -d;
-    next if $is_dir;                        # cool
-    if (defined ($is_dir)) {
-        die "$0: $_ is not a directory\n";
-    } else {                                # be forgiving
-        mkdir($dstdir, 07777) or die "can't mkdir $dstdir: $!";
-    }
-} continue {
-    s#^(?!/)#$cwd/#;                        # fix relative paths
-}
-                    
-chdir $srcdir;
-find(\&wanted, '.');
-
-sub wanted {
-    my($dev, $ino, $mode) = lstat($_);
-    my $name = $File::Find::name;
-    $mode &= 07777;                 # preserve directory permissions
-    $name =~ s!^\./!!;              # correct name
-    if (-d _) {                     # then make a real directory
-        mkdir("$dstdir/$name", $mode)
-            or die "can't mkdir $dstdir/$name: $!";
-    } else {                        # shadow everything else
-        symlink("$srcdir/$name", "$dstdir/$name")
-            or die "can't symlink $srcdir/$name to $dstdir/$name: $!";
-    }
-}
+# ^^INCLUDE^^ include/perl/ch09/symirror
 #-----------------------------
 
 # ^^PLEAC^^_9.12
@@ -6292,110 +5906,7 @@ sub wanted {
 #
 #....
 #-----------------------------
-#!/usr/bin/perl
-# lst - list sorted directory contents (depth first)
-
-use Getopt::Std;
-use File::Find;
-use File::stat;
-use User::pwent;
-use User::grent;
-
-getopts('lusrcmi')    or die <<DEATH;
-Usage: $0 [-mucsril] [dirs ...]
- or    $0 -i [-mucsrl] < filelist
-
-Input format:
-    -i  read pathnames from stdin
-Output format:
-    -l  long listing
-Sort on:
-    -m  use mtime (modify time) [DEFAULT]
-    -u  use atime (access time)
-    -c  use ctime (inode change time)
-    -s  use size for sorting
-Ordering:
-    -r  reverse sort
-NB: You may only use select one sorting option at a time.
-DEATH
-    
-unless ($opt_i || @ARGV) { @ARGV = ('.') }
-
-if ($opt_c + $opt_u + $opt_s + $opt_m > 1) {
-    die "can only sort on one time or size";
-}
-
-$IDX = 'mtime';
-$IDX = 'atime' if $opt_u;
-$IDX = 'ctime' if $opt_c;
-$IDX = 'size'  if $opt_s;
-
-$TIME_IDX = $opt_s ? 'mtime' : $IDX;
-
-*name = *File::Find::name;  # forcibly import that variable
-
-# the $opt_i flag tricks wanted into taking
-# its filenames from ARGV instead of being
-# called from find.
-
-if ($opt_i) {
-     *name = *_;  # $name now alias for $_
-     while (<>) { chomp; &wanted; }   # ok, not stdin really
-}  else {
-    find(\&wanted, @ARGV);
-}
-
-# sort the files by their cached times, youngest first
-@skeys = sort { $time{$b} <=> $time{$a} } keys %time;
-
-# but flip the order if -r was supplied on command line
-@skeys = reverse @skeys if $opt_r;
-
-for (@skeys) {
-    unless ($opt_l) {  # emulate ls -l, except for permissions
-        print "$_\n";
-        next;
-    }
-    $now = localtime $stat{$_}->$TIME_IDX();
-    printf "%6d %04o %6d %8s %8s %8d %s %s\n",
-        $stat{$_}->ino(),
-        $stat{$_}->mode() & 07777,
-        $stat{$_}->nlink(),
-        user($stat{$_}->uid()),
-        group($stat{$_}->gid()),
-        $stat{$_}->size(),
-        $now, $_;
-}
-
-# get stat info on the file, saving the desired
-# sort criterion (mtime, atime, ctime, or size)
-# in the %time hash indexed by filename.
-# if they want a long list, we have to save the
-# entire stat object in %stat.  yes, this is a
-# hash of objects
-sub wanted {
-    my $sb = stat($_);  # XXX: should be stat or lstat?
-    return unless $sb;
-    $time{$name} = $sb->$IDX();  # indirect method call
-    $stat{$name} = $sb if $opt_l;
-}
-
-# cache user number to name conversions
-sub user {
-    my $uid = shift;
-    $user{$uid} = getpwuid($uid)->name || "#$uid"
-        unless defined $user{$uid};
-    return $user{$uid};
-}
-
-# cache group number to name conversions
-sub group {
-    my $gid = shift;
-    $group{$gid} = getgrgid($gid)->name || "#$gid"
-        unless defined $group{$gid};
-    return $group{$gid};
-
-}
+# ^^INCLUDE^^ include/perl/ch09/lst
 #-----------------------------
 
 # ^^PLEAC^^_10.0
@@ -6862,64 +6373,9 @@ sub outer {
 #-----------------------------
 # ^^INCLUDE^^ include/perl/ch10/bysub2
 #-----------------------------
-#!/usr/bin/perl -00
-# bysub3
- - sort by subject using hash records
-use strict;
-my @msgs = ();
-while (<>) {
-    push @msgs, {
-        SUBJECT => /^Subject:\s*(?:Re:\s*)*(.*)/mi,
-        NUMBER  => scalar @msgs,   # which msgno this is
-        TEXT    => '',
-    } if /^From/m;
-    $msgs[-1]{TEXT} .= $_;
-} 
-
-for my $msg (sort {     
-                        $a->{SUBJECT} cmp $b->{SUBJECT} 
-                                       || 
-                        $a->{NUMBER}  <=> $b->{NUMBER} 
-                  } @msgs
-         )
-{
-    print $msg->{TEXT};
-} 
+# ^^INCLUDE^^ include/perl/ch10/bysub3
 #-----------------------------
-#!/usr/bin/perl -00
-# datesort - sort mbox by subject then date
-use strict;
-use Date::Manip;
-my @msgs = ();
-while (<>) {
-    next unless /^From/m;
-    my $date = '';
-    if (/^Date:\s*(.*)/m) {
-        ($date = $1) =~ s/\s+\(.*//;  # library hates (MST)
-        $date = ParseDate($date);
-    } 
-    push @msgs, {
-        SUBJECT => /^Subject:\s*(?:Re:\s*)*(.*)/mi,
-        DATE    => $date,
-        NUMBER  => scalar @msgs,
-        TEXT    => '',
-    }; 
-} continue {
-    $msgs[-1]{TEXT} .= $_;
-}
-
-for my $msg (sort {     
-                        $a->{SUBJECT} cmp $b->{SUBJECT} 
-                                       || 
-                        $a->{DATE}    cmp $b->{DATE} 
-                                       || 
-                        $a->{NUMBER}  <=> $b->{NUMBER} 
-
-                  } @msgs
-         )
-{
-    print $msg->{TEXT};
-}
+# ^^INCLUDE^^ include/perl/ch10/datesort
 #-----------------------------
 
 # ^^PLEAC^^_11.0
@@ -7496,96 +6952,7 @@ $hash{"some key"} = $aref;
 
 # ^^PLEAC^^_11.15
 #-----------------------------
-#!/usr/bin/perl -w
-# bintree - binary tree demo program
-use strict;
-my($root, $n);
-
-# first generate 20 random inserts
-while ($n++ < 20) { insert($root, int(rand(1000)))}
-
-# now dump out the tree all three ways
-print "Pre order:  ";  pre_order($root);  print "\n";
-print "In order:   ";  in_order($root);   print "\n";
-print "Post order: ";  post_order($root); print "\n";
-
-# prompt until EOF
-for (print "Search? "; <>; print "Search? ") { 
-    chomp;
-    my $found = search($root, $_);
-    if ($found) { print "Found $_ at $found, $found->{VALUE}\n" }
-    else        { print "No $_ in tree\n" }
-}
-
-exit;
-
-#########################################
-
-# insert given value into proper point of
-# provided tree.  If no tree provided, 
-# use implicit pass by reference aspect of @_
-# to fill one in for our caller.
-sub insert {
-    my($tree, $value) = @_;
-    unless ($tree) {
-        $tree = {};                         # allocate new node
-        $tree->{VALUE}  = $value;
-        $tree->{LEFT}   = undef;
-        $tree->{RIGHT}  = undef;
-        $_[0] = $tree;              # $_[0] is reference param!
-        return;
-    }
-    if    ($tree->{VALUE} > $value) { insert($tree->{LEFT},  $value) }
-    elsif ($tree->{VALUE} < $value) { insert($tree->{RIGHT}, $value) }
-    else                            { warn "dup insert of $value\n"  }
-                                    # XXX: no dups
-}
-
-# recurse on left child, 
-# then show current value, 
-# then recurse on right child.
-sub in_order {
-    my($tree) = @_;
-    return unless $tree;
-    in_order($tree->{LEFT});
-    print $tree->{VALUE}, " ";
-    in_order($tree->{RIGHT});
-}
-
-# show current value, 
-# then recurse on left child, 
-# then recurse on right child.
-sub pre_order {
-    my($tree) = @_;
-    return unless $tree;
-    print $tree->{VALUE}, " ";
-    pre_order($tree->{LEFT});
-    pre_order($tree->{RIGHT});
-}
-
-# recurse on left child, 
-# then recurse on right child,
-# then show current value. 
-sub post_order {
-    my($tree) = @_;
-    return unless $tree;
-    post_order($tree->{LEFT});
-    post_order($tree->{RIGHT});
-    print $tree->{VALUE}, " ";
-}
-
-# find out whether provided value is in the tree.
-# if so, return the node at which the value was found.
-# cut down search time by only looking in the correct
-# branch, based on current value.
-sub search {
-    my($tree, $value) = @_;
-    return unless $tree;
-    if ($tree->{VALUE} == $value) {
-        return $tree;
-    }
-    search($tree->{ ($value < $tree->{VALUE}) ? "LEFT" : "RIGHT"}, $value)
-}
+# ^^INCLUDE^^ include/perl/ch11/bintree
 #-----------------------------
 
 # ^^PLEAC^^_12.0
@@ -9178,51 +8545,7 @@ print "$x is ", $x < $y ? "LT" : "GE", " $y\n";
 # values are Red, Black, RedBlack, and RedBlackRedBlackRedBlack
 # Red is GE Black
 #-----------------------------
-package StrNum;
-
-use Exporter ();
-@ISA = 'Exporter';
-@EXPORT = qw(StrNum);  # unusual
-
-use overload        (
-        '<=>'   => \&spaceship,
-        'cmp'   => \&spaceship,
-        '""'    => \&stringify,
-        'bool'  => \&boolify,
-        '0+'    => \&numify,
-        '+'     => \&concat,
-        '*'     => \&repeat,
-);
-
-# constructor
-sub StrNum { 
-    my ($value) = @_; 
-    return bless \$value; 
-} 
-
-sub stringify { ${ $_[0] } } 
-sub numify    { ${ $_[0] } } 
-sub boolify   { ${ $_[0] } } 
-
-# providing <=> gives us <, ==, etc. for free.
-sub spaceship { 
-    my ($s1, $s2, $inverted) = @_;
-    return $inverted ? $$s2 cmp $$s1 : $$s1 cmp $$s2;
-} 
-
-# this uses stringify
-sub concat { 
-    my ($s1, $s2, $inverted) = @_;
-    return StrNum($inverted ? ($s2 . $s1) : ($s1 . $s2));
-} 
-
-# this uses stringify
-sub repeat { 
-    my ($s1, $s2, $inverted) = @_;
-    return StrNum($inverted ? ($s2 x $s1) : ($s1 x $s2));
-}
-
-1;
+# ^^INCLUDE^^ include/perl/ch13/StrNum
 #-----------------------------
 #!/usr/bin/perl
 # demo_fixnum - show operator overloading
@@ -9252,93 +8575,7 @@ div of STRFixNum: 40 by STRFixNum: 12 is STRFixNum: 3.33
 
 square of that is STRFixNum: 11.11
 #-----------------------------
-package FixNum;
-
-use strict;
-
-my $PLACES = 0;
-
-sub new {
-    my $proto   = shift;
-    my $class   = ref($proto) || $proto;
-    my $parent  = ref($proto) && $proto;
-
-    my $v = shift;
-    my $self = {
-        VALUE  => $v,
-        PLACES => undef,
-    }; 
-    if ($parent && defined $parent->{PLACES}) {
-        $self->{PLACES} = $parent->{PLACES};
-    } elsif ($v =~ /(\.\d*)/) {
-        $self->{PLACES} = length($1) - 1;
-    }  else {
-        $self->{PLACES} = 0;
-    } 
-    return bless $self, $class;
-} 
-
-sub places {
-    my $proto = shift;
-    my $self  = ref($proto) && $proto;
-    my $type  = ref($proto) || $proto;
-
-    if (@_) {
-        my $places = shift;
-        ($self ? $self->{PLACES} : $PLACES) = $places;
-    } 
-    return $self ? $self->{PLACES} : $PLACES;
-} 
-
-sub _max { $_[0] > $_[1] ? $_[0] : $_[1] } 
-
-use overload '+'    => \&add,
-             '*'    => \&multiply,
-             '/'    => \&divide,
-             '<=>'  => \&spaceship,
-             '""'   => \&as_string,
-             '0+'   => \&as_number;
-
-sub add {
-    my ($this, $that, $flipped) = @_;
-    my $result = $this->new( $this->{VALUE} + $that->{VALUE} );
-    $result->places( _max($this->{PLACES}, $that->{PLACES} ));
-    return $result;
-} 
-
-sub multiply {
-    my ($this, $that, $flipped) = @_;
-    my $result = $this->new( $this->{VALUE} * $that->{VALUE} );
-    $result->places( _max($this->{PLACES}, $that->{PLACES} ));
-    return $result;
-} 
-
-sub divide {
-    my ($this, $that, $flipped) = @_;
-    my $result = $this->new( $this->{VALUE} / $that->{VALUE} );
-    $result->places( _max($this->{PLACES}, $that->{PLACES} ));
-    return $result;
-} 
-
-sub as_string {
-    my $self = shift;
-    return sprintf("STR%s: %.*f", ref($self), 
-        defined($self->{PLACES}) ? $self->{PLACES} : $PLACES,
-            $self->{VALUE}); 
-} 
-
-sub as_number {
-    my $self = shift;
-    return $self->{VALUE};
-} 
-    
-sub spaceship {
-    my ($this, $that, $flipped) = @_;
-    $this->{VALUE} <=> $that->{VALUE};
-} 
-
-
-1;
+# ^^INCLUDE^^ include/perl/ch13/FixNum
 #-----------------------------
 
 # ^^PLEAC^^_13.15
@@ -9404,19 +8641,7 @@ Testing Filetest: detected
 
 Testing Nesting: 123missed!
 #-----------------------------
-package UnderScore;
-use Carp;
-sub TIESCALAR {
-    my $class = shift;
-    my $dummy;
-    return bless \$dummy => $class;
-} 
-sub FETCH { croak "Read access to \$_ forbidden"  } 
-sub STORE { croak "Write access to \$_ forbidden" } 
-sub unimport { tie($_, __PACKAGE__) }
-sub import { untie $_ } 
-tie($_, __PACKAGE__) unless tied $_;
-1;
+# ^^INCLUDE^^ include/perl/ch13/UnderScore
 #-----------------------------
 #!/usr/bin/perl 
 # appendhash_demo - show magic hash that autoappends
@@ -9435,17 +8660,7 @@ food => [potatoes peas]
 
 beer => [guinness]
 #-----------------------------
-package Tie::AppendHash;
-use strict;
-use Tie::Hash;
-use Carp;
-use vars qw(@ISA);
-@ISA = qw(Tie::StdHash);
-sub STORE {
-    my ($self, $key, $value) = @_;
-    push @{$self->{$key}}, $value;
-} 
-1;
+# ^^INCLUDE^^ include/perl/ch13/Tie/AppendHash.pm
 #-----------------------------
 #!/usr/bin/perl 
 # folded_demo - demo hash that magically folds case
@@ -9464,28 +8679,7 @@ heroine is red riding hood
 
 villain is big bad wolf
 #-----------------------------
-package Tie::Folded;
-use strict;
-use Tie::Hash;
-use vars qw(@ISA);
-@ISA = qw(Tie::StdHash);
-sub STORE {
-    my ($self, $key, $value) = @_;
-    return $self->{lc $key} = $value;
-    } 
-sub FETCH {
-    my ($self, $key) = @_;
-    return $self->{lc $key};
-} 
-sub EXISTS {
-    my ($self, $key) = @_;
-    return exists $self->{lc $key};
-} 
-sub DEFINED {
-    my ($self, $key) = @_;
-    return defined $self->{lc $key};
-} 
-1;
+# ^^INCLUDE^^ include/perl/ch13/Tie/Folded.pm
 #-----------------------------
 #!/usr/bin/perl -w
 # revhash_demo - show hash that permits key *or* value lookups
@@ -9521,24 +8715,7 @@ Azul => Blue
 
 Verde => Green
 #-----------------------------
-package Tie::RevHash;
-use Tie::RefHash;
-use vars qw(@ISA);
-@ISA = qw(Tie::RefHash);
-sub STORE {
-    my ($self, $key, $value) = @_;
-    $self->SUPER::STORE($key, $value);
-    $self->SUPER::STORE($value, $key);
-}
-
-sub DELETE {
-    my ($self, $key) = @_;
-    my $value = $self->SUPER::FETCH($key);
-    $self->SUPER::DELETE($key);
-    $self->SUPER::DELETE($value);
-}
-
-1;
+# ^^INCLUDE^^ include/perl/ch13/Tie/RevHash.pm
 #-----------------------------
 use Counter;
 tie *CH, 'Counter';
@@ -9566,29 +8743,7 @@ for $i ( 1 .. 10 ) {
 tie *TEE, 'Tie::Tee', @handles;
 print TEE "This lines goes many places.\n";
 #-----------------------------
-package Tie::Tee;
-
-sub TIEHANDLE {
-    my $class   = shift;
-    my $handles = [@_];
-
-    bless $handles, $class;
-    return $handles;
-}
-
-sub PRINT {
-    my $href = shift;
-    my $handle;
-    my $success = 0;
-
-    foreach $handle (@$href) {
-        $success += print $handle @_;
-    }
-
-    return $success == @$href;
-}                                     
-
-1;
+# ^^INCLUDE^^ include/perl/ch13/Tie/Tee.pm
 #-----------------------------
 
 # ^^PLEAC^^_14.0
@@ -9692,29 +8847,7 @@ $DB_BTREE->{'compare'} = sub {
 tie(%hash, "DB_File", $filename, O_RDWR|O_CREAT, 0666, $DB_BTREE)
     or die "can't tie $filename: $!";
 #-----------------------------
-#!/usr/bin/perl
-# sortdemo - show auto dbm sorting
-use strict;
-use DB_File;
-
-$DB_BTREE->{'compare'} = sub {
-    my ($key1, $key2) = @_ ;
-    return "\L$key1" cmp "\L$key2";
-};
-
-my %hash;
-my $filename = '/tmp/sorthash.db';
-tie(%hash, "DB_File", $filename, O_RDWR|O_CREAT, 0666, $DB_BTREE)
-    or die "can't tie $filename: $!";
-
-my $i = 0;
-for my $word (qw(Can't you go camp down by Gibraltar)) { #'
-    $hash{$word} = ++$i;
-}
-
-while (my($word, $number) = each %hash) {
-    printf "%-12s %d\n", $word, $number;
-}
+# ^^INCLUDE^^ include/perl/ch14/sortdemo
 #-----------------------------
 #by           6
 #
@@ -9873,35 +9006,7 @@ END {
 #-----------------------------
 push(@{$db{$user}}, $duration);
 #-----------------------------
-#!/usr/bin/perl -w
-# mldbm_demo - show how to use MLDBM with DB_File
-
-use MLDBM "DB_File";
-
-$db = "/tmp/mldbm-array";
-
-tie %db, 'MLDBM', $db
-  or die "Can't open $db : $!";
-
-while(<DATA>) {
-    chomp;
-    ($user, $duration) = split(/\s+/, $_);
-    $array_ref = exists $db{$user} ? $db{$user} : [];
-    push(@$array_ref, $duration);
-    $db{$user} = $array_ref;
-}
-
-foreach $user (sort keys %db) {
-    print "$user: ";
-    $total = 0;
-    foreach $duration (@{ $db{$user} }) {
-        print "$duration ";
-        $total += $duration;
-    }
-        print "($total)\n";
-    }
-
-#__END__
+# ^^INCLUDE^^ include/perl/ch14/mldbm_demo
 #gnat        15.3
 #tchrist     2.5
 #jules       22.1
@@ -9939,34 +9044,7 @@ $dbh->disconnect();
 #disconnect(DBI::db=HASH(0x9df84)) invalidates 1 active cursor(s) 
 #    at -e line 1.
 #-----------------------------
-#!/usr/bin/perl -w
-# dbusers - manage MySQL user table
-use DBI;
-use User::pwent;
-
-$dbh = DBI->connect('DBI:mysql:dbname:mysqlserver.domain.com:3306',
-                    'user', 'password',
-                    { RaiseError => 1, AutoCommit => 1 })
-
-$dbh->do("CREATE TABLE users (uid INT, login CHAR(8))");
-
-$sql_fmt = "INSERT INTO users VALUES( %d, %s )";
-while ($user = getpwent) {
-    $sql = sprintf($sql_fmt, $user->uid, $dbh->quote($user->name));
-    $dbh->do($sql);
-}
-
-$sth = $dbh->prepare("SELECT * FROM users WHERE uid < 50");
-$sth->execute;
-
-while ((@row) = $sth->fetchrow_array) {
-    print join(", ", map {defined $_ ? $_ : "(null)"} @row), "\n";
-}
-$sth->finish;
-    
-$dbh->do("DROP TABLE users");
-
-$dbh->disconnect;
+# ^^INCLUDE^^ include/perl/ch14/dbusers
 #-----------------------------
 
 # ^^PLEAC^^_14.11
@@ -9989,96 +9067,7 @@ $dbh->disconnect;
 #-----------------------------
 #% ggh -epoch | sort -rn | perl -pe 's/\d+/localtime $&/e' | less
 #-----------------------------
-#!/usr/bin/perl -w
-# ggh -- grovel global history in netscape logs
-$USAGE = <<EO_COMPLAINT;
-usage: $0 [-database dbfilename] [-help]
-           [-epochtime | -localtime | -gmtime]
-           [ [-regexp] pattern] | href ... ]
-EO_COMPLAINT
-
-use Getopt::Long;
-
-($opt_database, $opt_epochtime, $opt_localtime,
- $opt_gmtime,   $opt_regexp,    $opt_help,
- $pattern,                                  )      = (0) x 7;
-
-usage() unless GetOptions qw{ database=s
-                              regexp=s
-                              epochtime localtime gmtime
-                              help
-                            };
-
-if ($opt_help) { print $USAGE; exit; }
-
-usage("only one of localtime, gmtime, and epochtime allowed")
-    if $opt_localtime + $opt_gmtime + $opt_epochtime > 1;
-
-if ( $opt_regexp ) {
-    $pattern = $opt_regexp;
-} elsif (@ARGV && $ARGV[0] !~ m(://)) {
-    $pattern = shift;
-}
-
-usage("can't mix URLs and explicit patterns")
-    if $pattern && @ARGV;
-
-if ($pattern && !eval { '' =~ /$pattern/; 1 } ) {
-    $@ =~ s/ at \w+ line \d+\.//;
-    die "$0: bad pattern $@";
-}
-
-require DB_File; DB_File->import();  # delay loading until runtime
-$| = 1;                              # feed the hungry PAGERs
-
-$dotdir  = $ENV{HOME}    || $ENV{LOGNAME};
-$HISTORY = $opt_database || "$dotdir/.netscape/history.db";
-
-die "no netscape history dbase in $HISTORY: $!" unless -e $HISTORY;
-die "can't dbmopen $HISTORY: $!" unless dbmopen %hist_db, $HISTORY, 0666;
-
-# the next line is a hack because the C programmers who did this
-# didn't understand strlen vs strlen+1.  jwz told me so. :-)
-$add_nulls   = (ord(substr(each %hist_db, -1)) == 0);
-
-# XXX: should now do scalar keys to reset but don't 
-#      want cost of full traverse, required on tied hashes.
-#   better to close and reopen?
-
-$nulled_href = "";  
-$byte_order  = "V";         # PC people don't grok "N" (network order)
-    
-if (@ARGV) {
-    foreach $href (@ARGV) {
-        $nulled_href = $href . ($add_nulls && "\0");
-        unless ($binary_time = $hist_db{$nulled_href}) {
-            warn "$0: No history entry for HREF $href\n";
-            next;
-        }
-        $epoch_secs = unpack($byte_order, $binary_time);
-        $stardate   = $opt_epochtime ? $epoch_secs
-                                     : $opt_gmtime ? gmtime    $epoch_secs
-                                                   : localtime $epoch_secs;
-        print "$stardate $href\n";
-    }
-} else {
-    while ( ($href, $binary_time) = each %hist_db ) {
-        chop $href if $add_nulls;
-        next unless defined $href && defined $binary_time;
-        # gnat reports some binary times are missing
-        $binary_time = pack($byte_order, 0) unless $binary_time;
-        $epoch_secs = unpack($byte_order, $binary_time);
-        $stardate   = $opt_epochtime ? $epoch_secs
-                                     : $opt_gmtime ? gmtime    $epoch_secs
-                                                   : localtime $epoch_secs;
-        print "$stardate $href\n" unless $pattern && $href !~ /$pattern/o;
-    }
-}
-
-sub usage {
-    print STDERR "@_\n" if @_;
-    die $USAGE;
-}
+# ^^INCLUDE^^ include/perl/ch14/ggh
 #-----------------------------
 
 # ^^PLEAC^^_15.1
@@ -10299,38 +9288,7 @@ print $vb;                                  # ring visual bell
 
 # ^^PLEAC^^_15.8
 #-----------------------------
-#!/usr/bin/perl -w
-# demo POSIX termios
-
-use POSIX qw(:termios_h);
-
-$term = POSIX::Termios->new;
-$term->getattr(fileno(STDIN));
-
-$erase = $term->getcc(VERASE);
-$kill = $term->getcc(VKILL);
-printf "Erase is character %d, %s\n", $erase, uncontrol(chr($erase));
-printf "Kill is character %d, %s\n", $kill, uncontrol(chr($kill));
-
-$term->setcc(VERASE, ord('#'));
-$term->setcc(VKILL, ord('@'));
-$term->setattr(1, TCSANOW);
-
-print("erase is #, kill is @; type something: ");
-$line = <STDIN>;
-print "You typed: $line";
-
-$term->setcc(VERASE, $erase);
-$term->setcc(VKILL, $kill);
-$term->setattr(1, TCSANOW);
-
-sub uncontrol {
-
-    local $_ = shift;
-    s/([\200-\377])/sprintf("M-%c",ord($1) & 0177)/eg;
-    s/([\0-\37\177])/sprintf("^%c",ord($1) ^ 0100)/eg;
-    return $_;
-} 
+# ^^INCLUDE^^ include/perl/ch15/demo
 #-----------------------------
 # HotKey.pm
 package HotKey;
@@ -10397,26 +9355,7 @@ use Term::ReadKey;
 ReadMode('noecho');
 $password = ReadLine(0);
 #-----------------------------
-#!/usr/bin/perl -w
-# checkuser - demonstrates reading and checking a user's password
-
-use Term::ReadKey;
-
-print "Enter your password: ";
-ReadMode('noecho');
-$password = ReadLine 0;
-chomp $password;
-ReadMode('normal');
-
-print "\n";
-
-($username, $encrypted) = ( getpwuid $< )[0,1];
-
-if (crypt($password, $encrypted) ne $encrypted) {
-    die "You are not $username\n";
-} else {
-    print "Welcome, $username\n";
-}
+# ^^INCLUDE^^ include/perl/ch15/checkuser
 #-----------------------------
 
 # ^^PLEAC^^_15.11
@@ -10431,28 +9370,7 @@ $line = $term->readline(PROMPT);
 
 print $OUT "Any program output\n";
 #-----------------------------
-#!/usr/bin/perl -w
-# vbsh -  very bad shell
-use strict;
-
-use Term::ReadLine;
-use POSIX qw(:sys_wait_h);
-
-my $term = Term::ReadLine->new("Simple Shell");
-my $OUT = $term->OUT() || *STDOUT;
-my $cmd;
-
-while (defined ($cmd = $term->readline('$ ') )) {
-    my @output = `$cmd`;
-    my $exit_value  = $? >> 8;
-    my $signal_num  = $? & 127;
-    my $dumped_core = $? & 128;
-    printf $OUT "Program terminated with status %d from signal %d%s\n",
-           $exit_value, $signal_num, 
-           $dumped_core ? " (core dumped)" : "";
-    print @output;
-    $term->addhistory($cmd);
-}
+# ^^INCLUDE^^ include/perl/ch15/vbsh
 #-----------------------------
 $term->addhistory($seed_line);
 #-----------------------------
@@ -10645,46 +9563,7 @@ if ($button eq "Register") {
 #-----------------------------
 # ^^INCLUDE^^ include/perl/ch15/tksample3
 #-----------------------------
-#!/usr/bin/perl -w
-# tksample4 - popup dialog boxes for warnings
-
-use Tk;
-use Tk::DialogBox;
-
-my $main;
-
-# set up a warning handler that displays the warning in a Tk dialog box
-
-BEGIN {
-    $SIG{__WARN__} = sub {
-        if (defined $main) {
-            my $dialog = $main->DialogBox( -title   => "Warning",
-                                           -buttons => [ "Acknowledge" ]);
-            $dialog->add("Label", -text => $_[0])->pack;
-            $dialog->Show;
-        } else {
-            print STDOUT join("\n", @_), "n";
-        }
-    };
-}
-
-# your program goes here
-
-$main = MainWindow->new();
-
-$main->Button( -text   => "Make A Warning",
-               -command => \&make_warning) ->pack(-side => "left");
-$main->Button( -text   => "Quit",
-               -command => sub { exit } )  ->pack(-side => "left");
-
-MainLoop;
-
-# dummy subroutine to generate a warning
-    
-sub make_warning {
-    my $a;
-    my $b = 2 * $a;
-}
+# ^^INCLUDE^^ include/perl/ch15/tksample4
 #-----------------------------
 
 # ^^PLEAC^^_15.16
@@ -10742,119 +9621,7 @@ $menubar->pack (-fill     => "x",
 #-----------------------------
 #% tkshufflepod chap15.pod
 #-----------------------------
-#!/usr/bin/perl -w
-# tkshufflepod - reorder =head1 sections in a pod file
-
-use Tk;
-use strict;
-
-# declare variables
-
-my $podfile;     # name of the file to open
-my $m;           # main window
-my $l;           # listbox
-my ($up, $down);   # positions to move
-my @sections;      # list of pod sections
-my $all_pod;       # text of pod file (used when reading)
-
-# read the pod file into memory, and split it into sections.
-
-$podfile = shift || "-";
-
-undef $/;
-open(F, "< $podfile")
-  or die "Can't open $podfile : $!\n";
-$all_pod = <F>;
-close(F);
-@sections = split(/(?==head1)/, $all_pod);
-
-# turn @sections into an array of anonymous arrays.  The first element
-# in each of these arrays is the original text of the message, while
-# the second element is the text following =head1 (the section title).
-
-foreach (@sections) {
-    /(.*)/;
-    $_ = [ $_, $1 ];
-}
-
-# fire up Tk and display the list of sections.
-
-$m = MainWindow->new();
-$l = $m->Listbox('-width' => 60)->pack('-expand' => 1, '-fill' => 'both');
-
-foreach my $section (@sections) {
-    $l->insert("end", $section->[1]);
-}
-
-# permit dragging by binding to the Listbox widget.
-$l->bind( '<Any-Button>'     => \&down );
-$l->bind( '<Any-ButtonRelease>' => \&up );
-
-# permit viewing by binding double-click
-$l->bind( '<Double-Button>'     => \&view );
-
-# 'q' quits and 's' saves
-$m->bind( '<q>'     => sub { exit } );
-$m->bind( '<s>'     => \&save );
-
-MainLoop;
-
-# down(widget): called when the user clicks on an item in the Listbox.
-
-sub down {
-    my $self = shift;
-    $down = $self->curselection;;
-}
-
-# up(widget): called when the user releases the mouse button in the
-# Listbox.
-
-sub up {
-    my $self = shift;
-    my $elt;
-
-    $up = $self->curselection;;
-
-    return if $down == $up;
-
-    # change selection list
-    $elt = $sections[$down];
-    splice(@sections, $down, 1);
-    splice(@sections, $up, 0, $elt);
-
-    $self->delete($down);
-    $self->insert($up, $sections[$up]->[1]);
-}
-
-# save(widget): called to save the list of sections.
-
-sub save {
-    my $self = shift;
-
-    open(F, "> $podfile")
-      or die "Can't open $podfile for writing: $!";
-    print F map { $_->[0] } @sections;
-    close F;
-
-    exit;
-}
-
-# view(widget): called to display the widget.  Uses the Pod widget.
-
-sub view {
-    my $self = shift;
-    my $temporary = "/tmp/$$-section.pod";
-    my $popup;
-
-    open(F, "> $temporary")
-      or warn ("Can't open $temporary : $!\n"), return;
-    print F $sections[$down]->[0];
-    close(F);
-    $popup = $m->Pod('-file' => $temporary);
-
-    $popup->bind('<Destroy>' => sub { unlink $temporary } );
-
-}
+# ^^INCLUDE^^ include/perl/ch15/tkshufflepod
 #-----------------------------
 
 # ^^PLEAC^^_16.1
@@ -11002,33 +9769,7 @@ sub head {
 
 > 4:      so I installed Linux."  
 #-----------------------------
-#!/usr/bin/perl
-# qnumcat - demo additive output filters
-
-number();                   # push number filter on STDOUT
-quote();                    # push quote filter on STDOUT
-
-while (<>) {                # act like /bin/cat
-    print;
-} 
-close STDOUT;               # tell kids we're done--politely
-exit;
-
-sub number {
-    my $pid;
-    return if $pid = open(STDOUT, "|-");
-    die "cannot fork: $!" unless defined $pid;
-    while (<STDIN>) { printf "%d: %s", $., $_ } 
-    exit;
-} 
-
-sub quote {
-    my $pid;
-    return if $pid = open(STDOUT, "|-");
-    die "cannot fork: $!" unless defined $pid;
-    while (<STDIN>) { print "> $_" } 
-    exit;
-} 
+# ^^INCLUDE^^ include/perl/ch16/qnumcat
 #-----------------------------
 
 # ^^PLEAC^^_16.6
@@ -11144,33 +9885,7 @@ close(HIS_IN);  # give end of file to kid, or feed him
 print "STDOUT:\n", @outlines, "\n";
 print "STDERR:\n", @errlines, "\n";
 #-----------------------------
-#!/usr/bin/perl
-# cmd3sel - control all three of kids in, out, and error.
-use IPC::Open3;
-use IO::Select;
-
-$cmd = "grep vt33 /none/such - /etc/termcap";
-$pid = open3(*CMD_IN, *CMD_OUT, *CMD_ERR, $cmd);
-
-$SIG{CHLD} = sub {
-    print "REAPER: status $? on $pid\n" if waitpid($pid, 0) > 0
-};
-
-print CMD_IN "This line has a vt33 lurking in it\n";
-close(CMD_IN);
-
-$selector = IO::Select->new();
-$selector->add(*CMD_ERR, *CMD_OUT);
-
-while (@ready = $selector->can_read) {
-    foreach $fh (@ready) {
-        if (fileno($fh) == fileno(CMD_ERR)) {print "STDERR: ", scalar <CMD_ERR>}
-        else                                {print "STDOUT: ", scalar <CMD_OUT>}
-        $selector->remove($fh) if eof($fh);
-    }
-}
-close(CMD_OUT);
-close(CMD_ERR);
+# ^^INCLUDE^^ include/perl/ch16/cmd3sel
 #-----------------------------
 
 # ^^PLEAC^^_16.10
@@ -11525,198 +10240,7 @@ if ($@) {
 #					     --Andrew Hume 
 #%%
 #-----------------------------
-#!/usr/bin/perl -w
-# sigrand - supply random fortunes for .signature file
-
-use strict;
-
-# config section variables
-use vars qw( $NG_IS_DIR $MKNOD $FULLNAME $FIFO $ART $NEWS $SIGS $SEMA
-            $GLOBRAND $NAME );
-
-# globals
-use vars qw( $Home $Fortune_Path @Pwd );
-
-################################################################
-# begin configuration section 
-# should really read from ~/.sigrandrc
-
-gethome();
-
-# for rec/humor/funny instead of rec.humor.funny
-$NG_IS_DIR      = 1;    
-
-$MKNOD          = "/bin/mknod";
-$FULLNAME       = "$Home/.fullname";
-$FIFO           = "$Home/.signature";
-$ART            = "$Home/.article";
-$NEWS           = "$Home/News";
-$SIGS           = "$NEWS/SIGNATURES";
-$SEMA           = "$Home/.sigrandpid";
-$GLOBRAND       = 1/4;  # chance to use global sigs anyway
-
-# $NAME should be (1) left undef to have program guess
-# read address for signature maybe looking in ~/.fullname,
-# (2) set to an exact address, or (3) set to empty string
-# to be omitted entirely.
-
-$NAME           = '';           # means no name used
-## $NAME        = "me\@home.org\n";     
-
-# end configuration section -- HOME and FORTUNE get autoconf'd
-################################################################
-
-setup();                # pull in inits
-justme();               # make sure program not already running
-fork && exit;           # background ourself and go away
-
-open (SEMA, "> $SEMA")      or die "can't write $SEMA: $!";
-print SEMA "$$\n";
-close(SEMA)                    or die "can't close $SEMA: $!";
-
-# now loop forever, writing a signature into the 
-# fifo file.  if you don't have real fifos, change
-# sleep time at bottom of loop to like 10 to update
-# only every 10 seconds.
-for (;;) {
-    open (FIFO, "> $FIFO")  or die "can't write $FIFO: $!";
-    my $sig = pick_quote();
-    for ($sig) { 
-        s/^((:?[^\n]*\n){4}).*$/$1/s;   # trunc to 4 lines
-        s/^(.{1,80}).*? *$/$1/gm;       # trunc long lines
-    }
-    # print sig, with name if present, padded to four lines
-    if ($NAME) { 
-        print FIFO $NAME, "\n" x (3 - ($sig =~ tr/\n//)), $sig;
-    } else {
-        print FIFO $sig;
-    }
-    close FIFO;
-
-    # Without a microsleep, the reading process doesn't finish before
-    # the writer tries to open it again, which since the reader exists,
-    # succeeds.  They end up with multiple signatures.  Sleep a tiny bit
-    # between opens to give readers a chance to finish reading and close
-    # our pipe so we can block when opening it the next time.
-
-    select(undef, undef, undef, 0.2);   # sleep 1/5 second
-}
-die "XXX: NOT REACHED";         # you can't get here from anywhere
-
-################################################################
-
-# Ignore SIGPIPE in case someone opens us up and then closes the fifo
-# without reading it; look in a .fullname file for their login name.
-# Try to determine the fully qualified hostname.  Look our for silly
-# ampersands in passwd entries.  Make sure we have signatures or fortunes.
-# Build a fifo if we need to.
-
-sub setup {
-    $SIG{PIPE} = 'IGNORE';              
-
-    unless (defined $NAME) {            # if $NAME undef in config
-        if (-e $FULLNAME) {
-            $NAME = `cat $FULLNAME`;
-            die "$FULLNAME should contain only 1 line, aborting" 
-                if $NAME =~ tr/\n// > 1;
-        } else {
-            my($user, $host);
-            chop($host = `hostname`);
-            ($host) = gethostbyname($host) unless $host =~ /\./;
-            $user = $ENV{USER} || $ENV{LOGNAME} || $Pwd[0]
-                or die "intruder alert";
-            ($NAME = $Pwd[6]) =~ s/,.*//;
-            $NAME =~ s/&/\u\L$user/g; # can't believe some folks still do this
-            $NAME = "\t$NAME\t$user\@$host\n";
-        } 
-    }
-
-    check_fortunes() if !-e $SIGS;
-
-    unless (-p $FIFO) {         # -p checks whether it's a named pipe
-        if (!-e _) {
-             system("$MKNOD $FIFO p") && die "can't mknod $FIFO";
-             warn "created $FIFO as a named pipe\n";
-        } else {
-             die "$0: won't overwrite file .signature\n";
-        } 
-    } else {
-        warn "$0: using existing named pipe $FIFO\n";
-    } 
-
-    # get a good random number seed.  not needed if 5.004 or better.
-    srand(time() ^ ($$ + ($$ << 15)));
-}
-
-# choose a random signature
-sub pick_quote {
-    my $sigfile = signame();
-    if (!-e $sigfile) {
-        return fortune();
-    } 
-    open (SIGS, "< $sigfile" ) or die "can't open $sigfile";
-    local $/  = "%%\n";
-    local $_;
-    my $quip;
-    rand($.) < 1 && ($quip = $_) while <SIGS>;
-    close SIGS;
-    chomp $quip;
-    return $quip || "ENOSIG: This signature file is empty.\n";
-} 
-
-# See whether ~/.article contains a Newsgroups line.  if so, see the first
-# group posted to and find out whether it has a dedicated set of fortunes.
-# otherwise return the global one.  also, return the global one randomly
-# now and then to spice up the sigs.
-sub signame {
-     (rand(1.0) > ($GLOBRAND) && open ART) || return $SIGS;   
-     local $/  = '';
-     local $_  = <ART>;
-     my($ng)   = /Newsgroups:\s*([^,\s]*)/;
-     $ng =~ s!\.!/!g if $NG_IS_DIR;     # if rn -/,  or SAVEDIR=%p/%c
-     $ng = "$NEWS/$ng/SIGNATURES";
-     return -f $ng ? $ng : $SIGS;
-} 
-
-# Call the fortune program with -s for short flag until
-# we get a small enough fortune or ask too much.
-sub fortune {
-   local $_;
-   my $tries = 0;
-   do { 
-       $_ = `$Fortune_Path -s`; 
-   } until tr/\n// < 5 || $tries++ > 20;
-   s/^/ /mg;
-   $_ || " SIGRAND: deliver random signals to all processes.\n";
-} 
-
-# Make sure there's a fortune program.  Search 
-# for its full path and set global to that.
-sub check_fortunes {
-    return if $Fortune_Path;    # already set
-    for my $dir (split(/:/, $ENV{PATH}), '/usr/games') {
-        return if -x ($Fortune_Path = "$dir/fortune");
-    } 
-    die "Need either $SIGS or a fortune program, bailing out";
-} 
-
-# figure out our directory
-sub gethome {
-    @Pwd = getpwuid($<);
-    $Home = $ENV{HOME} || $ENV{LOGDIR} || $Pwd[7]
-       or die "no home directory for user $<";
-}
-
-# "There can be only one."  --the Highlander
-sub justme {
-    if (open SEMA) {
-        my $pid;
-        chop($pid = <SEMA>);
-        kill(0, $pid) and die "$0 already running (pid $pid), bailing out";
-        close SEMA;
-    } 
-
-} 
+# ^^INCLUDE^^ include/perl/ch16/sigrand
 #-----------------------------
 
 # ^^PLEAC^^_17.0
@@ -12077,234 +10601,12 @@ while ($hisaddr = accept(CLIENT, SERVER)) {
 
 # ^^PLEAC^^_17.12
 #-----------------------------
-#!/usr/bin/perl
-# preforker - server who forks first
-use IO::Socket;
-use Symbol;
-use POSIX;
-
-# establish SERVER socket, bind and listen.
-$server = IO::Socket::INET->new(LocalPort => 6969,
-                                Type      => SOCK_STREAM,
-                                Proto     => 'tcp',
-                                Reuse     => 1,
-                                Listen    => 10 )
-  or die "making socket: $@\n";
-
-# global variables
-$PREFORK                = 5;        # number of children to maintain
-$MAX_CLIENTS_PER_CHILD  = 5;        # number of clients each child should process
-%children               = ();       # keys are current child process IDs
-$children               = 0;        # current number of children
-
-sub REAPER {                        # takes care of dead children
-    $SIG{CHLD} = \&REAPER;
-    my $pid = wait;
-    $children --;
-    delete $children{$pid};
-}
-
-sub HUNTSMAN {                      # signal handler for SIGINT
-    local($SIG{CHLD}) = 'IGNORE';   # we're going to kill our children
-    kill 'INT' => keys %children;
-    exit;                           # clean up with dignity
-}
-    
-# Fork off our children.
-for (1 .. $PREFORK) {
-    make_new_child();
-}
-
-# Install signal handlers.
-$SIG{CHLD} = \&REAPER;
-$SIG{INT}  = \&HUNTSMAN;
-
-# And maintain the population.
-while (1) {
-    sleep;                          # wait for a signal (i.e., child's death)
-    for ($i = $children; $i < $PREFORK; $i++) {
-        make_new_child();           # top up the child pool
-    }
-}
-
-sub make_new_child {
-    my $pid;
-    my $sigset;
-    
-    # block signal for fork
-    $sigset = POSIX::SigSet->new(SIGINT);
-    sigprocmask(SIG_BLOCK, $sigset)
-        or die "Can't block SIGINT for fork: $!\n";
-    
-    die "fork: $!" unless defined ($pid = fork);
-    
-    if ($pid) {
-        # Parent records the child's birth and returns.
-        sigprocmask(SIG_UNBLOCK, $sigset)
-            or die "Can't unblock SIGINT for fork: $!\n";
-        $children{$pid} = 1;
-        $children++;
-        return;
-    } else {
-        # Child can *not* return from this subroutine.
-        $SIG{INT} = 'DEFAULT';      # make SIGINT kill us as it did before
-    
-        # unblock signals
-        sigprocmask(SIG_UNBLOCK, $sigset)
-            or die "Can't unblock SIGINT for fork: $!\n";
-    
-        # handle connections until we've reached $MAX_CLIENTS_PER_CHILD
-        for ($i=0; $i < $MAX_CLIENTS_PER_CHILD; $i++) {
-            $client = $server->accept()     or last;
-            # do something with the connection
-        }
-    
-        # tidy up gracefully and finish
-    
-        # this exit is VERY important, otherwise the child will become
-        # a producer of more and more children, forking yourself into
-        # process death.
-        exit;
-    }
-}
+# ^^INCLUDE^^ include/perl/ch17/preforker
 #-----------------------------
 
 # ^^PLEAC^^_17.13
 #-----------------------------
-#!/usr/bin/perl -w
-# nonforker - server who multiplexes without forking
-use POSIX;
-use IO::Socket;
-use IO::Select;
-use Socket;
-use Fcntl;
-use Tie::RefHash;
-
-$port = 1685;               # change this at will
-
-# Listen to port.
-$server = IO::Socket::INET->new(LocalPort => $port,
-                                Listen    => 10 )
-  or die "Can't make server socket: $@\n";
-
-# begin with empty buffers
-%inbuffer  = ();
-%outbuffer = ();
-%ready     = ();
-
-tie %ready, 'Tie::RefHash';
-
-nonblock($server);
-$select = IO::Select->new($server);
-
-# Main loop: check reads/accepts, check writes, check ready to process
-while (1) {
-    my $client;
-    my $rv;
-    my $data;
-
-    # check for new information on the connections we have
-
-    # anything to read or accept?
-    foreach $client ($select->can_read(1)) {
-
-        if ($client == $server) {
-            # accept a new connection
-
-            $client = $server->accept();
-            $select->add($client);
-            nonblock($client);
-        } else {
-            # read data
-            $data = '';
-            $rv   = $client->recv($data, POSIX::BUFSIZ, 0);
-
-            unless (defined($rv) && length $data) {
-                # This would be the end of file, so close the client
-                delete $inbuffer{$client};
-                delete $outbuffer{$client};
-                delete $ready{$client};
-
-                $select->remove($client);
-                close $client;
-                next;
-            }
-
-            $inbuffer{$client} .= $data;
-
-            # test whether the data in the buffer or the data we
-            # just read means there is a complete request waiting
-            # to be fulfilled.  If there is, set $ready{$client}
-            # to the requests waiting to be fulfilled.
-            while ($inbuffer{$client} =~ s/(.*\n)//) {
-                push( @{$ready{$client}}, $1 );
-            }
-        }
-    }
-
-    # Any complete requests to process?
-    foreach $client (keys %ready) {
-        handle($client);
-    }
-
-    # Buffers to flush?
-    foreach $client ($select->can_write(1)) {
-        # Skip this client if we have nothing to say
-        next unless exists $outbuffer{$client};
-
-        $rv = $client->send($outbuffer{$client}, 0);
-        unless (defined $rv) {
-            # Whine, but move on.
-            warn "I was told I could write, but I can't.\n";
-            next;
-        }
-        if ($rv == length $outbuffer{$client} ||
-            $! == POSIX::EWOULDBLOCK) {
-            substr($outbuffer{$client}, 0, $rv) = '';
-            delete $outbuffer{$client} unless length $outbuffer{$client};
-        } else {
-            # Couldn't write all the data, and it wasn't because
-            # it would have blocked.  Shutdown and move on.
-            delete $inbuffer{$client};
-            delete $outbuffer{$client};
-            delete $ready{$client};
-
-            $select->remove($client);
-            close($client);
-            next;
-        }
-    }
-
-    # Out of band data?
-    foreach $client ($select->has_exception(0)) {  # arg is timeout
-        # Deal with out-of-band data here, if you want to.
-    }
-}
-
-# handle($socket) deals with all pending requests for $client
-sub handle {
-    # requests are in $ready{$client}
-    # send output to $outbuffer{$client}
-    my $client = shift;
-    my $request;
-
-    foreach $request (@{$ready{$client}}) {
-        # $request is the text of the request
-        # put text of reply into $outbuffer{$client}
-    }
-    delete $ready{$client};
-}
-
-# nonblock($socket) puts socket into nonblocking mode
-sub nonblock {
-    my $socket = shift;
-    my $flags;
-    
-    $flags = fcntl($socket, F_GETFL, 0)
-            or die "Can't get flags for socket: $!\n";
-    fcntl($socket, F_SETFL, $flags | O_NONBLOCK)
-            or die "Can't make socket nonblocking: $!\n";
-}
+# ^^INCLUDE^^ include/perl/ch17/nonforker
 #-----------------------------
 while ($inbuffer{$client} =~ s/(.*\n)//) {
     push( @{$ready{$client}}, $1 );
@@ -12410,33 +10712,7 @@ May 25 15:50:22 coprolith sniffer: Connection from 207.46.131.141 to
 #-----------------------------
 echo    stream  tcp nowait  nobody /usr/scripts/snfsqrd sniffer
 #-----------------------------
-#!/usr/bin/perl -w
-# backsniff - log attempts to connect to particular ports
-
-use 
-Sys::Syslog;
-use Socket;
-
-# identify my port and address
-$sockname          = getsockname(STDIN)
-                     or die "Couldn't identify myself: $!\n";
-($port, $iaddr)    = sockaddr_in($sockname);
-$my_address        = inet_ntoa($iaddr);
-
-# get a name for the service
-$service = (getservbyport ($port, "tcp"))[0] || $port;
-# now identify remote address
-$sockname          = getpeername(STDIN)
-                         or die "Couldn't identify other end: $!\n";
-($port, $iaddr)    = sockaddr_in($sockname);
-$ex_address        = inet_ntoa($iaddr);
-
-# and log the information
-openlog("sniffer", "ndelay", "daemon");
-syslog("notice", "Connection from %s to %s:%s\n", $ex_address,
-        $my_address, $service); 
-closelog();
-exit;
+# ^^INCLUDE^^ include/perl/ch17/backsniff
 #-----------------------------
 
 # ^^PLEAC^^_17.18
@@ -12445,173 +10721,7 @@ exit;
 #-----------------------------
 #% fwdport -l myname:9191 -r news.bigorg.com:nntp
 #-----------------------------
-#!/usr/bin/perl -w
-# fwdport -- act as proxy forwarder for dedicated services
-
-use strict;                 # require declarations
-use Getopt::Long;           # for option processing
-use Net::hostent;           # by-name interface for host info
-use IO::Socket;             # for creating server and client sockets
-use POSIX ":sys_wait_h";    # for reaping our dead children
-
-my (
-    %Children,              # hash of outstanding child processes
-    $REMOTE,                # whom we connect to on the outside
-    $LOCAL,                 # where we listen to on the inside
-    $SERVICE,               # our service name or port number
-    $proxy_server,          # the socket we accept() from
-    $ME,                    # basename of this program
-);
-
-($ME = $0) =~ s,.*/,,;      # retain just basename of script name
-
-check_args();               # processing switches
-start_proxy();              # launch our own server
-service_clients();          # wait for incoming
-die "NOT REACHED";          # you can't get here from there
-
-# process command line switches using the extended
-# version of the getopts library.
-sub check_args { 
-    GetOptions(
-        "remote=s"    => \$REMOTE,
-        "local=s"     => \$LOCAL,
-        "service=s"   => \$SERVICE,
-    ) or die <<EOUSAGE;
-    usage: $0 [ --remote host ] [ --local interface ] [ --service service ]   
-EOUSAGE
-    die "Need remote"                   unless $REMOTE;
-    die "Need local or service"         unless $LOCAL || $SERVICE;
-}
-
-# begin our server 
-sub start_proxy {
-    my @proxy_server_config = (
-      Proto     => 'tcp',
-      Reuse     => 1,
-      Listen    => SOMAXCONN,
-    );
-    push @proxy_server_config, LocalPort => $SERVICE if $SERVICE;
-    push @proxy_server_config, LocalAddr => $LOCAL   if $LOCAL;
-    $proxy_server = IO::Socket::INET->new(@proxy_server_config)
-                    or die "can't create proxy server: $@";
-    print "[Proxy server on ", ($LOCAL || $SERVICE), " initialized.]\n";
-}
-
-
-sub service_clients { 
-    my (
-        $local_client,              # someone internal wanting out
-        $lc_info,                   # local client's name/port information
-        $remote_server,             # the socket for escaping out
-        @rs_config,                 # temp array for remote socket options
-        $rs_info,                   # remote server's name/port information
-        $kidpid,                    # spawned child for each connection
-    );
-
-    $SIG{CHLD} = \&REAPER;          # harvest the moribund
-
-    accepting();
-
-    # an accepted connection here means someone inside wants out
-    while ($local_client = $proxy_server->accept()) {
-        $lc_info = peerinfo($local_client);
-        set_state("servicing local $lc_info");
-        printf "[Connect from $lc_info]\n";
-
-        @rs_config = (
-            Proto     => 'tcp',
-            PeerAddr  => $REMOTE,
-        );
-        push(@rs_config, PeerPort => $SERVICE) if $SERVICE;
-
-        print "[Connecting to $REMOTE...";
-        set_state("connecting to $REMOTE");                 # see below
-        $remote_server = IO::Socket::INET->new(@rs_config)
-                         or die "remote server: $@";
-        print "done]\n";
-
-        $rs_info = peerinfo($remote_server);
-        set_state("connected to $rs_info");
-
-        $kidpid = fork();
-        die "Cannot fork" unless defined $kidpid;
-        if ($kidpid) {
-            $Children{$kidpid} = time();            # remember his start time
-            close $remote_server;                   # no use to master
-            close $local_client;                    # likewise
-            next;                                   # go get another client
-        } 
-
-        # at this point, we are the forked child process dedicated
-        # to the incoming client.  but we want a twin to make i/o
-        # easier.
-
-        close $proxy_server;                        # no use to slave
-
-        $kidpid = fork(); 
-        die "Cannot fork" unless defined $kidpid;
-
-        # now each twin sits around and ferries lines of data.
-        # see how simple the algorithm is when you can have
-        # multiple threads of control?
-
-        # this is the fork's parent, the master's child
-        if ($kidpid) {              
-            set_state("$rs_info --> $lc_info");
-            select($local_client); $| = 1;
-            print while <$remote_server>;
-            kill('TERM', $kidpid);      # kill my twin cause we're done
-            } 
-        # this is the fork's child, the master's grandchild
-        else {                      
-            set_state("$rs_info <-- $lc_info");
-            select($remote_server); $| = 1;
-            print while <$local_client>;
-            kill('TERM', getppid());    # kill my twin cause we're done
-        } 
-        exit;                           # whoever's still alive bites it
-    } continue {
-        accepting();
-    } 
-}
-
-# helper function to produce a nice string in the form HOST:PORT
-sub peerinfo {
-    my $sock = shift;
-    my $hostinfo = gethostbyaddr($sock->peeraddr);
-    return sprintf("%s:%s", 
-                    $hostinfo->name || $sock->peerhost, 
-                    $sock->peerport);
-} 
-
-# reset our $0, which on some systems make "ps" report
-# something interesting: the string we set $0 to!
-sub set_state { $0 = "$ME [@_]" } 
-
-# helper function to call set_state
-sub accepting {
-    set_state("accepting proxy for " . ($REMOTE || $SERVICE));
-}
-
-# somebody just died.  keep harvesting the dead until 
-# we run out of them.  check how long they ran.
-sub REAPER { 
-    my $child;
-    my $start;
-    while (($child = waitpid(-1,WNOHANG)) > 0) {
-        if ($start = $Children{$child}) {
-            my $runtime = time() - $start;
-            printf "Child $child ran %dm%ss\n", 
-                $runtime / 60, $runtime % 60;
-            delete $Children{$child};
-        } else {
-            print "Bizarre kid $child exited $?\n";
-        } 
-    }
-    # If I had to choose between System V and 4.2, I'd resign. --Peter Honeyman
-    $SIG{CHLD} = \&REAPER; 
-};
+# ^^INCLUDE^^ include/perl/ch17/fwdport
 #-----------------------------
 
 # ^^PLEAC^^_18.1
@@ -12650,21 +10760,7 @@ $name    = gethostbyaddr(inet_aton($address), AF_INET)
                 or die "Can't look up $name : $!\n";
 $found   = grep { $address eq inet_ntoa($_) } @addr[4..$#addr];
 #-----------------------------
- #!/usr/bin/perl
- # mxhost - find mx exchangers for a host
- use Net::DNS;
-
- $host = shift;
- $res = Net::DNS::Resolver->
-new
-()
-;
- @mx = mx($res, $host)
-    or die "Can't find MX records for $host (".$res->errorstring.")\n";
-
- foreach $record (@mx) {
-     print $record->preference, " ", $record->exchange, "\n";
- }
+# ^^INCLUDE^^ include/perl/ch18/mxhost
 #-----------------------------
 #% mxhost cnn.com
 #10 mail.turner.com
@@ -13064,71 +11160,7 @@ if ($contact_hash) {
 #
 #550 gnat... User unknown
 #-----------------------------
-#!/usr/bin/perl -w
-# expn -- convince smtp to divulge an alias expansion
-use strict;
-use IO::Socket;
-use Sys::Hostname;
-
-my $fetch_mx = 0;
-# try loading the module, but don't blow up if missing
-eval {    
-    require Net::DNS;
-    Net::DNS->import(
-'
-mx');
-    $fetch_mx = 1;
-};
-
-my $selfname = hostname();
-die "usage: $0 address\@host ...\n" unless @ARGV;
-
-# Find out whether called as "vrfy" or "expn".
-my $VERB = ($0 =~ /ve?ri?fy$/i)  ? 'VRFY' : 'EXPN';
-my $multi = @ARGV > 1;
-my $remote;
-
-# Iterate over addresses give on command line.
-foreach my $combo (@ARGV) {
-    my ($name, $host) = split(/\@/, $combo);
-    my @hosts;
-    $host ||= 'localhost';
-    @hosts = map { $_->exchange } mx($host)     if $fetch_mx;
-    @hosts = ($host)   unless @hosts;
-
-    foreach my $host (@hosts) { 
-        print $VERB eq 'VRFY' ? "Verify" : "Expand", 
-            "ing $name at $host ($combo):";
-
-        $remote = IO::Socket::INET->new(
-               Proto    => "tcp",
-               PeerAddr => $host,
-               PeerPort => "smtp(25)",
-           ); 
-
-        unless ($remote) { 
-            warn "cannot connect to $host\n";
-            next;
-        }
-        print "\n";
-
-        $remote->autoflush(1);
-
-        # use CRLF network line terminators
-        print $remote "HELO $selfname\015\012";
-        print $remote "$VERB $name\015\012";
-        print $remote "quit\015\012";
-        while (<$remote>) {
-            /^220\b/ && next;
-            /^221\b/ && last;
-            s/250\b[\-\s]+//;
-            print;
-        } 
-        close($remote) or die "can't close socket: $!";
-        print "\n"; #  if @ARGV;
-    }
-
-} 
+# ^^INCLUDE^^ include/perl/ch18/expn
 #-----------------------------
 
 # ^^PLEAC^^_19.0
@@ -13356,51 +11388,7 @@ print table
         Tr(th [qw(State Cities)]),
         map { Tr(th($_), td( [ sort @{$hash{$_}} ] )) } sort keys %hash;
 #-----------------------------
-#!/usr/bin/perl
-# salcheck - check for salaries
-use DBI;
-use CGI qw(:standard :html3);
-
-$limit = param("LIMIT");
-
-print header(), start_html("Salary Query"),
-      h1("Search"),
-      
-start_form()
-,
-      p("Enter minimum salary", textfield("LIMIT")),
-      
-submit(),
-
-      end_form();
-
-
-if (defined $limit) {
-    $dbh = 
-DBI->connect("dbi:mysql:somedb:server.host.dom:3306", 
-        "username", "password") 
-        or die "Connecting: $DBI::errstr";
-    $sth = $dbh->prepare("SELECT name,salary FROM employees 
-        WHERE salary > $limit")
-        or die "Preparing: ", $dbh->errstr;
-    $sth->execute
-        or die "Executing: ", $sth->errstr;
-
-    print h1("Results"), "<TABLE BORDER=1>";
-
-    while (@row = $sth->
-fetchrow_array())
- {
-           print Tr( td( \@row ) );
-    }
-
-    print "</TABLE>\n";
-    $sth->finish;
-    $dbh->disconnect;
-}
-
-print 
-end_html();
+# ^^INCLUDE^^ include/perl/ch19/salcheck
 #-----------------------------
 
 # ^^PLEAC^^_19.8
@@ -13446,32 +11434,7 @@ EOCAT
 
 # ^^PLEAC^^_19.9
 #-----------------------------
-#!/usr/bin/perl -w
-# dummyhttpd - start an HTTP daemon and print what the client sends
-
-use strict;
-use HTTP::Daemon;  # need LWP-5.32 or better
-
-my $server = HTTP::Daemon->new(Timeout => 60, LocalPort => 8989);
-print "Please contact me at: <URL:", $server->url, ">\n";
-
-while (my $client = $server->accept) {
-  CONNECTION:
-    while (my $answer = $client->get_request) {
-        print $answer->as_string;
-        $client->autoflush;
-      RESPONSE:
-        while (<STDIN>) {
-            last RESPONSE   if $_ eq ".\n";
-            last CONNECTION if $_ eq "..\n";
-            print $client $_;
-        }
-        print "\nEOF\n";
-    }
-    print "CLOSE: ", $client->reason, "\n";
-    $client->close;
-    undef $client;
-}
+# ^^INCLUDE^^ include/perl/ch19/dummyhttpd
 #-----------------------------
 #http://somewhere.com/cgi-bin/whatever
 #-----------------------------
@@ -13676,236 +11639,7 @@ print "Total orders: $count\n";
 
 # ^^PLEAC^^_19.14
 #-----------------------------
-#!/usr/bin/perl -w
-# chemiserie - simple CGI shopping for shirts and sweaters
-
-use strict;
-use CGI qw(:standard);
-use CGI::Carp qw(fatalsToBrowser);
-
-my %States;             # state table mapping pages to functions
-my $Current_Screen;     # the current screen
-
-# Hash of pages and functions.
-
-%States = (
-    'Default'     => \&front_page,
-    'Shirt'       => \&shirt,
-    'Sweater'     => \&sweater,
-    'Checkout'    => \&checkout,
-    'Card'        => \&credit_card,
-    'Order'       => \&order,
-    'Cancel'      => \&front_page,
-);
-
-$Current_Screen = param(".State") || "Default";
-die "No screen for $Current_Screen" unless $States{$Current_Screen};
-
-# Generate the current page.
-
-standard_header();
-
-while (my($screen_name, $function) = each %States) {
-    $function->($screen_name eq $Current_Screen);
-}
-standard_footer();
-exit;
-
-
-################################
-# header, footer, menu functions
-################################
-
-sub standard_header {
-    print header(), start_html(-Title => "Shirts", -BGCOLOR=>"White");
-    print start_form(); # start_multipart_form() if file upload
-}
-
-sub standard_footer { print end_form(), end_html() }
-
-sub shop_menu {
-    print p(defaults("Empty My Shopping Cart"),
-        to_page("Shirt"),
-        to_page("Sweater"),
-        to_page("Checkout"));
-}
-
-#############################
-# subroutines for each screen
-#############################
-
-# The default page.
-sub front_page {
-    my $active = shift;
-    return unless $active;
-
-    print "<H1>Hi!</H1>\n";
-    print "Welcome to our Shirt Shop!  Please make your selection from ";
-    print "the menu below.\n";
-
-    shop_menu();
-}
-
-# Page to order a shirt from.
-sub shirt {
-    my $active = shift;
-    my @sizes  = qw(XL L M S);
-    my @colors = qw(Black White);
-
-    my ($size, $color, $count) =
-      (param("shirt_size"), param("shirt_color"), param("shirt_count"));
-
-    # sanity check
-    if ($count) {
-        $color = $colors[0] unless grep { $_ eq $color } @colors;
-        $size  = $sizes[0]  unless grep { $_ eq $size  } @sizes;
-        param("shirt_color", $color);
-        param("shirt_size",  $size);
-    }
-
-    unless ($active) {
-        print hidden("shirt_size")  if $size;
-        print hidden("shirt_color") if $color;
-        print hidden("shirt_count") if $count;
-        return;
-    }
-
-    print h1("T-Shirt");
-    print p("What a shirt!  This baby is decked out with all the options.",
-        "It comes with full luxury interior, cotton trim, and a collar",
-        "to make your eyes water!  Unit price: \$33.00");
-
-    print h2("Options");
-    print p("How Many?", textfield("shirt_count"));
-    print p("Size?",  popup_menu("shirt_size",  \@sizes ),
-        "Color?", popup_menu("shirt_color", \@colors));
-
-    shop_menu();
-}
-
-# Page to order a sweater from.
-sub sweater {
-    my $active = shift;
-    my @sizes  = qw(XL L M);
-    my @colors = qw(Chartreuse Puce Lavender);
-
-    my ($size, $color, $count) =
-      (param("sweater_size"), param("sweater_color"), param("sweater_count"));
-
-    # sanity check
-    if ($count) {
-        $color = $colors[0] unless grep { $_ eq $color } @colors;
-        $size  = $sizes[0]  unless grep { $_ eq $size  } @sizes;
-        param("sweater_color", $color);
-        param("sweater_size",  $size);
-    }
-
-    unless ($active) {
-        print hidden("sweater_size")  if $size;
-        print hidden("sweater_color") if $color;
-        print hidden("sweater_count") if $count;
-        return;
-    }
-
-    print h1("Sweater");
-    print p("Nothing implies preppy elegance more than this fine",
-        "sweater.  Made by peasant workers from black market silk,",
-        "it slides onto your lean form and cries out ``Take me,",
-        "for I am a god!''.  Unit price: \$49.99.");
-
-    print h2("Options");
-    print p("How Many?", textfield("sweater_count"));
-    print p("Size?",  popup_menu("sweater_size",  \@sizes));
-    print p("Color?", popup_menu("sweater_color", \@colors));
-
-    shop_menu();
-}
-
-# Page to display current order for confirmation.
-sub checkout {
-    my $active = shift;
-
-    return unless $active;
-
-    print h1("Order Confirmation");
-    print p("You ordered the following:");
-    print order_text();
-    print p("Is this right?  Select 'Card' to pay for the items",
-        "or 'Shirt' or 'Sweater' to continue shopping.");
-    print p(to_page("Card"),
-        to_page("Shirt"), 
-        to_page("Sweater"));
-}
-
-# Page to gather credit-card information.
-sub credit_card {
-    my $active = shift;
-    my @widgets = qw(Name Address1 Address2 City Zip State Phone Card Expiry);
-
-    unless ($active) {
-        print map { hidden($_) } @widgets;
-        return;
-    }
-
-    print pre(p("Name:          ", textfield("Name")),
-      p("Address:       ", textfield("Address1")),
-      p("               ", textfield("Address2")),
-      p("City:          ", textfield("City")),
-      p("Zip:           ", textfield("Zip")),
-      p("State:         ", textfield("State")),
-      p("Phone:         ", textfield("Phone")),
-      p("Credit Card #: ", textfield("Card")),
-      p("Expiry:        ", textfield("Expiry")));
-
-    print p("Click on 'Order' to order the items.  Click on 'Cancel' to return shopping.");
-
-    print p(to_page("Order"), to_page("Cancel"));
-}
-
-# Page to complete an order.
-sub order {
-    my $active = shift;
-
-    unless ($active) {
-        return;
-    }
-
-    # you'd check credit card values here
-
-    print h1("Ordered!");
-    print p("You have ordered the following toppings:");
-    print order_text();
-
-    print p(defaults("Begin Again"));
-}
-
-# Returns HTML for the current order ("You have ordered ...")
-sub order_text {
-    my $html = '';
-
-    if (param("shirt_count")) {
-        $html .= p("You have ordered ", param("shirt_count"),
-           " shirts of size ",  param("shirt_size"),
-           " and color ", param("shirt_color"), ".");
-    }
-    if (param("sweater_count")) {
-        $html .= p("You have ordered ",  param("sweater_count"),
-           " sweaters of size ", param("sweater_size"),
-           " and color ", param("sweater_color"), ".");
-    }
-    $html = p("Nothing!") unless $html;
-    $html .= p("For a total cost of ", calculate_price());
-    return $html;
-}
-
-
-sub calculate_price {
-    my $shirts   = param("shirt_count")   || 0;
-    my $sweaters = param("sweater_count") || 0;
-    return sprintf("\$%.2f", $shirts*33 + $sweaters * 49.99);
-}
-
-sub to_page { submit(-NAME => ".State", -VALUE => shift) }
+# ^^INCLUDE^^ include/perl/ch19/chemiserie
 #-----------------------------
 
 # ^^PLEAC^^_20.0
@@ -13923,31 +11657,7 @@ unless (defined ($content = get $URL)) {
     die "could not get $URL\n";
 }
 #-----------------------------
-#!/usr/bin/perl -w 
-# titlebytes - find the title and size of documents 
-use LWP::UserAgent; 
-use HTTP::Request; 
-use HTTP::Response; 
-use URI::Heuristic;
-my $raw_url = shift                      or die "usage: $0 url\n"; 
-my $url = URI::Heuristic::uf_urlstr($raw_url);
-$| = 1;                                  # to flush next line 
-printf "%s =>\n\t", $url;
-my $ua = LWP::UserAgent->new(); 
-$ua->agent("Schmozilla/v9.14 Platinum"); # give it time, it'll get there
-my $req = HTTP::Request->new(GET => $url); 
-$req->referer("http://wizard.yellowbrick.oz");
-                                         # perplex the log analysers
-my $response = $ua->request($req);
-if ($response->is_error()) {
-     printf " %s\n", $response->status_line;
- } else {
-     my $count;
-     my $bytes;
-     my $content = $response->content();
-     $bytes = length $content;
-     $count = ($content =~ tr/\n/\n/);
-     printf "%s (%d lines, %d bytes)\n", $response->title(), $count, $bytes; } 
+# ^^INCLUDE^^ include/perl/ch20/titlebytes
 #-----------------------------
 #% titlebytes http://www.tpj.com/
 #http://www.tpj.com/ =>
@@ -14154,31 +11864,7 @@ MyParser->new->parse_file(*F);
 
 # ^^PLEAC^^_20.8
 #-----------------------------
-#!/usr/bin/perl -w
-# surl - sort URLs by their last modification date
-
-use LWP::UserAgent;
-use HTTP::Request;
-use URI::URL qw(url);
-
-my($url, %Date);
-my $ua = LWP::UserAgent->new();
-
-while ( $url = url(scalar <>) ) {
-    my $ans;
-    next unless $url->scheme =~ /^(file|https?)$/;
-    $ans = $ua->request(HTTP::Request->new("HEAD", $url));
-    if ($ans->is_success) {
-        $Date{$url} = $ans->last_modified || 0;  # unknown
-    } else {
-        print STDERR "$url: Error [", $ans->code, "] ", $ans->message, "!\n";
-    }
-}
-
-foreach $url ( sort { $Date{$b} <=> $Date{$a} } keys %Date ) {
-    printf "%-25s %s\n", $Date{$url} ? (scalar localtime $Date{$url})
-                                     : "<NONE SPECIFIED>", $url;
-}
+# ^^INCLUDE^^ include/perl/ch20/surl
 #-----------------------------
 #% xurl http://www.perl.com/  | surl | head
 #Mon Apr 20 06:16:02 1998  http://electriclichen.com/linux/srom.html
@@ -14240,76 +11926,13 @@ sub template {
 
 print template("/home/httpd/templates/simple.template", \%fields);
 #-----------------------------
-#!/usr/bin/perl -w
-# userrep1 - report duration of user logins using SQL database
-
-use DBI;
-use CGI qw(:standard);
-
-# template() defined as in the Solution section above
-
-$user = param("username")                   or die "No username";
-
-$dbh = DBI->connect("dbi:mysql:connections:mysql.domain.com",
-    "connections", "seekritpassword")       or die "Couldn't connect\n";
-$sth = $dbh->prepare(<<"END_OF_SELECT")     or die "Couldn't prepare SQL";
-    SELECT COUNT(duration),SUM(duration) 
-    FROM logins WHERE username='$user'
-END_OF_SELECT
-
-# this time the duration is assumed to be in seconds
-if (@row = $sth->fetchrow_array()) {
-    ($count, $seconds) = @row;
-} else {
-    ($count, $seconds) = (0,0);
-} 
-
-$sth->finish();
-$dbh->disconnect;
-
-print header();
-print template("report.tpl", {   
-    'username' => $user,
-    'count'    => $count,
-    'total'    => $seconds 
-});
+# ^^INCLUDE^^ include/perl/ch20/userrep
 #-----------------------------
 You owe: {$total}
 #-----------------------------
 The average was {$count ?  ($total/$count) : 0}.
 #-----------------------------
-#!/usr/bin/perl -w
-# userrep2 - report duration of user logins using SQL database
-
-use Text::Template;
-use DBI;
-use CGI qw(:standard);
-
-$tmpl = "/home/httpd/templates/fancy.template";
-$template = Text::Template->new(-type => "file", -source => $tmpl);
-$user = param("username")                   or die "No username";
-
-$dbh = 
-DBI->connect("dbi:mysql:connections:mysql.domain.com",
-    "connections", "secret passwd")         or die "Couldn't db connect\n";
-$sth = $dbh->prepare(<<"END_OF_SELECT")     or die "Couldn't prepare SQL";
-    SELECT COUNT(duration),SUM(duration) 
-    FROM logins WHERE username='$user'
-END_OF_SELECT
-
-$sth->execute()                             or die "Couldn't execute SQL";
-
-if (@row = $sth->fetchrow_array()) {
-    ($count, $total) = @row;
-} else {
-    $count = $total = 0;
-}
-
-$sth->finish();
-$dbh->disconnect;
-
-print header();
-print $template->fill_in();
+# ^^INCLUDE^^ include/perl/ch20/userrep2
 #-----------------------------
 
 # ^^PLEAC^^_20.10
@@ -14376,77 +11999,7 @@ while (<LOGFILE>) {
 
 # ^^PLEAC^^_20.13
 #-----------------------------
-#!/usr/bin/perl -w
-# sumwww - summarize web server log activity
-
-$lastdate = "";
-daily_logs();
-summary();
-exit;
-
-# read CLF files and tally hits from the host and to the URL
-sub daily_logs {
-    while (<>) {
-        ($type, $what) = /"(GET|POST)\s+(\S+?) \S+"/ or next;
-        ($host, undef, undef, $datetime) = split;
-        ($bytes) = /\s(\d+)\s*$/ or next;
-        ($date)  = ($datetime =~ /\[([^:]*)/);
-        $posts  += ($type eq POST);
-        $home++ if m, / ,;
-        if ($date ne $lastdate) {
-            if ($lastdate) { write_report()     }
-            else           { $lastdate = $date  }
-        }
-        $count++;
-        $hosts{$host}++;
-        $what{$what}++;
-        $bytesum += $bytes;
-    }
-    write_report() if $count;
-}
-
-# use *typeglob aliasing of global variables for cheap copy
-sub summary  {
-    $lastdate = "Grand Total";
-    *count   = *sumcount;
-    *bytesum = *bytesumsum;
-    *hosts   = *allhosts;
-    *posts   = *allposts;
-    *what    = *allwhat;
-    *home    = *allhome;
-    write;
-}
-
-# display the tallies of hosts and URLs, using formats
-sub write_report {
-    write;
-
-    # add to summary data
-    $lastdate    = $date;
-    $sumcount   += $count;
-    $bytesumsum += $bytesum;
-    $allposts   += $posts;
-    $allhome    += $home;
-
-    # reset daily data
-    $posts = $count = $bytesum = $home = 0;
-    @allwhat{keys %what}   = keys %what;
-    @allhosts{keys %hosts} = keys %hosts;
-    %hosts = %what = ();
-}
-
-format STDOUT_TOP =
-@|||||||||| @|||||| @||||||| @||||||| @|||||| @|||||| @|||||||||||||
-"Date",     "Hosts", "Accesses", "Unidocs", "POST", "Home", "Bytes"
------------ ------- -------- -------- ------- ------- --------------
-.
-
-format STDOUT =
-@>>>>>>>>>> @>>>>>> @>>>>>>> @>>>>>>> @>>>>>> @>>>>>> @>>>>>>>>>>>>>
-$lastdate,  scalar(keys %hosts),
-            $count, scalar(keys %what),
-                             $posts,  $home,  $bytesum  
-.
+# ^^INCLUDE^^ include/perl/ch20/sumwww
 #-----------------------------
 #     Date      Hosts  Accesses Unidocs   POST    Home       Bytes
 # 
@@ -14562,47 +12115,5 @@ $lastdate,  scalar(keys %hosts),
 #
 #</BODY></HTML>
 #-----------------------------
-#!/usr/bin/perl -w
-# hrefsub - make substitutions in <A HREF="..."> fields of HTML files
-# from Gisle Aas <gisle@aas.no>
-
-sub usage { die "Usage: $0 <from> <to> <file>...\n" }
-
-my $from = shift or usage;
-my $to   = shift or usage;
-usage unless @ARGV;
-
-# The HTML::Filter subclass to do the substitution.
-
-package MyFilter;
-require HTML::Filter;
-@ISA=qw(HTML::Filter);
-use HTML::Entities qw(encode_entities);
-
-sub start {
-   my($self, $tag, $attr, $attrseq, $orig) = @_;
-   if ($tag eq 'a' && exists $attr->{href}) {
-           if ($attr->{href} =~ s/\Q$from/$to/g) {
-               # must reconstruct the start tag based on $tag and $attr.
-               # wish we instead were told the extent of the 'href' value
-               # in $orig.
-               my $tmp = "<$tag";
-               for (@$attrseq) {
-                   my $encoded = encode_entities($attr->{$_});
-                   $tmp .= qq( $_="$encoded ");
-               }
-               $tmp .= ">";
-               $self->output($tmp);
-               return;
-           }
-   }
-   $self->output($orig);
-}
-
-# Now use the class.
-
-package main;
-foreach (@ARGV) {
-        MyFilter->new->parse_file($_);
-}
+# ^^INCLUDE^^ include/perl/ch20/hrefsub
 #-----------------------------
