@@ -1,10 +1,13 @@
 ;;; -*- scheme -*-
 
 ;;; @@PLEAC@@_NAME
-Guile
+;;; @@SKIP@@ Guile
 
 ;;; @@PLEAC@@_WEB
-http://www.gnu.org/software/guile/
+;;; @@SKIP@@ http://www.gnu.org/software/guile/
+
+;;; @@PLEAC@@_INTRO
+;;; @@SKIP@@ The code requires a really recent version of Guile (out of CVS, or the beta version which is tested right now).
 
 ;;; @@PLEAC@@_1.0
 (define string "\\n")                    ; two characters, \ and an n
@@ -12,7 +15,7 @@ http://www.gnu.org/software/guile/
 (define string "Jon \"Maddog\" Orwant")  ; literal double quotes
 (define string "Jon 'Maddog' Orwant")    ; literal single quotes
 
-(define a = "This is a multiline here document
+(define a "This is a multiline here document
 terminated by a closing double quote")
 
 ;;; @@PLEAC@@_1.1
@@ -90,7 +93,6 @@ terminated by a closing double quote")
 
 ;;; @@PLEAC@@_1.5
 ;; Convert the string to a list of characters
-
 (map proc
      (string->list str))
 
@@ -98,6 +100,10 @@ terminated by a closing double quote")
 (format #t "unique chars are: ~A\n"
         (apply string (sort (delete-duplicates
                              (string->list "an apple a day")) char<?)))
+
+(let* ((str "an apple a day")
+       (sum (apply + (map char->integer (string->list str)))))
+  (format #t "sum is ~A\n" sum))
 
 ;;; or use string-fold/string-map/string-for-each from SRFI-13
 (use-modules (srfi srfi-13))
@@ -107,18 +113,15 @@ terminated by a closing double quote")
                          0 str)))
   (format #t "sum is ~A\n" sum))
 
-;; or
-
-(let* ((str "an apple a day")
-       (sum (apply + (map char->integer (string->list str)))))
-  (format #t "sum is ~A\n" sum))
-
 ;;; @@PLEAC@@_1.6
 (define revbytes (list->string (reverse (string->list str))))
 
 ;;; Or from SRFI-13
+(use-modules (srfi srfi-13))
 (define revbytes (string-reverse str))
 (string-reverse! str) ; modifies in place
+
+(define revwords (string-join (reverse (string-tokenize str)) " "))
 
 (with-input-from-file "/usr/share/dict/words"
   (lambda ()
@@ -149,12 +152,17 @@ terminated by a closing double quote")
  'post)
 
 ;;; @@PLEAC@@_1.8
-(regexp-substitute/global
- #f "\\$(\\w+)" str
- 'pre
- (lambda (m)
-   (eval (string->symbol (match:substring m 1)) (current-module)))
- 'post)
+;; just interpolate $abc in strings:
+(define (varsubst str)
+  (regexp-substitute/global #f "\\$(\\w+)" str
+   'pre (lambda (m) (eval (string->symbol (match:substring m 1))
+                          (current-module)))
+   'post))
+
+;; interpolate ${(any (scheme expression))} in strings:
+(define (interpolate str)
+  (regexp-substitute/global #f "\\${([^{}]+)}" str
+   'pre (lambda (m) (eval-string (match:substring m 1))) 'post))
 
 ;;; @@PLEAC@@_1.9
 (use-modules (srfi srfi-13))
@@ -215,17 +223,13 @@ mobile electrons!")
 
 ;;; @@PLEAC@@_1.13
 (define str "Mom said, \"Don't do that.\"")
-(set! str (regexp-substitute/global #f "(['\"])" var 'pre "\\"
-                                    (lambda (x) (match:substring x 1))
-                                    'post))
-(set! str (regexp-substitute/global #f "([^A-Z])" var 'pre "\\"
-                                    (lambda (x) (match:substring x 1))
-                                    'post))
-(set! str (string-append "this "
-                         (regexp-substitute/global
-                          #f "(\W)" "is a test!" 'pre "\\"
-                          (lambda (x) (match:substring x 1))
-                          'post)))
+(set! str (regexp-substitute/global #f "['\"]" str 'pre "\\"
+                                    match:substring 'post))
+(set! str (regexp-substitute/global #f "[^A-Z]" str 'pre "\\"
+                                    match:substring 'post))
+(set! str (string-append "this " (regexp-substitute/global
+                                  #f "\W" "is a test!" 'pre "\\"
+                                  match:substring 'post)))
 
 ;;; @@PLEAC@@_1.14
 (use-modules (srfi srfi-13))
@@ -381,7 +385,6 @@ turnkey         => turn-key")
 ;; load time.  Basically, if you are doing anything you couldn't do
 ;; with a series of (display), (write) and (newline), then you'll need
 ;; to use the module.
-
 (use-modules (ice-9 format))
 
 (define a 0.255)
@@ -440,7 +443,7 @@ turnkey         => turn-key")
 (newline)
 
 ;; @@PLEAC@@_2.6
-;; format can output roman numerals - use ~:@r
+;; format can output roman numerals - use ~:@R
 
 (use-modules (ice-9 format))
 
@@ -448,7 +451,7 @@ turnkey         => turn-key")
 
 ;; @@PLEAC@@_2.7
 (random 5)        ; an integer from 0 to 4
-(random 5.0)      ; an ineaxct real in the range [0,5)
+(random 5.0)      ; an inexact real in the range [0,5)
 
 ;; char sets from SRFI-14 and string-unfold from SRFI-13 make a quick
 ;; way to generate passwords
@@ -485,7 +488,7 @@ turnkey         => turn-key")
 
 (random:exp)      ; an inexact real in an exponential dist with mean 1
 (random:normal)   ; an inexact real in a standard normal distribution
-(random:uniform)  ; a uniform dist inexact real random number in [0,1)
+(random:uniform)  ; a uniformly distributed inexact real in [0,1)
 
 ;; There are also functions to fill vectors with random distributions
 
@@ -515,7 +518,7 @@ turnkey         => turn-key")
 
 ;; @@PLEAC@@_2.12
 ;; Guile provides the following trigonometric functions, defined for
-;; arbitrary real and comlex numbers:
+;; arbitrary real and complex numbers:
 
 (sin z)
 (cos z)
@@ -552,9 +555,9 @@ turnkey         => turn-key")
   (let ((divisor (log n)))
     (lambda (z) (/ (log z) divisor))))
 
-(define log-2 (make-log-base 2))
+(define log2 (make-log-base 2))
 
-(log-2 1024)
+(log2 1024)
 
 ;; @@PLEAC@@_2.14
 ;; In addition to simple vectors, Guile has builtin support for
@@ -642,7 +645,6 @@ turnkey         => turn-key")
 
 ;; @@PLEAC@@_2.17
 ;; once again, format is our friend :)
-
 (use-modules (ice-9 format))
 
 ;; the : prefix to the D directive causes commas to be output every
@@ -943,11 +945,11 @@ turnkey         => turn-key")
          (if (string-match "blue" line)
            (display line))
          (loop (read-line input 'concat)))))
-(close-port input)
+(close input)
 
 ;; Many I/O functions default to the logical STDIN/OUT
 
-;; You can also explicity get the standard ports with
+;; You can also explicitly get the standard ports with
 ;; [set-]current-{input,output,error}-port.
 
 ;; format takes a port as the first argument.  If #t is given, format
@@ -962,16 +964,18 @@ turnkey         => turn-key")
            (format #t "Read: ~A\n" line))
          (loop (read-line)))))
 
-;;---------
+;; use open-output-file
 
 (define logfile (open-output-file "/tmp/log"))
 
-;;---------
+;; increasingly specific ways of closing ports (it's safe to close a
+;; closed port)
 
-(close-port logfile)
-(close-output-port logfile)
+(close logfile)                ; #t
+(close-port logfile)           ; #f (already closed)
+(close-output-port logfile)    ; unspecified
 
-;;---------
+;; you can rebind standard ports with set-current-<foo>-port:
 
 (let ((old-out (current-output-port)))
   (set-current-output-port logfile)
@@ -1056,14 +1060,20 @@ turnkey         => turn-key")
       )))
 
 ;; better to test and be sure you have exclusive access to the file
+;; (temp file name will be available as (port-filename port))
 (define (open-temp-file)
   (let loop ((name (tmpnam)))
     (catch 'system-error
       (lambda () (open name (logior O_RDWR O_CREAT O_EXCL)))
       (lambda (key . args) (loop (tmpnam))))))
 
-;; now go on to use the file ...
-(let ((port (open-temp-file)))
+;; or let mkstemp! do the work for you:
+(define port (mkstemp! template-string-ending-in-XXXXXX))
+
+(let* ((tmpl "/tmp/programXXXXXX")
+       (port (mkstemp! tmpl)))
+  ;; tmpl now contains the name of the temp file,
+  ;; e.g. "/tmp/programhVoEzw"
   (do ((i 0 (1+ i)))
       ((= i 10))
     (format port "~A\n" i))
@@ -1095,12 +1105,13 @@ your data goes here
     ))
 
 ;; @@PLEAC@@_7.7
-(do ((line (readline) (readline)))
+;; to process lines of current-input-port:
+(do ((line (read-line) (read-line)))
     ((eof-object? line))
   ;; ... do something with line
   )
 
-;;-----------------------------
+;; a general filter template:
 
 (define (body)
   (do ((line (read-line) (read-line)))
@@ -1124,7 +1135,7 @@ your data goes here
            (newline (current-error-port)))))
      args)))
 
-;;-----------------------------
+;; example: count-chunks:
 (use-modules (srfi srfi-1) (srfi srfi-13) (ice-9 format) (ice-9 regex))
 
 ;; define a simple glob command
@@ -1222,4 +1233,152 @@ your data goes here
                  (car (cdaddr args)))
          (newline (current-error-port)))))
    args))
+
+;; @@PLEAC@@_7.8
+;; write changes to a temporary file then rename it
+(with-input-from-file old
+  (lambda ()
+    (with-output-to-file new
+      (lambda ()
+        (do ((line (read-line) (read-line)))
+            ((eof-object? line))
+          ;; change line, then...
+          (write-line line))))))
+(rename-file old (string-append old ".orig"))
+(rename-file new old)
+
+;; @@PLEAC@@_7.9
+;; no -i switch
+
+;; @@PLEAC@@_7.10
+;; open the file in read/write mode, slurp up the contents, modify it,
+;; then write it back out:
+(let ((p (open-file file "r+"))
+      (lines '()))
+  ;; read in lines
+  (do ((line (read-line p) (read-line p)))
+      ((eof-object? line))
+    (set! lines (cons line lines)))
+  ;; modify (reverse lines)
+  (seek p 0 SEEK_SET)
+  ;; write out lines
+  (for-each (lambda (x) (write-line x p)) lines)
+  ;; truncate the file
+  (truncate-file p)
+  (close p))
+
+(let ((p (open-file "foo" "r+"))
+      (lines '())
+      (date (date->string (current-date))))
+  (do ((line (read-line p 'concat) (read-line p 'concat)))
+      ((eof-object? line))
+    (set! lines (cons line lines)))
+  (seek p 0 SEEK_SET)
+  (for-each
+   (lambda (x)
+     (regexp-substitute/global p "DATE" x 'pre date 'post))
+   (reverse lines))
+  (truncate-file p)
+  (close p))
+
+;; @@PLEAC@@_7.11
+(define p (open-file path "r+"))
+(flock p LOCK_EX)
+;; update the file, then...
+(close p)
+
+;; to increment a number in a file
+(define p (open "numfile" (logior O_RDWR O_CREAT)))
+(flock p LOCK_EX)
+;; Now we have acquired the lock, it's safe for I/O
+(let* ((obj (read p))
+       (num (if (eof-object? obj) 0 obj)))
+  (seek p 0 SEEK_SET)
+  (truncate-file p)
+  (write (1+ num) p)
+  (newline p))
+(close p)
+
+;; @@PLEAC@@_7.12
+;; use force-output
+(force-output p)
+
+;; flush all open ports
+(flush-all-ports)
+
+;; @@PLEAC@@_7.13
+;; use select
+(select inputs outputs exceptions seconds)
+(select (list p1 p2 p3) '() '())
+
+(let* ((nfound (select (list inport) '() '()))
+       (inputs (car nfound)))
+  (if (not (null? inputs))
+      (let ((line (read-line inport)))
+        (format #t "I read ~A\n" line))))
+
+;; or use char-ready? if you only need a single character
+(if (char-ready? p)
+  (format #t "I read ~A\n" (read-char p)))
+
+;; @@PLEAC@@_7.14
+;; use the O_NONBLOCK option with open
+(define modem (open "/dev/cua0" (logior O_RDWR O_NONBLOCK)))
+
+;; or use fcntl if you already have a port
+(let ((flags (fcntl p F_GETFD)))
+  (fcntl p F_SETFD (logior flags O_NONBLOCK)))
+
+;; @@PLEAC@@_7.15
+;; use stat
+(let ((buf (make-string (stat:size (stat p)))))
+  (read-string!/partial buf input))
+
+;; @@PLEAC@@_7.16
+;; not needed - ports are first class objects
+
+;; @@PLEAC@@_7.18
+;; use for-each on the list of ports:
+(for-each (lambda (p) (display stuff-to-print p)) port-list)
+
+;; or, if you don't want to keep track of the port list and know you
+;; want to print to all open output ports, you can use port-for-each:
+(port-for-each (lambda (p) (if (output-port? p) (display stuff p))))
+
+;; @@PLEAC@@_7.19
+;; use fdopen:
+(define p (fdopen num mode))
+(define p (fdopen 3 "r"))
+
+(define p (fdopen (string->number (getenv "MHCONTEXTFD")) "r"))
+;; after processing
+(close p)
+
+;; @@PLEAC@@_7.20
+;; ports are first class objects and can be aliased and passed around
+;; like any other non-immediate variables:
+(define alias original)
+(define old-in (current-input-port))
+
+;; or you can open two separate ports on the same file:
+(define p1 (open-input-file path))
+(define p2 (open-input-file path))
+
+;; or use fdopen:
+(define copy-of-p (fdopen (fileno p) mode))
+
+(define old-out (current-output-port))
+(define old-err (current-error-port))
+
+(define new-out (open-output-file "/tmp/program.out"))
+
+(set-current-output-port new-out)
+(set-current-error-port new-out)
+
+(system joe-random-program)
+
+(close new-out)
+
+(set-current-output-port old-out)
+(set-current-error-port old-out)
 
