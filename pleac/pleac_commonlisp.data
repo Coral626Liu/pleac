@@ -36,8 +36,94 @@ double quotation mark.
 
 ; @@PLEAC@@_1.1
 ; assign a substring to a variable
-(setq value (substring string offset (+ offset count)))
-(setq value (substring string offset))
+(setq value (subseq string offset (+ offset count)))
+(setq value (subseq string offset))
+
+; edit a substring
+(setq string (concatenate 'string (subseq string 0 offset) newstring
+(subseq string (+ offset count))))
+(setq string (concatenate 'string (subseq string 0 offset) newtail))
+
+;;-----------------------------
+; get a 5-byte string, skip 3, then grab 2 8-byte strings, then the
+; rest
+(setq leading (subseq data 5)
+       s1 (subseq data 8 8)
+       s2 (subseq data 16 8)
+       trailing (subseq data 24))
+
+; split at five byte boundries
+(let ((length (length string)))
+   (loop for idx from 0 upto length by 5
+      collect (subseq string idx (min length (+ idx 5)))))
+
+; chop string into individual characters
+(loop for idx from 0 upto (1- (length string))
+      collect (char string idx))
+
+;;-----------------------------
+(defparameter *string* "This is what you have")
+;;             +012345678901234567890  Indexing forwards  (left to right)
+;;              109876543210987654321- Indexing backwards (right to left)
+
+(subseq *string* 0 1)                        ; "T"
+(subseq *string* 5 7)                        ; "is"
+(subseq *string* 13)                         ; "you have"
+(subseq *string* (+ (length *string*) -1))   ; "e"
+(subseq *string* (+ (length *string*) -4))   ; "have"
+(subseq *string*
+         (+ (length *string*) -8)
+         (+ (length *string*) -8 3)) ; "you"
+
+(print *string*)
+;; This is what you have
+
+;; Change "is" to "wasn't"
+(setq *string*
+       (concatenate 'string
+                    (subseq *string* 0 5)
+                    "wasn't"
+                    (subseq *string* (+ 5 2))))
+;; This wasn't what you have
+
+;; Replace last 12 characters
+(setq *string*
+       (concatenate 'string
+                    (subseq *string* 0 (+ (length *string*) -12))
+                    "ondrous"))
+;; This wasn't wondrous
+
+;; Delete first character
+(setq *string* (subseq *string* 1))
+;; his wasn't wondrous
+
+;; Delete last 10 characters
+(setq *string* (subseq *string* 0 (+ (length *string*) -10)))
+;; his wasn'
+
+;;-----------------------------
+;; You can test substrings with the :start and :end keyword
+;; parameters of cl-pcre:scan
+(when (cl-ppcre:scan "pattern" *string*
+                      :start (- (length *string*) 10))
+   (format t "Pattern matches in last 10 characters~%"))
+
+;; substitute "at" for "is", restricted to first five characters
+(concatenate 'string
+              (cl-ppcre:regex-replace "is" *string* "at"
+                                      :start 0
+                                      :end (min (length *string*) 5))
+              (when (> (length *string*) 5)
+                (subseq *string* 5)))
+
+;;-----------------------------
+;; Exchange the first and last letters in a string
+(setq *string* "make a hat")
+(let ((end (1- (length *string*)))
+       (tmp (char *string* 0)))
+   (setf (char *string* 0) (char *string* end)
+         (char *string* end) tmp))
+;; take a ham
 
 ; edit a substring
 (setq string (concatenate 'string (substring string 0 offset) newstring
