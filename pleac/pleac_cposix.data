@@ -1,0 +1,115 @@
+// -*- c -*-
+
+// @@PLEAC@@_NAME
+// @@SKIP@@ C/Posix/GNU
+
+
+// @@PLEAC@@_WEB
+// @@SKIP@@ http://www.gnu.org/software/libc/libc.html
+
+// @@PLEAC@@_9.0
+//------------------------------------------------------------------
+#include <stdio.h> // perror(), fprintf()
+#include <unistd.h> // stat(), fstat(), lstat()
+#include <sys/stat.h> // struct stat
+
+...
+
+struct stat entry;
+if( stat("/usr/bin/vi", &entry) < 0 )
+  perror("");
+if( S_ISREG(entry.st_mode) )
+  fprintf( stderr, "file\n" );
+
+...
+
+//------------------------------------------------------------------
+#include <stdio.h> // perror(), fprintf()
+#include <unistd.h> // stat(), fstat(), lstat()
+#include <sys/stat.h> // struct stat
+
+...
+
+struct stat entry;
+if( stat("/usr/bin", &entry) < 0 )
+  perror("");
+if( S_ISDIR( entry.st_mode) )
+  fprintf( stderr, "directory\n" );
+
+...
+
+//------------------------------------------------------------------
+// we can't access the inode of a file with a stream as parameter
+// we need to pass a file descriptor parameter to fstat
+#include <stdio.h> // perror(), fprintf()
+#include <unistd.h> // stat(), fstat(), lstat()
+#include <sys/stat.h> // struct stat
+#include <fcntl.h> //open()
+
+...
+
+struct stat entry;
+int fd; // file descriptor
+FILE * fp;  // stream
+
+if((fd = open("/etc/group", O_RDONLY)) < 0)
+  perror("");
+
+if( fstat(fd, &entry) < 0 )
+  perror("");
+  
+if((fp = fdopen(fd, "r" )) == NULL ) // we attach the file descriptor to a stream
+  perror("");
+
+...
+
+//------------------------------------------------------------------
+#include <stdio.h> // perror()
+#include <unistd.h> // stat(), fstat(), lstat()
+#include <sys/stat.h> // struct stat
+#include <sys/types.h> // off_t
+
+...
+  
+struct stat entry;
+
+time_t ctime;
+off_t size;
+
+if( stat("/usr/bin/vi", &entry) < 0 )
+  perror("");
+
+ctime = entry.st_ctime;
+size = entry.st_size;
+//fprintf( stdout, "ctime: %ld\nsize: %ld\n", ctime, size );
+  
+...  
+
+//------------------------------------------------------------------
+// No equivalent in C ANSI/POSIX/GNU for -T (file is a text file)?
+/*
+# -s for filesize (test if nonzero)
+unless (-s F && -T _) {
+  die "$filename doesn't have text in it.\n";
+}
+*/
+
+//------------------------------------------------------------------
+#include <stdio.h>
+#include <dirent.h> // struct dirent, opendir(), readdir(), closedir()
+#include <sys/types.h> // DIR type
+
+...
+
+DIR * dir;
+struct dirent * entry;
+
+dir = opendir("/usr/bin");
+if( dir == NULL )
+  perror("");
+while((entry = readdir(dir)) != NULL)
+  fprintf(stdout, "Inside /usr/bin is something called %s\n", entry->d_name);
+fprintf(stdout, "\n");
+closedir(dir);
+
+...
