@@ -115,6 +115,129 @@ closedir(dir);
 ...
 
 
+// @@PLEAC@@_9.10
+//------------------------------------------------------------------
+
+//  we use the XPG version of basename which overrides
+//  the GNU version (not portable) if libgen.h is included
+//  /!\ do not call basename or dirname with a static string (bugs in glibc)
+
+#include <stdio.h> // fprintf()
+#include <stdlib.h> // free()
+#include <string.h>  // strdup(), strrchr()
+#include <libgen.h>  // basename(), dirname()
+
+...
+ char * dir, * file, * ext;
+char * tmp_dirname, * tmp_file;
+char * path = "/usr/lib/libc.a";
+
+tmp_dirname = strdup(path);
+tmp_file = strdup(path);
+   dir = dirname(tmp_dirname);
+file = basename(tmp_file);
+ext = strrchr(path, '.'); // extension as everything after the last '.'
+
+fprintf(stdout, "dir is %s, file is %s, ext is %s\n", dir, file, ext);
+// dir is /usr/lib, file is libc.a, ext is .a
+ free(tmp_file);
+free(tmp_dirname);
+
+...
+
+//------------------------------------------------------------------
+#include <stdio.h> // fprintf()
+#include <stdlib.h> // free()
+#include <string.h>  // strdup()
+#include <libgen.h>  // basename(), dirname()
+
+...
+
+char * file, * dir, * tmp_file, * tmp_dirname;
+char * path = "/usr/lib/libc.a";
+
+tmp_file = strdup( path );
+tmp_dirname = strdup( path );
+dir = dirname( tmp_dirname );
+file = basename( tmp_file );
+
+fprintf( stdout, "dir is %s, file is %s\n", dir, file );
+// dir is /usr/lib, file is libc.a
+free(tmp_dirname);
+free(tmp_file);
+ ...
+
+//------------------------------------------------------------------
+// no equivalent in C for fileparse() but we can
+//  implement a (very basic) similar function
+
+#include <stdio.h> // fprintf()
+#include <stdlib.h> // free()
+#include <string.h>  // strdup(), strrchr(), strlen()
+
+typedef struct Pathname_ {
+  char * dirname;
+  char * filename;
+  char * extension;
+}Pathname;
+
+void fileparse( const char * path, Pathname * split_path) {
+  char * tmp_path, * ptr, * extension;
+
+  tmp_path = strdup(path);
+ ptr= strrchr( tmp_path, '/');
+  *ptr = '\0';
+  ptr++;
+
+  // dirname
+  split_path->dirname = strdup(tmp_path);
+  // filename
+  split_path->filename = malloc(strlen(ptr) + 1);
+  strcpy(split_path->filename, ptr);
+
+  // extension
+  extension = strrchr(path, '.'); // extension as everything
+after the last '.'
+  split_path->extension = strdup(extension);
+
+  free(tmp_path);
+ return;
+}
+
+int main( int argc, char * argv[] ) {
+
+  Pathname fparsed;
+  char * path = "/usr/lib/libc.a";
+ fileparse(path, &fparsed);
+ fprintf(stdout, "dir is %s, file is %s, ext is %s\n",
+      fparsed.dirname,
+      fparsed.filename,
+      fparsed.extension);
+  // dir is /usr/lib, file is libc.a, ext is .a
+ free(fparsed.dirname);
+  free(fparsed.filename);
+  free(fparsed.extension);
+
+  return 0;
+}
+
+//------------------------------------------------------------------
+//  we are Unix centric so no equivalent for fileparse_set_fstype("MacOS");
+
+//------------------------------------------------------------------
+char * extension(const char * path){
+  char * ext;
+  ext = strrchr(path, '.');
+  if(ext == NULL)
+    return NULL;
+
+  return ext;
+}
+
+// fprintf(stdout, "ext is %s\n", extension(path));
+// ext is .a
+
+
 // @@PLEAC@@_10.16
 //------------------------------------------------------------------
 // Nested functions are supported by GNU C as an extension
