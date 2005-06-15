@@ -19,7 +19,7 @@
  #*****************************************************************************
 
 
-IMPLS = perl python ruby guile merd ada tcl ocaml haskell pike java pliant commonlisp c++ smalltalk forth erlang php cposix R masd nasm
+IMPLS = perl python ruby guile merd ada tcl ocaml haskell pike java pliant commonlisp c++ smalltalk forth erlang php cposix R rexx masd nasm
 
 
 HTMLTARGETS = $(addprefix pleac_, $(IMPLS))
