@@ -26,25 +26,50 @@ It may be enclosed in triple single quotes, too.
 
 # @@PLEAC@@_1.1
 
-s = "This is what you have"
-first = s[0]                            # "T"
-start = s[5:7]                          # "is"
-rest = s[13:]                           # "you have"
-last = s[-1]                            # "e"
-end = s[-4:]                            # "have"
-piece = s[-8:-5]                        # "you"
+#-----------------------------
+# get a 5-char string, skip 3, then grab 2 8-char strings, then the rest
+# Note that struct.unpack cannot use * for an unknown length.
+# See http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/65224
+import struct
+(lead, s1, s2), tail = struct.unpack("5s 3x 8s 8s", data[:24]), data[24:]
 
-# can't modify string, if really needed use character arrays:
+# split at five-char boundaries
+fivers = struct.unpack("5s" * (len(data)/5), data)
+
+# chop string into individual characters
+chars = list(data)
+
+mystr = "This is what you have"
+#       +012345678901234567890  Indexing forwards  (left to right)
+#        109876543210987654321- Indexing backwards (right to left)
+#         note that 0 means 10 or 20, etc. above
+
+first = mystr[0]                            # "T"
+start = mystr[5:7]                          # "is"
+rest = mystr[13:]                           # "you have"
+last = mystr[-1]                            # "e"
+end = mystr[-4:]                            # "have"
+piece = mystr[-8:-5]                        # "you"
+
+# Python strings are immutable.
+# In general, you should just do piecemeal reallocation:
+mystr = "This is what you have"
+mystr = mystr[:5] + "wasn't" + mystr[7:]
+
+# Or replace and reallocate
+mystr = "This is what you have"
+mystr = mystr.replace("is", "wasn't")
+
+# For in-place modification you could use character arrays (but don't)
 import array
-s = array.array("c", "This is what you have")
-s[5:7] = array.array("c", "wasn't")
+mystr = array.array("c", "This is what you have")
+mystr[5:7] = array.array("c", "wasn't")
 # s now is array('c', "This wasn't what you have")
 
-# there is also MutableString.
-# but don't do this in Python, this is for educational purpose only
+# You could also use MutableString (but don't - for educational purpose only)
 from UserString import MutableString
-s = MutableString("This is what you have")
-s[-12:] = "ondrous"
+mystr = MutableString("This is what you have")
+mystr[-12:] = "ondrous"
 # s is now "This is wondrous"
 
 # @@PLEAC@@_1.2
