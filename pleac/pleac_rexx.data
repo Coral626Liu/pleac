@@ -353,3 +353,323 @@ temp = a ; a = b ; b = temp
 
 parse value 57 72 103 with alpha beta production
 parse value beta production alpha with alpha beta production
+
+
+/* ------------------------------------------------------------------ */
+/* @@PLEAC@@_10.0                                                     */
+/*                                                                    */ 
+/* REXX supports two types of subroutine:                             */
+/* * Internal Subroutine [A block of instructions commencing with a   */
+/*   label, ending with a RETURN instruction]                         */
+/*                                                                    */
+/* * External Subroutine [Subroutine residing external to the caller  */
+/*   in a separate script file; it's last statement will be an        */
+/*   implied RETURN instruction unless an explicit RETURN or EXIT is  */
+/*   used]                                                            */
+/*                                                                    */
+/* A REXX program, can itself, be considered an external subroutine.  */
+/* As such, all variables are local to a subroutine which means that  */
+/* there is no direct support for 'global' variables, though it is    */
+/* possible to achieve a similar effect via:                          */
+/*                                                                    */
+/* * Adopting the convention whereby a program only uses internal     */
+/*   subroutines; any variables declared at the 'program-level' can,  */
+/*   in effect, be considered 'global' [though whether these are      */
+/*   visible to internal subroutines is determined on an individual   */
+/*   basis via the PROCEDURE and EXPOSE intructions]                  */
+/*                                                                    */
+/* * Using an external 'storage facility'. This is a common approach  */
+/*   since common REXX usage sees it interact closely with the        */
+/*   external environment                                             */
+/*                                                                    */
+/* Two types of subroutine calling conventions:                       */
+/* * CALL instruction used to invoke subroutine designed as           */
+/*   procedures i.e. those which RETURN no value. However, it may     */
+/*   also be used to invoke a subroutine which does return a value    */
+/*   - in this case it is placed in a variable called RESULT          */
+/*                                                                    */
+/* * Implict call for subroutines designed as functions; requires     */
+/*   arguments enclosed in parentheses and the capture of the return  */
+/*   value in a variable or as an argument in another function call.  */
+/*   Argument list is, by convention, comma-separated, but may also   */
+/*   be space-separated although this requires an adjustment in how   */
+/*   arguments are extracted within the procedure                     */
+/* ------------------------------------------------------------------ */
+
+greeted = 0
+
+call hello
+greetings = howManyGreetings()
+say "bye there!, there have been " greetings "greetings so far"
+
+exit 0
+
+/* ----------------------------- */
+
+hello :
+  greeted = greeted + 1
+  say "hi there!, this procedure has been called" greeted "times"
+  return
+
+/* ----------------------------- */
+
+howManyGreetings :
+  return greeted
+
+
+/* ------------------------------------------------------------------ */
+/* @@PLEAC@@_10.1                                                     */
+/*                                                                    */
+/* REXX supports a flexible argument passing / extraction mechanism   */
+/* in that arguments passed to a procedure are nothing more than a    */
+/* list of strings.                                                   */
+/*                                                                    */
+/* The convention is to comma-separate arguments so that the          */
+/* subroutine simply parses a comma-separated string to extract       */
+/* arguments. It is, however, possible to circumvent convention and   */
+/* adopt an alternate argument passing approach when required.        */
+/*                                                                    */
+/* Argument extraction is via the the PARSE ARG instruction, or via   */
+/* the ARG() BIF, the latter used where manual parsing of the argument*/
+/* list is to be performed.                                           */
+/* ------------------------------------------------------------------ */
+
+/* Load math functions from external library */
+call rxFuncAdd 'mathLoadFuncs', 'rexxMath', 'mathLoadFuncs'
+call mathLoadFuncs
+
+/* In all cases, 'diag', contains the value 5 */ 
+diag = hypotenuse(3, 4)
+call hypotenuse 3, 4 ; diag = RESULT
+
+diag = hypotenuse2(3, 4)
+call hypotenuse2 3, 4 ; diag = RESULT
+
+diag = hypotenuse3(3 4)
+call hypotenuse3 3 4 ; diag = RESULT
+
+/* Unload math functions */
+call mathDropFuncs
+
+exit 0
+
+/* ----------------------------- */
+
+/* Extract comma-separated arguments via 'parse' instruction */
+hypotenuse : procedure
+
+  /* Extracting subroutine arguments - assumed comma-separated */
+  parse arg side1, side2
+
+  return SQRT((side1 ** 2) + (side2 ** 2))
+
+/* ----------------------------- */
+
+/* Extract comma-separated arguments via 'ARG()' BIF */
+hypotenuse2 : procedure
+
+  /* Check number of [comma-separated] arguments passed */
+  if ARG() \= 2 then return -1
+
+  /* Extracting subroutine arguments - assumed comma-separated */
+  side1 = ARG(1) ; side2 = ARG(2)
+
+  return SQRT((side1 ** 2) + (side2 ** 2))
+
+/* ----------------------------- */
+
+/* Extract space-separated arguments via 'ARG()' BIF */
+hypotenuse3 : procedure
+
+  /* Extracting subroutine arguments - assumed space-separated */
+  parse value ARG(1) with side1 side2 .
+
+  return SQRT((side1 ** 2) + (side2 ** 2))
+
+
+/* ------------------------------------------------------------------ */
+/* @@PLEAC@@_10.2                                                     */
+/*                                                                    */
+/* In REXX, all variables are local to a subroutine, thus a caller has*/
+/* no direct access to the variables of a callee, something which     */
+/* applies equally to both internal and external subroutines.         */
+/*                                                                    */
+/* An internal subroutine, since it is by definition, part of a REXX  */
+/* program [therefore part of an external subroutine] is, by default, */
+/* granted full access to the caller's variables. However, it is      */
+/* possible to prevent such access via the PROCEDURE instruction, or  */
+/* more selectively, via a combination of the PROCEDURE and EXPOSE    */
+/* instructions.                                                      */
+/*                                                                    */
+/* Example:                                                           */
+/*                                                                    */
+/*     v1 = 5 ; v2 = 10                                               */
+/*                                                                    */
+/*     call f1                                                        */
+/*     call f2                                                        */
+/*     call f3                                                        */
+/*                                                                    */
+/*     exit 0                                                         */
+/*                                                                    */
+/*     f1 :                                                           */
+/*       /* Access to caller's 'v1' and 'v2' */                       */
+/*       v1 = 10 ; v2 = 15 ; return                                   */
+/*                                                                    */
+/*     f2 : procedure                                                 */
+/*       /* No access to caller's variables - all local to 'f2' */    */
+/*       v1 = 10 ; v2 = 15 ; return                                   */
+/*                                                                    */
+/*     f3 : procedure expose v1                                       */
+/*       /* Access to caller's 'v1' only; 'v2' is local to 'f3' */    */
+/*       v1 = 10 ; v2 = 15 ; return                                   */
+/* ------------------------------------------------------------------ */
+
+/*
+   Unless 'variable' is declared in the caller, thus any reference
+   to it is to the caller's, it is implicitly invisible outside of
+   'somefunc'
+*/
+somefunc :
+    variable = something  
+
+/* ----------------------------- */
+
+/*
+   'variable' is implicitly invisible outside of 'somefunc' since
+   even if the caller declared its own 'variable', it would not
+   be visible here
+*/
+somefunc : procedure
+    variable = something  
+
+
+/* ------------------------------------------------------------------ */
+/* @@PLEAC@@_10.3                                                     */
+/*                                                                    */
+/* REXX does not support persistent private variables, commonly known */
+/* as 'static' variables in various languages. REXX *does* allow:     */
+/* * Visibility of a 'local' variable to be restricted to certain     */
+/*   subroutines, but the variable is not persistent - it's destroyed */
+/*   once the current subroutine [caller] exits                       */
+/* * A 'global' variable to be resticted to certain subroutines; if   */
+/*   the variable is first used in the top-level caller then it may be*/
+/*   considered persistent. However, it is also visible within the    */
+/*   scope it was first used - so is not, strictly-speaking, private  */
+/*                                                                    */
+/* A common method for mimicing persistent private variables is to    */
+/* globally share a 'stem' variable, and have each subroutine that    */
+/* needs such items create a leaf [named after itself] on this stem.  */
+/* This approach provides persistence whilst avoiding the inadvertent */
+/* use of global names.                                               */
+/* ------------------------------------------------------------------ */
+
+/* -------------------------------
+   REXX doesn't have unnamed scopes that allow declarations:
+
+   {
+      my $variable;
+      sub mysub {
+         # ... accessing $variable
+      }
+   }
+
+   The following:
+
+   BEGIN {
+      my $counter = 42;
+      sub next_counter { return ++$counter }
+      sub prev_counter { return --$counter }
+   }
+
+   may be [roughly] implemented in two ways:
+   ----------------------------- */
+
+/* [1] Persistent, but not entirely private */
+counter = 42
+
+call next_counter
+call next_counter
+call prev_counter
+
+exit 0
+
+/* ----------------------------- */
+
+next_counter : procedure expose counter
+  counter = counter + 1
+  return counter
+
+/* ----------------------------- */
+
+prev_counter : procedure expose counter
+  counter = counter - 1
+  return counter
+
+/* [2] Private, but not persistent */
+
+BEGIN
+
+exit 0
+
+/* ----------------------------- */
+
+BEGIN : procedure
+  counter = 42
+  call next_counter
+  call next_counter
+  call prev_counter
+
+  /* 'counter' destroyed once subroutine returns */
+  return
+
+/* ----------------------------- */
+
+next_counter : procedure expose counter
+  counter = counter + 1
+  return counter
+
+/* ----------------------------- */
+
+prev_counter : procedure expose counter
+  counter = counter - 1
+  return counter
+
+
+/* ------------------------------------------------------------------ */
+/* @@PLEAC@@_10.4                                                     */
+/* REXX does not offer a standard means of obtaining the current      */
+/* procedure name.                                                    */
+/*                                                                    */
+/* The PARSE instruction with argument SOURCE may be used to obtain:  */
+/* * Operating System Name                                            */
+/* * Invocation Mode of current script file                           */
+/*                                                                    */
+/* Various implementations extend the range of available information  */
+/* with a third argument commonly being the name of the current script*/
+/* file. If only external procedures are ever invoked then this value */
+/* corresponds to the procedure name. It is otherwise not possible to */
+/* obtain the name of an internal procedure except via some kludge,   */
+/* which include:                                                     */ 
+/*                                                                    */
+/* * Pass the procedure name as a procedure argument                  */
+/* * Force an error which then invokes the debugger; trap and parse   */
+/*   this output [approach might even allow tracing the call stack    */
+/*   but this *is not* a standard approach]                           */
+/* ------------------------------------------------------------------ */
+
+me = whoami("whoami")
+him = whowasi("whowasi")
+
+exit 0
+
+/* ----------------------------- */
+
+whoami : procedure
+  parse arg name
+  return name
+
+/* ----------------------------- */
+
+whowasi : procedure
+  parse arg name
+  return name
