@@ -1,0 +1,44 @@
+#!/usr/bin/python
+# userstats - generates statistics on who logged in.
+# call with an argument to display totals
+
+import sys, os, anydbm, re
+
+db_file = '/tmp/userstats.db'       # where data is kept between runs
+
+try:
+    db = anydbm.open(db_file,'c')   # open, create if it does not exist
+except:
+    print "Can't open db %s: %s!" % (db_file, sys.exc_info()[1])
+    sys.exit(1)
+
+if len(sys.argv) > 1:
+    if sys.argv[1] == 'ALL':
+        userlist = db.keys()
+    else:
+        userlist = sys.argv[1:]
+    userlist.sort()
+    for user in userlist:
+        if db.has_key(user):
+            print "%s\t%s" % (user, db[user])
+        else:
+            print "%s\t%s" % (user, 0)
+else:
+    who = os.popen('who').readlines()  # run who(1)
+    if len(who)<1:
+        print "error running who"       # exit
+        sys.exit(1)
+    # extract username (first thin on the line) and update
+    user_re = re.compile("^(\S+)")
+    for line in who:
+        fnd = user_re.search(line)
+        if not fnd:
+            print "Bad line from who: %s" % line
+            sys.exit(1)
+        user = fnd.groups()[0]
+        if not db.has_key(user):
+            db[user] = "0"
+        db[user] = str(int(db[user])+1) # only strings are allowed
+db.close()
+    
+
