@@ -418,6 +418,156 @@ howManyGreetings :
 
 
 /* ------------------------------------------------------------------ */
+/* @@PLEAC@@_1.4                                                      */
+/*                                                                    */
+/* REXX is a typeless language: all data are strings. This means:     */
+/*                                                                    */
+/* * REXX has no notion of objects, or aggregate types like arrays    */
+/* * It does not support 'primitive' types, those usually mapped to   */
+/*   hardware registers                                               */
+/*                                                                    */
+/* In order to support mathematical operations, however, strings in   */
+/* Base 10 format [containing 0-9, leading + or -, a decimal point,   */
+/* exponent indicator 'E' and exponent] are recognised as 'numeric'   */
+/* strings in such contexts [whilst hex and binary strings are not].  */
+/*                                                                    */
+/* The benefit of this approach:                                      */
+/*                                                                    */
+/* * Simplifies interpreter implementation on new platforms           */
+/* * Implicit support for arbitrary precision arithmetic              */
+/* * Language kept simple - no declarations, casting or conversions   */
+/*                                                                    */
+/* A set of conversion BIF's is supplied to facilitate the conversion */
+/* of strings to / from various numeric representations, though it is */
+/* understood that this is not a type conversion, but a 'form'        */
+/* conversion, one that may facilitate data printing or storage:      */
+/*                                                                    */
+/* * C2D / D2C [Character to Decimal / vice versa]                    */
+/* * C2X / X2C [Character to Hex / vice versa]                        */
+/* * X2B / B2X [Hex to Binary / vice versa]                           */
+/* ------------------------------------------------------------------ */
+
+char = 'A'                            /* or: char = '41'X [ASCII] */
+num = C2D(char)
+char = D2C(num)
+
+/* ----------------------------- */
+
+char = 'e'
+say "Number" C2D(char) "is" char      /* Number 101 is e */
+
+/* ----------------------------- */
+
+string = "ABCDE"
+ascii = C2X(string)                   /* ascii [hex]: 4142434445 */
+string = X2C(ascii)                   /* string: ABCDE */
+
+/* ----------------------------- */
+
+/* Contents: 73616D706C65 */ 
+ascii_character_numbers = C2X("sample")
+
+/* Output will now be: 73 61 6D 70 6C 65 */ 
+out = "" ; acn = ascii_character_numbers
+do while acn <> NULL
+  parse var acn token +2 acn
+  out = out token
+end
+say STRIP(out)
+
+/* Output will now be: sample */ 
+out = X2C(ascii_character_numbers)
+say out
+
+/* ----------------------------- */
+
+hal = "HAL" ; ibm = ""
+
+do while hal <> NULL
+  parse var hal token +1 hal
+  ibm = ibm||D2C(C2D(token) + 1)
+end 
+
+/* Output will now be: IBM */ 
+say ibm
+
+
+/* ------------------------------------------------------------------ */
+/* @@PLEAC@@_1.6                                                      */
+/*                                                                    */
+/* The task of reversing strings is easily and efficiently performed  */
+/* via the REVERSE BIF. Implementation of a palindome-checking routine*/
+/* is probably best accomplished via its use since it involves a      */
+/* single function call, thus incurs minimal calling overhead. Since  */
+/* REXX is typically used as an interpreted language, it often becomes*/
+/* a significant issue. Performance comparision of the following two  */
+/* 'isPalindrome' functions should clearly reveal it's impact.        */
+/*                                                                    */
+/* isPalindrome : procedure                                           */
+/*   i = 1 ; j = LENGTH(ARG(1))                                       */
+/*   do until i >= j                                                  */
+/*     if SUBSTR(ARG(1),i,1) \= SUBSTR(ARG(1),j,1) ; then return FALSE*/
+/*     i = i + 1 ; j = j - 1                                          */ 
+/*   end                                                              */
+/*   return TRUE                                                      */ 
+/*                                                                    */
+/* isPalindrome : procedure                                           */
+/*   return REVERSE(ARG(1)) == ARG(1)                                 */
+/*                                                                    */
+/* The task of reversing words within a string can quite easily be    */
+/* accomplished in several ways:                                      */
+/*                                                                    */
+/* * PARSE instruction together with the stack operations PUSH and    */
+/*   PARSE PULL [stack and queue structures are native to REXX, and   */
+/*   are used for many diverse tasks including interprocess comms]    */
+/*                                                                    */
+/* * Word-oriented BIF's ['reverseWords' is a recursive function that */
+/*   uses two of these: DELWORD and WORD. Anyone familiar with LISP or*/
+/*   Scheme will note how they are being used like 'car' and cdr']    */ 
+/*                                                                    */
+/* reverseWords : procedure                                           */ 
+/*   if ARG(1) == "" then ; return ""                                 */
+/*   return STRIP(reverseWords(DELWORD(ARG(1), 1, 1)) WORD(ARG(1), 1))*/
+/*                                                                    */
+/* ------------------------------------------------------------------ */
+
+string = "A horse is a horse, of course, of course !"
+
+/* Reverse string using REXX BIF */
+revbytes = REVERSE(string)
+
+/* ----------------------------- */
+
+/* Tokenise 'string', and place each token on stack */
+do while string <> NULL
+  parse var string token string
+  push token
+end
+
+/* Build 'revwords' by extracting tokens from stack */
+revwords = ""
+do while QUEUED() > 0
+  parse pull token
+  revwords = revwords token 
+end
+
+/* ----------------------------- */
+
+string = 'Yoda said, "can you see this?"'
+
+/* Reverse the word order in a string [custom function - see header] */
+revwords = reverseWords(string)
+say revwords
+
+/* ----------------------------- */
+
+word = "reviver"
+
+/* Check whether string is palindrome [custom function - see header] */
+is_palindrome = isPalindrome(word)
+
+
+/* ------------------------------------------------------------------ */
 /* @@PLEAC@@_10.1                                                     */
 /*                                                                    */
 /* REXX supports a flexible argument passing / extraction mechanism   */
@@ -673,3 +823,675 @@ whoami : procedure
 whowasi : procedure
   parse arg name
   return name
+
+
+/* ------------------------------------------------------------------ */
+/* @@PLEAC@@_10.5                                                     */
+/*                                                                    */
+/* REXX supports neither pass-by-reference, nor return-by-reference,  */ 
+/* thus it is *not* possible [using in-built REXX facilities] to:     */
+/*                                                                    */
+/* * Pass a variable name / handle to a subroutine                    */
+/* * Return a variable name / handle from a subroutine                */
+/*                                                                    */
+/* and use this item for updating a 'referred' object.                */
+/*                                                                    */
+/* Other languages possess similar restictions but can circumvent them*/
+/* via other built-in facilities. For example, the C language supports*/
+/* neither facility, but through its support of pointers mimics these */
+/* facilities [i.e. a pointer acts like a handle to a memory block,   */
+/* and by passing / returning pointer copies, several subroutines may */
+/* all access (and optionally update) the contents of this item].     */
+/*                                                                    */
+/* In REXX, the following applies:                                    */
+/*                                                                    */
+/* * Shared access to variable(s) possible via the EXPOSE instruction */
+/*   [i.e. controlled access to 'global' data]. This is the idiomatic */
+/*   REXX approach though it may be considered by some to not wholly  */
+/*   adhere to structured programming principles                      */
+/*                                                                    */
+/* * Use of a third party library that implements pointer-like or     */
+/*   handle-like functionality. The third-party code used is 'RxHash' */ 
+/*   library [details on availability in Appendix, and it is also     */
+/*   extensively showcased in the PLEAC arrays section <<PLEAC_4.X>>] */
+/*                                                                    */
+/* The examples illustrate both approaches though emphasis is placed  */
+/* on using the 'RxHash' library approach as it is closer in spirit to*/
+/* the 'pass-by-reference' approach. Also, all 'RxHash' examples      */
+/* assume the following prologue / epilogue:                          */
+/*                                                                    */
+/*   call rxFuncAdd 'arrLoadFuncs', 'rxHash', 'arrLoadFuncs'          */
+/*   call arrLoadFuncs                                                */
+/*   ...                                                              */
+/*   call arrDropFuncs                                                */
+/* ------------------------------------------------------------------ */
+
+/* 'array_diff' Example 1: Data sharing via EXPOSE instruction */
+array1.0 = 3 ; array1.1 = 'a' ; array1.2 = 'b' ; array1.3 = 'c'
+array2.0 = 3 ; array2.1 = 'a' ; array2.2 = 'z' ; array2.3 = 'c'
+
+/* Arguments need not be passed - done so to enhance code intent */
+is_array_different = array_diff(array1, array2)
+
+exit 0 
+
+/* Subroutine has direct access to 'array1.' and 'array2.' variables */
+array_diff : procedure expose array1. array2.
+  /* Any passed arguments ignored - direct access to 'exposed' items */
+  if array1.0 \= array2.0 then ; return TRUE
+
+  /* Convention is that leaf '.0' of a stem variable contain is size */
+  do i = 1 for array1.0
+    if array1.i \= array2.i then ; return TRUE
+  end
+  return FALSE
+
+/* ----------------------------- */
+
+/* 'array_diff' Example 2(a): Data sharing via array handle-passing */
+array1.0 = 3 ; array1.1 = 'a' ; array1.2 = 'b' ; array1.3 = 'c'
+array2.0 = 3 ; array2.1 = 'a' ; array2.2 = 'z' ; array2.3 = 'c'
+
+/* Dynamic 'arrays' created from stem variable contents */
+array1Ptr = arrFromStem("array1.") ; array2Ptr = arrFromStem("array2.")
+
+/* Dynamic array handles passed as arguments to subroutine */
+is_array_different = array_diff(array1Ptr, array2Ptr)
+
+/* Free dynamic array resources */
+call arrDrop array1Ptr, array2Ptr
+
+exit 0 
+
+array_diff : procedure
+  /* Extract arguments to obtain array handles */
+  array1 = ARG(1) ; array2 = ARG(2)
+
+  /* Compare array sizes - zeroeth element is array size */
+  arrSize = arrGet(array1, 0)
+  if arrSize \= arrGet(array2, 0) then ; return TRUE
+
+  do i = 1 for arrSize
+    if arrGet(array1, i) \= arrGet(array2, i) then ; return TRUE
+  end
+  return FALSE
+
+/* ----------------------------- */
+
+/* 'array_diff' Example 2(b): Data sharing via array handle-passing */
+
+/* Dynamic 'arrays' created [Always place length in zeroeth element] */
+array1Ptr = arrNew() ; call arrSet array1Ptr, 0, 0
+array2Ptr = arrNew() ; call arrSet array2Ptr, 0, 0
+
+/* Load arrays with data */
+call arrSet array1Ptr, 1, 'a' ; call arrSet array2Ptr, 1, 'a'
+call arrSet array1Ptr, 2, 'b' ; call arrSet array2Ptr, 2, 'z'
+call arrSet array1Ptr, 3, 'c' ; call arrSet array2Ptr, 3, 'c'
+
+/* Update array length */
+call arrSet array1Ptr, 0, 3 ; call arrSet array2Ptr, 0, 3
+
+/* Dynamic array handles passed as arguments to subroutine */
+is_array_different = array_diff(array1Ptr, array2Ptr)
+
+/* Free dynamic array resources */
+call arrDrop array1Ptr, array2Ptr
+
+exit 0 
+
+/* Subroutine as for 2(a) */
+
+/* ----------------------------- */
+
+/* Create and load arrays */
+a = arrNew() ; b = arrNew()
+call arrSet a, 1, 1 ; call arrSet a, 2, 2 ; call arrSet a, 0, 2
+call arrSet b, 1, 5 ; call arrSet b, 2, 8 ; call arrSet b, 0, 2
+
+/* Compute results, capture return array */
+c = add_vecpair(a, b)
+
+/* Build output string */
+arrSize = arrGet(c, 0) ; arrString = ""
+do i = 1 for arrSize
+  arrString = arrString arrGet(c, i)
+end
+
+/* Output: 6 10 */
+say STRIP(arrString)
+
+/* Release arrays */
+call arrDrop a, b, c
+ 
+/* ----------------------------- */
+
+add_vecpair : procedure
+  /* Extract arguments to obtain array handles */
+  array1 = ARG(1) ; array2 = ARG(2)
+
+  /* Allocate dynamic array, set its size to zero */
+  arrayRet = arrNew() ; call arrSet arrayRet, 0, 0
+
+  /* Compare array sizes - zeroeth element is array size */
+  arrSize = arrGet(array1, 0)
+  if arrSize \= arrGet(array2, 0) then ; return arrayRet
+
+  /* Compute vector sum */
+  do i = 1 for arrSize
+    call arrSet arrayRet, i, arrGet(array1, i) + arrGet(array2, i)
+  end
+
+  /* Update array size */
+  call arrSet arrayRet, 0, arrSize
+
+  return arrayRet
+
+
+/* ------------------------------------------------------------------ */
+/* @@PLEAC@@_10.6                                                     */
+/*                                                                    */
+/* Since REXX is a typeless language - the only 'type' is 'string', a */
+/* sequence of characters - it isn't possible to determine the 'return*/
+/* context' of a subroutine as is possible in Perl [i.e. Perl achieves*/
+/* this feat by inspecting the stack looking for the type signature of*/
+/* the variable 'capturing' the subroutine's return value (IIRC)].    */
+/*                                                                    */
+/* It is, however, possible to conditionally return values, be it the */
+/* number of values, or the 'type' [loosely speaking] of values, based*/
+/* on a control flag argument value. This is a rather conventional    */
+/* approach capable of being used in many language environments. The  */
+/* example shown will utilise this approach.                          */
+/* ------------------------------------------------------------------ */
+
+call mysub                                   /* Void Context */
+
+scalar = mysub('S')                          /* Scalar Context */
+if mysub('S') \= "" then ; nop
+
+list = mysub('L')                            /* List Context */
+
+exit 0
+
+/* ----------------------------- */
+
+mysub : procedure
+  parse upper arg retType
+
+  if retType == 'S' then ; return 4          /* Scalar */
+  if retType == 'L' then ; return "1 2 3 4"  /* List */
+
+  return "" /* Void */
+
+
+/* ------------------------------------------------------------------ */
+/* @@PLEAC@@_10.7                                                     */
+/*                                                                    */
+/* Argument passing to subroutines is entirely optional: all may be   */
+/* legally called with zero or more arguments; whether they are used, */
+/* or not, is a subroutine design issue. Looking at this another way, */
+/* if arguments are passed to a subroutine then data is available for */
+/* extraction [via the ARG BIF or PARSE ARG instruction] and use; if  */
+/* no arguments were passed then any extraction results in empty [""] */
+/* strings. No runtime argument-passing checks are otherwise made.    */
+/*                                                                    */
+/* REXX offers no formal support for 'named' parameters, or, for that */
+/* matter, default parameters. However, it is easy to mimic both by   */
+/* adopting a suitable convention. Examples of these appear below.    */
+/* ------------------------------------------------------------------ */
+
+call defaultParmExample             /* a = 'X', b = 'X', c = 'X' */
+call defaultParmExample 1           /* a = 1,  b = 'X', c = 'X' */
+call defaultParmExample 1, , 3      /* a = 1,  b = 'X', c = 3 */
+
+exit 0
+
+defaultParmExample : procedure
+  defaultValue = 'X'
+
+  /* Check whether argument(s) assigned */ 
+  a = defaultValue ; if ARG(1) \= "" then ; a = ARG(1)
+  b = defaultValue ; if ARG(2) \= "" then ; b = ARG(2)
+  c = defaultValue ; if ARG(3) \= "" then ; c = ARG(3)
+
+  /* Display each parameter and its assigned value */
+  say "a =" a
+  say "b =" b
+  say "c =" c
+
+  return
+
+/* ----------------------------- */
+
+call namedParmExample "a=1", "b=2", "c=cat"
+
+exit 0
+
+namedParmExample : procedure
+  /* Extract argument count */
+  argCount = ARG()
+
+  do i = 1 for argCount
+    /* Parse 'named' parameter and value */
+    parse value ARG(i) with key '=' val
+
+    /* Create and initialise 'named' parameter */
+    call VALUE key, val
+  end
+
+  /* Display each 'named' parameter and its assigned value */
+  say "a =" a
+  say "b =" b
+  say "c =" c
+
+  return
+
+/* ----------------------------- */
+
+call thefunc "increment=20s", "start=+5m", "finish=+30m"
+call thefunc "start=+5m", "finish=+30m"
+call thefunc "finish=+30m"
+call thefunc "start=+5m", "increment=15s"
+
+exit 0
+
+thefunc : procedure 
+  /* Set default values */
+  increment = '10s' ; finish = 0 ; start = 0
+
+  /* Extract argument count */
+  argCount = ARG()
+
+  do i = 1 for argCount
+    /* Parse 'named' parameter and value */
+    parse value ARG(i) with key '=' val
+
+    /* Create and initialise 'named' parameter */
+    call VALUE key, val
+  end
+
+  /* Default values remain unless 'named' parameters were passed */
+  if RIGHT(increment, 1) == "m" then ; nop
+
+  return
+
+
+/* ------------------------------------------------------------------ */
+/* @@PLEAC@@_10.8                                                     */
+/*                                                                    */
+/* The PARSE instruction is generally used to tokenise a string. When */
+/* used with the VALUE clause it is used to:                          */
+/*                                                                    */
+/* * Assign literals to a list of variables                           */
+/* * Tokenise the return value of a function [shown below] or an      */
+/*   expression                                                       */
+/*                                                                    */
+/* Since a string may be composed of several items, a function        */
+/* returning a string allows it to mimic the returning of multiple    */
+/* values. It also, almost invariably, requires the use of PARSE VALUE*/
+/*                                                                    */
+/* Since not all return values may be of significance on every call,  */
+/* it is convention to use the '.' as the 'ignore' indicator - any    */
+/* matching output is discarded.                                      */
+/*                                                                    */
+/* Examples use the following custom functions:                       */
+/*                                                                    */
+/* func : return "1 b cval"                                           */
+/* stat : return "DEV INO X Y UID"                                    */
+/* ------------------------------------------------------------------ */
+
+parse value func() with a ignore c
+
+/* Displays: 1 'b' 'cval' */
+say a ignore c
+
+/* ----------------------------- */
+
+parse value func() with a . c
+
+/* Displays: 1 'cval' */
+say a c
+
+/* ----------------------------- */
+
+filename = "myfile.txt"
+parse value stat(filename) with dev ino . . uid
+
+/* Displays: 'DEV' 'INO' 'UID'  */
+say dev ino uid
+
+
+/* ------------------------------------------------------------------ */
+/* @@PLEAC@@_10.9                                                     */
+/*                                                                    */
+/* As already described in <<PLEAC>>_10.8 a function may mimic the    */
+/* returning of multiple variables by returning a string which is     */
+/* tokenised into multiple values.                                    */
+/*                                                                    */
+/* As already described in <<PLEAC>>_10.5 REXX supports neither       */
+/* pass-by-reference, nor return- by-reference, but can use a 'handle-*/
+/* based' approach [with the help of a third-party library] to 'share'*/
+/* arrays among several subroutines.                                  */
+/*                                                                    */
+/* Sadly these two techniques cannot be combined since handles are,   */
+/* themselves, strings, and cannot be arbitrarily combined and taken  */
+/* apart. It is, however, possible to use the stack to return a fixed,*/
+/* or arbitrary number of such items from a subroutine. Its caller is,*/
+/* of course, responsible for any stack cleanup.                      */
+/*                                                                    */
+/* Stack use is quite simple:                                         */
+/*                                                                    */
+/* * Place items on stack via:                                        */
+/*                                                                    */
+/*     queue ITEM   [FIFO order retrieval]                            */
+/*     push ITEM    [LIFO order retrieval]                            */
+/*                                                                    */
+/* * Extract items from stack [somewhat like reading a file] via:     */
+/*                                                                    */
+/*     do while QUEUED() > 0                                          */
+/*       parse pull ITEM                                              */
+/*       /* Do something with ITEM ... */                             */
+/*     end                                                            */
+/*                                                                    */
+/*   Another technique involves placing [and later retrieving] the    */
+/*   number of items in the stack; a counted loop can then be used for*/
+/*   item retrieval.                                                  */
+/*                                                                    */
+/* Only a single example is shown - a modification of the 'somefunc'  */
+/* Perl example - that uses a counted loop for stack retrieval. The   */
+/* variables used map as follows:                                     */ 
+/*                                                                    */
+/*   array_ref.0  -->  Number of stack items                          */
+/*   array_ref.1  -->  $array_ref                                     */
+/*   array_ref.2  -->  $hash_ref                                      */
+/* ------------------------------------------------------------------ */
+
+/* Return value is the number of items to be extracted from stack */
+array_ref.0 = somefunc()
+
+/* Use counted loop to retrieve 'returned' array handles */
+do i = 1 for array_ref.0
+  /* Extract item [array handle] from stack */
+  parse pull array_ref.i
+
+  /* Display array handle 'length' to prove items are intact */
+  say "Length of array_ref."||i "=" arrGet(array_ref.i, 0)
+
+  /* Free array handle */
+  call arrDrop array_ref.i
+end
+
+exit 0
+
+/* ----------------------------- */
+
+somefunc : procedure
+  /* Create two dynamic arrays, set their sizes to arbitrary values */
+  arrayRet1 = arrNew() ; call arrSet arrayRet1, 0, 3
+  arrayRet2 = arrNew() ; call arrSet arrayRet2, 0, 4
+
+  /* Return array handles on the stack for FIFO retrieval */
+  queue arrayRet1 ; queue arrayRet2 
+
+  /* Return number of array handles returned */
+  return 2
+
+
+/* ------------------------------------------------------------------ */
+/* @@PLEAC@@_10.10                                                    */
+/*                                                                    */
+/* Like so many programming languages, the empty string - "" - may be */
+/* used to indicate that a subroutine 'failed'. This is, of course, a */
+/* convention only, purely an arbitrary choice.                       */ 
+/*                                                                    */
+/* In order to improve the readability of examples, the variable NULL */
+/* has been assigned the empty string value, so code such as:         */
+/*                                                                    */
+/*   return ""                                                        */
+/*                                                                    */
+/* and:                                                               */
+/*                                                                    */
+/*   return NULL                                                      */
+/*                                                                    */
+/* is equivalent.                                                     */
+/* ------------------------------------------------------------------ */
+
+return ""
+
+/* ----------------------------- */
+
+empty_retval : return ""
+
+/* ----------------------------- */
+
+a = yourfunc()
+
+/* 'nop' means 'No operation' - same as Python's 'pass' */
+if a == "" then ; nop 
+
+/* ----------------------------- */
+
+a = sfunc()
+if a == "" then do
+  ERRTXT = "sfunc failed"
+  signal assertionError
+end
+
+/* ----------------------------- */
+
+assertionError : 
+  say ERRTXT
+  exit 1
+
+
+/* ------------------------------------------------------------------ */
+/* @@PLEAC@@_10.11                                                    */
+/*                                                                    */
+/* REXX does not require / support the prototyping of subroutines. A  */
+/* subroutine is simply assumed to exist as one of a:                 */ 
+/*                                                                    */
+/* * Label [Internal Subroutine]                                      */ 
+/* * File [External Subroutine]                                       */
+/*                                                                    */
+/* when a subroutine invocation is encountered. If the interpreter    */
+/* fails to locate the subroutine then a SYNTAX error is thrown.      */ 
+/* ------------------------------------------------------------------ */
+
+/* *** Translation skipped *** */
+
+
+/* ------------------------------------------------------------------ */
+/* @@PLEAC@@_10.13                                                    */
+/*                                                                    */
+/* REXX does not support true 'global' variables, therefore it does   */
+/* not implement the equivalent of Perl's LOCAL whereby a local name  */
+/* can be made to override a global name for current block duration.  */
+/* The closest facility offered in REXX are the PROCEDURE and EXPOSE  */
+/* instructions, but these apply only to the subroutine to which they */
+/* are applied, not on a block-basis like Perl's LOCAL.               */
+/*                                                                    */
+/* See <<PLEAC>>_10.2 for examples of PROCEDURE and EXPOSE            */
+/* ------------------------------------------------------------------ */
+
+/* *** Translation skipped *** */
+
+
+/* ------------------------------------------------------------------ */
+/* @@PLEAC@@_10.14                                                    */
+/*                                                                    */
+/* REXX subroutines are identified via labels. Unlike variables which */
+/* may be undefined via the DROP instruction, labels cannot be        */
+/* undefined. Any attempt to redefine a subroutine will be ignored -  */
+/* ony the first definition in the source file will be recognised.    */
+/*                                                                    */
+/* Example:                                                           */
+/*                                                                    */
+/*     call f                                                         */
+/*     exit 0                                                         */
+/*                                                                    */
+/*     /* Multiple subroutines - only the first one is recognised */  */
+/*     f : say "First 'f'"; return                                    */
+/*     f : say "Second 'f'"; return                                   */
+/*     f : say "Third 'f'"; return                                    */
+/*                                                                    */
+/* Nor is it possible to assign the name of a subroutine to a         */
+/* variable, and execute it *indirectly*. This is because REXX does   */
+/* not support the notion of object 'address' or 'reference'. In      */
+/* short, the whole concept of aliasing is entirely foreign to REXX.  */
+/*                                                                    */
+/* Aliasing-type behaviour is possible in REXX via:                   */
+/*                                                                    */
+/* * VALUE BIF                                                        */
+/* * INTERPRET instruction                                            */
+/*                                                                    */
+/* but the approach taken is to build an expression, then dynamically */
+/* evaluate it [the INTERPRET instruction is similar to the 'eval'    */
+/* facility in Perl and Python].                                      */
+/* ------------------------------------------------------------------ */
+
+/* A call to label, 'expand' */
+call expand
+
+/* Variable, 'grow', assigned literal, 'expand'
+grow = 'expand'
+
+/* A call to label [not variable], 'grow' */
+call grow
+
+/* Both equivalent to: 'call expand' */
+interpret 'call' grow
+interpret 'call' VALUE('grow')
+
+exit 0
+
+/* ----------------------------- */
+
+grow : say 'grow' ; return
+expand : say 'expand' ; return
+
+/* ----------------------------- */
+
+two.Table = "X" ; two.small = "Y"
+
+one.var = 'two.Table'
+one.big = 'two.small'
+
+interpret 'say' VALUE('one.var')
+interpret 'say' VALUE('one.big')
+
+/* ----------------------------- */
+
+fred = 'barney'       
+interpret VALUE('fred') '=' 15
+
+say fred      /* fred = 'barney' */
+say barney    /* barney = 15 */
+
+/* ----------------------------- */
+
+s = 'red("careful here")'
+interpret 'say' VALUE('s')
+
+s = 'green("careful there")'
+interpret 'say' VALUE('s')
+
+s = 'blue("careful everywhere")'
+interpret 'say' VALUE('s')
+
+/* ----------------------------- */
+
+color_font :
+  parse arg color, text
+  return "<FONT COLOR='" || color || "'>" || text || "</FONT>"
+
+/* ----------------------------- */
+
+red :
+  parse arg text ; return color_font("red", text)
+green :
+  parse arg text ; return color_font("green", text)
+blue :
+  parse arg text ; return color_font("blue", text)
+
+
+/* ------------------------------------------------------------------ */
+/* @@PLEAC@@_10.15                                                    */
+/*                                                                    */
+/* REXX does not sport an AUTOLOAD facility. However, should a        */
+/* non-existent subroutine be invoked the interpreter will signal a   */
+/* SYNTAX error, typically Syntax Error Number 43 - "Routine not      */
+/* found". It is possible to install a subroutine which checks for    */
+/* this condition, and then takes appropriate recovery steps, perhaps */
+/* copying an external subroutine from another location, or maybe     */
+/* generating one, and then reattempting the subroutine invocation.   */
+/*                                                                    */
+/* Note, however, this approach is quite limited:                     */
+/* * The undefined procedure cannot be identified                     */
+/* * SYNTAX class errors are not directly recoverable because control */
+/*   is not returned to the line following the error [because the     */
+/*   SIGNAL instruction must be used which possesses a GOTO-like      */
+/*   behaviour]                                                       */
+/*                                                                    */
+/* Example:                                                           */
+/*                                                                    */
+/*     /* Commands are system-specific - examples are Win32 */        */
+/*     DELCMD = "del/q notExistFunc.rexx"                             */
+/*     GENCMD = "@echo say 'I am notExistFunc' > notExistFunc.rexx"   */
+/*                                                                    */
+/*     main :                                                         */
+/*       /* Install SYNTAX error handler */                           */
+/*       signal on SYNTAX name notExistFuncTrap                       */
+/*                                                                    */
+/*       /* Call an undefined subroutine */                           */
+/*       call notExistFunc                                            */
+/*                                                                    */
+/*       /* If here, subroutine *was* executed */                     */
+/*       say "'notExistFunc' called ok"                               */
+/*                                                                    */
+/*       /* Delete subroutine before exiting */                       */
+/*       address system DELCMD                                        */
+/*                                                                    */
+/*       exit 0                                                       */
+/*                                                                    */
+/*     /* SYNTAX error handler */                                     */
+/*     notExistFuncTrap :                                             */
+/*       say "'notExistFunc' not found, so generating it ..."         */
+/*                                                                    */
+/*       /* Generate missing subroutine */                            */
+/*       address system GENCMD                                        */
+/*                                                                    */
+/*       /* Retry operation by branching back to known label */       */
+/*       signal main                                                  */
+/* ------------------------------------------------------------------ */
+
+/* *** Translation skipped *** */
+
+
+/* ------------------------------------------------------------------ */
+/* @@PLEAC@@_10.16                                                    */
+/*                                                                    */
+/* REXX does not support the nesting of subroutines; these must all be*/
+/* top-level, and it is not possible to restrict their visibility. If */
+/* nesting *is* attempted control returns from the point in the outer */
+/* subroutine where the first inner subroutine is defined; this can be*/
+/* a difficult problem to diagnose.                                   */
+/* ------------------------------------------------------------------ */
+
+/* WRONG ! */
+outer : procedure
+  parse arg x
+  x = x + 35
+
+  inner : return x * 19 /* 'inner' block executed; 'outer' returns */
+
+  return x + inner()    /* this line is never executed !!! */
+
+/* ----------------------------- */
+
+/* OK, don't nest subroutines; alter access with PROCEDURE */
+outer : procedure
+  parse arg x
+  x = x + 35
+  return x + inner()    /* this line now executes */
+
+inner : return x * 19   /* 'inner' has direct access to 'x' */
