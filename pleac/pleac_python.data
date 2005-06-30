@@ -70,18 +70,39 @@ mystr = mystr.replace("is", "wasn't")
 import array
 mystr = array.array("c", "This is what you have")
 mystr[5:7] = array.array("c", "wasn't")
-# s now is array('c', "This wasn't what you have")
+# mystr now is array('c', "This wasn't what you have")
 
 # You could also use MutableString (but don't - for educational purpose only)
 from UserString import MutableString
 mystr = MutableString("This is what you have")
 mystr[-12:] = "ondrous"
-# s is now "This is wondrous"
+# mystr is now "This is wondrous"
 #-----------------------------
+# you can test simple substrings with "in" (for regex matching see ch.6):
+if txt in mystr[-10:]:
+    print "'%s' found in last 10 characters"%txt
 
 
 # @@PLEAC@@_1.2
 #-----------------------------
+# Introductory Note: quite a bit of this section is not terribly Pythonic
+# as names must be set before being used. For instance, unless myvar has 
+# been previously defined, these next lines will all raise NameError:
+myvar = myvar or some_default
+myvar2 = myvar or some_default
+myvar |= some_default          # bitwise-or, not logical-or - for demo
+
+# The standard way of setting a default is thus almost always:
+myvar = default_value
+if some_condition:
+    ...                     # code which may set myvar to something else
+
+# if myvar is returned from a function and may be empty/None, then use:
+myvar = somefunc()
+if not myvar:
+    myvar = default_value
+
+#=== Perl Equivivalencies start here
 # use b if b is true, otherwise use c
 a = b or c
 
@@ -95,24 +116,47 @@ else:
 if not x:
     x = y
 #-----------------------------
+# use b if b is defined, else c
+try:
+    a = b
+except NameError:
+    a = c
+#-----------------------------
+foo = bar or "DEFAULT VALUE"
+#-----------------------------
 # find the user name on Unix systems
 import os
 user=os.environ.get("USER")
-if user==None:
+if user is None:
     user=os.environ.get("LOGNAME")
 
 # the real python solution (for both UNIX and Windows)
 import getpass
 user = getpass.getuser()
 #-----------------------------
+if not starting_point:
+    starting_point = "Greenwich"
+#-----------------------------
+if not a:         # copy only if empty
+    a = b
+
+if b:             # assign b if nonempty, else c
+    a = b
+else:
+    a = c
+#-----------------------------
 
 # @@PLEAC@@_1.3
 #-----------------------------
 v1, v2 = v2, v1
 #-----------------------------
-temp=a
-a=b
-b=temp
+temp = a
+a = b
+b = temp
+#-----------------------------
+a = "alpha"
+b = "omega"
+a, b = b, a   # the first shall be last -- and versa vice 
 #-----------------------------
 alpha, beta, production = "January March August".split()
 alpha, beta, production = beta, production, alpha
@@ -125,13 +169,13 @@ char = chr(num)
 #-----------------------------
 char = "%c" % num
 print "Number %d is character %c" % (num, num)
-print "Number %(n)d is character %(n)c" % {"n": num }
+print "Number %(n)d is character %(n)c" % {"n": num}
 print "Number %(num)d is character %(num)c" % locals()
 #=> Number 101 is character e
 #-----------------------------
 ascii_character_numbers = [ord(c) for c in "sample"]
 print ascii_character_numbers
-# [115, 97, 109, 112, 108, 101]
+#=> [115, 97, 109, 112, 108, 101]
 
 word = "".join([chr(n) for n in ascii_character_numbers])
 word = "".join([chr(n) for n in [115, 97, 109, 112, 108, 101]])
@@ -166,32 +210,38 @@ mystr = "an apple a day"
 d = {}
 for i in mystr: 
     d[i] = 1
-l = d.keys()
-l.sort()
-print "unique chars are: ", "".join(l)
+uniq = d.keys()
+uniq.sort()
+print "unique chars are: ", "".join(uniq)
 #-----------------------------
 ascvals = [ord(c) for c in mystr]
-print "total is ", sum(ascvals)
+print "total is %s for '%s'."%(sum(ascvals), mystr)
 
 # pre 2.3 version:
 total = 0
 for i in ascval: 
     total += ord(i)
-print "total is ", total
+print "total is %s for '%s'."%(total, mystr)
+# => total is 2048 for 'an apple a day'.
 #-----------------------------
 # sysv checksum
 import fileinput
-checksum = 0
-for ln in fileinput.input():
-    for c in ln:
-        checksum += ord(c)
-checksum %= (2 ** 16) -1
+values = [ord(c) for line in fileinput.input() for c in line]
+checksum = sum(values)%(2**16) - 1
 print checksum
 
+# pre 2.3 version:
+import fileinput
+checksum = 0
+for line in fileinput.input():
+    for c in line:
+        checksum += ord(c)
+checksum %= (2**16) - 1
+print checksum
+#-----------------------------
 #!/usr/bin/python
 # slowcat - emulate a   s l o w  line printer
 # usage: slowcat [- DELAY] [files ...]
-
 import sys, select
 import re
 DELAY = 1
@@ -226,6 +276,10 @@ mylist = mystr.split()
 mylist.reverse()
 revwords = ' '.join(mylist)
 #-----------------------------
+# 2.3+ only
+word = "reviver"
+is_palindrome = (word == word[::-1])
+#-----------------------------
 # Generator version
 def get_palindromes(fname):
     for line in open(fname):
@@ -256,11 +310,10 @@ mystr.expandtabs(4)
 
 # @@PLEAC@@_1.8
 #-----------------------------
-rows, cols = 24, 80
-
 text = "I am %(rows)s high and %(cols)s long"%{"rows":24, "cols":80)
 print text
 
+rows, cols = 24, 80
 text = "I am %(rows)s high and %(cols)s long"%locals()
 print text
 #=> I am 24 high and 80 long
@@ -391,19 +444,17 @@ import fileinput
 print fill("".join(fileinput.input()))
 
 #-----------------------------
-# Term::ReadKey::GetTermianlSize() is not from PERL standard
-# library. Neither in Python standard library its equivalent
-# exists. Therefore:
-
-# I will use Michael Hudson's recipie,
-# from python-list #530228.
-# http://aspn.activestate.com/ASPN/Mail/Message/python-list/530228
+# Term::ReadKey::GetTerminalSize() isn't in the Perl standard library. 
+# It isn't in the Python standard library either. Michael Hudson's 
+# recipe from python-list #530228 is shown here.
+# (http://aspn.activestate.com/ASPN/Mail/Message/python-list/530228)
+# Be aware that this will work on Unix but not on Windows.
 
 from termwrap import wrap
-
+import struct, fcntl
 def getheightwidth():
     height, width = struct.unpack(
-        "hhhh", ioctl(0, TERMIOS.TIOCGWINSZ ,"\000"*8))[0:2]
+        "hhhh", fcntl.ioctl(0, TERMIOS.TIOCGWINSZ ,"\000"*8))[0:2]
     return height, width
 
 # PERL <>, $/, $\ emulation
@@ -432,7 +483,6 @@ mystr = mystr.strip()  # both ends
 
 # @@PLEAC@@_1.15
 #-----------------------------
-# python >= 2.3
 import csv
 def parse_csv(line):
     reader = csv.reader([line], escapechar='\\')
@@ -473,7 +523,7 @@ for i in range(len(fields)):
 
 # @@PLEAC@@_1.16
 #-----------------------------
-import sys, fileinput
+import sys
 
 def soundex(name, len=4):
     """ soundex module conforming to Knuth's algorithm
@@ -508,12 +558,12 @@ user = raw_input("Lookup user: ")
 if user == "":
     sys.exit()
 name_code = soundex(user)
-for line in fileinput.input("/etc/passwd"):
-    for piece in line.split(":")[4].split():
+for line in open("/etc/passwd"):
+    line = line.split(":")
+    for piece in line[4].split():
         if name_code == soundex(piece):
-            print "%s: %s\n" % (line.split(":")[0], line.split(":")[4])
-
-
+            print "%s: %s\n" % line[0], line[4])
+#-----------------------------
 
 # @@PLEAC@@_1.17
 #-----------------------------
@@ -568,10 +618,10 @@ for line in fileinput.input(args, inplace = 1, backup = ".orig"):
         output += line[pos:match.start(0)] + mydict[match.group(1)]
         pos = match.end(0)
     sys.stdout.write(output)
-
+#-----------------------------
 
 # @@PLEAC@@_1.18
-
+#-----------------------------
 #!/usr/bin/python
 # psgrep - print selected lines of ps output by
 #          compiling user queries into code.
@@ -648,9 +698,11 @@ p.close()
 # support wildcards: "uid==500" "command~^wm" by means of re, but this
 # does not show dynamic python code generation, although re.compile
 # also precompiles.
+#-----------------------------
 
 
 # @@PLEAC@@_2.1
+#-----------------------------
 if mystr.isdigit():
     print 'is a positive integer'
 else:
@@ -661,40 +713,56 @@ if re.match("[+-]?\d+$", mystr):
 else:
     print 'is not'
 
-
 if re.match("-?(?:\d+(?:\.\d*)?|\.\d+)$", mystr):
     print 'is a decimal number'
 else:
     print 'is not'
-
+#-----------------------------
 
 # @@PLEAC@@_2.2
+#-----------------------------
 # equal(num1, num2, accuracy) : returns true if num1 and num2 are
 #   equal to accuracy number of decimal places
-def equal(i, j, a):
-    i - j < 10. ** -a
 
-wage = 536                        # $5.36/hour
-week = 40 * wage                  # $214.40
-print "One week's wage is: $%.2f" % (week/100.0)
+def equal(num1, num2, accuracy):
+    return abs(num1 - num2) < 10**(-accuracy)
+#-----------------------------
+from __future__ import division  # use / for float div and // for int div
 
+wage = 536                                      # $5.36/hour
+week = 40 * wage                                # $214.40
+print "One week's wage is: $%.2f" % (week/100)
+#=> One week's wage is: $214.40
+#-----------------------------
 
 # @@PLEAC@@_2.3
-round(num)                              # rounds to integer
-
+#-----------------------------
+rounded = round(num)            # rounds to integer
+#-----------------------------
 a = 0.255
 b = "%.2f" % a
 print "Unrounded: %f\nRounded: %s" % (a, b)
 print "Unrounded: %f\nRounded: %.2f" % (a, a)
-
-from math import *
+#=> Unrounded: 0.255000
+#=> Rounded: 0.26
+#=> Unrounded: 0.255000
+#=> Rounded: 0.26
+#-----------------------------
+from math import floor, ceil
 
 print "number\tint\tfloor\tceil"
 a = [ 3.3 , 3.5 , 3.7, -3.3 ]
 for n in a:
     print "% .1f\t% .1f\t% .1f\t% .1f" % (n, int(n), floor(n), ceil(n))
+#=> number  int   floor ceil
+#=>  3.3     3.0   3.0   4.0
+#=>  3.5     3.0   3.0   4.0
+#=>  3.7     3.0   3.0   4.0
+#=> -3.3    -3.0  -4.0  -3.0
+#-----------------------------
 
 # @@PLEAC@@_2.4
+#-----------------------------
 # Using module http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/111286
 # which allow to convert between various bases
 import baseconvert
@@ -707,47 +775,66 @@ def dec2bin(i):
 
 num = bin2dec('0110110')  # num is 54
 binstr = dec2bin(54)      # binstr is 110110
+#-----------------------------
 
 # @@PLEAC@@_2.5
+#-----------------------------
 for i in range(x,y):
     pass # i is set to every integer from x to y, excluding y
 
 for i in range(x, y, 7):
     pass # i is set to every integer from x to y, stepsize = 7
 
-print "Infancy is: "
+print "Infancy is:",
 for i in range(0,3):
     print i,
-print "\n"
+print
 
-print "Childhood is: ",
+print "Toddling is:",
+for i in range(3,5):
+    print i,
+print
+
+# Don't do ranges like this
+print "Childhood is:",
 i = 5
 while i <= 12:
     print i
     i += 1
 
+#=> Infancy is: 0 1 2
+#=> Toddling is: 3 4
+#=> Childhood is: 5 6 7 8 9 10 11 12
+#-----------------------------
+
 # @@PLEAC@@_2.6
+#-----------------------------
 # See http://www.faqts.com/knowledge_base/view.phtml/aid/4442
 # for a module that does this
-
+#-----------------------------
 
 # @@PLEAC@@_2.7
+#-----------------------------
+import random          # use help(random) to see the (large) list of funcs
 
-import random
-rand = random.random()
-rand = random.randrange(x, y)
-rand = random.randrange(25, 76)
-rand = random.choice(list)
-
+rand = random.randint(x, y)
+#-----------------------------
+rand = random.randint(25, 76)
+print rand
+#-----------------------------
+elt = random.choice(mylist)
+#-----------------------------
 import string
 chars = string.letters + string.digits + "!@$%^&*"
 password = "".join([random.choice(chars) for i in range(8)])
+#-----------------------------
 
 # @@PLEAC@@_2.8
+#-----------------------------
 # Changes the default RNG
 random.seed()
 
-# Or you can create independent RNGs  (Note: New with Python 2.1)
+# Or you can create independent RNGs
 gen1 = random.Random(6)
 gen2 = random.Random(6)
 gen3 = random.Random(10)
@@ -755,16 +842,21 @@ a1, b1 = gen1.random(), gen1.random()
 a2, b2 = gen2.random(), gen2.random()
 a3, b3 = gen3.random(), gen3.random()
 # a1 == a2 and b1 == b2
+#-----------------------------
 
 # @@PLEAC@@_2.9
+#-----------------------------
 # see http://www.sbc.su.se/~per/crng/ or http://www.frohne.westhost.com/rv11reference.htm
+#-----------------------------
 
 # @@PLEAC@@_2.10
+#-----------------------------
 import random
 mean = 25
 sdev = 2
 salary = random.gauss(mean, sdev)
 print "You have been hired at %.2f" % salary
+#-----------------------------
 
 # @@PLEAC@@_2.11
 #-----------------------------
@@ -773,13 +865,11 @@ def deg2rad(degrees):
     return (degrees / 180.) * math.pi
 def rad2deg(radians):
     return (radians / math.pi) * 180.
-
 #-----------------------------
 # math.radians and math.degrees is new in 2.3.
 import math
 radians = math.radians(degrees)
 degrees = math.degrees(radians)
-
 #-----------------------------
 # You can use deg2rad and rad2deg defined above instead
 # if you have pre-2.3 version.
@@ -787,8 +877,10 @@ import math
 def degree_sine(degrees):
     radians = math.degrees(degrees)
     return math.sin(radians)
+#-----------------------------
 
 # @@PLEAC@@_2.12
+#-----------------------------
 import math
 def tan(theta):
     return math.sin(theta) / math.cos(theta)
@@ -798,8 +890,10 @@ try:
   y = math.tan(math.pi/2)
 except ValueError:
   y = None
+#-----------------------------
 
 # @@PLEAC@@_2.13
+#-----------------------------
 import math
 log_e = math.log(VALUE)
 #-----------------------------
@@ -811,9 +905,11 @@ def log_base(base, value):
 # log_base defined as above
 answer = log_base(10, 10000)
 print "log10(10,000) =", answer
-#> log10(10,000) = 4.0
+#=> log10(10,000) = 4.0
+#-----------------------------
 
 # @@PLEAC@@_2.14
+#-----------------------------
 # NOTE: must have NumPy installed.  See
 #   http://www.pfdubois.com/numpy/
 
@@ -826,24 +922,28 @@ b = Numeric.array( ((4, 7),
 c = Numeric.matrixmultiply(a, b)
 
 print c
-#> [[  54.   30.]
-#>  [ 165.   70.]]
+#=> [[  54.   30.]
+#=>  [ 165.   70.]]
+
 print a.shape, b.shape, c.shape
-#> (2, 3) (3, 2) (2, 2)
+#=> (2, 3) (3, 2) (2, 2)
+#-----------------------------
 
 # @@PLEAC@@_2.15
+#-----------------------------
 a = 3+5j
 b = 2-2j
-c = a*b
+c = a * b
 print "c =", c
-#> c = (16+4j)
-print c.real, c.imag, c.conjugate()
-#> 16.0 4.0 (16-4j)
+#=> c = (16+4j)
 
+print c.real, c.imag, c.conjugate()
+#=> 16.0 4.0 (16-4j)
+#-----------------------------
 import cmath
 print cmath.sqrt(3+4j)
-#> (2+1j)
-
+#=> (2+1j)
+#-----------------------------
 
 # @@PLEAC@@_2.16
 number = int(hexadecimal, 16)
