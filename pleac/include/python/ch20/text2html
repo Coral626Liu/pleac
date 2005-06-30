@@ -1,0 +1,26 @@
+#!/usr/bin/python
+# text2html - trivial html encoding of normal text
+
+import sys
+import re
+
+# precompile regular expressions
+re_quoted = re.compile(r"(?m)^(>.*?)$")
+re_url = re.compile(r"<URL:(.*)>")
+re_http = re.compile(r"(http:\S+)")
+re_strong = re.compile(r"\*(\S+)\*")
+re_em = re.compile(r"\b_(\S+)_\b")
+
+# split paragraphs
+for para in open(sys.argv[1]).read().split("\n\n"):
+    # TODO encode entities: dont encode "<>" but do "&"
+    if para.startswith(" "):
+        print "<pre>\n%s\n</pre>" % para
+    else:
+        para = re_quoted.sub(r"\1<br />", para)          # quoted text
+        para = re_url.sub(r'<a href="\1">\1</a>', para)  # embedded URL
+        para = re_http.sub(r'<a href="\1">\1</a>', para) # guessed URL
+        para = re_strong.sub(r"<strong>\1</strong>",para)   # this is *bold* here
+        para = re_em.sub(r"<em>\1</em>",para)            # this is _italic_ here
+        print "<p>\n%s\n</p>" % para                     # add paragraph tags
+
