@@ -1,0 +1,64 @@
+#!/usr/bin/python
+# titlebytes - find the title and size of documents
+#
+# differences to perl
+# 
+# * no URI::Heuristics
+# * perl LWP supports fetching files from local system
+# * fetching a title from ftp or file doesnt work in perl either.
+
+import sys, urllib2, HTMLParser
+if len(sys.argv)<=1:
+    print "usage: %s url" % sys.argv[0]
+    sys.exit(1)
+raw_url = sys.argv[1] 
+
+# python has no equivalent to pearls URI::Heuristics, which
+# would do some guessing like :
+#
+#   perl            -> http://www.perl.com
+#   www.oreilly.com -> http://www.oreilly.com
+#   ftp.funet.fi    -> ftp://ftp.funet.fi
+#   /etc/passwd     -> file:/etc/passwd
+
+# simple but pedantic html parser: tpj.com breaks it.
+class html(HTMLParser.HTMLParser):
+    def __init__(self):
+        HTMLParser.HTMLParser.__init__(self)
+        self._data = {}
+        self._open_tags = []
+    def handle_starttag(self, tag, attrs):
+        self._open_tags.append(tag)
+    def handle_endtag(self, tag):
+        if len(self._open_tags)>0:
+            self._open_tags.pop()
+    def handle_data(self, data):
+        if len(self._open_tags)>0:
+            self._data[self._open_tags[-1]] = data
+    def __getattr__(self,attr):
+        if not self._data.has_key(attr):
+            return ""
+        return self._data[attr]
+
+url = raw_url
+print "%s =>\n\t" % url,
+# TODO fake user agent "Schmozilla/v9.17 Platinum"
+# TODO referer "http://wizard.yellowbrick.oz"
+# as we only do http httplib would do also
+try:
+	response = urllib2.urlopen(url)
+except:
+	print " %s" % sys.exc_info()[1].reason[1]
+	sys.exit(1)
+# title is not in response
+data = response.read()
+parser = html()
+parser.feed(data)
+parser.close()  # force processing all data
+count = len(data.split("\n"))
+bytes = len(data)
+print "%s (%d lines, %d bytes)" % (parser.title, 
+        count, 
+        bytes)
+
+# omly bytes is in response.info()
