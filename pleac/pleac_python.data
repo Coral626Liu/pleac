@@ -5214,7 +5214,146 @@ values = [hash_ref[k] for k in (key1, key2, key3)]
 
 for key in ("key1", "key2", "key3"):
     hash_ref[k] += 7    # not like in perl but the same result.
+#-----------------------------
 
+# @@PLEAC@@_11.4
+#-----------------------------
+cref = func
+cref = lambda a, b: ...
+#-----------------------------
+returned = cref(arguments)
+#-----------------------------
+funcname = "thefunc"
+locals()[funcname]();
+#-----------------------------
+commands = {
+    'happy': joy,
+    'sad': sullen,
+    'done': (lambda : sys.exit()),  # In this case "done: sys.exit" would suffice
+    'mad': angry,
+    }
+
+print "How are you?",
+cmd = raw_input()
+if cmd in commands:
+    commands[cmd]()
+else:
+    print "No such command: %s" % cmd
+#-----------------------------
+def counter_maker():
+    start = [0]
+    def counter_function():
+        # start refers to the variable defined in counter_maker, but
+        # we can't reassign or increment variables in parent scopes.
+        # By using a one-element list we can modify the list without
+        # reassigning the variable.  This way of using a list is very
+        # like a reference.
+        start[0] += 1
+        return start[0]-1
+    return counter_function
+
+counter = counter_maker()
+for i in range(5):
+    print counter()
+#-----------------------------
+counter1 = counter_maker()
+counter2 = counter_maker()
+
+for i in range(5):
+    print counter1()
+print counter1(), counter2()
+#=> 0
+#=> 1
+#=> 2
+#=> 3
+#=> 4
+#=> 5 0
+#-----------------------------
+import time
+def timestamp():
+    start_time = time.time()
+    def elapsed():
+        return time.time() - start_time
+    return elapsed
+early = timestamp()
+time.sleep(20)
+later = timestamp()
+time.sleep(10)
+print "It's been %d seconds since early" % early()
+print "It's been %d seconds since later" % later()
+#=> It's been 30 seconds since early.
+#=> It's been 10 seconds since later.
+#-----------------------------
+
+# @@PLEAC@@_11.7
+#-----------------------------
+c1 = mkcounter(20)
+c2 = mkcounter(77)
+
+print "next c1: %d" % c1['next']()  # 21
+print "next c2: %d" % c2['next']()  # 78
+print "next c1: %d" % c1['next']()  # 22
+print "last c1: %d" % c1['prev']()  # 21
+print "old  c2: %d" % c2['reset']() # 77
+#-----------------------------
+def mkcounter(start):
+    count = [start]
+    def next():
+        count[0] += 1
+        return count[0]
+    def prev():
+        count[0] -= 1
+        return count[0]
+    def get():
+        return count[0]
+    def set(value):
+        count[0] = value
+        return count[0]
+    def bump(incr):
+        count[0] += incr
+        return count[0]
+    def reset():
+        count[0] = start
+        return count[0]
+    return {
+        'next': next, 'prev': prev, 'get': get, 'set': set,
+        'bump': bump, 'reset': reset, 'last': prev}
+#-----------------------------
+
+# @@PLEAC@@_11.8
+#-----------------------------
+mref = obj.meth
+# later...
+mref("args", "go", "here")
+#-----------------------------
+
+# @@PLEAC@@_11.10
+#-----------------------------
+FieldName: Value
+#-----------------------------
+for record in list_of_records:
+    # Note: sorted added in Python 2.4
+    for key in sorted(record.keys()):
+        print "%s: %s" % (key, record[key])
+    print
+#-----------------------------
+import re
+list_of_records = [{}]
+while 1:
+    line = sys.stdin.readline()
+    if not line:
+        # EOF
+        break
+    # Remove trailing \n:
+    line = line[:1]
+    if not line.strip():
+        # New record
+        list_of_records.append({})
+        continue
+    key, value = re.split(r':\s*', line, 1)
+    # Assign the key/value to the last item in the list_of_records:
+    list_of_records[-1][key] = value
+#-----------------------------
 
 
 # ^^PLEAC^^_12.0
@@ -6627,7 +6766,55 @@ db[name2][0] = "of Optik fame"
 # However, writeback option can consume vast amounts of memory
 # to do its magic. You can clear cache with sync().
 db.sync()
+#-----------------------------
 
+# @@PLEAC@@_14.10
+#-----------------------------
+import dbmodule
+
+dbconn = dbmodule.connect(arguments...)
+
+cursor = dbconn.cursor()
+cursor.execute(sql)
+
+while 1:
+   row = cursor.fetchone()
+   if row is None:
+       break
+   ...
+
+cursor.close()
+dbconn.close()
+
+#-----------------------------
+import MySQLdb
+import pwd
+
+dbconn = MySQLdb.connect(db='dbname', host='mysqlserver.domain.com',
+                        port=3306, user='user', passwd='password')
+
+cursor = dbconn.cursor()
+cursor.execute("CREATE TABLE users (uid INT, login CHAR(8))")
+
+# Note: some databases use %s for parameters, some use ? or other
+# formats
+sql_fmt = "INSERT INTO users VALUES( %s, %s )"
+
+for userent in pwd.getpwall():
+   # the second argument contains a list of parameters which will
+   # be quoted before being put in the query
+   cursor.execute(sql_fmt, (userent.pw_uid, userent.pw_name))
+
+cursor.execute("SELECT * FROM users WHERE uid < 50")
+
+for row in cursor.fetchall():
+   # NULL will be displayed as None
+   print ", ".join(map(str, row))
+
+cursor.execute("DROP TABLE users")
+cursor.close()
+dbconn.close()
+#-----------------------------
 
 # @@PLEAC@@_15.1
 #-----------------------------
@@ -6811,9 +6998,26 @@ while (1):
     if char == 3:
         break
     print " Decimal: %3d   Octal: %3o   Hex: x%02x" % (char, char, char)
+#----------------------------------------
+
+# @@PLEAC@@_15.10
+#----------------------------------------
+import getpass
+import pwd
+import crypt
+password = getpass.getpass('Enter your password: ')
+username = getpass.getuser()
+encrypted = pwd.getpwnam(username).pw_passwd
+if not encrypted or encrypted == 'x':
+    # If using shadow passwords, this will be empty or 'x'
+    print "Cannot verify password"
+elif crypt.crypt(password, encrypted) != encrypted:
+    print "You are not", username
+else:
+    print "Welcome,", username
+#----------------------------------------
 
 # @@PLEAC@@_15.13
-
 #----------------------------------------
 # This entry uses pexpect, a pure Python Expect-like module.
 # http://pexpect.sourceforge.net/
@@ -7603,7 +7807,231 @@ def handler(req):
     req.write("Hello World!")
     return apache.OK
 
+
+
+# @@PLEAC@@_19.7
+#-----------------------------
+# This uses nevow's (http://nevow.com) stan; there's no standard
+# way to generate HTML, though there are many implementations of
+# this basic idea.
+from nevow import tags as T
+print T.ol[T.li['red'], T.li['blue'], T.li['green']]
+# <ol><li>red</li><li>blue</li><li>green</li></ol>
+
+names = 'Larry Moe Curly'.split()
+print T.ul[ [T.li(type="disc")[name] for name in names] ]
+# <ul><li type="disc">Larry</li><li type="disc">Moe</li>
+#     <li type="disc">Curly</li></ul>
+#-----------------------------
+print T.li["alpha"]
+#     <li>alpha</li>
+
+print T.li['alpha'], T.li['omega']
+#     <li>alpha</li> <li>omega</li>
+#-----------------------------
+states = {
+    "Wisconsin":  [ "Superior", "Lake Geneva", "Madison" ],
+    "Colorado":   [ "Denver", "Fort Collins", "Boulder" ],
+    "Texas":      [ "Plano", "Austin", "Fort Stockton" ],
+    "California": [ "Sebastopol", "Santa Rosa", "Berkeley" ],
+}
+
+print "<TABLE> <CAPTION>Cities I Have Known</CAPTION>";
+print T.tr[T.th('State'), T.th('Cities')]
+for k in sorted(states.keys()):
+    print T.tr[ [T.th(k)] + [T.td(city) for city in sorted(states[k])] ]
+print "</TABLE>";
+#-----------------------------
+# <TABLE> <CAPTION>Cities I Have Known</CAPTION>
+#
+#     <TR><TH>State</TH> <TH>Cities</TH></TR>
+#
+#     <TR><TH>California</TH> <TD>Berkeley</TD> <TD>Santa Rosa</TD>
+#
+#         <TD>Sebastopol</TD> </TR>
+#
+#     <TR><TH>Colorado</TH> <TD>Boulder</TD> <TD>Denver</TD>
+#
+#         <TD>Fort Collins</TD> </TR>
+#
+#     <TR><TH>Texas</TH> <TD>Austin</TD> <TD>Fort Stockton</TD>
+#
+#         <TD>Plano</TD></TR>
+#
+#     <TR><TH>Wisconsin</TH> <TD>Lake Geneva</TD> <TD>Madison</TD>
+#
+#         <TD>Superior</TD></TR>
+#
+# </TABLE>
+#-----------------------------
+print T.table[
+        [T.caption['Cities I have Known'],
+         T.tr[T.th['State'], T.th['Cities']] ] +
+        [T.tr[ [T.th(k)] + [T.td(city) for city in sorted(states[k])]]
+         for k in sorted(states.keys())]]
+#-----------------------------
+# salcheck - check for salaries
+import MySQLdb
+import cgi
+
+form = cgi.FieldStorage()
+
+if 'limit' in form:
+    limit = int(form['limit'].value)
+else:
+    limit = ''
+
+# There's not a good way to start an HTML/XML construct with stan
+# without completing it.
+print '<html><head><title>Salary Query</title></head><body>'
+print T.h1['Search']
+print '<form>'
+print T.p['Enter minimum salary',
+          T.input(type="text", name="limit", value=limit)]
+print T.input(type="submit")
+print '</form>'
+
+if limit:
+    dbconn = MySQLdb.connect(db='somedb', host='server.host.dom',
+                             port=3306, user='username',
+                             passwd='password')
+    cursor = dbconn.cursor()
+    cursor.execute("""
+    SELECT name, salary FROM employees
+    WHERE salary > %s""", (limit,))
+
+    print T.h1["Results"]
+    print "<TABLE BORDER=1>"
+
+    for row in cursor.fetchall():
+        print T.tr[ [T.td(cell) for cell in row] ]
+
+    print "</TABLE>\n";
+    cursor.close()
+    dbconn.close()
+
+print '</body></html>'
+#-----------------------------
+
+# @@PLEAC@@_19.8
+#-----------------------------
+url = "http://python.org/pypi"
+print "Location: %s\n" % url
+sys.exit()
+#-----------------------------
+# oreobounce - set a cookie and redirect the browser
+import Cookie
+import time
+
+c = Cookie.SimpleCookie()
+c['filling'] = 'vanilla cr?me'
+now = time.time()
+future = now + 3*(60*60*24*30) # 3 months
+expire_date = time.strftime('%a %d %b %Y %H:%M:%S GMT', future)
+c['filling']['expires'] = expire_date
+c['filling']['domain'] = '.python.org'
+
+whither  = "http://somewhere.python.org/nonesuch.html"
+
+# Prints the cookie header
+print 'Status: 302 Moved Temporarily'
+print c
+print 'Location:', whither
+print
+
+#-----------------------------
+#Status: 302 Moved Temporarily
+#Set-Cookie: filling=vanilla%20cr%E4me; domain=.perl.com;
+#    expires=Tue, 21-Jul-1998 11:58:55 GMT
+#Location: http://somewhere.perl.com/nonesuch.html
+#-----------------------------
+# os_snipe - redirect to a Jargon File entry about current OS
+import os, re
+dir = 'http://www.wins.uva.nl/%7Emes/jargon'
+matches = [
+    (r'Mac', 'm/Macintrash.html'),
+    (r'Win(dows )?NT', 'e/evilandrude.html'),
+    (r'Win|MSIE|WebTV', 'm/MicroslothWindows.html'),
+    (r'Linux', 'l/Linux.html'),
+    (r'HP-UX', 'h/HP-SUX.html'),
+    (r'SunOS', 's/ScumOS.html'),
+    (None, 'a/AppendixB.html'),
+    ]
+
+for regex, page in matches:
+    if not regex: # default
+        break
+    if re.search(regex, os.environ['HTTP_USER_AGENT']):
+        break
+print 'Location: %s/%s\n' % (dir, page)
+#-----------------------------
+# There's no special way to print headers
+print 'Status: 204 No response'
+print
+#-----------------------------
+#Status: 204 No response
+#-----------------------------
+
+# @@PLEAC@@_19.13
+#-----------------------------
+# first open and exclusively lock the file
+import os, cgi, fcntl, cPickle
+fh = open('/tmp/formlog', 'ab')
+fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
+
+form = cgi.FieldStorage()
+# This doesn't produce a readable file; we copy the environment so
+# that we save a plain dictionary (os.environ is a dictionary-like
+# object).
+cPickle.dump((form, os.environ.copy()) fh)
+fh.close()
+#-----------------------------
+import cgi, smtplib, sys
+
+form = cgi.FieldStorage()
+email = """\
+From: %S
+To: hisname@hishost.com
+Subject: mailed form submission
+
+""" % sys.argv[0]
+
+for key in form:
+    values = form[key]
+    if not isinstance(values, list):
+        value = [values.value]
+    else:
+        value = [v.value for v in values]
+    for item in values:
+        email += '\n%s: %s' % (key, value)
+
+server = smtplib.SMTP('localhost')
+server.sendmail(sys.argv[0], ['hisname@hishost.com'], email)
+server.quit()
+#-----------------------------
+# @@INCOMPLETE@@ I don't get the point of these:
+# param("_timestamp", scalar localtime);
+# param("_environs", %ENV);
+#-----------------------------
+import fcntl, cPickle
+fh = open('/tmp/formlog', 'rb')
+fcntl.flock(fh.fileno(), fcntl.LOCK_SH)
+
+count = 0
+while 1:
+    try:
+        form, environ = cPickle.load(fh)
+    except EOFError:
+        break
+    if environ.get('REMOTE_HOST').endswith('perl.com'):
+        continue
+    if 'items requested' in form:
+        count += int(form['items requested'].value)
+print 'Total orders:', count
+#-----------------------------
+
 # @@PLEAC@@_20.1
+#-----------------------------
 import urllib
 content = urllib.urlopen(url).read()
 
