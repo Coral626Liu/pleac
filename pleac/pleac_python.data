@@ -7126,6 +7126,37 @@ which = command.expect(choices)
 # 4: TIMEOUT
 # 5: EOF
 
+# @@PLEAC@@_15.4
+# Determining Terminal or Window Size
+
+# eiter use ioctl
+import struct, fcntl, termios, sys
+
+s = struct.pack("HHHH", 0, 0, 0, 0)
+hchar, wchar = struct.unpack("HHHH", fcntl.ioctl(sys.stdout.fileno(),
+                                 termios.TIOCGWINSZ, s))[:2]
+# or curses
+import curses
+(hchar,wchar) = curses.getmaxyx()
+
+# graph contents of values
+import struct, fcntl, termios, sys
+width = struct.unpack("HHHH", fcntl.ioctl(sys.stdout.fileno(),
+                                 termios.TIOCGWINSZ, 
+                                 struct.pack("HHHH", 0, 0, 0, 0)))[1]
+if width<10:
+    print "You must have at least 10 characters"
+    sys.exit(1)
+
+max_value = 0                    
+for v in values:
+    max_value = max(max_value,v)
+    
+ratio = (width-10)/max_value   # chars per unit
+for v in values:
+    print "%8.1f %s" % (v, "*"*(v*ratio))
+
+
 # @@PLEAC@@_15.17
 # Start Python scripts without the annoying DOS window on win32
 # Use extension ".pys":
