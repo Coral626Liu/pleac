@@ -1,4 +1,4 @@
-	# -*- python -*-
+# -*- python -*-
 # vim:set ft=python:
 
 # @@PLEAC@@_NAME
@@ -836,11 +836,12 @@ print "You have been hired at %.2f" % salary
 
 # @@PLEAC@@_2.11
 #-----------------------------
+from __future__ import division
 import math
 def deg2rad(degrees):
-    return (degrees / 180.) * math.pi
+    return (degrees / 180) * math.pi
 def rad2deg(radians):
-    return (radians / math.pi) * 180.
+    return (radians / math.pi) * 180
 #-----------------------------
 # math.radians and math.degrees is new in 2.3.
 import math
@@ -858,6 +859,8 @@ def degree_sine(degrees):
 # @@PLEAC@@_2.12
 #-----------------------------
 import math
+
+# Don't use this
 def tan(theta):
     return math.sin(theta) / math.cos(theta)
 #----------------
@@ -922,47 +925,81 @@ print cmath.sqrt(3+4j)
 #-----------------------------
 
 # @@PLEAC@@_2.16
+#-----------------------------
 number = int(hexadecimal, 16)
 number = int(octal, 8)
 s = hex(number)
 s = oct(number)
 
-print "Gimme a number in decimal, octal, or hex: ",
-num = sys.stdin.readline().rstrip()
-if num[0:2] == "0x":
+num = raw_input("Gimme a number in decimal, octal, or hex: ").rstrip()
+if num.startswith("0x"):
     num = int(num[2:], 16)
-elif num[0] == "0":
+elif num.startswith("0"):
     num = int(num[1:], 8)
 else:
     num = int(num)
 print "%(num)d %(num)x %(num)o\n" % { "num": num }
+#-----------------------------
 
 
 # @@PLEAC@@_2.17
+#-----------------------------
+# This is the direct translation of the Perl code. It works on 2.3+ only
+# and is slower and less straightforward than the non-regex version below.
 import re
-
 def commify(amount):
-    orig = amount
-    new = re.sub("^(-?\d+)(\d{3})", '\g<1>,\g<2>', amount)
-    if orig == new:
-        return new
-    else:
-        return comma_me(new)
+    amount = str(amount)
+    amount = amount[::-1]
+    amount = re.sub(r"(\d\d\d)(?=\d)(?!\d*\.)", r"\1,", amount)
+    return amount[::-1]
 
-commified = commify("12345678") # => 12,345,678
+#-----------------------------
+# The non-regex version:
+def commify(amount):
+    amount = str(amount)
+    firstcomma = len(amount)%3 or 3  # set to 3 if would make a leading comma
+    first, rest = amount[:firstcomma], amount[firstcomma:]
+    segments = [first] + [rest[i:i+3] for i in range(0, len(rest), 3)]
+    return ",".join(segments)
+
+print commify(12345678) 
+#=> 12,345,678
+#-----------------------------
 
 # @@PLEAC@@_2.18
 # Printing Correct Plurals
-
-def pluralise(root, iflone, ifplural, value):
-    if value == 1 or value == -1:
-        return root + iflone
+#-----------------------------
+def pluralise(value, root, singular="", plural="s"):
+    if value == 1:
+        return root + singular
     else:
-        return root + ifplural
+        return root + plural
 
-print "It took", time, pluralise('hour', '', 's', time)
+print "It took", duration, pluralise(duration, 'hour')
 
-print "%d %s %s enough." % (time, pluralise('hour', '', 's', time), pluralise('', 'is', 'are', time))
+print "%d %s %s enough." % (duration, 
+                            pluralise(duration, 'hour'), 
+                            pluralise(duration, '', 'is', 'are'))
+#-----------------------------
+import re
+def noun_plural(word):
+    endings = [("ss", "sses"),
+               ("([psc]h)", r"\1es"),
+               ("z", "zes"),
+               ("ff", "ffs"),
+               ("f", "ves"),
+               ("ey", "eys"),
+               ("y", "ies"),
+               ("ix", "ices"),
+               ("([sx])", r"\1es"),
+               ("", "s")]
+    for singular, plural in endings:
+        ret, found = re.subn("%s$"%singular, plural, word)
+        if found:
+            return ret
+    
+verb_singular = noun_plural;       # make function alias
+#-----------------------------
 
 # @@PLEAC@@_2.19
 # Program: Calculating Prime Factors
@@ -993,26 +1030,21 @@ def factorise(num):
     # we take advantage of the fact that (i +1)**2 = i**2 + 2*i +1
     i, sqi = 2, 4
     while sqi <= num:
-        while (num % i == 0):
+        while not num%i:
             num /= i
             factors[i] = factors.get(i, 0) + 1
 
-        sqi += 2 * i + 1
+        sqi += 2*i + 1
         i += 1
 
-    #--------
     if num != 1 and num != orig:
         factors[num] = factors.get(num, 0) + 1
 
-    #--------
     if not factors:
         print "PRIME"
 
-    #--------
-    results = factors.keys()
-    results.sort()
-    for factor in results:
-        if factor > 0:
+    for factor in sorted(factors):
+        if factor:
             tmp = str(factor)
             if factors[factor]>1: tmp += "**" + str(factors[factor])
             print tmp,
@@ -1030,6 +1062,44 @@ if __name__ == '__main__':
             except ValueError:
                 print strnum, "is not an integer"
 #-----------------------------
+# A more Pythonic variant (which separates calculation from printing):
+def format_factor(base, exponent):
+    if exponent > 1:
+        return "%s**%s"%(base, exponent)
+    return str(base)
+
+def factorise(num):
+    factors = {}
+    orig = num
+
+    # we take advantage of the fact that (i+1)**2 = i**2 + 2*i +1
+    i, sqi = 2, 4
+    while sqi <= num:
+        while not num%i:
+            num /= i
+            factors[i] = factors.get(i, 0) + 1
+        sqi += 2*i + 1
+        i += 1
+
+    if num not in (1, orig):
+        factors[num] = factors.get(num, 0) + 1
+
+    if not factors:
+        return ["PRIME"]
+
+    out = [format_factor(base, exponent)
+           for base, exponent in sorted(factors.items())]
+    return out
+
+def print_factors(value):
+    try:
+        num = int(value)
+        if num != float(value):
+            raise ValueError
+    except (ValueError, TypeError):
+        raise ValueError("Can only factorise an integer")
+    factors = factorise(num) 
+    print num, "\t", " ".join(factors)
 
 # @@PLEAC@@_3.0
 #----------------------------- 
@@ -1047,11 +1117,11 @@ import datetime
 print "Today is day", time.localtime()[7], "of the current year" 
 # Today is day 218 of the current year
 
-aDate = datetime.date.today()
-print "Today is day", aDate.timetuple()[7], "of ", aDate.year
+today = datetime.date.today()
+print "Today is day", today.timetuple()[7], "of ", today.year
 # Today is day 218 of 2003
 
-print "Today is day", aDate.strftime("%j"), "of the current year" 
+print "Today is day", today.strftime("%j"), "of the current year" 
 # Today is day 218 of the current year
  
 
@@ -1059,14 +1129,14 @@ print "Today is day", aDate.strftime("%j"), "of the current year"
 #----------------------------- 
 # Finding todays date
 
-t = datetime.date.today()
-print "The date is", t
-# The date is 2003-08-06
+today = datetime.date.today()
+print "The date is", today 
+#=> The date is 2003-08-06
 
 # the function strftime() (string-format time) produces nice formatting
 # All codes are detailed at http://www.python.org/doc/current/lib/module-time.html
 print t.strftime("four-digit year: %Y, two-digit year: %y, month: %m, day: %d") 
-# four-digit year: 2003, two-digit year: 03, month: 08, day: 06
+#=> four-digit year: 2003, two-digit year: 03, month: 08, day: 06
 
 
 # @@PLEAC@@_3.2
@@ -1078,13 +1148,12 @@ print t.strftime("four-digit year: %Y, two-digit year: %y, month: %m, day: %d")
 
 t = datetime.datetime.now()
 print "Epoch Seconds:", time.mktime(t.timetuple())
-# Epoch Seconds: 1060199000.0
+#=> Epoch Seconds: 1060199000.0
 
 # For UTC
-
 t = datetime.datetime.utcnow()
 print "Epoch Seconds:", time.mktime(t.timetuple())
-# Epoch Seconds: 1060195503.0
+#=> Epoch Seconds: 1060195503.0
 
 
 # @@PLEAC@@_3.3
@@ -1094,9 +1163,9 @@ print "Epoch Seconds:", time.mktime(t.timetuple())
 now = datetime.datetime.fromtimestamp(EpochSeconds)
 #or use datetime.datetime.utcfromtimestamp()
 print now
-# datetime.datetime(2003, 8, 6, 20, 43, 20)
+#=> datetime.datetime(2003, 8, 6, 20, 43, 20)
 print now.ctime()
-# Wed Aug  6 20:43:20 2003
+#=> Wed Aug  6 20:43:20 2003
 
 # or with the time module
 oldtimetuple = time.localtime(EpochSeconds)
@@ -1115,13 +1184,13 @@ difference1 = datetime.timedelta(days=1)
 difference2 = datetime.timedelta(weeks=-2)
 
 print "One day in the future is:", now + difference1
-# One day in the future is: 2003-08-07
+#=> One day in the future is: 2003-08-07
 
 print "Two weeks in the past is:", now + difference2
-# Two weeks in the past is: 2003-07-23
+#=> Two weeks in the past is: 2003-07-23
 
 print datetime.date(2003, 8, 6) - datetime.date(2000, 8, 6)
-# 1095 days, 0:00:00
+#=> 1095 days, 0:00:00
 
 #----------------------------- 
 birthtime = datetime.datetime(1973, 01, 18, 3, 45, 50)   
@@ -2299,10 +2368,10 @@ for key in mydict.keys():
     # do something with key and value
 #-----------------------------
 # food_color per the introduction
-for food, color in food_color.iteritems():  # iteritems added in Python 2.2
+for food, color in food_color.iteritems():
     print "%s is %s." % (food, color)
 
-for food in food_color.iterkeys():  # iterkeys added in Python 2.2
+for food in food_color:
     color = food_color[food]
     print "%s is %s." % (food, color)
 
@@ -3169,7 +3238,7 @@ for t in tests:
 # Testing for a Valid Pattern
 
 import sys, re
-while 1:
+while True:
     pat = raw_input("Pattern? ")
     try:
         re.compile(pat)
@@ -3206,7 +3275,7 @@ def is_valid_pattern(pat):
 
 # @@PLEAC@@_7.0
 for line in open("/usr/local/widgets/data"):
-    if line.find("blue") != -1:
+    if blue in line:
         print line[:-1]
 #---------
 import sys, re
@@ -3229,7 +3298,7 @@ sys.stdout = old_output
 print "You have 30 seconds to reach minimum safety distance."
 # NOTE: It is better to just use
 print >> logfile, "Countdown initiated ..."
-print >> sys.stdout, "You have 30 seconds to reach minimum safety distance."
+print "You have 30 seconds to reach minimum safety distance."
 #---------
 
 # @@PLEAC@@_7.1
@@ -3306,7 +3375,7 @@ file = tempfile.TemporaryFile()
 # I would not suggest using this code for real work.
 import os, tempfile
 
-while 1:
+while True:
     name = os.tmpnam()
     try:
         fd = os.open(name, os.O_RDWR|os.O_CREAT|os.O_EXCL)
@@ -3318,7 +3387,7 @@ file = tempfile.TemporaryFileWrapper(os.fdopen(fd), name)
 # now go on to use the file ...
 #-----------------------------
 import os
-while 1:
+while True:
     tmpname = os.tmpnam()
     fd = os.open(tmpnam, os.O_RDWR | os.O_CREAT | os.O_EXCL)
     if fd:
@@ -3477,7 +3546,7 @@ import shutil
 old = open("old")
 new = open("new","w")
 
-while 1:
+while True:
     ln = old.readline()
     if not ln:
         break
@@ -3516,7 +3585,7 @@ for line in fileinput.input(inplace=1, backup=".orig"):
 import glob, re
 match = re.compile("(?<=[pP])earl")
 files = fileinput.FileInput(glob.glob("*.c"), inplace=1, backup=".orig")
-while 1:
+while True:
     line = files.readline()
     sys.stderr.write(line)
     if not line:
@@ -3528,7 +3597,7 @@ while 1:
 
 # @@PLEAC@@_7.13
 import select
-while 1:
+while True:
     rlist, wlist, xlist = select.select([file1, file2, file3], [], [], 0)
     for r in rlist:
         pass # Do something with the file handle
@@ -3642,14 +3711,14 @@ for line in file:
 #-----------------------------
 file = open(filename)
 count = 0
-while 1:
+while True:
     line = file.readline()
     if not line:
         break
     count += 1
 #-----------------------------
 count = 0
-while 1:
+while True:
     s = file.read(2**16)
     count += s.count("\n")
 #-----------------------------
@@ -3669,7 +3738,7 @@ def SepReader(infile, sep = "\n\n"):
     text = infile.read(10000)
     if not text:
         return
-    while 1:
+    while True:
         fields = text.split(sep)
         for field in fields[:-1]:
             yield field
@@ -3696,7 +3765,7 @@ for line in sys.stdin:
 pat = re.compile(r"(\w[\w'-]*)")
 for line in sys.stdin:
     pos = 0
-    while 1:
+    while True:
         match = pat.search(line, pos)
         if not match:
             break
@@ -3708,7 +3777,7 @@ for line in sys.stdin:
 pat = re.compile(r"(\w[\w'-]*)")
 for line in sys.stdin:
     scanner = pat.scanner(line)
-    while 1:
+    while True:
         match = scanner.search()
         if not match:
             break
@@ -3722,7 +3791,7 @@ pat = re.compile(r"(\w[\w'-]*)")
 seen = {}
 for line in fileinput.input():
     pos = 0
-    while 1:
+    while True:
         match = pat.search(line, pos)
         if not match:
             break
@@ -3777,7 +3846,7 @@ for paragraph in paragraphs:
 
 # ^^PLEAC^^_8.5
 import time
-while 1:
+while True:
     for line in infile:
         pass # do something with the line
     time.sleep(SOMETIME)
@@ -3787,15 +3856,15 @@ import time
 naptime = 1
 
 logfile = open("/tmp/logfile")
-while 1:
+while True:
     for line in logfile:
         print line.rstrip()
     time.sleep(naptime)
     infile.seek(0, 1)
 #-----------------------------
-while 1:
+while True:
     curpos = logfile.tell()
-    while 1:
+    while True:
         line = logfile.readline()
         if not line:
             break
@@ -3847,7 +3916,7 @@ linecache.getline(filename, DESIRED_LINE_NUMBER)
 
 # or doing it more oldskool
 lineno = 0
-while 1:
+while True:
     line = infile.readline()
     if not line or lineno == DESIRED_LINE_NUMBER:
         break
@@ -3892,7 +3961,7 @@ fields = record.split(" ")
 # ^^PLEAC^^_8.10
 file = open(filename, "r")
 prev_pos = pos = 0
-while 1:
+while True:
     line = file.readline()
     if not line:
         break
@@ -3916,7 +3985,7 @@ gif_file = open(gifname, "rb")
 #binmode(STDOUT);            # now DOS won't mangle binary output to STDOUT
 
 #-----------------------------
-while 1:
+while True:
     buff = gif.read(8 * 2**10)
     if not buff:
         break
@@ -3953,7 +4022,7 @@ file.close()
 ## use for large strings.
 file.seek(addr)
 s = ""
-while 1:
+while True:
     c = file.read(1)
     if not c or c == "\0":
         break
@@ -3961,7 +4030,7 @@ while 1:
 #-----------------------------
 file.seek(addr)
 offset = 0
-while 1:
+while True:
     s = file.read(1000)
     x = s.find("\0")
     if x != -1:
@@ -3987,7 +4056,7 @@ import re, sys
 pat = re.compile(r"([\040-\176\s]{4,})")
 for block in SepReader(sys.stdin, "\0"):
     pos = 0
-    while 1:
+    while True:
         match = pat.search(block, pos)
         if not match:
             break
@@ -4004,7 +4073,7 @@ for block in SepReader(sys.stdin, "\0"):
 # FIELDS is an array, one element per field
 import struct
 RECORDSIZE= struct.calcsize(TEMPLATE)
-while 1:
+while True:
     record = FILE.read(RECORDSIZE):
     if len(record)!=RECORDSIZE:
         raise "short read"
@@ -4067,7 +4136,7 @@ def is_safe(path):
 
 def is_verysafe(path):
     terms = []
-    while 1:
+    while True:
         path, ending = os.path.split(path)
         if not ending:
             break
@@ -4150,8 +4219,8 @@ class WTmpRecord:
 rec = WTmpRecord()
 f = open("/var/log/wtmp","rb")
 f.seek(0,2)
-while 1:
-    while 1:
+while True:
+    while True:
         bin = f.read(rec.size())
         if len(bin) != rec.size():
             break
@@ -4302,7 +4371,7 @@ outfile = open(newfile, "w")
 
 blksize = 16384          # preferred block size?
 
-while 1:
+while True:
     buf = infile.read(blksize)
     if not buf:
         break
@@ -4605,11 +4674,21 @@ os.path.walk(".",wanted,None)
 
 # ^^PLEAC^^_10.0
 #-----------------------------
+# Provided for demonstration purposes only...
 greeted = 0
 def hello():
     global greeted
     greeted += 1
     print "hi there"
+
+#... as using a callable object to save state is cleaner
+# class hello
+#     def __init__(self):
+#         self.greeted = 0
+#     def __call__(self):
+#         self.greeted += 1
+#         print "hi there"
+# hello = hello()
 #-----------------------------
 hello()                 # call subroutine hello with no arguments/parameters
 #-----------------------------
@@ -4617,7 +4696,7 @@ hello()                 # call subroutine hello with no arguments/parameters
 # ^^PLEAC^^_10.1
 #-----------------------------
 import math
-# This is for demonstration purposes only.  Use math.hypot() instead.
+# Provided for demonstration purposes only.  Use math.hypot() instead.
 def hypotenuse(side1, side2):
     return math.sqrt(side1**2 + side2**2)
 
@@ -4631,7 +4710,7 @@ print hypotenuse(*a)                 # prints 5.0
 both = men + women
 #-----------------------------
 nums = [1.4, 3.5, 6.7]
-# This is for demo purposes only.  Use:
+# Provided for demonstration purposes only.  Use:
 #     ints = [int(num) for num in nums] 
 def int_all(nums):
     retlist = []            # make new list for return
@@ -4646,10 +4725,6 @@ def trunc_em(nums):
         nums[i] = int(elem)
 trunc_em(nums)               # nums now [1,3,6]
 
-# Before 2.3 use:
-def trunc_em(nums):
-    for i in range(len(nums)):
-        nums[i] = int(nums[i])
 #-----------------------------
 ## Python doesn't have an equivalent for this
 ##$line = chomp(<>);                  # WRONG
@@ -4699,7 +4774,7 @@ def make_counter():
         yield counter
 next_counter = make_counter().next
 
-# Or pre 2.3:
+# Or:
 class Counter:
     def __init__(self):
         self.counter = 0
@@ -5339,7 +5414,7 @@ for record in list_of_records:
 #-----------------------------
 import re
 list_of_records = [{}]
-while 1:
+while True:
     line = sys.stdin.readline()
     if not line:
         # EOF
@@ -6435,7 +6510,7 @@ class Ring:
         if x is None:
             return s
         values = []
-        while 1:
+        while True:
             values.append(x.value)
             x = x.next
             if x is self.ring:
@@ -6444,7 +6519,7 @@ class Ring:
 
     def search(self, value):
         node = self.ring
-        while 1:
+        while True:
             if node.value == value:
                 return node
             node = node.next
@@ -6777,7 +6852,7 @@ dbconn = dbmodule.connect(arguments...)
 cursor = dbconn.cursor()
 cursor.execute(sql)
 
-while 1:
+while True:
    row = cursor.fetchone()
    if row is None:
        break
@@ -6938,7 +7013,7 @@ print "is a tty:", I_am_interactive()
 print "has no tty:", I_am_interactive_posix()
 
 if I_am_interactive():
-    while 1:
+    while True:
         try:
             ln = raw_input("Prompt:")
         except:
@@ -7179,7 +7254,7 @@ lines = err_out.readlines() # collect output into array, one line per element
 
 (err_out, stdin) = popen2.popen4("program args")
 output = []
-while 1:
+while True:
     line = err_out.readline()
     if not line:
         break
@@ -7382,7 +7457,7 @@ try:
     signal.alarm(5) # signal.alarm(3600)
 
     # long-time operation
-    while 1:
+    while True:
         print "foo"
 
     signal.alarm(0)
@@ -7571,7 +7646,7 @@ self = os.path.abspath(sys.argv[0])
 args = sys.argv[:]
 signal.signal(signal.SIGHUP, phoenix)
 
-while 1:
+while True:
     print "work"
     time.sleep(1)
 
@@ -8049,7 +8124,7 @@ fh = open('/tmp/formlog', 'rb')
 fcntl.flock(fh.fileno(), fcntl.LOCK_SH)
 
 count = 0
-while 1:
+while True:
     try:
         form, environ = cPickle.load(fh)
     except EOFError:
