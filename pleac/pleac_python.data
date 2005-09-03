@@ -84,7 +84,7 @@ mystr = mystr.replace("is", "wasn't")
 import array
 mystr = array.array("c", "This is what you have")
 mystr[5:7] = array.array("c", "wasn't")
-# mystr now is array('c', "This wasn't what you have")
+# mystr is now array('c', "This wasn't what you have")
 
 # You could also use MutableString (but don't - for educational purpose only)
 from UserString import MutableString
@@ -116,6 +116,32 @@ myvar = somefunc()
 if not myvar:
     myvar = default_value
 
+# If you want a default value that can be overridden by the person calling 
+# your code, you can often wrap it in a function with a named parameter:
+def myfunc(myvar="a"):
+   return myvar + "b"
+print myfunc(), myfunc("c")
+#=> ab cb
+
+# Note, though, that this won't work for mutable objects such as lists or
+# dicts that are mutated in the function as the object is only created once 
+# and repeated calls to the same function will return the same object.  This
+# can be desired behaviour however - see section 10.3, for instance.
+def myfunc(myvar=[]):
+    myvar.append("x")
+    return myvar
+print myfunc(), myfunc()
+#=> ['x'] ['x', 'x']
+
+# You need to do:
+def myfunc(myvar=None):
+    if myvar is None:
+        myvar = []
+    myvar.append("x")
+    return myvar
+print myfunc(), myfunc()
+#=> ['x'] ['x']
+
 #=== Perl Equivalencies start here
 # use b if b is true, otherwise use c
 a = b or c
@@ -138,11 +164,11 @@ except NameError:
 #-----------------------------
 foo = bar or "DEFAULT VALUE"
 #-----------------------------
-# find the user name on Unix systems
+# find the user name on Unix systems (Don't use this)
 import os
-user=os.environ.get("USER")
+user = os.environ.get("USER")
 if user is None:
-    user=os.environ.get("LOGNAME")
+    user = os.environ.get("LOGNAME")
 
 # the real python solution (for both UNIX and Windows)
 import getpass
@@ -211,17 +237,24 @@ for char in mystr:
 #-----------------------------
 mystr = "an apple a day"
 uniq = sorted(set(mystr))
-print "unique chars are: '%s'"%("".join(uniq))
+print "unique chars are: '%s'" % "".join(uniq)
+#=> unique chars are: ' adelnpy'
 #-----------------------------
 ascvals = [ord(c) for c in mystr]
 print "total is %s for '%s'."%(sum(ascvals), mystr)
-#=> total is 2048 for 'an apple a day'.
+#=> total is 1248 for 'an apple a day'.
 #-----------------------------
 # sysv checksum
+def checksum(myfile):
+    values = [ord(c) for line in myfile for c in line]
+    return sum(values)%(2**16) - 1
+
 import fileinput
-values = [ord(c) for line in fileinput.input() for c in line]
-checksum = sum(values)%(2**16) - 1
-print checksum
+print checksum(fileinput.input())   # data from sys.stdin
+
+# Using a function means any iterable can be checksummed:
+print checksum(open("C:/test.txt")  # data from file
+print checksum("sometext")          # data from string
 #-----------------------------
 #!/usr/bin/python
 # slowcat - emulate a   s l o w  line printer
@@ -300,6 +333,7 @@ mystr.expandtabs(4)
 #-----------------------------
 text = "I am %(rows)s high and %(cols)s long"%{"rows":24, "cols":80)
 print text
+#=> I am 24 high and 80 long
 
 rows, cols = 24, 80
 text = "I am %(rows)s high and %(cols)s long"%locals()
@@ -319,7 +353,16 @@ class SafeDict(dict):
 hi = "Hello"
 text = "%(hi)s and %(bye)s!"%SafeDict(locals())
 print text
-#-> Hello and [No Variable: bye]!
+#=> Hello and [No Variable: bye]!
+
+#If you don't need a particular error message, just use the Template class:
+from string import Template
+x = Template("$hi and $bye!")
+hi = "Hello"
+print x.safe_substitute(locals())
+#=> Hello and $bye!
+print x.substitute(locals()) # will throw a KeyError
+
 #-----------------------------
 
 # @@PLEAC@@_1.9
@@ -337,11 +380,53 @@ print "thIS is a loNG liNE".title()
 if a.upper() == b.upper():
     print "a and b are the same"
 #-----------------------------
+import random
+def randcase_one(letter):
+    if random.randint(0,5):   # True on 1, 2, 3, 4
+        return letter.lower()
+    else:
+        return letter.upper()
+
+def randcase(myfile):
+    for line in myfile:
+        yield "".join(randcase_one(letter) for letter in line[:-1])
+
+for line in randcase(myfile):
+    print line
+#-----------------------------
 
 # @@PLEAC@@_1.10
 #-----------------------------
 "I have %d guanacos." % (n + 1)
 print "I have", n+1, "guanacos."
+#-----------------------------
+#Python templates disallow in-string calculations (see PEP 292)
+from string import Template
+
+email_template = Template("""\
+To: $address
+From: Your Bank
+CC: $cc_number
+Date: $date
+
+Dear $name,
+
+Today you bounced check number $checknum to us.
+Your account is now closed.
+
+Sincerely,
+the management
+""")
+
+import random
+import datetime
+
+person = {"address":"Joe@somewhere.com",
+          "name": "Joe",
+          "cc_number" : 1234567890,
+          "checknum" : 500+random.randint(0,99)}
+
+print email_template.substitute(person, date=datetime.date.today())
 #-----------------------------
 
 # @@PLEAC@@_1.11
@@ -681,20 +766,37 @@ p.close()
 
 # @@PLEAC@@_2.1
 #-----------------------------
-if mystr.isdigit():
-    print 'is a positive integer'
+# The standard way of validating numbers is to convert them and catch
+# an exception on failure
+
+try:
+    myfloat = float(mystr)
+    print "is a decimal number" 
+except TypeError:
+    print "is not a decimal number"
+
+try:
+    myint = int(mystr)
+    print "is an integer"
+except TypeError:
+    print "is not an integer"
+
+# Do not use explicit checking.  It's prone to errors:
+if mystr.isdigit():                         # Fails on "+4"
+    print 'is a positive integer'   
 else:
     print 'is not'
 
-if re.match("[+-]?\d+$", mystr):
-    print 'is an integer'
+if re.match("[+-]?\d+$", mystr):            # Fails on "- 1" 
+    print 'is an integer'           
 else:
     print 'is not'
 
-if re.match("-?(?:\d+(?:\.\d*)?|\.\d+)$", mystr):
+if re.match("-?(?:\d+(?:\.\d*)?|\.\d+)$", mystr):  Opaque, and fails on "- 1"
     print 'is a decimal number'
 else:
     print 'is not'
+
 #-----------------------------
 
 # @@PLEAC@@_2.2
