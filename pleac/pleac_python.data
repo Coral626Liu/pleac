@@ -843,17 +843,15 @@ for n in a:
 
 # @@PLEAC@@_2.4
 #-----------------------------
-# Using module http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/111286
-# which allow to convert between various bases
-import baseconvert
+# To convert a string in any base up to base 36, use the optional arg to int():
+num = int('0110110', 2)   # num is 54
 
-def bin2dec(i):
-    return baseconvert.baseconvert(i, baseconvert.BASE2, baseconvert.BASE10)
-
+# To convert an int to an string representation in another base, you could use
+# <http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/111286>:
+import baseconvert 
 def dec2bin(i):
     return baseconvert.baseconvert(i, baseconvert.BASE10, baseconvert.BASE2)
 
-num = bin2dec('0110110')  # num is 54
 binstr = dec2bin(54)      # binstr is 110110
 #-----------------------------
 
@@ -940,6 +938,10 @@ print "You have been hired at %.2f" % salary
 
 # @@PLEAC@@_2.11
 #-----------------------------
+radians = math.radians(degrees)
+degrees = math.degrees(radians)
+
+# pre-2.3:
 from __future__ import division
 import math
 def deg2rad(degrees):
@@ -947,16 +949,10 @@ def deg2rad(degrees):
 def rad2deg(radians):
     return (radians / math.pi) * 180
 #-----------------------------
-# math.radians and math.degrees is new in 2.3.
-import math
-radians = math.radians(degrees)
-degrees = math.degrees(radians)
-#-----------------------------
-# You can use deg2rad and rad2deg defined above instead
-# if you have pre-2.3 version.
+# Use deg2rad instead of math.radians if you have pre-2.3 Python.
 import math
 def degree_sine(degrees):
-    radians = math.degrees(degrees)
+    radians = math.radians(degrees)
     return math.sin(radians)
 #-----------------------------
 
@@ -964,7 +960,7 @@ def degree_sine(degrees):
 #-----------------------------
 import math
 
-# Don't use this
+# Don't use this.  Use math.tan() instead.
 def tan(theta):
     return math.sin(theta) / math.cos(theta)
 #----------------
@@ -1048,17 +1044,6 @@ print "%(num)d %(num)x %(num)o\n" % { "num": num }
 
 # @@PLEAC@@_2.17
 #-----------------------------
-# This is the direct translation of the Perl code. It works on 2.3+ only
-# and is slower and less straightforward than the non-regex version below.
-import re
-def commify(amount):
-    amount = str(amount)
-    amount = amount[::-1]
-    amount = re.sub(r"(\d\d\d)(?=\d)(?!\d*\.)", r"\1,", amount)
-    return amount[::-1]
-
-#-----------------------------
-# The non-regex version:
 def commify(amount):
     amount = str(amount)
     firstcomma = len(amount)%3 or 3  # set to 3 if would make a leading comma
@@ -1068,7 +1053,15 @@ def commify(amount):
 
 print commify(12345678) 
 #=> 12,345,678
-#-----------------------------
+
+# Don't use the direct translation of the Perl code. It works on 2.3+ only
+# and is slower and less straightforward than the non-regex version above.
+import re
+def commify(amount):
+    amount = str(amount)
+    amount = amount[::-1]
+    amount = re.sub(r"(\d\d\d)(?=\d)(?!\d*\.)", r"\1,", amount)
+    return amount[::-1]
 
 # @@PLEAC@@_2.18
 # Printing Correct Plurals
@@ -1249,7 +1242,6 @@ print t.strftime("four-digit year: %Y, two-digit year: %y, month: %m, day: %d")
 # To work with Epoch Seconds, you need to use the time module
 
 # For the local timezone
-
 t = datetime.datetime.now()
 print "Epoch Seconds:", time.mktime(t.timetuple())
 #=> Epoch Seconds: 1060199000.0
@@ -1275,7 +1267,7 @@ print now.ctime()
 oldtimetuple = time.localtime(EpochSeconds)
 # oldtimetuple contains (year, month, day, hour, minute, second, weekday, yearday, daylightSavingAdjustment) 
 print oldtimetuple 
-# (2003, 8, 6, 20, 43, 20, 2, 218, 1)
+#=> (2003, 8, 6, 20, 43, 20, 2, 218, 1)
 
 
 # @@PLEAC@@_3.4
@@ -1297,27 +1289,26 @@ print datetime.date(2003, 8, 6) - datetime.date(2000, 8, 6)
 #=> 1095 days, 0:00:00
 
 #----------------------------- 
-birthtime = datetime.datetime(1973, 01, 18, 3, 45, 50)   
-# 18/jan/1973, 3:45:50am
+birthtime = datetime.datetime(1973, 01, 18, 3, 45, 50)   # 1973-01-18 03:45:50
+
 interval = datetime.timedelta(seconds=5, minutes=17, hours=2, days=55) 
 then = birthtime + interval
 
 print "Then is", then.ctime()
-# Then is Wed Mar 14 06:02:55 1973
+#=> Then is Wed Mar 14 06:02:55 1973
 
 print "Then is", then.strftime("%A %B %d %I:%M:%S %p %Y")
-# Then is Wednesday March 14 06:02:55 AM 1973
+#=> Then is Wednesday March 14 06:02:55 AM 1973
 
 #-----------------------------
 when = datetime.datetime(1973, 1, 18) + datetime.timedelta(days=55) 
-print "Nat was 55 days old on: ", when.month, "/", when.day, "/", when.year 
-# Nat was 55 days old on:  3 / 14 / 1973
+print "Nat was 55 days old on:", when.strftime("%m/%d/%Y").lstrip("0")
+#=> Nat was 55 days old on: 3/14/1973
 
 
 # @@PLEAC@@_3.5
 #----------------------------- 
-# Difference of Two Dates
-# Also use the rather nice datetime.timedelta objects
+# Dates produce timedeltas when subtracted.
 
 diff = date2 - date1
 diff = datetime.date(year1, month1, day1) - datetime.date(year2, month2, day2)
@@ -1328,20 +1319,19 @@ nat  = datetime.datetime(1973, 1, 18, 3, 45, 50)
 
 difference = bree - nat
 print "There were", difference, "minutes between Nat and Bree"
-# There were 3071 days, 0:49:35  minutes between Nat and Bree
+#=> There were 3071 days, 0:49:35 between Nat and Bree
 
-weeks = difference.days / 7
-days = difference.days % 7
-hours = difference.seconds / 60 / 60
-minutes = (difference.seconds / 60) % 60
-seconds = difference.seconds % 60
+weeks, days = divmod(difference.days, 7)
+
+minutes, seconds = divmod(difference.seconds, 60)
+hours, minutes = divmod(minutes, 60)
 
 print "%d weeks, %d days, %d:%d:%d" % (weeks, days, hours, minutes, seconds)
-# 438 weeks, 5 days, 0:49:35
+#=> 438 weeks, 5 days, 0:49:35
 
 #----------------------------- 
-print "There were", difference.days, "days between bree and nat" 
-# There were 3071 days between bree and nat
+print "There were", difference.days, "days between Bree and Nat." 
+#=> There were 3071 days between bree and nat
 
 
 # @@PLEAC@@_3.6
@@ -1351,13 +1341,12 @@ print "There were", difference.days, "days between bree and nat"
 when = datetime.date(1981, 6, 16)
 
 print "16/6/1981 was:"
-print when.strftime("Day %w of the week (a %A). Day %d of the month
-(%B).")
+print when.strftime("Day %w of the week (a %A). Day %d of the month (%B).")
 print when.strftime("Day %j of the year (%Y), in week %W of the year.")
 
-# 16/6/1981 was:
-# Day 2 of the week (a Tuesday). Day 16 of the month (June).
-# Day 167 of the year (1981), in week 24 of the year.
+#=> 16/6/1981 was:
+#=> Day 2 of the week (a Tuesday). Day 16 of the month (June).
+#=> Day 167 of the year (1981), in week 24 of the year.
 
 
 # @@PLEAC@@_3.7
@@ -1375,17 +1364,13 @@ time.strptime("16/6/1981", "%d/%m/%Y")
 EpochSeconds = time.mktime(time.strptime("16/6/1981", "%d/%m/%Y")) 
 now = datetime.datetime.fromtimestamp(EpochSeconds)
 
-
 # @@PLEAC@@_3.8
 #----------------------------- 
 # Printing a Date
-# Use datetime.strftime()
+# Use datetime.strftime() - see helpfiles in distro or at python.org
 
 print datetime.datetime.now().strftime("The date is %A (%a) %d/%m/%Y") 
-# The date is Friday (Fri) 08/08/2003
-
-# Other allowed codes are in the documentation at python.org
-
+#=> The date is Friday (Fri) 08/08/2003
 
 # @@PLEAC@@_3.9
 #----------------------------- 
