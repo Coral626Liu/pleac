@@ -21,6 +21,11 @@
 # @@SKIP@@ Where a 2.3 or 2.4 feature is unable to be replicated, an effort
 # @@SKIP@@ has been made to provide a backward-compatible version in addition
 # @@SKIP@@ to one using modern idioms.
+# @@SKIP@@ 
+# @@SKIP@@ Examples which translate the original Perl closely but which are
+# @@SKIP@@ unPythonic are prefixed with a comment stating "DON'T DO THIS".
+# @@SKIP@@ In some cases, it may be useful to know the techniques in these, 
+# @@SKIP@@ though it's a bad solution for the specific problem.
 
 # @@PLEAC@@_1.0
 #-----------------------------
@@ -80,13 +85,13 @@ mystr = mystr[:5] + "wasn't" + mystr[7:]
 mystr = "This is what you have"
 mystr = mystr.replace("is", "wasn't")
 
-# For in-place modification you could use character arrays (but don't)
+# DON'T DO THIS: In-place modification could be done using character arrays
 import array
 mystr = array.array("c", "This is what you have")
 mystr[5:7] = array.array("c", "wasn't")
 # mystr is now array('c', "This wasn't what you have")
 
-# You could also use MutableString (but don't - for educational purpose only)
+# DON'T DO THIS: It could also be done MutableString 
 from UserString import MutableString
 mystr = MutableString("This is what you have")
 mystr[-12:] = "ondrous"
@@ -164,15 +169,15 @@ except NameError:
 #-----------------------------
 foo = bar or "DEFAULT VALUE"
 #-----------------------------
-# find the user name on Unix systems (Don't use this)
+# the Pythonic way to get a user (for both UNIX and Windows)
+import getpass
+user = getpass.getuser()
+
+# DON'T DO THIS: find the user name on Unix systems 
 import os
 user = os.environ.get("USER")
 if user is None:
     user = os.environ.get("LOGNAME")
-
-# the real python solution (for both UNIX and Windows)
-import getpass
-user = getpass.getuser()
 #-----------------------------
 if not starting_point:
     starting_point = "Greenwich"
@@ -873,7 +878,7 @@ for i in range(3,5):
     print i,
 print
 
-# Don't do ranges like this
+# DON'T DO THIS:
 print "Childhood is:",
 i = 5
 while i <= 12:
@@ -960,7 +965,7 @@ def degree_sine(degrees):
 #-----------------------------
 import math
 
-# Don't use this.  Use math.tan() instead.
+# DON'T DO THIS.  Use math.tan() instead.
 def tan(theta):
     return math.sin(theta) / math.cos(theta)
 #----------------
@@ -1054,8 +1059,8 @@ def commify(amount):
 print commify(12345678) 
 #=> 12,345,678
 
-# Don't use the direct translation of the Perl code. It works on 2.3+ only
-# and is slower and less straightforward than the non-regex version above.
+# DON'T DO THIS. It works on 2.3+ only and is slower and less straightforward
+# than the non-regex version above.
 import re
 def commify(amount):
     amount = str(amount)
@@ -1506,7 +1511,12 @@ if __name__ == '__main__':
 
 # @@PLEAC@@_4.0
 #-----------------------------
-nested = ["this", "that", "the", "other"]
+# Python does not automatically flatten lists, in other words
+# in the following, non-nested contains four elements and
+# nested contains three elements, the third element of which
+# is itself a list containing two elements:
+non_nested = ["this", "that", "the", "other"]
+nested = ["this", "that", ["the", "other"]]
 #-----------------------------
 tune = ["The", "Star-Spangled", "Banner"]
 #-----------------------------
@@ -1687,7 +1697,7 @@ for line in os.popen("who"):
     if "dalke" in line:
         print line,  # or print line[:-1]
 
-import os
+# or:
 print "".join([line for line in os.popen("who")
                    if "dalke" in line]),
 
@@ -1733,7 +1743,7 @@ for fruit in fruits:
 #=> Apple tastes good in a pie.
 #=> Blackberry tastes good in a pie.
 #-----------------------------
-# Don't do this:
+# DON'T DO THIS:
 for i in range(len(fruits)):
     print fruits[i], "tastes good in a pie."
 
@@ -1759,6 +1769,12 @@ uniq = list(set(mylist))
 # See http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/259174
 # for a more heavyweight version of a bag
 seen = {}
+for item in mylist:
+    seen[item] = seen.get(item, 0) + 1
+
+uniq = seen.keys()
+#-----------------------------
+seen = {}
 uniq = []
 for item in mylist:
     count = seen.get(item, 0)
@@ -1766,27 +1782,13 @@ for item in mylist:
         uniq.append(item)
     seen[item] = count + 1
 #-----------------------------
-seen = {}
-for item in mylist:
-    seen[item] = seen.get(item, 0) + 1
-
-uniq = seen.keys()
-#-----------------------------
-# NOTE: It's a bad idea to use this in real code, since the previous
-# example is easier to understand and common.
-seen = {}
-uniq = [item for item in mylist
-            if not seen.setdefault(item, []) and 
-                   seen[item].append(1) is None]
-
-#-----------------------------
 # generate a list of users logged in, removing duplicates
 import os
 usernames = [line.split()[0] for line in os.popen("who")]
 uniq = sorted(set(usernames))
 print "users logged in:", " ".join(uniq)
 
-# A more literal translation (don't do things this way)
+# DON'T DO THIS:
 import os
 ucnt = {}
 for line in os.popen("who"):
@@ -1810,25 +1812,25 @@ a_set = set(a_list)
 b_set = set(b_list)
 aonly = list(a_set - b_set)  # Elements in a_set but not in b_set
 
-# A more literal translation (For obvious reasons, don't use it)
+# DON'T DO THIS.
 seen = {}                 # lookup table to test membership of B
 aonly = []                # answer
 
-# build lookup table
+#    build lookup table
 for item in b_list:
     seen[item] = 1
 
-# find only elements in a_list and not in b_list
+#    find only elements in a_list and not in b_list
 for item in a_list:
     if not item not in seen:
         # it's not in 'seen', so add to 'aonly'
         aonly.append(item)
 #-----------------------------
-# There's lots of ways not to do it.  Here's another:
+# DON'T DO THIS.  There's lots of ways not to do it.
 seen = {}   # lookup table
 aonly = []  # answer
 
-# build lookup table - NOTE: it's both unnecessary and poor Python style
+#     build lookup table - unnecessary and poor Python style
 [seen.update({x: 1}) for x in b_list]
 
 aonly = [item for item in a_list if item not in seen]
@@ -1836,7 +1838,7 @@ aonly = [item for item in a_list if item not in seen]
 #-----------------------------
 aonly = list(set(a_list))
 
-# Don't use this more literal translation:
+# DON'T DO THIS.
 seen = {}
 aonly = []
 for item in a_list:
@@ -1849,14 +1851,15 @@ mydict["key2"] = 2
 #-----------------------------
 mydict[("key1", "key2")] = (1,2)
 #-----------------------------
-# Don't use these either.
+# DON'T DO THIS:
 seen = dict.fromkeys(B.keys())
 
-# pre-2.3:
+# DON'T DO THIS pre-2.3:
 seen = {}
 for term in B:
     seen[term] = None
 #-----------------------------
+# DON'T DO THIS:
 seen = {}
 for k, v in B:
     seen[k] = 1
@@ -1875,12 +1878,12 @@ isect = a_set & b_set   # or a_set.intersection(b_set)
 diff = a_set ^ b_set    # or a_set.symmetric_difference(b_set)
 
 
-# The remainder of this section should be ignored - it provides
-# redundant translations of Perl code. TMTOWNTDI and all that...
+# DON'T DO THIS:
 union_list = []; isect_list = []; diff = []
 union_dict = {}; isect_dict = {}
 count = {}
 #-----------------------------
+# DON'T DO THIS:
 for e in a:
     union_dict[e] = 1
 
@@ -1892,6 +1895,7 @@ for e in b:
 union_list = union_dict.keys()
 isect_list = isect_dict.keys()
 #-----------------------------
+# DON'T DO THIS:
 for e in a + b:
     if union.get(e, 0) == 0:
         isect[e] = 1
@@ -1900,6 +1904,7 @@ for e in a + b:
 union = union.keys()
 isect = isect.keys()
 #-----------------------------
+# DON'T DO THIS:
 count = {}
 for e in a + b:
     count[e] = count.get(e, 0) + 1
@@ -1913,6 +1918,7 @@ for e in count.keys():
     else:
         diff.append(e)
 #-----------------------------
+# DON'T DO THIS:
 isect = []; diff = []; union = []
 count = {}
 for e in a + b:
@@ -1960,11 +1966,11 @@ revlist = list(reversed(mylist))
 revlist = mylist[:]    # shallow copy
 revlist.reverse()
 #-----------------------------
-for elem in mylist[::-1]:
+for elem in reversed(mylist):
     pass # do something with elem
 
 # or
-for elem in reversed(mylist):
+for elem in mylist[::-1]:
     pass # do something with elem
 
 # if you need the index and the list won't take too much memory:
@@ -2008,7 +2014,6 @@ def pop2(terms):
     back = terms[-2:]
     terms[-2:] = []
     return back
-
 #-----------------------------
 friends = "Peter Paul Mary Jim Tim".split()
 this, that = shift2(friends)
@@ -2019,6 +2024,9 @@ beverages = "Dew Jolt Cola Sprite Fresca".split()
 pair = pop2(beverages)
 # pair[0] contains Sprite, pair[1] has Fresca,
 # and 'beverages' has (Dew, Jolt, Cola)
+
+# In general you probably shouldn't do things that way because it's 
+# not clear from these calls that the lists are modified.
 #-----------------------------
 
 # @@PLEAC@@_4.12
@@ -2044,6 +2052,15 @@ for employee in employees:
 
 print "Highest paid engineer is:", highest_engineer.name
 #-----------------------------
+# If you need the index, use enumerate:
+for i, employee in enumerate(employees):
+    if employee.category == 'engineer':
+        highest_engineer = employee
+        break
+print "Highest paid engineer is: #%s - %s" % (i, highest_engineer.name)
+
+
+# The following is rarely appropriate:
 for i in range(len(mylist)):
     if criterion:
         pass    # do something
@@ -2118,7 +2135,7 @@ precomputed = [(compute(x), x) for x in unordered]
 precomputed.sort(lambda a, b: cmp(a[0], b[0]))
 ordered = [v for k,v in precomputed.items()]
 #-----------------------------
-# Don't use this
+# DON'T DO THIS.
 def functional_sort(mylist, function):
     mylist.sort(function)
     return mylist
@@ -2154,12 +2171,12 @@ sorted_list = sorted(names, key=lambda x: x[:1])
 #-----------------------------
 sorted_list = sorted(strings, key=len)
 #-----------------------------
-# Don't use this
+# DON'T DO THIS.
 temp = [(len(s), s) for s in strings]
 temp.sort(lambda a, b: cmp(a[0], b[0]))
 sorted_list = [x[1] for x in temp]
 #-----------------------------
-# Definitely don't use this
+# DON'T DO THIS.
 def functional_sort(mylist, function):
     mylist.sort(function)
     return mylist
@@ -2199,9 +2216,8 @@ for process in circular:
     print "Handling process", process
     time.sleep(1)
 
-# Don't use this more literal translation.  All those pops and appends
-# mean that the list needs to be constantly reallocated.  This is rather
-# bad if your list is large:
+# DON'T DO THIS. All those pops and appends mean that the list needs to be 
+# constantly reallocated.  This is rather bad if your list is large:
 import time
 class Circular(object):
     def __init__(self, data):
@@ -2229,6 +2245,29 @@ random.shuffle(mylist)
 
 # @@PLEAC@@_4.18
 #-----------------------------
+import sys
+
+def make_columns(mylist, screen_width=78):
+    if mylist:
+        maxlen = max([len(elem) for elem in mylist])
+        maxlen += 1   # to make extra space
+
+        cols = max(1, screen_width/maxlen) 
+        rows = 1 + len(mylist)/cols
+
+        # pre-create mask for faster computation
+        mask = "%%-%ds " % (maxlen-1)
+
+        for n in range(rows):
+            row = [mask%elem
+                       for elem in mylist[n::rows]]
+            yield "".join(row).rstrip()
+
+for row in make_columns(sys.stdin.readlines(), screen_width=50):
+    print row
+
+
+# A more literal translation
 import sys
 
 # subroutine to check whether at last item on line
@@ -2298,11 +2337,17 @@ if EOL(item):
 
 # @@PLEAC@@_4.19
 #-----------------------------
+def factorial(n):
+    s = 1
+    while n:
+        s *= n
+        n -= 1
+    return s   
+#-----------------------------
 import fileinput
 
 # Slightly modified from
 #   http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/66463
-
 def print_list(alist, blist=[]):
     if not alist:
         print ' '.join(blist)
@@ -2314,6 +2359,8 @@ def print_list(alist, blist=[]):
 for line in fileinput.input():
     words = line.split()
     print_list(words)
+#-----------------------------
+# @@INCOMPLETE@@ Needs memoization version (+generator version)
 #-----------------------------
 
 # @@PLEAC@@_5.0
@@ -2443,23 +2490,31 @@ print_foods()
 #=> Keys: Carrot Lemon Apple
 #=> Values: orange yellow red
 #-----------------------------
-del food_color["Banana"], food_color["Apple"], food_color["Cabbage"]
+for key in ["Banana", "Apple", "Cabbage"]:
+    del food_color[key]
 #-----------------------------
 
 
 # @@PLEAC@@_5.4
 #-----------------------------
-for key, value in mydict.items():
+for key, value in mydict.items():  
     pass # do something with key and value
+
+# If mydict is large, use iteritems() instead
+for key, value in mydict.iteritems():  
+    pass # do something with key and value
+
 #-----------------------------
+# DON'T DO THIS:
 for key in mydict.keys():
     value = mydict[key]
     # do something with key and value
 #-----------------------------
 # food_color per the introduction
-for food, color in food_color.iteritems():
+for food, color in food_color.items():
     print "%s is %s." % (food, color)
 
+# DON'T DO THIS:
 for food in food_color:
     color = food_color[food]
     print "%s is %s." % (food, color)
@@ -2640,7 +2695,7 @@ for (user, tty_list) in ttys.items():
     print user + ":", len(tty_list), "ttys."
     for tty in sorted(tty_list):
         try:
-            uid = os.stat("/dev/" + tty)[4]
+            uid = os.stat("/dev/" + tty).st_uid
             user = pwd.getpwuid(uid)[0]
         except os.error:
             user = "(not available)"
@@ -2728,7 +2783,8 @@ merged.update(b_dict)
 merged = a_dict.copy()
 merged.update(b_dict)
 #-----------------------------
-# Don't do this:
+# DON'T DO THIS:
+
 merged = {}
 for k, v in a_dict.items():
     merged[k] = v
@@ -2742,7 +2798,7 @@ drink_color = {"Galliano": "yellow",
 ingested_color = drink_color.copy()
 ingested_color.update(food_color)
 #-----------------------------
-# Don't do this:
+# DON'T DO THIS:
 drink_color = {"Galliano": "yellow",
                "Mai Tai": "blue"}
 
@@ -2752,13 +2808,13 @@ for k, v in food_color.items():
 for k, v in drink_color.items():
     substance_color[k] = v
 #-----------------------------
-# Don't do this:
+# DON'T DO THIS:
 substance_color = {}
 for mydict in (food_color, drink_color):
     for k, v in mydict:
         substance_color[k] = v
 #-----------------------------
-# Don't do this:
+# DON'T DO THIS:
 substance_color = {}
 for item in food_color.items() + drink_color.items():
     for k, v in mydict:
@@ -2801,16 +2857,17 @@ for filename in ("/etc/termcap", "/vmunix", "/bin/cat"):
     except IOError:
         pass
     else:
-        name[myfile] = filename
+        names[myfile] = filename
 
 print "open files:", ", ".join(name.values())
-for file in name.keys():
-    file.seek(0, 2)       # seek to the end
-    print "%s is %d bytes long." % (name[file], file.tell())
+for f, fname in name.items():
+    f.seek(0, 2)       # seek to the end
+    print "%s is %d bytes long." % (fname, f.tell())
 #-----------------------------
 
 # @@PLEAC@@_5.13
-# not available in Python
+# Python doesn't allow presizing of dicts, but hashing is efficient -
+# it only re-sizes at intervals, not every time an item is added.
 
 # @@PLEAC@@_5.14
 count = {}
@@ -2867,7 +2924,6 @@ for filename in filenames:
         match = pattern.match(line)
         if match:
             includes.setdefault(match.group(1), []).append(filename)
-
 #-----------------------------
 # list of files that don't include others
 mydict = {}
@@ -2897,7 +2953,8 @@ def get_input(args):
         kids.setdefault(parent, []).append(name)
     # Remove the last field added, which is the root
     kids[parent].pop()
-    if kids[parent] == []: del kids[parent]
+    if not kids[parent]: 
+        del kids[parent]
 
     return name, dirsize, kids
 
@@ -2905,7 +2962,7 @@ def getdots(root, dirsize, kids):
     size = cursize = dirsize[root]
     if kids.has_key(root):
         for kid in kids[root]:
-            cursize -= dirsize[kid]     # -= added in 1.5.2
+            cursize -= dirsize[kid]
             getdots(kid, dirsize, kids)
     if size != cursize:
         dot = root + "/."
@@ -2928,6 +2985,7 @@ def output(root, dirsize, kids, prefix = "", width = 0):
         width = len(str(dirsize[kid_list[-1]]))
         for kid in kid_list:
             output(kid, dirsize, kids, prefix, width)
+
 def main():
     root, dirsize, kids = get_input(sys.argv[1:])
     getdots(root, dirsize, kids)
@@ -2989,6 +3047,7 @@ dst = re.sub("this","that",src)
 basename = re.sub(".*/(?=[^/]+)","",progname)
 
 # Make All Words Title-Cased
+# DON'T DO THIS - use str.title() instead
 def cap(mo): return mo.group().capitalize()
 re.sub("(?P<n>\w+)",cap,"make all words title-cased")
 
@@ -2997,23 +3056,24 @@ manpage = "/usr/man/man3/foo.1"
 catpage  = re.sub("man(?=\d)","cat",manpage)
 #-----------------------------
 bindirs = "/usr/bin /bin /usr/local/bin".split()
-libdirs = bindirs
-for i in range(len(libdirs)):
-    libdirs[i] = libdirs[i].replace("bin","lib")
+libdirs = [d.replace("bin", "lib") for d in bindirs]
 
-print " ".join(libdirs),"\n"
-# /usr/lib /lib /usr/local/lib
+print " ".join(libdirs)
+#=> /usr/lib /lib /usr/local/lib
 #-----------------------------
 # strings are never modified in place.
 #-----------------------------
 
 # @@PLEAC@@_6.2
 ##---------------------------
+
+# DON'T DO THIS.  use line[:-1].isalpha() [this probably goes for the
+#    remainder of this section too!]
 import re
-if re.match("^[A-Za-z]+$",ln):
+if re.match("^[A-Za-z]+$",line):
     print "pure alphabetic"
 ##---------------------------
-if re.match(r"^[^\W\d_]+$", ln, re.LOCALE):
+if re.match(r"^[^\W\d_]+$", line, re.LOCALE):
     print "pure alphabetic"
 ##---------------------------
 import re
@@ -3082,12 +3142,12 @@ match = re.compile("""(?P<hostname>  # capture hostname
                    """,re.VERBOSE)   # for nice formatting
 
 def repl(match_obj):
+    orig_hostname = match_obj.group("hostname")
     try:
-        addr = socket.gethostbyname(match_obj.group("hostname"))
-    except:
+        addr = socket.gethostbyname(orig_hostname)
+    except socket.gaierror:
         addr = "???"
-    return "%s [%s]" % (match_obj.group("hostname"), # the original hostname
-                        addr)
+    return "%s [%s]" % (orig_hostname, addr)
 
 for ln in fileinput.input():
     print match.sub(repl, ln)
@@ -3120,41 +3180,35 @@ if len(fishes)>2:
 ##-----------------------------
 re.findall(r"(?i)(?:\w+\s+fish\s+){2}(\w+)\s+fish",pond)
 ##-----------------------------
-# in python 2.2 and later
 count = 0
-for match_object in re.finditer(r"PAT",mystr):
-    count+=1
-# or
-iter = re.finditer(r"PAT",mystr)
-try:
-    while iter.next():
-        count += 1
-except StopIteration:
-    pass
+for match_object in re.finditer(r"PAT", mystr):
+    count += 1   # or whatever you want to do here
+
 # "progressive" matching might be better if one wants match 5 from 50.
 # to count use
 count = len(re.findall(r"PAT",mystr))
 count = len(re.findall(r"aba","abaababa"))
+
 # "count" overlapping matches
 count = len(re.findall(r"(?=aba)","abaababa"))
-# FASTEST not overlapping might be string.count
+
+# FASTEST non-overlapping might be str.count
 "abaababa".count("aba")
 ##-----------------------------
 pond = "one fish two fish red fish blue fish"
 colors = re.findall(r"(?i)(\w+)\s+fish\b",pond)   # get all matches
 color = colors[2]                                 # then the one we want
-# or without a temporary array
+
+# or without a temporary list
 color = re.findall(r"(?i)(\w+)\s+fish\b",pond)[2] # just grab element 3
 
 print "The third fish in the pond is %s." % (color)
 ##-----------------------------
+import re
+
 pond = "one fish two fish red fish blue fish"
-count = 0
-evens = []
-for fish in re.findall(r"(\w+)\s+fish\b",pond):
-    if (count % 2)==1:
-        evens.append(fish)
-    count += 1
+matches = re.findall(r"(\w+)\s+fish\b",pond)
+evens = [fish for (i, fish) in enumerate(matches) if i%2]
 print "Even numbered fish are %s." % (" ".join(evens))
 ##-----------------------------
 count = 0
@@ -3182,7 +3236,8 @@ pond = "One fish two fish red fish blue fish swim here"
 color = re.findall(r"(?i)\b(\w+)\s+fish\b",pond)[-1]
 print "Last fish is "+color+"."
 # FASTER using string.
-color = pond[0:pond.rfind("fish")].split()[-1]
+lastfish = pond.rfind("fish")
+color = pond[:lastfish].split()[-1]
 ##-----------------------------
 r"""(?x)
     A             # find some pattern A
@@ -3247,7 +3302,7 @@ chunk = 0
 for paragraph in open(sys.argv[1]).read().split("\n\n"):
     chunk += 1
     fnd = match.findall(paragraph)
-    if len(fnd)>0:
+    if fnd:
         print "chunk %d in %s has <<%s>>" % (chunk,sys.argv[1],">>,<<".join(fnd))
 ## ----------------------------
 
@@ -3260,14 +3315,16 @@ chunks = open(sys.argv[1]).read().split("\n")  # on line ends
 # splitting on pattern
 import re
 pattern = r"x"
-chunks = re.split(pattern,open(sys.argv[1]).read())
+chunks = re.split(pattern, open(sys.argv[1]).read())
 ##-----------------------------
 chunks = re.split(r"(?m)^\.(Ch|Se|Ss)$",open(sys.argv[1]).read())
 print "I read %d chunks." % (len(chunks))
 # without delimiters
 chunks = re.split(r"(?m)^\.(?:Ch|Se|Ss)$",open(sys.argv[1]).read())
-# with delimters
+
+# with delimiters
 chunks = re.split(r"(?m)^(\.(?:Ch|Se|Ss))$",open(sys.argv[1]).read())
+
 # with delimiters at chunkstart
 chunks = re.findall(r"""(?xms)       # multiline, dot matches lineend, allow comments
                           ((?:^\.)?  # consume the separator if present
@@ -3282,8 +3339,13 @@ chunks = re.findall(r"""(?xms)       # multiline, dot matches lineend, allow com
 # [1] if "?:" is removed the result holds tuples: ('.Ch\nchapter x','.Ch')
 #     which might be more usefull. 
 
-# @@PLEAC@@_6.9
+# @@PLEAC@@_6.8
+##-----------------------------
+# Python doesn't have perl's range operators
+# @@INCOMPLETE@@
+# @@INCOMPLETE@@
 
+# @@PLEAC@@_6.9
 tests = (("list.?",r"^list\..$"),
         ("project.*",r"^project\..*$"),
         ("*old",r"^.*old$"),
@@ -3296,8 +3358,6 @@ tests = (("list.?",r"^list\..$"),
 # The book uses "\Q" which escapes any characters that would otherwise be
 # treated as regular expression.
 # Escaping every char fails as "\s" is not "s" in a regex.
-
-import string      # donot need re for this
 
 def glob2pat(globstr):
     pat = globstr.replace("\\",r"\\")
@@ -3360,6 +3420,65 @@ def is_valid_pattern(pat):
 
 # @@INCLUDE@@ include/python/ch06/localeg
 
+# @@PLEAC@@_6.13
+##-----------------------------
+# @@INCOMPLETE@@
+# @@INCOMPLETE@@
+
+# @@PLEAC@@_6.14
+##-----------------------------
+# @@INCOMPLETE@@
+# @@INCOMPLETE@@
+
+# @@PLEAC@@_6.15
+##-----------------------------
+# @@INCOMPLETE@@
+# @@INCOMPLETE@@
+
+# @@PLEAC@@_6.16
+##-----------------------------
+# @@INCOMPLETE@@
+# @@INCOMPLETE@@
+
+# @@PLEAC@@_6.17
+##-----------------------------
+# @@INCOMPLETE@@
+# @@INCOMPLETE@@
+
+# @@PLEAC@@_6.18
+##-----------------------------
+# @@INCOMPLETE@@
+# @@INCOMPLETE@@
+
+# @@PLEAC@@_6.19
+##-----------------------------
+import rfc822   # covers RFCs 822 and 2822 for email
+print rfc822.parseaddr("fred&barney@stonehenge.com")
+
+print rfc822.parseaddr("fred&barney@stonehenge.com (Hanna Barbara)")
+
+name, address = rfc822.parseaddr("Mr Fooby Blah <me@nowhere.com>")
+print "%s's address is '%s'"%(name, address)
+
+# @@PLEAC@@_6.20
+##-----------------------------
+# @@INCOMPLETE@@
+# @@INCOMPLETE@@
+
+# @@PLEAC@@_6.21
+##-----------------------------
+# @@INCOMPLETE@@
+# @@INCOMPLETE@@
+
+# @@PLEAC@@_6.22
+##-----------------------------
+# @@INCOMPLETE@@
+# @@INCOMPLETE@@
+
+# @@PLEAC@@_6.23
+##-----------------------------
+# @@INCOMPLETE@@
+# @@INCOMPLETE@@
 
 # @@PLEAC@@_7.0
 for line in open("/usr/local/widgets/data"):
