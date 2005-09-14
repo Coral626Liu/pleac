@@ -8500,3 +8500,49 @@ p.close()
 # Recipe #52297 has TtyFormatter, formatting underline
 # and bold in Terminal. Recipe #135005 has a writer
 # accumulating text instead of printing.
+
+# @@PLEAC@@_20.12
+
+# sample data, use ``LOGFILE = open(sys.argv[1])`` in real life
+LOGFILE = [
+        '127.0.0.1 - - [04/Sep/2005:20:50:31 +0200] "GET /bus HTTP/1.1" 301 303\n',
+        '127.0.0.1 - - [04/Sep/2005:20:50:31 +0200] "GET /bus HTTP/1.1" 301 303 "-" "Opera/8.02 (X11; Linux i686; U; en)"\n',
+        '192.168.0.1 - - [04/Sep/2005:20:50:36 +0200] "GET /bus/libjs/layersmenu-library.js HTTP/1.1" 200 6228\n',
+        '192.168.0.1 - - [04/Sep/2005:20:50:36 +0200] "GET /bus/libjs/layersmenu-library.js HTTP/1.1" 200 6228 "http://localhost/bus/" "Opera/8.02 (X11; Linux i686; U; en)"\n',
+    ]
+
+import re
+
+# similar too perl version.
+web_server_log_re = re.compile(r'^(\S+) (\S+) (\S+) \[([^:]+):(\d+:\d+:\d+) ([^\]]+)\] "(\S+) (.*?) (\S+)" (\S+) (\S+)$')
+    
+# with group naming.
+split_re = re.compile(r'''(?x)         # allow nicer formatting (but requires escaping blanks)
+                       ^(?P<client>\S+)\s
+                       (?P<identuser>\S+)\s
+                       (?P<authuser>\S+)\s
+                       \[
+                         (?P<date>[^:]+):
+                         (?P<time>[\d:]+)\s
+                         (?P<tz>[^\]]+)
+                       \]\s
+                       "
+                         (?P<method>\S+)\s
+                         (?P<url>.*?)\s
+                         (?P<protocol>\S+)
+                       "\s
+                       (?P<status>\S+)\s
+                       (?P<bytes>\S+)
+                       (?:
+                         \s
+                         "
+                           (?P<referrer>[^"]+)
+                         "\s
+                         "
+                           (?P<agent>[^"]+)
+                         "
+                       )?''')
+for line in LOGFILE:
+    f = split_re.match(line)
+    if f:
+        print "agent = %s" % f.groupdict()['agent']
