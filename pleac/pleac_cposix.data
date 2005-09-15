@@ -8,6 +8,98 @@
 // @@SKIP@@ http://www.gnu.org/software/libc/libc.html
 
 
+// @@PLEAC@@_2.7
+//------------------------------------------------------------------
+#include <stdlib.h> // rand() srand()
+
+...
+
+/*
+    rand() function is not guaranted to produce random values
+*/
+
+int random;
+  
+// the same value between 0 and RAND_MAX
+// for every run
+random = rand();
+
+...
+
+//------------------------------------------------------------------
+...
+
+float random;
+
+// the same value between 0 and 1.0
+// for every run
+random = (float) rand() / RAND_MAX;
+
+...
+
+//------------------------------------------------------------------
+...
+
+#define N 42
+
+...
+
+int random;
+
+// the same value between 0 and N -1
+// for every run
+random = (int)( N * (double)rand() / (RAND_MAX + 1.0) );
+
+...
+
+// @@PLEAC@@_2.8
+//------------------------------------------------------------------
+#include <stdlib.h> // rand() srand()
+#include <time.h> // time()
+
+...
+
+int random;
+
+// seeds a new sequence of random number
+srand(time(NULL));
+
+// a different value between 0 and RAND_MAX
+// for every run
+random = rand();
+
+...
+
+// @@PLEAC@@_2.9
+//------------------------------------------------------------------
+/*
+    under Linux /dev/random or /dev/urandom
+*/
+
+#include <stdio.h> // FILE *, fopen(), fread(), fclose()
+
+...
+
+FILE * fp;
+
+unsigned int random;
+
+if ((fp = fopen("/dev/random","r")) == NULL) {
+  perror("fopen");
+  exit(1);
+}
+
+fread(&random, sizeof(random), 1, fp);
+printf("random number %u from /dev/random\n", random);
+
+fclose(fp);
+
+...
+
+//------------------------------------------------------------------
+
+
+
 // @@PLEAC@@_3.0
 //------------------------------------------------------------------
 #include <stdio.h>
@@ -204,6 +296,255 @@ else {
     free( buffer );
   }
 }
+
+...
+
+
+// @@PLEAC@@_5.0
+//------------------------------------------------------------------
+#define _GNU_SOURCE
+
+#include <search.h> // hcreate_r() hdestroy_r() struct hsearch_data
+#include <string.h>// memset()
+#include <stdio.h>// perror()
+#include <stdlib.h> //exit()
+
+#define TAB 4
+
+...
+
+struct hsearch_data hash;
+size_t max_element = 42; // of elements in search table
+
+...
+
+char * food[] = { "Apple",
+		  "Banana",
+		  "Lemon",
+		  "Carrot"
+};
+char * color[] = { "red",
+		   "yellow",
+		   "yellow",
+		   "orange"
+};
+
+// we create the hash
+memset( &hash, 0, sizeof(hash) );
+if( hcreate_r(max_element, &hash) == 0 ) {
+  perror("hcreate_r");
+  exit(1);
+}
+
+/*
+  adding some elements
+*/
+  
+// we destroy the hash
+hdestroy_r( &hash );
+  
+...
+
+// @@PLEAC@@_5.1
+//------------------------------------------------------------------
+
+...
+
+void hash_add_element(char * elmt_key,
+		      char * elmt_data,
+		      struct hsearch_data * table) {
+
+  ENTRY item;
+  ENTRY * ret;
+    
+  item.key = strdup(elmt_key);
+  item.data = strdup(elmt_data);
+
+  if( hsearch_r(item, ENTER, &ret, table) == 0 ) {
+    perror("hsearch_r");
+    exit(1);
+  }
+  
+  return;
+}
+
+...
+
+ENTRY entry;
+ENTRY * found;
+ 
+int i;
+
+/*
+  hash creation
+*/
+
+hash_add_element(food[0], color[0], &hash);
+hash_add_element(food[1], color[1], &hash);
+hash_add_element(food[2], color[2], &hash);
+hash_add_element(food[3], color[3], &hash);
+
+fprintf(stdout, "Known foods:\n");
+for( i = 0; i < TAB; i++ ) {
+  entry.key = food[i];
+  hsearch_r( entry, FIND, &found, &hash );
+  fprintf(stdout, "%s\n", found->key);
+
+  // It is the responsibility of the program code
+  // to free the elements contained in the hashing table
+  free(found->key);
+  free(found->data);
+}
+
+/*
+  hash destruction
+*/
+
+...
+
+# Known foods:
+# Apple
+# Banana
+# Lemon
+# Carrot
+
+// @@PLEAC@@_5.2
+//------------------------------------------------------------------
+
+...
+
+entry.key = "Martini";
+
+if( hsearch_r( entry, FIND, &found, &hash ) != 0 )
+  // Martini exists
+else
+  // it doesn't
+
+...
+
+// @@PLEAC@@_5.3
+//------------------------------------------------------------------
+
+// we can't delete an element with the hashing table
+// provided by the GNU C library
+
+
+// @@PLEAC@@_8.2
+//------------------------------------------------------------------
+/*
+  using external program : wc -l
+*/
+#include <stdio.h>
+#include <stdlib.h> // system(), exit(); malloc(), free()
+#include <string.h> // strlen()
+#include <errno.h> // errno
+
+...
+
+char file[100] = argv[1]; // a pathname
+char * command;
+
+// we format the shell command
+command = malloc( (strlen("wc -l ") + 1) + (strlen(file) + 1) );
+sprintf(command, "%s %s", "wc -l", argv[1]);
+
+// bad solution
+
+system(command);
+
+// good solution : using popen() instead of system()
+
+FILE * message;
+if( (message = popen(command, "r")) == NULL ) {
+  fprintf(stderr, "error popen %d\n", errno);
+  exit(1);
+}
+
+char wc_output[100];
+fgets(wc_output, sizeof wc_output, message);
+fprintf(stdout, "%s", wc_output);
+
+pclose(message);
+  
+free(command);
+
+...
+
+//------------------------------------------------------------------
+/*
+    using standard C library
+*/
+#include <stdio.h>
+
+...
+
+char file[100] = argv[1]; // a pathname
+FILE * fp;
+
+if( (fp = fopen( file, "r" )) == NULL ) {
+  perror("fopen");
+  exit(1);
+}
+
+int line = 0;
+char ch;
+
+while ( (ch = getc(fp)) != EOF )
+ if (ch == '\n')
+   line++;
+
+fprintf(stdout, "number of lines : %d\n", line );
+fclose(fp);
+
+...
+
+//------------------------------------------------------------------
+/*
+    using system calls
+    /!\ fast implementation, the whole file is in memory
+*/
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <fcntl.h> // open()
+#include <sys/stat.h> 
+#include <sys/types.h>
+#include <unistd.h> // lseek(), close()
+
+...
+
+char file[100] = argv[1]; // a pathname
+int fd;
+
+fd = open(file, O_RDONLY);
+
+size_t size;
+
+size = lseek(fd, 0, SEEK_END ); // size of the buffer
+  
+char * buffer;
+buffer = malloc(size);
+  
+lseek(fd, 0, SEEK_SET); // back to the beginning of the file
+
+if( (read(fd, buffer, size)) != size ) {
+  perror("read");
+  exit(1);
+}
+  
+close(fd);
+
+int line = 0;
+
+int i;
+for( i = 0; i < size; i++ ) {
+  if(buffer[i] == '\n')
+    line++;
+}
+
+free(buffer);
+  
+fprintf(stdout, "number of lines : %d\n", line );
 
 ...
 
@@ -452,3 +793,193 @@ int outer( int arg1 ){
 
   return x + inner();
 }
+
+
+// @@PLEAC@@_11.15
+//------------------------------------------------------------------
+/* binary tree demo program */
+#define _GNU_SOURCE // getline(), tdestroy()
+
+#include <stdio.h>
+#include <search.h> // tsearch(), tfind(), tdelete(), tdestroy(); twalk()
+#include <stdlib.h> // rand(), malloc(), free()
+
+static VISIT walk_type;
+
+int compar_int( const void * elm1, const void * elm2) {
+  return ( *((int *) elm1) - *((int *) elm2) );
+}
+
+void walk( const void * node, const VISIT method, const int level) {
+  int * data;
+  
+  data = *(int **)node;
+  
+  if(method == walk_type)
+    fprintf( stdout, "%d ", *data );
+  if( method == leaf )
+    fprintf( stdout, "%d ", *data );
+  return;
+}
+
+void free_elmt( void * node ){
+  free( node );
+
+  return;
+}
+
+int main( void ) {
+
+  void * root = NULL;
+    
+  int i, *ptr;
+
+  // first generate 20 random inserts
+  for( i = 0; i < 20; i++ ) {
+    ptr = malloc(sizeof(int));
+    *ptr = (int)( 1000 * (double)rand() / (RAND_MAX + 1.0) );
+
+    if( tsearch( ptr, &root, compar_int ) == NULL ) {
+      perror("tsearch");
+      exit(1);
+    }
+  }
+
+  // now dump out the tree all three ways
+  fprintf(stdout, "Pre order\n");
+  walk_type = preorder;
+  twalk( root, walk );
+  printf("\n");
+
+  fprintf(stdout, "In order\n");
+  walk_type = postorder; // /!\  postorder is rather confusing
+  twalk( root, walk );
+  printf("\n");
+
+  fprintf(stdout, "Post order\n");
+  walk_type = endorder;
+  twalk( root, walk );
+  printf("\n");
+
+  // prompt until EOF
+  char * istr;
+  size_t size;
+  ssize_t ret;
+
+  while(1) {
+    fprintf(stdout, "Search? : ");
+    size = 0;
+    istr = NULL;
+    ret = getline( &istr, &size, stdin );
+    if( ret == -1 )
+      break;
+    sscanf( istr, "%d", &i );
+    free(istr);
+
+    if( tfind( &i, &root, compar_int ) == NULL )
+      fprintf( stdout, "No %d in tree\n", i );
+    else
+      fprintf( stdout, "Found %d\n", i );
+  }
+
+  tdestroy( root, free_elmt );
+  
+  return 0;
+}
+
+
+// @@PLEAC@@_17.8
+//------------------------------------------------------------------
+#include <stdio.h>
+#include <unistd.h> // gethostname()
+#include <stdlib.h> // malloc(), realloc(), free()
+#include <errno.h> // errno
+
+...
+
+char * hostname = NULL;
+size_t sizebuf = 8;
+
+hostname = malloc(size);
+  
+
+while( gethostname(hostname, sizebuf ) != 0 ) {
+  if( errno != ENAMETOOLONG ) {
+    perror("gethostname");
+    exit(1);
+  }
+  // the buffer size is too small
+  sizebuf += 8;
+  hostname = realloc(hostname, sizebuf);
+}
+  
+printf("my hostname : %s\n", hostname);
+
+free(hostname);
+  
+...
+
+//------------------------------------------------------------------
+#include <stdio.h>
+#include <sys/utsname.h> // struct utsname, uname()
+
+...
+
+struct utsname my_utsname;
+
+uname( &my_utsname );
+
+printf("my hostname : %s\n", my_utsname.nodename);
+
+...
+
+//------------------------------------------------------------------
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <netdb.h> // gethostbyname(), gethostbyaddr(), h_errno, herror()
+#include <netinet/in.h> // struct in_addr
+#include <arpa/inet.h> // inet_ntoa()
+
+...
+
+// we don't handle IPV6 for more simplicity
+struct in_addr address;
+struct in_addr * ip; 
+struct hostent * host;
+int i;
+
+/*
+    gethostbyname()
+*/
+char hostname[] = "a_valid_hostname";
+
+if( (host = gethostbyname(hostname)) == NULL ) {
+  herror("gethostbyname");
+  exit(1);
+}
+
+for( i = 0; host->h_addr_list[i] != NULL; i++ ) {
+  ip = ( struct in_addr *)(host->h_addr_list[i]);
+  printf("address for %s : %s\n", hostname ,inet_ntoa(*ip));
+} 
+
+/*
+    gethostbyaddr()
+*/
+char addr[] = "127.0.0.1";
+
+// we verify the IPV4 address
+if( inet_aton(addr, &address) == 0 ) {
+  fprintf(stderr, "invalid address\n");
+  return 1;
+}
+
+if( (host = gethostbyaddr( (char *)&address, sizeof(struct in_addr), AF_INET )) == NULL ) {
+  herror("gethostbyaddr");
+  exit(1);
+}
+
+printf("hostname for %s : %s\n", addr, host->h_name );
+  
+...
