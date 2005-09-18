@@ -1,0 +1,23 @@
+#!/usr/bin/python
+# clockdrift - compare another system's clock with this one
+
+import socket
+import struct
+import sys
+import time
+
+if len(sys.argv)>1:
+    him = sys.argv[1]
+else:
+    him = '127.1'
+
+SECS_of_70_YEARS = 2208988800
+
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+s.connect((him,socket.getservbyname('time','udp')))
+s.send('')
+(ptime, src) = s.recvfrom(4)
+host = socket.gethostbyaddr(src[0])
+delta = struct.unpack("!L", ptime)[0] - SECS_of_70_YEARS - time.time()
+print "Clock on %s is %d seconds ahead of this one." % (host[0], delta)
+
