@@ -98,6 +98,13 @@ mystr[-12:] = "ondrous"
 # you can test simple substrings with "in" (for regex matching see ch.6):
 if txt in mystr[-10:]:
     print "'%s' found in last 10 characters"%txt
+
+# Or use the startswith() and endswith() string methods:
+if mystr.startswith(txt):
+    print "%s starts with %s."%(mystr, txt)
+if mystr.endswith(txt):
+    print "%s ends with %s."%(mystr, txt)
+
 #-----------------------------
 
 # @@PLEAC@@_1.2
@@ -784,7 +791,7 @@ try:
 except TypeError:
     print "is not an integer"
 
-# Do not use explicit checking.  It's prone to errors:
+# DO NOT DO THIS. Explicit checking is prone to errors:
 if mystr.isdigit():                         # Fails on "+4"
     print 'is a positive integer'   
 else:
@@ -795,7 +802,7 @@ if re.match("[+-]?\d+$", mystr):            # Fails on "- 1"
 else:
     print 'is not'
 
-if re.match("-?(?:\d+(?:\.\d*)?|\.\d+)$", mystr):  Opaque, and fails on "- 1"
+if re.match("-?(?:\d+(?:\.\d*)?|\.\d+)$", mystr):  # Opaque, and fails on "- 1"
     print 'is a decimal number'
 else:
     print 'is not'
@@ -3340,7 +3347,38 @@ chunks = re.findall(r"""(?xms)       # multiline, dot matches lineend, allow com
 # @@PLEAC@@_6.8
 ##-----------------------------
 # Python doesn't have perl's range operators
-# @@INCOMPLETE@@
+# If you want to only use a selected line range, use enumerate
+# (though note that indexing starts at zero:
+for i, line in enumerate(myfile):
+    if firstlinenum <= i < lastlinenum:
+        dosomethingwith(line)
+
+# Using patterned ranges is slightly trickier -
+# You need to search for the first pattern then
+# search for the next pattern:
+import re
+for line in myfile:
+    if re.match(pat1, line):
+        break
+
+dosomethingwith(line)    # Only if pat1 can be on same line as pat2
+
+for line in myfile:
+    if re.match(pat2, line):
+        break
+    dosomethingwith(line)
+##-----------------------------
+# If you need to extract ranges a lot, the following generator func
+# may be useful:
+def extract_range(myfile, start, finish):
+    for i, line in enumerate(myfile):
+        if start <= i < finish:
+            yield line
+        elif i == finish:
+            break
+
+for line in extract_range(open("/etc/passwd"), 3, 5):
+    print line
 # @@INCOMPLETE@@
 
 # @@PLEAC@@_6.9
@@ -3420,8 +3458,14 @@ def is_valid_pattern(pat):
 
 # @@PLEAC@@_6.13
 ##-----------------------------
-# @@INCOMPLETE@@
-# @@INCOMPLETE@@
+import difflib
+matchlist = ["ape", "apple", "lapel", "peach", "puppy"]
+print difflib.get_close_matches("appel", matchlist)
+#=> ['lapel', 'apple', 'ape']
+##-----------------------------
+# Also see:
+#     http://www.personal.psu.edu/staff/i/u/iua1/python/apse/
+#     http://www.bio.cam.ac.uk/~mw263/pyagrep.html
 
 # @@PLEAC@@_6.14
 ##-----------------------------
@@ -3430,7 +3474,9 @@ def is_valid_pattern(pat):
 
 # @@PLEAC@@_6.15
 ##-----------------------------
-# @@INCOMPLETE@@
+# Python's regexes are based on Perl's, so it has the non-greedy 
+# '*?', '+?', and '??' versions of '*', '+', and '?'.
+# You should import htmllib and formatter, not roll your own.
 # @@INCOMPLETE@@
 
 # @@PLEAC@@_6.16
@@ -3460,7 +3506,18 @@ print "%s's address is '%s'"%(name, address)
 
 # @@PLEAC@@_6.20
 ##-----------------------------
-# @@INCOMPLETE@@
+# Assuming the strings all start with different letters, or you don't
+# mind there being precedence, use the startswith string method:
+
+def get_action(answer):
+    answer = answer.lower()
+    actions = ["send", "stop", "abort", "list", "end"]
+    for action in actions:
+        if action.startswith(answer):
+            return action
+
+print "Action is %s."%get_action("L")
+#=> Action is list.
 # @@INCOMPLETE@@
 
 # @@PLEAC@@_6.21
@@ -3495,24 +3552,26 @@ logfile = open("/tmp/log", "w")
 #---------
 logfile.close()
 #---------
-# NOTE: this is poor Python style.
+print >> logfile, "Countdown initiated ..."
+print "You have 30 seconds to reach minimum safety distance."
+
+# DONT DO THIS
 import sys
 old_output, sys.stdout = sys.stdout, logfile
 print "Countdown initiated ..."
 sys.stdout = old_output
 print "You have 30 seconds to reach minimum safety distance."
-# NOTE: It is better to just use
-print >> logfile, "Countdown initiated ..."
-print "You have 30 seconds to reach minimum safety distance."
 #---------
 
 # @@PLEAC@@_7.1
+# Python's open() function somewhat covers both perl's open() and 
+# sysopen() as it has optional arguments for mode and buffering.
 source = open(path)
 sink = open(path, "w")
 #---------
 # NOTE: almost no one uses the low-level os.open and os.fdopen
-# commands, so their inclusion here is just silly.  If the
-# os.fdopen(os.open(...)) was needed often, it would be turned
+# commands, so their inclusion here is just silly.  If 
+# os.fdopen(os.open(...)) were needed often, it would be turned
 # into its own function.  Instead, I'll use 'fd' to hint that
 # os.open returns a file descriptor
 import os
@@ -3521,30 +3580,30 @@ source = os.fdopen(fd)
 sink_fd = os.open(path, os.O_WRONLY)
 sink = os.fdopen(sink_fd)
 #---------
-file = open(filename, "w")
+myfile = open(filename, "w")
 fd = os.open(filename, os.O_WRONLY | os.O_CREAT)
-file = open(filename, "r+")
+myfile = open(filename, "r+")
 #---------
 fd = os.open(name, flags)
 fd = os.open(name, flags, mode)
 #---------
-file = open(path)
+myfile = open(path)
 fd = os.open(path, os.O_RDONLY)
 #-----------------------------
-file = open(path, "w")
+myfile = open(path, "w")
 fd = os.open(path, os.O_WRONLY|os.O_TRUNC|os.O_CREAT)
 fd = os.open(path, os.O_WRONLY|os.O_TRUNC|os.O_CREAT, 0600)
 #-----------------------------
 fd = os.open(path, os.O_WRONLY|os.O_EXCL|os.O_CREAT)
 fd = os.open(path, os.O_WRONLY|os.O_EXCL|os.O_CREAT, 0600)
 #-----------------------------
-file = open(path, "a")
+myfile = open(path, "a")
 fd = os.open(path, os.O_WRONLY|os.O_APPEND|os.O_CREAT)
 fd = os.open(path, os.O_WRONLY|os.O_APPEND|s.O_CREAT, 0600)
 #-----------------------------
 fd = os.open(path, os.O_WRONLY|os.O_APPEND)
 #-----------------------------
-file = open(path, "rw")
+myfile = open(path, "rw")
 fd = os.open(path, os.O_RDWR)
 #-----------------------------
 fd = os.open(path, os.O_RDWR|os.O_CREAT)
@@ -3562,10 +3621,10 @@ import os
 filename = os.path.expanduser(filename)
 
 # @@PLEAC@@_7.4
-file = open(filename)   # raise an exception on error
+myfile = open(filename)   # raise an exception on error
 
 try:
-    file = open(filename)
+    myfile = open(filename)
 except IOError, err:
     raise AssertionError("Couldn't open %s for reading : %s" %
                          (filename, err.strerror))
@@ -3573,7 +3632,7 @@ except IOError, err:
 # @@PLEAC@@_7.5
 import tempfile
 
-file = tempfile.TemporaryFile()
+myfile = tempfile.TemporaryFile()
 
 #-----------------------------
 # NOTE: The TemporaryFile() call is much more appropriate
@@ -3604,11 +3663,11 @@ os.unlink(tmpnam)
 #-----------------------------
 import tempfile
 
-file = tempfile.TemporaryFile(bufsize = 0)
+myfile = tempfile.TemporaryFile(bufsize = 0)
 for i in range(10):
-    print >>file, i
-file.seek(0)
-print "Tmp file has:", file.read()
+    print >>myfile, i
+myfile.seek(0)
+print "Tmp file has:", myfile.read()
 #-----------------------------
 
 # @@PLEAC@@_7.6
@@ -3800,6 +3859,18 @@ while True:
     sys.stdout.write(match.sub("erl",line))
 
 
+# @@PLEAC@@_7.10
+# @@INCOMPLETE@@
+# @@INCOMPLETE@@
+
+# @@PLEAC@@_7.11
+# @@INCOMPLETE@@
+# @@INCOMPLETE@@
+
+# @@PLEAC@@_7.12
+# @@INCOMPLETE@@
+# @@INCOMPLETE@@
+
 # @@PLEAC@@_7.13
 import select
 while True:
@@ -3807,22 +3878,34 @@ while True:
     for r in rlist:
         pass # Do something with the file handle
 
+# @@PLEAC@@_7.14
+# @@INCOMPLETE@@
+# @@INCOMPLETE@@
+
+# @@PLEAC@@_7.15
+# @@INCOMPLETE@@
+# @@INCOMPLETE@@
+
 # @@PLEAC@@_7.16
 # NOTE: this is all much easier in Python
-def subroutine(file):
-    print >>file, "Hello, file"
+def subroutine(myfile):
+    print >>myfile, "Hello, file"
 
-variable = file
+variable = myfile
 subroutine(variable)
+
+# @@PLEAC@@_7.17
+# @@INCOMPLETE@@
+# @@INCOMPLETE@@
 
 # @@PLEAC@@_7.18
 for file in files:
-    print >> file, stuff_to_print
+    print >> myfile, stuff_to_print
 
 # NOTE: This is unix specific
 import os
 file = os.popen("tee file1 file2 file3 >/dev/null", "w")
-print >> file, "whatever"
+print >> myfile, "whatever"
 
 # NOTE: the "make STDOUT go to three files" is bad programming style
 import os, sys
@@ -3832,12 +3915,25 @@ sys.stdout.close()
 
 # @@PLEAC@@_7.19
 import os
-file = os.fdopen(fdnum) # open the descriptor itself
-file = os.fdopen(os.dup(fdnum)) # open to a copy of the descriptor
+myfile = os.fdopen(fdnum) # open the descriptor itself
+myfile = os.fdopen(os.dup(fdnum)) # open to a copy of the descriptor
 
 ###
 outcopy = os.fdopen(os.dup(sys.stdin.fileno()), "w")
 incopy = os.fdopen(os.dup(sys.stdin.fileno()), "r")
+
+# @@PLEAC@@_7.20
+# @@INCOMPLETE@@
+# @@INCOMPLETE@@
+
+# @@PLEAC@@_7.21
+# @@INCOMPLETE@@
+# @@INCOMPLETE@@
+
+# @@PLEAC@@_7.22
+# @@INCOMPLETE@@
+# @@INCOMPLETE@@
+
 
 # ^^PLEAC^^_8.0
 #-----------------------------
@@ -3886,8 +3982,6 @@ pos = os.lseek(file.fileno(), 0, 1)       # don't change position
 
  
 # ^^PLEAC^^_8.1
-# This uses the 'yield' keyword from Python 2.2
-from __future__ import generators
 def ContReader(infile):
     lines = []
     for line in infile:
@@ -3907,6 +4001,10 @@ for line in ContReader(datafile):
 # ^^PLEAC^^_8.2
 import os
 count = int(os.popen("wc -l < " + filename).read())
+#-----------------------------
+for count, line in enumerate(open(filename):
+    pass
+count += 1  # indexing is zero based
 #-----------------------------
 file = open(filename)
 count = 0
@@ -3937,8 +4035,6 @@ while fi.readline(): pass
 
 count = fi.lineno()
 #-----------------------------
-from __future__ import generators
-
 def SepReader(infile, sep = "\n\n"):
     text = infile.read(10000)
     if not text:
@@ -4032,19 +4128,14 @@ while lines:
     # do something with 'line'
 
 #-----------------------------
-lines = file.readlines()
-lines.reverse()
-for line in lines:
-    pass # do something with 'line'
+for line in reversed(myfile):
+    pass  # do something with line
 #-----------------------------
 for i in range(len(lines)):
     line = lines[-i]
 #-----------------------------
-paragraphs = [para for para in SepReader(infile)]
-paragraphs.sort()
-for paragraph in paragraphs:
+for paragraph in sorted(SepReader(infile)):
     pass # do something
-
 #-----------------------------
 
  
