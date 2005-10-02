@@ -429,6 +429,99 @@ else
 // provided by the GNU C library
 
 
+// @@PLEAC@@_7.4
+//------------------------------------------------------------------
+#include <stdio.h>
+#include <string.h> // strerror()
+#include <errno.h> // errno
+
+...
+
+FILE * fp;
+
+if( (fp = fopen(filename, mode)) == NULL )
+  fprintf( stderr, "Couldn't open %s for reading : %s\n",
+           filename,
+           strerror(errno) );
+
+...
+
+// @@PLEAC@@_7.5
+//------------------------------------------------------------------
+#include <stdio.h> // tmpfile()
+
+...
+
+FILE * file;
+
+// /!\ the temporary filename isn't accessible
+file = tmpfile(); 
+
+...
+
+//------------------------------------------------------------------
+#include <stdio.h> // remove()
+#include <stdlib.h> // mkstemp()
+
+...
+
+int fd;
+char template[20];
+
+strcpy( template, "tmp/XXXXXX" );
+fd = mkstemp( template );
+
+if( fd < 0 ) {
+  perror( mkstemp );
+  exit( 1 );
+}
+
+remove( template );
+
+// now go on to use the file ...
+
+...
+
+//------------------------------------------------------------------
+#include <stdio.h> // tempnam()
+#include <stdlib.h>
+#include <unistd.h> // unlink()
+#include <fcntl.h> // open()
+#include <sys/stat.h> 
+#include <sys/types.h>
+
+...
+
+char * tmpname = NULL;
+int fd;
+
+while(1) {
+  tmpname = tempnam( NULL, NULL );
+  if( tmpname == NULL ) {
+    perror( "tempname" );
+    exit(1);
+  }
+
+  // is another process creating a temporary file at the same moment?
+  // we don't know.
+  // => we have to ensure an exclusive open
+  fd = open( tmpname, O_CREAT | O_EXCL | O_RDWR, 0600 );
+
+  // temporary file will be destroy on close() call
+  unlink( tmpname );
+
+  free( tmpname );
+  if( fd < 0 )
+    perror( "open" );
+  else
+    break;
+}
+
+// now go on to use the file ...
+
+...
+
+
 // @@PLEAC@@_8.2
 //------------------------------------------------------------------
 /*
