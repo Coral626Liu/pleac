@@ -5584,21 +5584,22 @@ aref2 = array_ref()
 #-----------------------------
 array_ref[N] # refers to the Nth item in the array_ref list.
 #-----------------------------
-#   The following two statements are equivalent and return 3 elements, at 3, 4, and 5.
+# The following two statements are equivalent and return up to 3 elements
+# at indices 3, 4, and 5 (if they exist).
 pie[3:6]
 pie[3:6:1]
 #-----------------------------
 #   This will insert 3 elements, overwriting elements at indices 3,4, or 5 - if they exist.
 pie[3:6] = ["blackberry", "blueberry", "pumpkin"]
 #-----------------------------
-#   The two following methods do the same thing. 
-#   xrange does not create a list 0..len(pie) - 1, it creates an object that returns one index at a time.
 for item in pie:
     print item
 
+# DON'T DO THIS (this type of indexing should be done with enumerate)
+# xrange does not create a list 0..len(pie) - 1, it creates an object 
+# that returns one index at a time.
 for idx in xrange(len(pie)):
     print pie[idx]
-
 
 # @@PLEAC@@_11.2
 # Making Hashes of Arrays
@@ -5608,7 +5609,7 @@ hash["KEYNAME"].append("new value")
 for mystr in hash.keys():
     print "%s: %s" % (mystr, hash[mystr])
 
-hash["a key"] = [ 3, 4, 5 ]
+hash["a key"] = [3, 4, 5]
 
 values = hash["a key"]
 
@@ -5617,7 +5618,7 @@ hash["a key"].append(value)
 # autovivification also does not work in python.
 residents = phone2name[number]
 # do this instead
-residents = phone2name.has_key(number) and phone2name[number] or []
+residents = phone2name.get(number, [])
 
 
 # @@PLEAC@@_11.3
@@ -5786,7 +5787,67 @@ while True:
     # Assign the key/value to the last item in the list_of_records:
     list_of_records[-1][key] = value
 #-----------------------------
+# @@PLEAC@@_11.11
+import pprint
 
+mylist = [[1,2,3], [4, [5,6,7], 8,9, [0,3,5]], 7, 8]
+mydict = {"abc": "def", "ghi":[1,2,3]}
+pprint.pprint(mylist, width=1)
+
+fmtdict = pprint.pformat(mydict, width=1)
+print fmtdict
+# "import pprint; help(pprint)" for more details
+#-----------------------------
+# @@PLEAC@@_11.12
+newlist = list(mylist) # shallow copy
+newdict = dict(mydict) # shallow copy
+
+# Pre 2.3:
+import copy
+newlist = copy.copy(mylist) # shallow copy
+newdict = copy.copy(mydict) # shallow copy
+
+# shallow copies copy a data structure, but don't copy the items in those
+# data structures so if there are nested data structures, both copy and
+# original will refer to the same object
+mylist = ["1", "2", "3"]
+newlist = list(mylist)
+mylist[0] = "0"
+print mylist, newlist
+#=> ['0', '2', '3'] ['1', '2', '3']
+
+mylist = [["1", "2", "3"], 4]
+newlist = list(mylist)
+mylist[0][0] = "0"
+print mylist, newlist
+#=> [['0', '2', '3'], 4] [['0', '2', '3'], 4]
+#-----------------------------
+import copy
+newlist = copy.deepcopy(mylist) # deep copy
+newdict = copy.deepcopy(mydict) # deep copy
+
+# deep copies copy a data structure recursively:
+import copy
+
+mylist = [["1", "2", "3"], 4]
+newlist = copy.deepcopy(mylist)
+mylist[0][0] = "0"
+print mylist, newlist
+#=> [['0', '2', '3'], 4] [['1', '2', '3'], 4]
+#-----------------------------
+# @@PLEAC@@_11.13
+import pickle
+class Foo(object):
+    def __init__(self):
+        self.val = 1
+
+x = Foo()
+x.val = 3
+p_x = pickle.dumps(x)  # Also pickle.dump(x, myfile) which writes to myfile
+del x
+x = pickle.loads(p_x)  # Also x = pickle.load(myfile) which loads from myfile
+print x.val
+#=> 3
 
 # ^^PLEAC^^_12.0
 #-----------------------------
