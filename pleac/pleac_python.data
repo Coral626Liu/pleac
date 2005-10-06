@@ -8823,6 +8823,47 @@ p.close()
 # and bold in Terminal. Recipe #135005 has a writer
 # accumulating text instead of printing.
 
+# @@PLEAC@@_20.6
+
+import re
+
+plain_text = re.sub(r"<[^>]*>","",html_text) #WRONG
+
+# using HTMLParser
+import sys, HTMLParser
+
+class html(HTMLParser.HTMLParser):
+    def __init__(self):
+        HTMLParser.HTMLParser.__init__(self)
+        self._plaintext = ""
+        self._ignore = False
+    def handle_starttag(self, tag, attrs):
+        if tag == "script":
+            self._ignore = True
+    def handle_endtag(self, tag):
+        if tag == "script":
+            self._ignore = False
+    def handle_data(self, data):
+        if len(data)>0 and not self._ignore:
+            self._plaintext += data
+    def get_plaintext(self):
+        return self._plaintext
+    def error(self,msg):
+        # ignore all errors
+        pass
+
+html_text = open(sys.argv[1]).read()
+
+parser = html()
+parser.feed(html_text)
+parser.close()  # force processing all data
+print parser.get_plaintext()
+
+title_s = re.search(r"(?i)<title>\s*(.*?)\s*</title>", text)
+title = title_s and title_s.groups()[0] or "NO TITLE"
+
+# @@INCLUDE@@ include/python/ch20/htitle
+
 # @@PLEAC@@_20.12
 
 # sample data, use ``LOGFILE = open(sys.argv[1])`` in real life
