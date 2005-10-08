@@ -17,8 +17,11 @@
 version = 1
 
 if ARGV.to_s =~ /-h/ || !ARGV[1] || !ARGV[2] || ARGV[3]
-    puts 'PLEAC Project: http://pleac.sourceforge.net/'
-    puts "usage: #$0 <toc_file> <implementation_file> <skeleton>"
+    puts "Usage: #$0 <toc_file> <implementation_file> <skeleton>"
+    puts "Calculate percentage of completion for PLEAC chapters of"
+    puts "a given language file `implementation_file' and fill"
+    puts "into a html file `toc_file'."
+    puts 'See PLEAC Project: http://pleac.sourceforge.net/ for more.'
     exit -1
 end
 
@@ -46,8 +49,13 @@ chapters = {
     'Web Automation', 20,
 }
 
+# toc_contents: one html file per programming language.
+# this file will written at end.
 toc_contents = File.open(ARGV[0]).read
+# the implementation to calculate percentage of completion.
 impl_contents = File.open(ARGV[1]).readlines
+# a file to get the number of subchapters for a given chapter.
+# might be fixed in the array, as it is unlikely to change.
 skel_contents = File.open(ARGV[2]).read
 
 chapters.each { |k,v|
@@ -65,8 +73,8 @@ chapters.each { |k,v|
 	    actual += 1 if $1.to_i == v
 	end
     end
-    total = skel_contents.select { |i| i =~ /PLEAC:(.*):CAELP/ && $1.to_i == v }.size
-    percentage = Float(100*actual)/total
+    total_number_of_chapters = skel_contents.select { |i| i =~ /PLEAC:(.*):CAELP/ && $1.to_i == v }.size
+    percentage = Float(100*actual)/total_number_of_chapters
     toc_contents.sub!(%r|>#{k}</A|, sprintf(">#{k}</a> (%.1f%s)</br", percentage, "%"))
 }
 
