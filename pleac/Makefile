@@ -18,10 +18,12 @@
  #
  #*****************************************************************************
 
+# IMPLS must be sorted by percentage of completion
 IMPLS = perl python ruby guile merd ocaml ada tcl pike haskell rexx java pliant commonlisp cposix c++ smalltalk php forth erlang R masd nasm
 
 
-HTMLTARGETS = $(addprefix pleac_, $(IMPLS))
+DATAFILES = $(wildcard pleac_*.data)
+HTMLTARGETS = $(subst .data,,$(DATAFILES))
 HTMLTARGETSDEP = $(addsuffix /index.html, $(HTMLTARGETS))
 
 PSTARGETS = $(addsuffix .ps, $(addprefix pleac_, $(IMPLS)))
@@ -48,7 +50,7 @@ $(HTMLTARGETSDEP): %/index.html: %.html skeleton/index.html
 	for i in $(@D)/*.html; do ./substitute.rb $$i $(@D).html ; done
 	./genpercentages.rb $(@D)/index.html $(@D).data skeleton.sgml
 
-web: pleac_*.data
+web: $(DATAFILES)
 	total=`grep "PLEAC:[0-9].*:CAELP" skeleton.sgml | wc -l` ; \
 	cp index-skeleton.html index.html ; \
 	ruby -pi -e "sub(/@LASTUPDATE@/, '`date`')" index.html ; \
