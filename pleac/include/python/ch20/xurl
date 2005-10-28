@@ -1,0 +1,30 @@
+#!/usr/bin/python
+# xurl - extract unique, sorted list of links from URL
+
+from HTMLParser import HTMLParser
+import urllib
+from sets import Set as set # not needed in 2.4
+class myParser(HTMLParser):
+    def __init__(self, url):
+        self.baseUrl = url[:url.rfind('/')]
+        HTMLParser.__init__(self)
+    def reset(self):
+        self.urls = set()
+        HTMLParser.reset(self)
+    def handle_starttag(self, tag, attrs):
+        if tag == 'a':
+            if attrs[0][0] == 'href':
+                if attrs[0][1].find(':') == -1:
+                    # we need to add the base URL.
+                    self.urls.add(self.baseUrl + '/' + attrs[0][1])
+                else:
+                    self.urls.add(attrs[0][1])
+url = 'http://www.perl.com/CPAN'
+p = myParser(url)
+s = urllib.urlopen(url)
+data = s.read()
+p.feed(data)
+urllist = p.urls._data.keys()
+urllist.sort()
+print '\n'.join(urllist)
+
