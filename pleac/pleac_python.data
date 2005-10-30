@@ -7488,8 +7488,9 @@ if is_interactive():
 
 # @@PLEAC@@_15.3
 
-# @@INCOMPLETE@@
-# no Term::Cap for python ?
+# Python has no Term::Cap module.
+# One could use the curses, but this was not ported to windows,
+# use console.
 
 # just run clear
 import os
@@ -7499,6 +7500,49 @@ clear = os.popen("clear").read()
 print clear
 # or to avoid print's newline
 sys.stdout.write(clear)
+
+# @@PLEAC@@_15.4
+# Determining Terminal or Window Size
+
+# eiter use ioctl
+import struct, fcntl, termios, sys
+
+s = struct.pack("HHHH", 0, 0, 0, 0)
+hchar, wchar = struct.unpack("HHHH", fcntl.ioctl(sys.stdout.fileno(),
+                                 termios.TIOCGWINSZ, s))[:2]
+# or curses
+import curses
+(hchar,wchar) = curses.getmaxyx()
+
+# graph contents of values
+import struct, fcntl, termios, sys
+width = struct.unpack("HHHH", fcntl.ioctl(sys.stdout.fileno(),
+                                 termios.TIOCGWINSZ, 
+                                 struct.pack("HHHH", 0, 0, 0, 0)))[1]
+if width<10:
+    print "You must have at least 10 characters"
+    sys.exit(1)
+
+max_value = 0                    
+for v in values:
+    max_value = max(max_value,v)
+    
+ratio = (width-10)/max_value   # chars per unit
+for v in values:
+    print "%8.1f %s" % (v, "*"*(v*ratio))
+
+# @@PLEAC@@_15.5
+
+# there seams to be no standard ansi module
+# and BLINK does not blink here.
+RED = '\033[31m'
+RESET = '\033[0;0m'
+BLINK = '\033[05m'
+NOBLINK = '\033[25m'
+
+print RED+"DANGER, Will Robinson!"+RESET
+print "This is just normal text"
+print "Will ``"+BLINK+"Do you hurt yet?"+NOBLINK+"'' and back"
 
 # @@PLEAC@@_15.6
 
@@ -7697,49 +7741,6 @@ which = command.expect(choices)
 # (instead of raising exception)
 # 4: TIMEOUT
 # 5: EOF
-
-# @@PLEAC@@_15.4
-# Determining Terminal or Window Size
-
-# eiter use ioctl
-import struct, fcntl, termios, sys
-
-s = struct.pack("HHHH", 0, 0, 0, 0)
-hchar, wchar = struct.unpack("HHHH", fcntl.ioctl(sys.stdout.fileno(),
-                                 termios.TIOCGWINSZ, s))[:2]
-# or curses
-import curses
-(hchar,wchar) = curses.getmaxyx()
-
-# graph contents of values
-import struct, fcntl, termios, sys
-width = struct.unpack("HHHH", fcntl.ioctl(sys.stdout.fileno(),
-                                 termios.TIOCGWINSZ, 
-                                 struct.pack("HHHH", 0, 0, 0, 0)))[1]
-if width<10:
-    print "You must have at least 10 characters"
-    sys.exit(1)
-
-max_value = 0                    
-for v in values:
-    max_value = max(max_value,v)
-    
-ratio = (width-10)/max_value   # chars per unit
-for v in values:
-    print "%8.1f %s" % (v, "*"*(v*ratio))
-
-# @@PLEAC@@_15.5
-
-# there seams to be no standard ansi module
-# and BLINK does not blink here.
-RED = '\033[31m'
-RESET = '\033[0;0m'
-BLINK = '\033[05m'
-NOBLINK = '\033[25m'
-
-print RED+"DANGER, Will Robinson!"+RESET
-print "This is just normal text"
-print "Will ``"+BLINK+"Do you hurt yet?"+NOBLINK+"'' and back"
 
 # @@PLEAC@@_15.17
 # Start Python scripts without the annoying DOS window on win32
