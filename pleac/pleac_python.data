@@ -10,7 +10,6 @@
 # @@PLEAC@@_INTRO
 # @@SKIP@@ The latest version of Python is 2.4 but users of 2.3 and 2.2 (and
 # @@SKIP@@ in some cases earlier versions) can use the code herein.
-# @@SKIP@@ in some cases earlier versions) can use the code herein.
 # @@SKIP@@ Users of 2.2 and 2.3 should install or copy code from utils.py 
 # @@SKIP@@ (http://aima.cs.berkeley.edu/python/utils.py)
 # @@SKIP@@ [the first section provides compatability code with 2.4]
@@ -3657,26 +3656,57 @@ handle_cmd("ab")
 pat = r"^m*(d?c{0,3}|c[dm])(l?x{0,3}|x[lc])(v?i{0,3}|i[vx])$"
 re.match(pat, "mcmlxcvii")
 ##-----------------------------
+txt = "one two three four five"
+
+# If the words are cleanly delimited just split and rejoin:
+word1, word2, rest = txt.split(" ", 2)
+print " ".join([word2, word1, rest])
+
+# Otherwise:
 frompat = r"(\S+)(\s+)(\S+)"
 topat =  r"\3\2\1"
-print re.sub(frompat, topat, "one two three four five")
+print re.sub(frompat, topat, txt)
+
 ##-----------------------------
-# DON'T DO THIS - use key, val = str.split("=")
+print str.split("=")
+
+# DON'T DO THIS
 pat = r"(\w+)\s*=\s*(.*)\s*$"
 print re.match(pat, "key=val").groups()
 ##-----------------------------
-# DON'T DO THIS - use len(line) > 80
+if len(line) > 80:
+    ...
+
+# DON'T DO THIS
 pat = ".{80,}"
-re.match(pat, "such a very very very very very very very very very very very very very long line")
+if re.match(pat, "such a very very very very very very very very very very very very very long line"):
+    ...
 ##-----------------------------
-# DON'T DO THIS - use time.strptime() instead
+dt = time.strptime("12/11/05 12:34:56", "%d/%m/%y %H:%M:%S")
+
+# DON'T DO THIS
 pat = r"(\d+)/(\d+)/(\d+) (\d+):(\d+):(\d+)"
-dt = re.match(pat, "12/11/05 12:34:56")
+dt = re.match(pat, "12/11/05 12:34:56").groups()
 ##-----------------------------
-# DON'T DO THIS - use str.replace()
-# s(/usr/bin)(/usr/local/bin)g
+txt = "/usr/bin/python"
+print txt.replace("/usr/bin", "/usr/local/bin")
+# Alternatively for file operations use os.path, shutil, etc.
+
+# DON'T DO THIS
+print re.sub("/usr/bin", "/usr/local/bin", txt)
 ##-----------------------------
-# s/%([0-9A-Fa-f][0-9A-Fa-f])/chr hex $1/ge
+import re
+
+def unescape_hex(matchobj):
+    return chr(int(matchobj.groups(0)[0], 16))
+txt = re.sub(r"%([0-9A-Fa-f][0-9A-Fa-f])", unescape_hex, txt)
+
+# Assuming that the hex escaping is well-behaved, an alternative is:
+def unescape_hex(seg):
+    return chr(int(seg[:2], 16)) + seg[2:]
+
+segs = txt.split("%")
+txt = segs[0] + "".join(unescape_hex(seg) for seg in segs[1:])
 ##-----------------------------
 # s{
 #     /\*                    # Match the opening delimiter
@@ -3684,45 +3714,72 @@ dt = re.match(pat, "12/11/05 12:34:56")
 #     \*/                    # Match the closing delimiter
 # } []gsx;
 ##-----------------------------
-# DON'T DO THIS - use str.strip()
-# s/^\s+//;
-# s/\s+$//;
+txt.strip()
+
+# DON'T DO THIS
+txt = re.sub(r"^\s+", "", txt)
+txt = re.sub(r"\s+$", "", txt)
 ##-----------------------------
-# DON'T DO THIS - use str.replace()
-# s/\\n/\n/g;
+txt.replace("\\n", "\n")
+
+# DON'T DO THIS
+txt = re.sub("\\n", "\n", txt)
 ##-----------------------------
 # s/^.*:://
 ##-----------------------------
-# DON'T DO THIS
+# DON'T DO THIS.
 # m/^([01]?\d\d|2[0-4]\d|25[0-5])\.([01]?\d\d|2[0-4]\d|25[0-5])\.
 #    ([01]?\d\d|2[0-4]\d|25[0-5])\.([01]?\d\d|2[0-4]\d|25[0-5])$/;
+# If you must use a regex, build the numeric pattern once, clearly
 ##-----------------------------
-# DON'T DO THIS.  Use os.path.basename()
-# s(^.*/)()
+fname = os.path.basename(path)
+
+# DON'T DO THIS.
+fname = re.sub("^.*/", "", path)
 ##-----------------------------
 # $cols = ( ($ENV{TERMCAP} || " ") =~ m/:co#(\d+):/ ) ? $1 : 80;
 ##-----------------------------
-# DON'T DO THIS. Use os.path.basename(sys.argv[0])
-# ($name = " $0 @ARGV") =~ s,  /\S+/,  ,g;
+# (not quite equivalent to the Perl version)
+name = os.path.basename(sys.argv[0])
+
+# DON'T DO THIS.
+name = re.sub("^.*/", "", sys.argv[0])
 ##-----------------------------
 # die "This isn't Linux" unless $^O =~ m/linux/i;
 ##-----------------------------
-# DON'T DO THIS. Use str.replace("\n", " ")
-# s/\n\s+/ /g
+txt = re.sub(r"\n\s+", " ", txt)
+
+# In many cases you could just use:
+txt = txt.replace("\n", " ")
 ##-----------------------------
-# @nums = m/(\d+\.?\d*|\.\d+)/g;
+nums = re.findall(r"\d+\.?\d*|\.\d+", txt)
 ##-----------------------------
-capwords = [word for word in re.finditer(r"\b(\S+)\b") if word.isupper()]
-# DON'T DO THIS. 
-# @capwords = m/(\b[^\Wa-z0-9_]+\b)/g;
+# If the words are clearly delimited just use:
+capwords = [word for word in txt.split() if word.isupper()]
+
+# Otherwise
+capwords = [word for word in re.findall(r"\b(\S+)\b", txt) if word.isupper()]
+
+# (probably) DON'T DO THIS. 
+capwords = re.findall(r"(\b[^\Wa-z0-9_]+\b)", txt)
 ##-----------------------------
-lowords = [word for word in re.finditer(r"\b(\S+)\b") if word.islower()]
-# DON'T DO THIS. 
-@lowords = m/(\b[^\WA-Z0-9_]+\b)/g;
+# If the words are clearly delimited just use:
+lowords = [word for word in txt.split() if word.islower()]
+
+# Otherwise
+lowords = [word for word in re.findall(r"\b(\S+)\b", txt) if word.islower()]
+
+# (probably) DON'T DO THIS. 
+lowords = re.findall(r"(\b[^\WA-Z0-9_]+\b)", txt)
 ##-----------------------------
+# If the words are clearly delimited just use:
+icwords = [word for word in txt.split() if word.istitle()]
+
+# Otherwise
 icwords = [word for word in re.finditer(r"\b(\S+)\b") if word.istitle()]
+
 # DON'T DO THIS. 
-# @icwords = m/(\b[^\Wa-z0-9_][^\WA-Z0-9_]*\b)/;
+icwords = re.findall(r"(\b[^\Wa-z0-9_][^\WA-Z0-9_]*\b)", txt)
 ##-----------------------------
 # @links = m/<A[^>]+?HREF\s*=\s*["']?([^'" >]+?)[ '"]?>/sig;
 ##-----------------------------
@@ -4086,16 +4143,77 @@ while True:
 
 
 # @@PLEAC@@_7.10
-# @@INCOMPLETE@@
-# @@INCOMPLETE@@
+#-----------------------------
+myfile = open(filename, "r+")
+data = myfile.read()
+# change data here
+myfile.seek(0, 0)
+myfile.write(data)
+myfile.truncate(myfile.tell())
+myfile.close()
+#-----------------------------
+myfile = open(filename, "r+")
+data = [process(line) for line in myfile]
+myfile.seek(0, 0)
+myfile.writelines(data)
+myfile.truncate(myfile.tell())
+myfile.close()
+#-----------------------------
 
 # @@PLEAC@@_7.11
-# @@INCOMPLETE@@
-# @@INCOMPLETE@@
+                                                                                                                                                                                                                                                               
+import fcntl
+myfile = open(somepath)
+fcntl.flock(myfile, fcntl.LOCK_EX)
+# update file, then...
+myfile.close()
+#-----------------------------
+fcntl.LOCK_SH
+fcntl.LOCK_EX
+fcntl.LOCK_NB
+fcntl.LOCK_UN
+#-----------------------------
+import warnings
+try:
+    fcntl.flock(myfile, fcntl.LOCK_EX|fcntl.LOCK_NB)
+except IOError:
+    warnings.warn("can't immediately write-lock the file ($!), blocking ...")
+    fcntl.flock(myfile, fcntl.LOCK_EX)
+#-----------------------------
+fcntl.flock(myfile, fcntl.LOCK_UN)
+#-----------------------------
+myfile = open(somepath, "w+")
+fcntl.flock(myfile, fcntl.LOCK_EX)
+myfile.seek(0, 0)
+myfile.truncate(0)
+print>>myfile, "\n"   # or myfile.write("\n")
+myfile.close()
+#-----------------------------
 
 # @@PLEAC@@_7.12
-# @@INCOMPLETE@@
-# @@INCOMPLETE@@
+# Python doesn't have command buffering.  Files can have buffering set,
+# when opened:
+myfile = open(filename, "r", buffering=0)   #Unbuffered
+myfile = open(filename, "r", buffering=1)   #Line buffered
+myfile = open(filename, "r", buffering=100) #Use buffer of (approx) 100 bytes
+myfile = open(filename, "r", buffering=-1)  #Use system default
+
+myfile.flush()  # Flush the I/O buffer
+
+# stdout is treated as a file.  If you ever need to flush it, do so:
+import sys
+sys.stdout.flush()
+
+# DON'T DO THIS.  Use urllib, etc.
+import socket
+mysock = socket.socket()
+mysock.connect(('www.perl.com', 80))
+# mysock.setblocking(True)
+mysock.send("GET /index.html http/1.1\n\n")
+f = mysock.makefile()
+print "Doc is:"
+for line in f:
+    print line[:-1]
 
 # @@PLEAC@@_7.13
 import select
@@ -4105,6 +4223,7 @@ while True:
         pass # Do something with the file handle
 
 # @@PLEAC@@_7.14
+# @@SKIP@@ Use select.poll() on Unix systems.
 # @@INCOMPLETE@@
 # @@INCOMPLETE@@
 
@@ -4139,6 +4258,28 @@ sys.stdout.file = os.popen("tee file1 file2 file3", "w")
 print "whatever"
 sys.stdout.close()
 
+# You could use a utility object to redirect writes:
+class FileDispatcher(object):
+    def __init__(self, *files):
+        self.files = files
+
+    def write(self, msg):
+        for f in self.files:
+            f.write(msg)
+
+    def close(self):
+        for f in self.files:
+            f.close()
+
+x = open("C:/test1.txt", "w")
+y = open("C:/test2.txt", "w")
+z = open("C:/test3.txt", "w")
+
+fd = FileDispatcher(x, y, z)
+print>>fd, "Foo"     # equiv to fd.write("Foo"); fd.write("\n")
+print>>fd, "Testing"  
+fd.close()
+
 # @@PLEAC@@_7.19
 import os
 myfile = os.fdopen(fdnum) # open the descriptor itself
@@ -4149,7 +4290,19 @@ outcopy = os.fdopen(os.dup(sys.stdin.fileno()), "w")
 incopy = os.fdopen(os.dup(sys.stdin.fileno()), "r")
 
 # @@PLEAC@@_7.20
-# @@INCOMPLETE@@
+original = open("C:/test.txt")
+alias = original
+alias.close()
+print original.closed
+#=>True
+
+import copy
+
+original = open("C:/test.txt")
+dupe = copy.copy(original)
+dupe.close()
+print original.closed
+#=>False
 # @@INCOMPLETE@@
 
 # @@PLEAC@@_7.21
@@ -4157,8 +4310,14 @@ incopy = os.fdopen(os.dup(sys.stdin.fileno()), "r")
 # @@INCOMPLETE@@
 
 # @@PLEAC@@_7.22
-# @@INCOMPLETE@@
-# @@INCOMPLETE@@
+# On Windows:
+import msvcrt
+myfile.seek(5, 0)
+msvcrt.locking(myfile.fileno(), msvcrt.LK_NBLCK, 3)
+
+# On Unix:
+import fcntl
+fcntl.lockf(myfile.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB, 3, 5)
 
 
 # ^^PLEAC^^_8.0
@@ -5089,17 +5248,41 @@ for fname in fnames:
 
 # use os.renames if newname needs directory creation.
 
-# The rename script uses perl code as argument e.g. ::
-#
-#   rename 's/\.orig$//' *.orig
-#
-# What to do:
-# 
-# * make a perlregexp interpreter in python.
-# * use python syntax.
-# * use another (simpler) syntax.
-# @@INCOMPLETE@@
+#A vaguely Pythonic solution is:
+import glob
+def rename(files, transfunc)
+    for fname in fnames:
+        newname = transfunc(fname)
+        try:
+            os.rename(fname, newname)
+        except:
+            print "Couldn't rename %s to %s: %s!" % \
+                  (fname, newfile, sys.exc_info()[1])
 
+def transfunc(fname): 
+    return fname[:-5]
+rename(glob.glob("*.orig"), transfunc) 
+
+def transfunc(fname): 
+    return fname.lower()
+rename([f for f in glob.glob("*") if not f.startswith("Make)], transfunc) 
+
+def transfunc(fname): 
+    return fname + ".bad"
+rename(glob.glob("*.f"), transfunc) 
+
+def transfunc(fname): 
+    answer = raw_input(fname + ": ")
+    if answer.upper().startswith("Y"):
+        return fname.replace("foo", "bar")
+rename(glob.glob("*"), transfunc) 
+
+def transfunc(fname):
+    return ".#" + fname[:-1]
+rename(glob.glob("/tmp/*~"), transfunc) 
+
+# This _could_ be made to eval code taken directly from the command line, 
+# but it would be fragile
 #-----------------------------
 
 # ^^PLEAC^^_9.10
@@ -5960,12 +6143,53 @@ print "It's been %d seconds since later" % later()
 #-----------------------------
 
 # @@PLEAC@@_11.5
-# @@INCOMPLETE@@
-# @@INCOMPLETE@@
+# A name is a reference to an object and an object can be referred to
+# by any number of names. There is no way to manipulate pointers or
+# an object's id.  This section is thus inapplicable.
+x = 1
+y = x
+print x, id(x), y, id(y)
+x += 1    # "x" now refers to a different object than y
+print x, id(x), y, id(y)
+y = 4     # "y" now refers to a different object than it did before
+print x, id(x), y, id(y)
+
+# Some objects (including ints and strings) are immutable, however, which
+# can give the illusion of a by-value/by-reference distinction:
+a = x = [1]
+b = y = 1
+c = z = "s"
+print a, b, c
+#=> [1] 1 s
+
+x += x      # calls list.__iadd__ which is inplace.
+y += y      # can't find int.__iadd__ so calls int.__add__ which isn't inplace
+z += z      # can't find str.__iadd__ so calls str.__add__ which isn't inplace              
+print a, b, c
+#=> [1, 1] 1 s
 
 # @@PLEAC@@_11.6
-# @@INCOMPLETE@@
-# @@INCOMPLETE@@
+# As indicated by the previous section, everything is referenced, so
+# just create a list as normal, and beware that augmented assignment
+# works differently with immutable objects to mutable ones:
+mylist = [1, "s", [1]]
+print mylist
+#=> [1, s, [1]]
+
+for elem in mylist:
+    elem *= 2
+print mylist
+#=> [1, s, [1, 1]]
+
+mylist[0] *= 2
+mylist[-1] *= 2
+print mylist
+#=> [1, s, [1, 1, 1, 1]]
+
+# If you need to modify every value in a list, you should use a list comprehension
+# which does NOT modify inplace:
+import math
+mylist = [(val**3 * 4/3*math.pi) for val in mylist]
 
 # @@PLEAC@@_11.7
 #-----------------------------
@@ -5978,6 +6202,7 @@ print "next c1: %d" % c1['next']()  # 22
 print "last c1: %d" % c1['prev']()  # 21
 print "old  c2: %d" % c2['reset']() # 77
 #-----------------------------
+# DON'T DO THIS.  Use an object instead  
 def mkcounter(start):
     count = [start]
     def next():
@@ -6010,8 +6235,61 @@ mref("args", "go", "here")
 #-----------------------------
 
 # @@PLEAC@@_11.9
-# @@INCOMPLETE@@
-# @@INCOMPLETE@@
+#-----------------------------
+record = {
+    "name": "Jason",
+    "empno": 132,
+    "title": "deputy peon",
+    "age": 23,
+    "salary": 37000,
+    "pals": ["Norbert", "Rhys", "Phineas"],
+}
+print "I am %s, and my pals are %s." % (record["name"],
+                                        ", ".join(record["pals"]))
+#-----------------------------
+byname = {}
+byname[record["name"]] = record
+
+rp = byname.get("Aron")
+if rp:
+     print "Aron is employee %d."% rp["empno"]
+
+byname["Jason"]["pals"].append("Theodore")
+print "Jason now has %d pals." % len(byname["Jason"]["pals"])
+
+for name, record in byname.items():
+    print "%s is employee number %d." % (name, record["empno"])
+
+employees = {}
+employees[record["empno"]] = record;
+
+# lookup by id
+rp = employees.get(132)
+if (rp):
+    print "Employee number 132 is %s." % rp["name"]
+
+byname["Jason"]["salary"] *= 1.035
+
+peons = [r for r in employees.values() if r["title"] == "peon"]
+tsevens = [r for r in employees.values() if r["age"] == 27]
+
+# Go through all records
+print employees.values()
+
+for rp in sorted(employees.values(), key=lambda x:x["age"]):
+    print "%s is age %d."%(rp["name"], rp["age"])
+
+# use @byage, an array of arrays of records
+byage = {}
+byage[record["age"]] = byage.get(record["age"], []) + [record]
+
+for age, records in byage.items():
+    print records
+    print "Age %s:"%age,
+    for rp in records:
+        print rp["name"],
+    print
+#-----------------------------
 
 # @@PLEAC@@_11.10
 #-----------------------------
@@ -6111,6 +6389,7 @@ print x.val
 # @@INCOMPLETE@@
 
 # @@PLEAC@@_11.15
+# Use the heapq module instead?
 # @@INCOMPLETE@@
 # @@INCOMPLETE@@
 
@@ -6279,9 +6558,8 @@ def load_module(module_name, symbols):
 
 # ^^PLEAC^^_12.4
 #-----------------------------
-# @@INCOMPLETE@@
-# Don't know how to translate the 'Alpha' 'Beta' example
-#-----------------------------
+# Python doesn't have Perl-style packages
+
 # Flipper.py
 __version__ = (1, 0)
 
@@ -6309,9 +6587,6 @@ this_pack = __name__
 that_pack = sys._getframe(1).f_globals.get("__name__", "<string>")
 #-----------------------------
 print "I am in package", __name__
-#-----------------------------
-# @@INCOMPLETE@@
-# I don't know what the Alpha/Beta examples are trying to do.
 #-----------------------------
 def nreadline(count, myfile):
     if count <= 0:
@@ -7483,12 +7758,85 @@ if __name__ == "__main__":
 
 
 # ^^PLEAC^^_13.15
-# I'm not sure what 'Tie's do in Perl.  Some of it looks like
-# the ability to write dictionary-like data structures, but
-# I'm not going to worry about it for now.
-# @@INCOMPLETE@@
-# @@INCOMPLETE@@
+# You can't tie a variable, but you can use properties.  
+import itertools
+class ValueRing(object):
+    def __init__(self, colours):
+        self.colourcycle = itertools.cycle(colours)
 
+    def next_colour(self):
+        return self.colourcycle.next()
+    colour = property(next_colour)
+vr = ValueRing(["red", "blue"])
+for i in range(6):
+    print vr.colour,
+print
+
+# Note that you MUST refer directly to the property
+x = vr.colour
+print x, x, x
+#-------------------------------------
+# Ties are generally unnecessary in Python because of its strong OO support -
+# The resulting code is MUCH shorter:
+class AppendDict(dict):
+    def __setitem__(self, key, val):
+        if key in self:
+            self[key].append(val)
+        else:
+            super(AppendDict, self).__setitem__(key, [val])
+tab = AppendDict()
+tab["beer"] = "guinness"
+tab["food"] = "potatoes"
+tab["food"] = "peas"
+
+for key, val in tab.items():
+    print key, "=>", val
+#-------------------------------------
+class CaselessDict(dict):
+    def __setitem__(self, key, val):
+        super(CaselessDict, self).__setitem__(key.lower(), val)
+    def __getitem__(self, key):
+        return super(CaselessDict, self).__getitem__(key.lower())
+
+tab = CaselessDict()
+tab["VILLAIN"] = "big "
+tab["herOine"] = "red riding hood"
+tab["villain"] = "bad wolf"
+
+for key, val in tab.items():
+    print key, "is", val
+#=>villain is bad wolf
+#=>heroine is red riding hood
+#-------------------------------------
+class RevDict(dict):
+    def __setitem__(self, key, val):
+        super(RevDict, self).__setitem__(key, val)
+        super(RevDict, self).__setitem__(val, key)
+
+tab = RevDict()
+tab["red"] = "rojo"
+tab["blue"] = "azul"
+tab["green"] = "verde"
+tab["evil"] = ("No Way!", "Way!")
+
+for key, val in tab.items():
+    print key, "is", val
+#=>blue is azul
+#=>('No Way!', 'Way!') is evil
+#=>rojo is red
+#=>evil is ('No Way!', 'Way!')
+#=>azul is blue
+#=>verde is green
+#=>green is verde
+#=>red is rojo
+#-------------------------------------
+import itertools
+for elem in itertools.count():
+    print "Got", elem
+#-------------------------------------
+# You could use FileDispatcher from section 7.18
+tee = FileDispatcher(sys.stderr, sys.stdout)
+#-------------------------------------
 # @@PLEAC@@_14.0
 # @@INCOMPLETE@@
 # @@INCOMPLETE@@
@@ -7923,7 +8271,8 @@ while (1):
 #----------------------------------------
 
 # @@PLEAC@@_15.7
-# @@INCOMPLETE@@
+print "\aWake up!\n";
+#----------------------------------------
 # @@INCOMPLETE@@
 
 # @@PLEAC@@_15.8
@@ -7931,8 +8280,14 @@ while (1):
 # @@INCOMPLETE@@
 
 # @@PLEAC@@_15.9
+# On Windows
+import msvcrt
+if msvcrt.kbhit():
+    c = msvcrt.getch
+
+# See http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/134892
 # @@INCOMPLETE@@
-# @@INCOMPLETE@@
+
 
 # @@PLEAC@@_15.10
 #----------------------------------------
@@ -8269,8 +8624,70 @@ pipe.tochild.write("Hello zipped world!\n")
 pipe.tochild.close() # programm will get EOF on STDIN
 
 # @@PLEAC@@_16.5
-# @@INCOMPLETE@@
-# @@INCOMPLETE@@
+class OutputFilter(object):
+    def __init__(self, target, *args, **kwds):
+        self.target = target
+        self.setup(*args, **kwds)
+        self.textbuffer = ""
+
+    def setup(self, *args, **kwds):
+        pass
+    
+    def write(self, data):
+        if data.endswith("\n"):
+            data = self.process(self.textbuffer + data)
+            self.textbuffer = ""
+            if data is not None:
+                self.target.write(data)
+        else:
+            self.textbuffer += data
+
+    def process(self, data):
+        return data
+
+class HeadFilter(OutputFilter):
+    def setup(self, maxcount):
+        self.count = 0
+        self.maxcount = maxcount
+
+    def process(self, data):
+        if self.count < self.maxcount:
+            self.count += 1
+            return data
+
+class NumberFilter(OutputFilter):
+    def setup(self):
+        self.count=0
+
+    def process(self, data):
+        self.count += 1
+        return "%s: %s"%(self.count, data)
+
+class QuoteFilter(OutputFilter):
+    def process(self, data):
+        return "> " + data
+
+import sys
+f = HeadFilter(sys.stdout, 100)
+for i in range(130):
+    print>>f, i
+
+print
+
+txt = """Welcome to Linux, version 2.0.33 on a i686
+
+"The software required `Windows 95 or better', 
+so I installed Linux." """
+f1 = NumberFilter(sys.stdout)
+f2 = QuoteFilter(f1)
+for line in txt.split("\n"):
+    print>>f2, line
+print
+f1 = QuoteFilter(sys.stdout)
+f2 = NumberFilter(f1)
+for line in txt.split("\n"):
+    print>>f2, line
+
 
 # @@PLEAC@@_16.6
 # This script accepts several filenames
