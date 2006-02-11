@@ -4378,7 +4378,21 @@ dupe = copy.copy(original)
 dupe.close()
 print original.closed
 #=>False
-# @@INCOMPLETE@@
+
+# DON'T DO THIS.
+import sys
+oldstderr = sys.stderr
+oldstdout = sys.stdout
+
+sys.stderr = open("C:/stderrfile.txt")
+sys.stdout = open("C:/stdoutfile.txt")
+
+print "Blah"  # Will be written to C:/stdoutfile.txt
+sys.stdout.close()
+
+sys.stdout = oldstdout
+sys.stderr = oldstderr
+
 
 # @@PLEAC@@_7.21
 # @@INCOMPLETE@@
@@ -4769,7 +4783,7 @@ myfile.close()
 
 
 # ^^PLEAC^^_8.14
-## Note: this isn't optimal -- the 's+=c' goes O(N**2) so don't
+## Note: this isn't optimal -- the 's+=c' may go O(N**2) so don't
 ## use for large strings.
 myfile.seek(addr)
 s = ""
@@ -5041,13 +5055,11 @@ entry = os.stat("/usr/bin/vi")
 ctime = entry.st_ino
 size = entry.st_size
 #-----------------------------
-F = open(filename)
+f = open(filename)
 
-## No equivalent in Python
-# unless (-s F && -T _) {
-#    die "$filename doesn't have text in it.\n";
-# }
-
+f.seek(0, 2)
+if not f.tell():
+    raise SystemExit("%s doesn't have text in it."%filename)
 #-----------------------------
 
 for filename in os.listdir("/usr/bin"):
