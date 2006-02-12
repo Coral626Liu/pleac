@@ -592,8 +592,6 @@ for fields in cvs.reader(lines, dialect="some"):
 
 # @@PLEAC@@_1.16
 #-----------------------------
-import sys
-
 def soundex(name, len=4):
     """ soundex module conforming to Knuth's algorithm
         implementation 2000-12-24 by Gregory Jorgensen
@@ -626,7 +624,8 @@ def soundex(name, len=4):
 
 user = raw_input("Lookup user: ")
 if user == "":
-    sys.exit()
+    raise SystemExit
+
 name_code = soundex(user)
 for line in open("/etc/passwd"):
     line = line.split(":")
@@ -734,7 +733,7 @@ class PsLineMatch:
                 (field,op,val) = m.match(a).groups()
             except:
                 print "can't understand query \"%s\"" % (a)
-                sys.exit()
+                raise SystemExit
             if field in self.numeric_fields:
                 conds.append(a)
             else:
@@ -754,7 +753,7 @@ if len(sys.argv)<=1:
     %s
     All criteria must be met for a line to be printed.""" \
     % (sys.argv[0], " ".join(PsLineMatch().fieldnames))
-    sys.exit()
+    raise SystemExit
 
 psln = PsLineMatch()
 psln.set_query(sys.argv[1:])
@@ -1641,8 +1640,49 @@ for item in data:
 
 # @@PLEAC@@_4.3
 #-----------------------------
+# Python allocates more space than is necessary every time a list needs to
+# grow and only shrinks lists when more than half the available space is
+# unused.  This means that adding or removing an element will in most cases
+# not force a reallocation.
+
 del mylist[size:]         # shrink mylist
 mylist += [None] * size   # grow mylist by appending 'size' None elements
+
+# To add an element to the end of a list, use the append method:
+mylist.append(4)
+
+# To insert an element, use the insert method:
+mylist.insert(0, 10) # Insert 10 at the beginning of the list
+
+# To extend one list with the contents of another, use the extend method:
+list2 = [1,2,3]
+mylist.extend(list2)
+
+# To insert the contents of one list into another, overwriting zero or 
+# more elements, specify a slice:
+mylist[1:1] = list2   # Don't overwrite anything; grow mylist if needed
+mylist[2:3] = list2   # Overwrite mylist[2] and grow mylist if needed
+
+# To remove one element from the middle of a list:
+# To remove elements from the middle of a list:
+del mylist[idx1:idx2]  # 0 or more
+x = mylist.pop(idx)    # remove mylist[idx] and assign it to x
+
+# You cannot assign to or get a non-existent element:
+# >>> x = []
+# >>> x[4] = 5
+#
+# Traceback (most recent call last):
+#   File "<pyshell#1>", line 1, in -toplevel-
+#     x[4] = 5
+# IndexError: list assignment index out of range
+#
+# >>> print x[1000]
+#
+# Traceback (most recent call last):
+#  File "<pyshell#16>", line 1, in -toplevel-
+#    print x[1000]
+# IndexError: list index out of range
 #-----------------------------
 def what_about_that_list(terms):
     print "The list now has", len(terms), "elements."
@@ -1658,18 +1698,6 @@ what_about_that_list(people)
 #-----------------------------
 people.pop()
 what_about_that_list(people)
-#-----------------------------
-# NOTE: Python raises an exception when trying to access an
-# out of range value.
-#>>> people.pop()
-#'Young'
-#>>> what_about_that_list(people)
-#The list now has 3 elements.
-#The index of the last element is 2 (or -1).
-#Traceback (most recent call last):
-#  File "<stdin>", line 1, in ?
-#  File "<stdin>", line 4, in what_about_that_list
-#IndexError: list index out of range
 #-----------------------------
 people += [None] * (10000 - len(people))
 #-----------------------------
@@ -1723,11 +1751,17 @@ for line in myfile:
 for item in mylist:
     print "i =", item
 #-----------------------------
-# NOTE: you can't modify in place the way Perl does
+# NOTE: you can't modify in place the way Perl does:
+# data = [1, 2, 3]
+# for elem in data:
+#     elem -= 1
+#print data
+#=>[1, 2, 3]
+
 data = [1, 2, 3]
 data = [i-1 for i in data]
 print data
-#>[0, 1, 2]
+#=>[0, 1, 2]
 
 # or
 for i, elem in enumerate(data):
@@ -3085,13 +3119,13 @@ if re.match(r"^[^\W\d_]+$", line, re.LOCALE):
     print "pure alphabetic"
 ##---------------------------
 import re
-import locale, sys
+import locale
 
 try:
     locale.setlocale(locale.LC_ALL, 'fr_CA.ISO8859-1')
 except:
     print "couldn't set locale to French Cnadian"
-    sys.exit()
+    raise SystemExit
 
 DATA="""
 silly
@@ -3421,9 +3455,10 @@ def glob2pat(globstr):
     
     return "^"+pat+"$"
 
-for t in tests:
-    if (glob2pat(t[0]) != t[1]):
-        print t[0],"failed! should be", t[1],"was",glob2pat(t[0])
+for globstr, patstr in tests:
+    g2p = glob2pat(globstr)
+    if g2p != patstr:
+        print globstr, "failed! Should be", patstr, "but was", g2p
 
 
 # @@PLEAC@@_6.10
@@ -3441,13 +3476,13 @@ for t in tests:
 # @@PLEAC@@_6.11
 # Testing for a Valid Pattern
 
-import sys, re
+import re
 while True:
     pat = raw_input("Pattern? ")
     try:
         re.compile(pat)
-    except:
-        print "INVALID PATTERN", sys.exc_info()[1]
+    except re.error, err:
+        print "INVALID PATTERN", err
         continue
     break
 
@@ -3455,7 +3490,7 @@ while True:
 def is_valid_pattern(pat):
     try:
         re.compile(pat)
-    except:
+    except re.error:
         return False
     return True
 
@@ -3659,13 +3694,13 @@ for action in ("SEND", "STOP", "ABORT", "LIST", "EDIT"):
     if re.match(answer, action, flags=re.IGNORECASE):
         print "Action is %s."%action.lower()
 ##-----------------------------
-import re
+import re, sys
 def handle_cmd(cmd):    
     cmd = re.escape(cmd.strip())
     for name, action in {"edit": invoke_editor,
                          "send": deliver_message,
                          "list": lambda: system(pager, myfile),
-                         "abort": lambda: sys.exit,
+                         "abort": sys.exit,
                          }
         if re.match(cmd, name, flags=re.IGNORECASE):
             action()
@@ -4638,9 +4673,9 @@ while True:
     sleep(naptime)
     logfile.seek(curpos, 0)  # seek to where we had been
 #-----------------------------
-import os, sys
+import os
 if os.stat(LOGFILENAME).st_nlink == 0:
-    sys.exit()
+    raise SystemExit
 #-----------------------------
 
  
@@ -5329,9 +5364,9 @@ for fname in fnames:
     # change the file's name
     try:
         os.rename(fname, newname)
-    except:
+    except OSError, err:
         print "Couldn't rename %s to %s: %s!" % \
-                (fname, newfile, sys.exc_info()[1])
+                (fname, newfile, err)
 
 # use os.renames if newname needs directory creation.
 
@@ -5342,9 +5377,9 @@ def rename(files, transfunc)
         newname = transfunc(fname)
         try:
             os.rename(fname, newname)
-        except:
+        except OSError, err:
             print "Couldn't rename %s to %s: %s!" % \
-                  (fname, newfile, sys.exc_info()[1])
+                  (fname, newfile, err)
 
 def transfunc(fname): 
     return fname[:-5]
@@ -5428,18 +5463,18 @@ import sys, os, os.path
 pgmname = sys.argv[0]
 if len(sys.argv)!=3:
     print "usage: %s realdir mirrordir" % pgmname
-    sys.exit()
+    raise SystemExit
 
 (srcdir, dstdir) = sys.argv[1:3]
 if not os.path.isdir(srcdir):
     print "%s: %s is not a directory" % (pgmname,srcdir)
-    sys.exit()
+    raise SystemExit
 if not os.path.isdir(dstdir):
     try:
         os.mkdir(dstdir)
-    except:
+    except OSError:
         print "%s: can't make directory %s" % (pgmname,dstdir)
-        sys.exit()
+	  raise SystemExit
 
 # fix relative paths
 srcdir = os.path.abspath(srcdir)
@@ -5454,7 +5489,7 @@ def wanted(arg, dirname, names):
                 os.mkdir("%s/%s" % (dstdir,relname), mode)
             except:
                 print "can't mkdir %s/%s" % (dstdir,relname)
-                sys.exit()
+                raise SystemExit
         else:
             if relname[:2] == "./":
                 relname = relname[2:]
@@ -5844,12 +5879,13 @@ raise "don't use me"              # string exception (deprecated)
 # Note that bare excepts are considered bad style.  Normally you should
 # trap specific exceptions.  For instance these bare excepts will
 # catch KeyboardInterrupt, SystemExit, and MemoryError as well as
-# more common errors.
+# more common errors.  In addition they force you to import sys to
+# get the error message.
 import warnings, sys
 try:
     func()
 except:
-    warnings.warn("func raise an exception: " + str(sys.exc_info()[1]))
+    warnings.warn("func raised an exception: " + str(sys.exc_info()[1]))
 #-----------------------------
 try:
     func()
@@ -6476,9 +6512,94 @@ print x.val
 # @@INCOMPLETE@@
 
 # @@PLEAC@@_11.15
+# bintree - binary tree demo program
 # Use the heapq module instead?
-# @@INCOMPLETE@@
-# @@INCOMPLETE@@
+import random
+import warnings
+
+class BTree(object):
+    def __init__(self):
+        self.value = None
+    
+    ### insert given value into proper point of
+    ### the tree, extending this node if necessary.
+    def insert(self, value):
+        if self.value is None:
+            self.left = BTree()
+            self.right = BTree()
+            self.value = value
+        elif self.value > value:
+            self.left.insert(value)
+        elif self.value < value:
+            self.right.insert(value)
+        else:
+            warnings.warn("Duplicate insertion of %s."%value)
+            
+    # recurse on left child, 
+    # then show current value, 
+    # then recurse on right child.
+    def in_order(self):
+       if self.value is not None:
+           self.left.in_order()
+           print self.value,
+           self.right.in_order()
+
+    # show current value, 
+    # then recurse on left child, 
+    # then recurse on right child.
+    def pre_order(self):
+        if self.value is not None:
+            print self.value,
+            self.left.pre_order()
+            self.right.pre_order()
+    
+    # recurse on left child, 
+    # then recurse on right child,
+    # then show current value. 
+    def post_order(self):
+        if self.value is not None:
+            self.left.post_order()
+            self.right.post_order()
+            print self.value,
+
+    # find out whether provided value is in the tree.
+    # if so, return the node at which the value was found.
+    # cut down search time by only looking in the correct
+    # branch, based on current value.
+    def search(self, value):
+        if self.value is not None:
+            if self.value == value:
+                return self
+            if value < self.value:
+                return self.left.search(value)
+            else:
+                return self.right.search(value)
+
+def test():
+    root = BTree()
+
+    for i in range(20):
+        root.insert(random.randint(1, 1000))
+
+    # now dump out the tree all three ways
+    print "Pre order: ", root.pre_order()
+    print "In order:  ", root.in_order()
+    print "Post order:", root.post_order()
+
+    ### prompt until empty line
+    while True:
+        val = raw_input("Search? ").strip()
+        if not val:
+            break
+        val = int(val)
+        found = root.search(val)
+        if found:
+            print "Found %s at %s, %s"%(val, found, found.value)
+        else:
+            print "No %s in tree" % val
+            
+if __name__ == "__main__":
+    test()
 
 
 # ^^PLEAC^^_12.0
@@ -6523,7 +6644,7 @@ def shuffle():
 
 __version__ = (1, 0)          # Or higher
 __all__ = ["...", "..."]      # Override names included in "... import *"
-                              #   Note: 'import *' is consider poor style
+                              #   Note: 'import *' is considered poor style
                               #   and it is rare to use this variable.
 ########################
 # your code goes here
@@ -6863,16 +6984,15 @@ def make_log(n):
       return math.log(val, n)
    return logn
 
-# Using exec - this this could also be done in locals(),
-# or someobject.__dict__
-for i in range(2,1000):
-    exec "log%s = make_log(i)"%i in globals()
-
-# Or modifying the global dictionary - this could also be done
-# with locals(), or someobject.__dict__
+# Modifying the global dictionary - this could also be done
+# using locals(), or someobject.__dict__
 globaldict = globals()
 for i in range(2, 1000):
     globaldict["log%s"%i] = make_log(i)
+
+# DON'T DO THIS
+for i in range(2,1000):
+    exec "log%s = make_log(i)"%i in globals()
     
 print log20(400)
 #=>2.0
@@ -6883,28 +7003,77 @@ someobject.blue = colours.azure  # someobject could be a module...
 
 # ^^PLEAC^^_12.14
 #-----------------------------
-# @@INCOMPLETE@@
-# @@INCOMPLETE@@
-# No Python equivalent - see Inline for a possible replacement
+# Python extension modules can be imported and used just like
+# a pure python module.
+#
+# See http://www.cosc.canterbury.ac.nz/~greg/python/Pyrex/ for
+# information on how to create extension modules in Pyrex [a
+# language that's basically Python with type definitions which
+# converts to compiled C code]
+#
+# See http://www.boost.org/libs/python/doc/ for information on how
+# to create extension modules in C++.
+#
+# See http://www.swig.org/Doc1.3/Python.html for information on how
+# to create extension modules in C/C++
+#
+# See http://docs.python.org/ext/ext.html for information on how to
+# create extension modules in C/C++ (manual reference count management).
+#
+# See http://cens.ioc.ee/projects/f2py2e/ for information on how to
+# create extension modules in Fortran
+#
+# See http://www.scipy.org/Weave for information on how to 
+# include inline C code in Python code.
+#
+# @@INCOMPLETE@@ Need examples of FineTime extensions using the different methods...
 #-----------------------------
 
 # ^^PLEAC^^_12.15
 #-----------------------------
-# @@INCOMPLETE@@
-# @@INCOMPLETE@@
-# Need a distutils equivalent
-
+# See previous section
 #-----------------------------
 
 # ^^PLEAC^^_12.16
 #-----------------------------
-# @@INCOMPLETE@@
-# @@INCOMPLETE@@
-# No Python equivalent.  (A couple of proposals, but nothing definitive.)
+# To document code, use docstrings. A docstring is a bare string that
+# is placed at the beginning of a module or immediately after the 
+# definition line of a class, method, or function. Normally, the
+# first line is a brief description of the object; if a longer
+# description is needed, it commences on the third line (the second
+# line being left blank).  Multiline comments should use triple
+# quoted strings.
 # 
-# Python docstrings are one line, which is the short description of the
-# function, class, module, etc.  Optionally this is followed by a blank
-# line then the full description of the object.
+# Docstrings are automagically assigned to an object's __doc__ property.
+#
+# In other words these three classes are identical:
+class Foo(object):
+    "A class demonstrating docstrings."
+
+class Foo(object):
+    __doc__ = "A class demonstrating docstrings."
+
+class Foo(object):
+    pass
+Foo.__doc__ = "A class demonstrating docstrings."
+
+# as are these two functions:
+def foo():
+    "A function demonstrating docstrings."
+
+def foo():
+    pass
+foo.__doc__ = "A function demonstrating docstrings."
+
+# the pydoc module is used to display a range of information about 
+# an object including its docstrings:
+import pydoc 
+print pydoc.getdoc(int)
+pydoc.help(int)
+
+# In the interactive interpreter, objects' documentation can be 
+# using the help function:
+help(int)
 
 #-----------------------------
 
@@ -7930,21 +8099,17 @@ tee = FileDispatcher(sys.stderr, sys.stdout)
 
 # @@PLEAC@@_14.1
 #-------------------------------------
-import anydbm, sys
-FILENAME = "test.db"
+import anydbm
+filename = "test.db"
 try:
-    HASH = anydbm.open(FILENAME)
-except:
-    print "Can't open %s: %s!" % (FILENAME, sys.exc_info()[1])
+    db = anydbm.open(filename)
+except anydbm, err:
+    print "Can't open %s: %s!" % (filename, err)
 
-HASH["KEY"] = "VALUE"           # put value into database
-if HASH.has_key("KEY"):         # check whether in database
-    V = HASH["KEY"]             # retrieve from database
-del HASH["KEY"]                 # remove from database
-HASH.close()                    # close the database
-#-------------------------------------
-# tie is another way to do the same thing another way
-# perl has a lots of ways to accomplish things.
+db["key"] = "value"        # put value into database
+if "key" in db:            # check whether in database
+    val = db.pop("key")    # retrieve and remove from database
+db.close()                 # close the database
 #-------------------------------------
 # @@INCLUDE@@ include/python/ch14/userstats
 
@@ -7955,34 +8120,34 @@ import anydbm
 
 try:
     db = anydbm.open(FILENAME,'w')   # open, for writing
-except:
-    print "Can't open db %s: %s!" % (FILENAME, sys.exc_info()[1])
-    sys.exit(1)
+except anydbm.error, err:
+    print "Can't open db %s: %s!" % (filename, err)
+    raise SystemExit(1)
 
-HASH.clear()
-HASH.close()
+db.clear()
+db.close()
 # -------------------------------
 try:
-    db = anydbm.open(FILENAME,'n')   # open, flways create a new empty db
-except:
-    print "Can't open db %s: %s!" % (FILENAME, sys.exc_info()[1])
-    sys.exit(1)
+    db = anydbm.open(filename,'n')   # open, always create a new empty db
+except anydbm.error, err:
+    print "Can't open db %s: %s!" % (filename, err)
+    raise SystemExit(1)
 
-HASH.close()
+db.close()
 # -------------------------------
-import os, sys
+import os
 try:
     os.remove(FILENAME)
-except:
+except OSError, err:
     print "Couldn't remove %s to empty the database: %s!" % (FILENAME,
-        sys.exc_info()[1])
-    sys.exit(1)
+        err)
+    raise SystemExit
 
 try:
     db = anydbm.open(FILENAME,'n')   # open, flways create a new empty db
-except:
-    print "Couldn't create %s database: %s!" % (FILENAME, sys.exc_info()[1])
-    sys.exit(1)
+except anydbm.error, err:
+    print "Couldn't create %s database: %s!" % (FILENAME, err)
+    raise SystemExit
 
 # @@PLEAC@@_14.3
 # Converting Between DBM Files
@@ -8280,7 +8445,7 @@ width = struct.unpack("HHHH", fcntl.ioctl(sys.stdout.fileno(),
                                  struct.pack("HHHH", 0, 0, 0, 0)))[1]
 if width<10:
     print "You must have at least 10 characters"
-    sys.exit(1)
+    raise SystemExit
 
 max_value = 0                    
 for v in values:
@@ -8650,15 +8815,13 @@ status = os.system("vi %s" % myfile)
 
 #-----------------------------
 import os
-import sys
-
 os.system("cmd1 args | cmd2 | cmd3 >outfile")
 os.system("cmd args <infile >outfile 2>errfile")
 
 status = os.system("%s %s %s" % (program, arg1, arg2))
 if status != 0:
     print "%s exited funny: %s" % (program, status)
-    sys.exit()
+    raise SystemExit
     
 
 # @@PLEAC@@_16.3
@@ -8671,11 +8834,11 @@ args = glob.glob("*.data")
 try:
     os.execvp("archive", args)
 except OSError, e:
-    print "Couldn't replace myself with archive: %s" % str(e)
-    sys.exit()
+    print "Couldn't replace myself with archive: %s" % err
+    raise SystemExit
 
 # The error message does not contain the line number like the "die" in
-# perl. But if you want to show more information for debuging, you can
+# perl. But if you want to show more information for debugging, you can
 # delete the try...except and you get a nice traceback which shows all
 # line numbers and filenames.
 
@@ -9052,7 +9215,6 @@ for fd in exc_:
 # @@PLEAC@@_17.4
 
 import socket
-import sys
 # Set up a UDP socket
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 # send 
@@ -9063,7 +9225,7 @@ s.connect((HOSTNAME, PORTNO))
 if len(MSG) != s.send(MSG):
     # where to get error message "$!".
     print "cannot send to %s(%d):" % (HOSTNAME,PORTNO)
-    sys.exit(1)
+    raise SystemExit(1)
 MAXLEN = 1024
 (data,addr) = s.recvfrom(MAXLEN)
 s.close()
@@ -9079,10 +9241,11 @@ import sys
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 try:
     s.bind(('', server_port))
-except:
+except socket.error, err:
     print "Couldn't be a udp server on port %d : %s" % (
-            server_port, sys.exc_info()[1])
-    sys.exit(1)
+            server_port, err)
+    raise SystemExit
+
 while True:
     datagram = s.recv(MAX_TO_READ)
     if not datagram:
@@ -9217,13 +9380,12 @@ signal.signal(signal.SIGHUP, read_config)
 # chroot
 
 import os
-import sys
 
 try:
     os.chroot("/var/daemon")
-except:
+except Exception:
     print "Could not chroot"
-    sys.exit(1)
+    raise SystemExit(1)
 
 #-----------------------------
 # fork (Unix): Create a new process
@@ -9231,12 +9393,11 @@ except:
 # else child process
 
 import os
-import sys
 
 pid = os.fork()
 if pid:
     print "I am the new child %s" % pid
-    sys.exit()
+    raise SystemExit
 else:
     print "I am still the parent"
     
@@ -9276,40 +9437,35 @@ import socket
 try:
     host_info = socket.gethostbyname_ex(name)
     # (hostname, aliaslist, ipaddrlist)
-except:
-    print "Can't resolve hostname %s: %s" % (
-                name, sys.exc_info()[1][1])
+except socket.gaierror, err:
+    print "Can't resolve hostname %s: %s" % (name, err[1])
                     
 # if you only need the first one
 import socket
 try:
     address = socket.gethostbyname(name)
-except:
-    print "Can't resolve hostname %s: %s" % (
-                name, sys.exc_info()[1][1])
+except socket.gaierror, err:
+    print "Can't resolve hostname %s: %s" % (name, err[1])
 
 # if you have an ip address
 try:
     host_info = socket.gethostbyaddr(address)
     # (hostname, aliaslist, ipaddrlist)
-except:
-    print "Can't resolve address %s: %s" % (
-                address, sys.exc_info()[1][1])
+except socket.gaierror, err:
+    print "Can't resolve address %s: %s" % (address, err[1])
                     
 # checking back
 import socket
 try:
     host_info = socket.gethostbyaddr(address)
-except:
-    print "Can't look uo %s: %s" % (
-                address, sys.exc_info()[1][1])
-    sys.exit(1)
+except socket.gaierror, err:
+    print "Can't look up %s: %s" % (address, err[1])
+    raise SystemExit(1)
 try:
     host_info = socket.gethostbyname_ex(name)
 except:
-    print "Can't look uo %s: %s" % (
-            name, sys.exc_info()[1][1])
-    sys.exit(1)
+    print "Can't look up %s: %s" % (name, err[1])
+    raise SystemExit(1)
 
 found = address in host_info[2]
 
@@ -9702,7 +9858,7 @@ print '</body></html>'
 #-----------------------------
 url = "http://python.org/pypi"
 print "Location: %s\n" % url
-sys.exit()
+raise SystemExit
 #-----------------------------
 # oreobounce - set a cookie and redirect the browser
 import Cookie
