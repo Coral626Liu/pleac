@@ -3711,7 +3711,43 @@ handle_cmd("ab")
 
 # @@PLEAC@@_6.21
 ##-----------------------------
-# @@INCOMPLETE@@
+# urlify - wrap HTML links around URL-like constructs
+import re
+
+def urlify_string(s):
+    urls = r'(http|telnet|gopher|file|wais|ftp)'
+    
+    ltrs = r'\w';
+    gunk = r'/#~:.?+=&%@!\-'
+    punc = r'.:?\-'
+    any  = ltrs + gunk + punc 
+
+    pat = re.compile(r"""
+      \b                    # start at word boundary
+      (                     # begin \1  {
+       %(urls)s  :          # need resource and a colon
+       [%(any)s] +?         # followed by one or more
+                            #  of any valid character, but
+                            #  be conservative and take only
+                            #  what you need to....
+      )                     # end   \1  }
+      (?=                   # look-ahead non-consumptive assertion
+       [%(punc)s]*          # either 0 or more punctuation
+       [^%(any)s]           #   followed by a non-url char
+       |                    # or else
+       $                    #   then end of the string
+      )
+    """%locals(), re.VERBOSE | re.IGNORECASE)
+    return re.sub(pat, r"<A HREF=\1>\1</A>", s)
+
+s = """\
+Pleac-discuss can be found at
+http://lists.sourceforge.net/lists/listinfo/pleac-discuss
+and Pleac-commits can be found at
+http://lists.sourceforge.net/lists/listinfo/pleac-commits.
+"""
+print urlify_string(s)
+
 # @@INCOMPLETE@@
 
 # @@PLEAC@@_6.22
@@ -3889,13 +3925,7 @@ except AttributeError:
 ##-----------------------------
 txt = re.sub('"([^"]*)"', "``\1''", txt)
 ##-----------------------------
-# { local $/ = "";
-#   while (<>) {
-#     s/\n/ /g;
-#     s/ {3,}/  /g;
-#     push @sentences, m/(\S.*?[!?.])(?=  |\Z)/g;
-#   }
-# }
+sentences = [elem[0] for elem in re.findall(r"(.*?[!?.])(  |\Z)", s)]
 ##-----------------------------
 import time
 dt = time.strptime(txt, "%Y-%m-%d")
@@ -3928,7 +3958,6 @@ for line in file(fname, "Ur"):          #Universal newlines
 lines = [re.sub(r"^([^\012\015]*)(\012\015?|\015\012?)", "", line) 
          for line in file(fname)]
 ##-----------------------------
-# @@INCOMPLETE@@
 
 
 # @@PLEAC@@_7.0
@@ -6508,8 +6537,18 @@ print x.val
 #=> 3
 #-----------------------------
 # @@PLEAC@@_11.14
-# @@INCOMPLETE@@
-# @@INCOMPLETE@@
+import os, shelve
+fname = "testfile.db"
+if not os.path.exists(fname):
+    d = shelve.open("testfile.db")
+    for i in range(100000):
+        d[str(i)] = i
+    d.close()
+
+d = shelve.open("testfile.db")
+print d["100"]
+print d["1212010201"] # KeyError
+#-----------------------------
 
 # @@PLEAC@@_11.15
 # bintree - binary tree demo program
@@ -8170,7 +8209,11 @@ for INPUT in (INPUT1, INPUT2, INPUT1):
             OUTPUT[key] = value
 
 # @@PLEAC@@_14.5
-# @@INCOMPLETE@@
+# On systems where the Berkeley DB supports it, dbhash takes an
+# "l" flag:
+import dbhash
+dbhash.open("mydb.db", "cl") # 'c': create if doesn't exist
+
 # @@INCOMPLETE@@
 
 # @@PLEAC@@_14.6
@@ -8222,7 +8265,23 @@ db.sync()
 #-----------------------------
 
 # @@PLEAC@@_14.9
-# @@INCOMPLETE@@
+# DON'T DO THIS.
+import os as _os, shelve as _shelve
+
+_fname = "persist.db"
+if not _os.path.exists(_fname):
+    var1 = "foo"
+    var2 = "bar"
+_d = _shelve.open("persist.db")
+globals().update(_d)
+
+print "var1 is %s; var2 is %s"%(var1, var2)
+var1 = raw_input("New var1: ")
+var2 = raw_input("New var2: ")
+
+for key, val in globals().items():
+    if not key.startswith("_"):
+        _d[key] = val
 # @@INCOMPLETE@@
 
 # @@PLEAC@@_14.10
@@ -8514,12 +8573,14 @@ class _GetchWindows:
 getch = _Getch()
 
 print "Press keys to see their ASCII values.  Use Ctrl-C to quit.\n"
-while (1):
-    char = getch()
-    char = ord(char)
-    if char == 3:
-        break
-    print " Decimal: %3d   Octal: %3o   Hex: x%02x" % (char, char, char)
+try:
+    while True:
+        char = ord(getch())
+        if char == 3:
+            break
+        print " Decimal: %3d   Octal: %3o   Hex: x%02x" % (char, char, char)
+except KeyboardError:
+    pass
 #----------------------------------------
 
 # @@PLEAC@@_15.7
