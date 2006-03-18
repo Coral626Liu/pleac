@@ -87,7 +87,7 @@ mystr = array.array("c", "This is what you have")
 mystr[5:7] = array.array("c", "wasn't")
 # mystr is now array('c', "This wasn't what you have")
 
-# DON'T DO THIS: It could also be done MutableString 
+# DON'T DO THIS: It could also be done using MutableString 
 from UserString import MutableString
 mystr = MutableString("This is what you have")
 mystr[-12:] = "ondrous"
@@ -2383,6 +2383,17 @@ def factorial(n):
         n -= 1
     return s   
 #-----------------------------
+def permute(alist, blist=[]):
+    if not alist:
+        yield blist
+    for i, elem in enumerate(alist):
+        for elem in permute(alist[:i] + alist[i+1:], blist + [elem]):
+            yield elem
+
+for permutation in permute(range(4)):
+    print permutation
+#-----------------------------
+# DON'T DO THIS
 import fileinput
 
 # Slightly modified from
@@ -2399,7 +2410,52 @@ for line in fileinput.input():
     words = line.split()
     print_list(words)
 #-----------------------------
-# @@INCOMPLETE@@ Needs memoization version (+generator version)
+class FactorialMemo(list):
+    def __init__(self):
+        self.append(1)
+        
+    def __call__(self, n):
+        try:
+            return self[n]
+        except IndexError:
+            ret = n * self(n-1)
+            self.append(ret)
+            return ret
+
+factorial = FactorialMemo()
+
+import sys
+import time
+sys.setrecursionlimit(10000)
+
+start = time.time()
+factorial(2000)
+f1 = time.time() - start
+factorial(2100)                 # First 2000 values are cached already
+f2 = time.time() - f1 - start
+print "Slow first time:", f1
+print "Quicker the second time:", f2
+#-----------------------------
+
+class MemoizedPermutations(list):
+    def __init__(self, alist):
+        self.permute(alist, [])
+        
+    def permute(self, alist, blist):
+        if not alist:
+            self.append(blist)
+        for i, elem in enumerate(alist):
+            self.permute(alist[:i] + alist[i+1:], blist + [elem])
+
+    def __call__(self, seq, idx):
+        return [seq[n] for n in self[idx]]
+
+
+p5 = MemoizedPermutations(range(5))
+
+words = "This sentence has five words".split()
+print p5(words, 17)
+print p5(words, 81)
 #-----------------------------
 
 # @@PLEAC@@_5.0
@@ -3654,7 +3710,77 @@ if re.match(pat1, text) and re.match(pat2, text):
 if re.match(pat1, text) or re.match(pat2, text):
     something()
 ##-----------------------------
-# @@INCOMPLETE@@
+# DON'T DO THIS.
+"""minigrep - trivial grep"""
+import sys, re
+
+pat = sys.argv[1]
+for line in sys.stdin:
+    if re.match(pat, line):
+        print line[:-1]
+##-----------------------------
+if re.match(r"^(?=.*bell)(?=.*lab)", "labelled"):
+    something()
+##-----------------------------
+if re.search("bell", s) and re.search("lab", s):
+    something()
+##-----------------------------
+if re.match("""
+             ^              # start of string
+            (?=             # zero-width lookahead
+                .*          # any amount of intervening stuff
+                bell        # the desired bell string
+            )               # rewind, since we were only looking
+            (?=             # and do the same thing
+                .*          # any amount of intervening stuff
+                lab         # and the lab part
+            )
+            """,
+            murray_hill,
+            re.DOTALL | re.VERBOSE):
+    print "Looks like Bell Labs might be in Murray Hill!"
+##-----------------------------
+if re.match(r"(?:^.*bell.*lab)|(?:^.*lab.*bell)", "labelled"):
+    something()
+##-----------------------------
+brand = "labelled"
+if re.match("""
+            (?:                 # non-capturing grouper
+                ^ .*?           # any amount of stuff at the front
+                bell            # look for a bell
+                .*?             # followed by any amount of anything
+                lab             # look for a lab
+            )                   # end grouper
+            |                   # otherwise, try the other direction
+            (?:                 # non-capturing grouper
+                ^ .*?           # any amount of stuff at the front
+                lab             # look for a lab
+                .*?             # followed by any amount of anything
+                bell            # followed by a bell
+            )                   # end grouper
+            """,
+            brand,
+            re.DOTALL | re.VERBOSE):
+    print "Our brand has bell and lab separate."
+##-----------------------------
+x = "odlaw"
+if re.match("^(?:(?!waldo).)*$", x):
+   print "There's no waldo here!"
+##-----------------------------
+if re.match("""
+            ^                   # start of string
+            (?:                 # non-capturing grouper
+                (?!             # look ahead negation
+                    waldo       # is he ahead of us now?
+                )               # is so, the negation failed
+                .               # any character (cuzza /s)
+            ) *                 # repeat that grouping 0 or more
+            $                   # through the end of the string
+            """,
+            x,
+            re.VERBOSE | re.DOTALL):
+    print "There's no waldo here!\n";
+##-----------------------------
 
 # @@PLEAC@@_6.18
 # @@INCOMPLETE@@
@@ -3712,7 +3838,7 @@ handle_cmd("ab")
 # @@PLEAC@@_6.21
 ##-----------------------------
 # urlify - wrap HTML links around URL-like constructs
-import re
+import re, sys, fileinput
 
 def urlify_string(s):
     urls = r'(http|telnet|gopher|file|wais|ftp)'
@@ -3740,15 +3866,10 @@ def urlify_string(s):
     """%locals(), re.VERBOSE | re.IGNORECASE)
     return re.sub(pat, r"<A HREF=\1>\1</A>", s)
 
-s = """\
-Pleac-discuss can be found at
-http://lists.sourceforge.net/lists/listinfo/pleac-discuss
-and Pleac-commits can be found at
-http://lists.sourceforge.net/lists/listinfo/pleac-commits.
-"""
-print urlify_string(s)
+if __name__ == "__main__":
+    for line in fileinput.input():
+        print urlify_string(line)
 
-# @@INCOMPLETE@@
 
 # @@PLEAC@@_6.22
 ##-----------------------------
@@ -8516,7 +8637,7 @@ for v in values:
 
 # @@PLEAC@@_15.5
 
-# there seams to be no standard ansi module
+# there seems to be no standard ansi module
 # and BLINK does not blink here.
 RED = '\033[31m'
 RESET = '\033[0;0m'
@@ -8533,8 +8654,7 @@ print "Will ``"+BLINK+"Do you hurt yet?"+NOBLINK+"'' and back"
 
 # _Getch is from http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/134892
 class _Getch:
-    """Gets a single character from standard input.  Does not echo to the
-screen."""
+    """Gets a single character from standard input.  Doesn't echo to screen."""
     def __init__(self):
         try:
             self.impl = _GetchWindows()
