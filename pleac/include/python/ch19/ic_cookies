@@ -1,0 +1,42 @@
+#!/usr/bin/python
+# ic_cookies - sample CGI script that uses a cookie
+
+import cgi
+import os
+import Cookie
+import datetime
+
+cookname = "favorite-ice-cream"  # SimpleCookie does not support blanks
+fieldname = "flavor"
+
+cookies = Cookie.SimpleCookie(os.environ.get("HTTP_COOKIE",""))
+if cookies.has_key(cookname):
+    favorite = cookies[cookname].value
+else:
+    favorite = "mint"
+
+form = cgi.FieldStorage()
+if not form.has_key(fieldname):
+    print "Content-Type: text/html"
+    print "\n"
+    print "<html><body>"
+    print "<h1>Hello Ice Cream</h1>"
+    print "<form>"
+    print 'Please select a flavor: <input type="text" name="%s" value="%s" />' % (
+            fieldname, favorite )
+    print "</form>"
+    print "<hr />"
+    print "</body></html>"
+else:
+    favorite = form[fieldname].value
+    cookies[cookname] = favorite
+    expire = datetime.datetime.now() + datetime.timedelta(730)
+    cookies[cookname]["expires"] = expire.strftime("%a, %d %b %Y %H:00:00 GMT")
+    cookies[cookname]["path"] = "/"
+    print "Content-Type: text/html"
+    print cookies
+    print "\n"
+    print "<html><body>"
+    print "<h1>Hello Ice Cream</h1>"
+    print "<p>You chose as your favorite flavor \"%s\"</p>" % favorite
+    print "</body></html>"
