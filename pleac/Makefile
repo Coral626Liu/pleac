@@ -19,7 +19,7 @@
  #*****************************************************************************
 
 # IMPLS must be sorted by percentage of completion
-IMPLS = perl python ruby guile merd ocaml ada tcl rexx pike haskell java pliant commonlisp cposix c++ smalltalk php forth erlang R masd nasm
+IMPLS = perl python ruby rexx guile merd ocaml ada tcl pike haskell java pliant commonlisp cposix c++ smalltalk php forth erlang R masd nasm
 
 
 DATAFILES = $(wildcard pleac_*.data)
@@ -41,8 +41,8 @@ skeleton/index.html: skeleton.sgml
 %.html: %.data
 	ruby -pe 'sub(/((@@|\^\^)INCLUDE(@@|\^\^) (\S+))/) { "#{$$1}\n" + File.open($$4).read }' $< > tmp.data
 	./code2html tmp.data
-	ruby -pi -e 'sub(/(@@|\^\^)INCLUDE(@@|\^\^) (\S+)/) { "<font size=\"-1\"><a href=\"http://pleac.sourceforge.net/#{$$3}\">download the following standalone program</a></font>" }' tmp.html
-	mv -f tmp.html $@
+	ruby -pi -e 'sub(/(@@|\^\^)INCLUDE(@@|\^\^) (\S+)/) { "<font size=\"-1\"><a href=\"http://pleac.sourceforge.net/#{$$3}\">download the following standalone program</a></font>" }' tmp.data.html
+	mv -f tmp.data.html $@
 
 $(HTMLTARGETSDEP): %/index.html: %.html skeleton/index.html
 	rm -rf $(@D)

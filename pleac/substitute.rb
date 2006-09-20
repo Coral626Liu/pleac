@@ -26,6 +26,33 @@ end
 skel_contents = File.open(ARGV[0]).read
 impl_contents = File.open(ARGV[1]).readlines.push("@@PLEAC@@_FAKE")
 
+style = ''
+in_style = false
+in_body_style = false
+for i in impl_contents
+    if i =~ /(.*\/style>)/i
+        style += $1
+        break
+    elsif in_style
+        if i =~ /\bbody\b/i
+            in_body_style = true
+        end
+        if ! in_body_style
+            style += i
+        end
+        if in_body_style && i =~ /\}/
+            in_body_style = false
+        end
+    elsif i =~ /(<style.*)/
+        style += $1
+        in_style = true
+    end
+end
+
+if style != ''
+    skel_contents.gsub!(/<\/head/i, style + "</head")
+end
+
 current_key = nil
 current_subst = []
 for i in impl_contents
