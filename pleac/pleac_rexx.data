@@ -2869,6 +2869,1914 @@ end
 @@INCOMPLETE@@
 
 
+/* @@PLEAC@@_7.0 */
+/* ------------------------------------------------------------------ */
+/* REXX sports, as an ANSI Standard feature, a highly simplified file */
+/* I/O model. Features:                                               */
+/*                                                                    */
+/* * File name is used as the 'handle'                                */
+/* * Implicit file opening on first use                               */
+/*                                                                    */
+/* This model certainly promotes ease-of-use. It is also designed to  */
+/* be platform agnostic, so that the same I/O code *should* work on   */
+/* widely differing platforms [at least that's the theory ;) !]. On   */
+/* the other hand, it:                                                */
+/*                                                                    */
+/* * Is quite 'alien' to those accustomed to file descriptor-based I/O*/
+/*   as found in *NIX / C / Perl/Ruby/Python                          */
+/* * Makes it impossible to have multiple 'views' [via multiple handl-*/
+/*   es] of the same file, or to redirect I/O within the program [that*/
+/*   is, without 'shelling out' or using temporary files]             */
+/*                                                                    */
+/* Consequently, many of the examples in this chapter are not directly*/
+/* implementable in REXX. However, wherever possible, the task will be*/
+/* performed with some other approach even if it comes across as some-*/
+/* what contrived.                                                    */
+/* ------------------------------------------------------------------ */
+
+filename = "data.txt"                    /* ANSI-standard I/O */
+
+/* Explicit OPEN, CLOSE, and stream status check */
+if STREAM(filename, 'C', "OPEN READ") == "READY:" then do
+  do while LINES(filename) > 0
+    line = LINEIN(filename) ; if line == NULL then ; leave
+    spos = POS("blue", line)
+    if spos > 0 then say SUBSTR(line, spos)
+  end
+  call STREAM filename, 'C', "CLOSE"
+end
+
+/*
+   Alternative: implicit OPEN, CLOSE; 'null' check - terminates on either
+   EOF or 'empty' line [use 'LINES(...) == 0' check to verify EOF]
+*/
+
+line = LINEIN(filename)
+do while line <> NULL
+  spos = POS("blue", line)
+  if spos > 0 then say SUBSTR(line, spos)
+  line = LINEIN(filename)
+end
+
+/* ----------------------------- */
+
+filename = "data.txt" ; fh = "data"      /* AREXX-compatible I/O */
+
+if OPEN(fh, filename, "READ") then do
+  line = READLN(fh)
+  do until EOF(fh)
+    spos = POS("blue", line)
+    if spos > 0 then say SUBSTR(line, spos)
+    line = READLN(fh)
+  end
+  call CLOSE fh
+end
+
+/* ----------------------------- */
+
+/*
+   LINEIN's default stream is "<stdin>", LINEOUT's is "<stdout>"; 'null'
+   check - terminates on either EOF or 'empty' line [use 'LINES(...) == 0'
+   check to verify EOF]
+*/
+
+line = LINEIN()
+do while line <> NULL
+  if VERIFY("0123456789", line, 'M') == 0 then
+    call LINEOUT "<stderr>", "No digit found"
+  call LINEOUT , line
+  line = LINEIN() ; if LINES() == 0 then ; leave
+end
+
+/* Alternative: STREAM to check stream status, PARSE VALUE LINEIN */
+
+do while STREAM("<stdin>", 'S') \= "NOTREADY"
+  parse value LINEIN() with line
+  if line <> NULL then do
+    if VERIFY("0123456789", line, 'M') == 0 then
+      call LINEOUT "<stderr>", "No digit found"
+    call LINEOUT , line
+  end
+end
+
+/* Alternative: Data extracted from STACK - REXX idiomatic */
+
+SYSCMD = 'type data.txt | rxqueue'   /* Platform-specific [Win32] */
+'SYSCMD'                             /* Direct data into STACK */
+
+do while QUEUED() > 0
+  parse pull line
+  if line <> NULL then do
+    if VERIFY("0123456789", line, 'M') == 0 then
+      call LINEOUT "<stderr>", "No digit found"
+    call LINEOUT , line
+  end
+end
+
+/* ----------------------------- */
+
+call STREAM(logfile, 'C', "OPEN WRITE")
+
+/* ----------------------------- */
+
+call STREAM(logfile, 'C', "CLOSE")
+
+/* ----------------------------- */
+
+/*
+   There is no concept of 'default stream' in REXX. The I/O BIF's
+   simply assume a default value of either "<stdin>" or "<stdout>"
+   when called without an explicit stream argument.
+*/
+
+filename = logfile
+call LINEOUT filename, "Countdown initiated ..."
+
+filename = originalfile
+call LINEOUT filename, "You have 60 seconds to reach minimum safe",
+                       "distance ..."
+
+/* @@PLEAC@@_7.1 */
+
+call STREAM path, 'C', 'READ'  /* open file "path" for reading only */
+call OPEN alias, path, 'READ'
+
+call STREAM path, 'C', 'WRITE' /* open file "path" for writing only */
+call OPEN alias, path, 'WRITE'
+
+call STREAM path, 'C', 'BOTH'  /* open "path" for reading and writing */
+call OPEN alias, path, 'WRITE' /* allows both read and write */
+
+/*
+   open file "path" write only, create it if it does not exist, truncate
+   to zero length if exists
+*/
+call STREAM path, 'C', 'WRITE REPLACE'
+
+/* open file "path" write only, fails if file exists */
+/* Cannot do - must check for file existence and manually fail */
+
+/* open file "path" for appending */
+call STREAM path, 'C', 'WRITE APPEND'
+call OPEN alias, path, 'APPEND'
+
+/* open file "path" for appending only when file exists */
+/* Cannot do - must check for file existence and then take action */
+
+/* open file "path" for reading and writing */
+call STREAM path, 'C', 'BOTH'
+call OPEN alias, path, 'WRITE' /* allows both read and write */
+
+/* open file for reading and writing, create file if doesn't exist */
+call STREAM path, 'C', 'BOTH APPEND'
+call OPEN alias, path, 'APPEND' /* allows both read and append */
+
+/* open file "path" reading and writing, fails if file exists */
+/* Cannot do - must check for file existence and manually fail */
+
+/* @@PLEAC@@_7.2 */
+/* ------------------------------------------------------------------ */
+/* REXX has no problem handling files with unusual filenames, thus    */
+/* nothing beyond normal file handling need be done.                  */
+/* ------------------------------------------------------------------ */
+
+/* *** Translation skipped *** */
+
+/* @@PLEAC@@_7.3 */
+/* ------------------------------------------------------------------ */
+/* This item is *NIX-specific; code examples reflect this.            */
+/*                                                                    */
+/* The general approach taken in REXX to such a task is to construct  */
+/* a 'command string', that is, a sequence of characters that can be  */
+/* sent to the platform's command interpreter [a.k.a. command         */
+/* processor or shell] for execution. In most cases generated output  */
+/* is captured and used as the 'result' of the command. Depending on  */
+/* the platform, too, there may also be an 'command status code'      */
+/* available that may be used for diagnostic purposes.                */
+/*                                                                    */
+/* REXX supports two modes of 'command execution':                    */
+/*                                                                    */
+/* * Implicit i.e command is passed directly to the default shell     */
+/* * Explicit, via the ADDRESS instruction; allows choice of shell,   */
+/*   and output handling                                              */
+/* ------------------------------------------------------------------ */
+
+filename = "/myfile.dat"
+
+/* ----------------------------- */
+
+/* Implicit Command Execution [output redirected to system STACK] */
+'echo ~ >LIFO' ; parse pull expandedTilde
+
+filename = expandedTilde || filename
+
+/* ----------------------------- */
+
+/* Explicit Command Execution (1) [same as previous example] */
+address SYSTEM 'echo ~' with OUTPUT LIFO "" ; parse pull expandedTilde
+
+filename = expandedTilde || filename
+
+/* ----------------------------- */
+
+/* Explicit Command Execution (2) [output directed to stem variable] */
+address SYSTEM 'echo ~' with OUTPUT STEM expandedTilde.
+
+filename = expandedTilde.1 || filename
+
+/* ----------------------------- */
+
+/* Explicit Command Execution (3) [output directed to file] */
+TMPFILE = './exp.$$$' ; DELCMD = 'rm -f' TMPFILE
+
+address SYSTEM 'echo ~' with OUTPUT STREAM TMPFILE
+
+expandedTilde = LINEIN(TMPFILE) ; filename = expandedTilde || filename
+
+address SYSTEM DELCMD
+
+/* @@PLEAC@@_7.4 */
+
+parse source . . sourcefile
+
+/* Trap file I/O conditions */
+signal on NOTREADY
+
+filename = "..."
+call STREAM filename, 'C', 'OPEN READ'
+
+/* Success */
+say filename "was opened ok"
+exit 0
+
+/* Open error */
+NOTREADY :
+  say "In line" SIGL "of source file" sourcefile
+  say "a" CONDITION('C') "condition was trapped."
+  say "Could not open file" CONDITION('D') "for reading"
+  exit 1
+
+/* @@PLEAC@@_7.5 */
+
+/*
+   Utilise 'tmpnam' functionality via 'mktemp' utility
+*/
+
+tmpnam : procedure expose (globals)
+  address SYSTEM 'mktemp' with OUTPUT STEM tmpnam.
+  if RC \= 0 then ; tmpnam.1 = NULL
+  return tmpnam.1
+
+/* ----------- */
+
+/*
+   Use 'rexxUtil's' 'sysTempFileName'
+*/
+
+tmpnam : procedure expose (globals)
+  tmpnam = "/tmp/" || sysTempFileName('??tmp???')
+
+  if tmpnam \= NULL then do
+    call STREAM tmpnam, 'C', 'OPEN WRITE'
+    call STREAM tmpnam, 'C', 'CLOSE'
+  end
+
+  return tmpnam
+
+/* ----------------------------- */
+
+tmpnam = tmpnam()
+
+if tmpnam == NULL then do
+  say "Unable to create temporary file" ; exit 1
+end
+
+/* ----------- */
+
+tmpnam = tmpnam()
+
+do while tmpnam <> NULL
+  tmpnam = tmpnam()
+end
+
+/* ... use file ... */
+
+/* Delete file before exiting program ... */
+call sysFileDelete tmpnam
+
+/* ----------- */
+
+tmpnam = tmpnam()
+
+if tmpnam == NULL then do
+  say "Unable to create temporary file" ; exit 1
+end
+
+do i = 1 for 10
+  call CHAROUT tmpnam, i
+end
+
+call STREAM tmpnam, 'C', 'SEEK' 1 'READ' 'CHAR'
+
+say "Tmp file has:" LINEIN(tmpnam)
+
+/* @@PLEAC@@_7.6 */
+
+/* Data residing within a comment block */
+signal DATA /*
+Line 1 ...
+Line 2 ...
+Line 3 ...
+*/
+
+/* Load data into 'data' as a table of lines */
+DATA:
+  data = NULL
+  do i = SIGL + 1
+    line = SOURCELINE(i)
+    if line = "*/" then leave
+    if data == NULL then
+      data = line
+    else
+      data = data || NEWLINE || line
+  end
+
+/* Use data */
+say data
+
+/* @@PLEAC@@_7.7 */
+/* ------------------------------------------------------------------ */
+/* STDIN, STDOUT and STDERR are implemented as the 'special' file nam-*/
+/* es, "<stdin>", "<stdout>", and "<stderr>", respectively. In additi-*/
+/* on, the ANSI Standard I/O routines use the first two of these as   */
+/* defaults where a filename is not provided. This, together with the */
+/* PARSE instruction, and an extensive set of string manipulation BIFs*/
+/* makes the writing of filter programs quite straightforward in REXX.*/
+/* ------------------------------------------------------------------ */
+
+/* priming read */
+line = LINEIN()
+
+/* terminates on both 'empty' line and EOF - do LINES() check for EOF */
+do while line <> NULL
+  /* do something with 'line' */
+  /* ... */
+
+  /* let's now get another one ... */
+  line = LINEIN()
+end
+
+/* ----------- */
+
+/* priming read */
+line = LINEIN()
+
+/* check for data availability */
+do while LINES() > 0
+
+  /* if data was extracted i.e. not an empty line */
+  if line <> NULL then do
+    /* do something with 'line' */
+    /* ... */
+  end
+
+  /* let's now get another line ... */
+  line = LINEIN()
+end
+
+/* ----------- */
+
+/* check for data availability */
+do while STREAM("<stdin>", 'S') \= "NOTREADY"
+
+  /* let's now get a line, optionally parsing it into fields ... */
+  parse value LINEIN() with line
+
+  /* if data was extracted i.e. not empty fields */
+  if line <> NULL then do
+    /* do something with 'line' */
+    /* ... */
+  end
+end
+
+/* ----------------------------- */
+
+/* Processing a number of files passed on the command line */
+
+/* No filename arguments, so assume working with STDIN */
+if ARG() < 1 then
+   call do_with "<stdin>"
+else
+  /* Process each filename argument in turn */
+  do i = 1 for ARG()
+    call do_with ARG(i)
+  end
+
+exit 0
+
+/* ----------- */
+
+do_with : procedure expose (globals)
+  file = ARG(1)
+
+  if STREAM(file, 'C', 'OPEN READ') \= 'READY:' then do
+    say "Can't open" file ; return
+  end
+
+  line = LINEIN(file)
+
+  do while LINES(file) > 0
+    /* do something with line ... */
+    say line
+
+    line = LINEIN(file)
+  end
+
+  return
+
+/* ----------------------------- */
+
+argv = NULL ; argc = ARG()
+
+/* Either grab file list from command-line, or ... */
+if argc > 0 then
+  if argc > 1 then
+    /* filename(s) as separate argument strings [-a option] */
+    do i = 1 for ARG() ; argv = argv ARG(i) ; end
+  else
+    /* filename(s) as single argument string */
+    argv = ARG(1)
+else
+  /* ... get it yourself */
+  argv = glob("*.[cCh]")
+
+argv = STRIP(argv)
+
+/* ----------------------------- */
+
+/*
+   The following are 'quickie' solutions matching the Perl examples;
+   REXXToolkit has a 'getopt' routine offering functionality similar
+   to *NIX 'getopt', and it would be the preferred approach
+*/
+
+/* arg demo: 1 [assume Regina '-a' option used] */
+if ARG() > 0 & ARG(1) == "-c" then ; chop_first = chop_first + 1
+
+/* ----------- */
+
+/* arg demo: 2 [assume Regina '-a' option used] */
+if ARG() > 0 & match(ARG(2), "^-[[:digit:]]+$") then
+  parse value ARG(2) with "-" columns .
+
+/* ----------- */
+
+/* arg demo: 3 [assume Regina '-a' option used] */
+parse SOURCE . . source
+
+do i = 1 for ARG()
+  parse value ARG(i) with "-" option .
+  if option == NULL then ; iterate
+  if VERIFY("ainu", option, 'M') == 0 then do
+    call LINEOUT "<stderr>", "usage:" source "[-ainu] [filenames...]"
+    exit 1
+  end
+  options = options || option
+end
+
+append = 0 ; ignore = 0 ; nostdout = 0 ; unbuffer = 0
+
+if POS("a", options) > 0 then ; append = append + 1
+if POS("i", options) > 0 then ; ignore = ignore + 1
+if POS("n", options) > 0 then ; nostdout = nostdout + 1
+if POS("u", options) > 0 then ; unbuffer = unbuffer + 1
+
+/* ----------------------------- */
+
+/* undef $/ not applicable; do following to load entire file */
+
+/* STDIN - doesn't have a 'size', so use arbitrary 'large' value */
+file_contents = CHARIN(,, 9999999)
+
+/* Regular file - use actual file size */
+file_contents = CHARIN(file,, CHARS(file))
+
+/* ----------------------------- */
+
+line = LINEIN()
+
+do i = 1 while LINES() > 0
+  say "-:" || i || ":" || line
+  line = LINEIN()
+end
+
+/* ----------------------------- */
+
+line = LINEIN()
+
+do while LINES() > 0
+  if match(line, "login") then ; say line
+  line = LINEIN()
+end
+
+/* ----------- */
+
+do while LINES() > 0
+  /*
+    'parse lower' is Regina-specific. Can otherwise use:
+    line = TRANSLATE(line, "abc...", "ABC...")
+  */
+  parse lower LINEIN line
+  if line <> NULL then ; say line
+end
+
+/* ----------- */
+
+line = LINEIN() ; chunks = 0
+
+do while LINES() > 0
+  if match(line, "^#") then ; iterate
+  if match(line, "_     _(DATA|END)_     _") then ; leave
+  chunks = chunks + WORDS(line)
+  line = LINEIN()
+end
+
+say "Found" chunks "chunks"
+
+/* @@PLEAC@@_7.8 */
+
+old = "..." ; new = "..."
+
+/* Explicit file opening optional */
+call STREAM old, 'C', 'OPEN READ' ; call STREAM new, 'C', 'OPEN WRITE'
+
+/* Priming read */
+line = LINEIN(old)
+
+do while LINES(old) > 0
+  if line <> NULL then do
+    /* Change line ... */
+    line = line || 3
+  end ; else do
+    /* Handle 'empty' line */
+    nop
+  end
+
+  /* Write it to new */
+  call LINEOUT new, line
+
+  /* Get another line */
+  line = LINEIN(old)
+end
+
+call STREAM old, 'C', 'CLOSE' ; call STREAM new, 'C', 'CLOSE'
+
+call sysMoveObject old, "old.orig" ; call sysMoveObject new, old
+call sysFileDelete "old.orig"
+
+/* ----------------------------- */
+
+/* ... */
+
+line = LINEIN(old)
+
+do while LINES(old) > 0
+  if STREAM(old, 'C', 'QUERY SEEK READ LINE') == 20 then do
+    call LINEOUT new, "Extra line 1 ..."
+    call LINEOUT new, "Extra line 2 ..."
+  end
+
+  call LINEOUT new, line
+
+  line = LINEIN(old)
+end
+
+/* ... */
+
+/* ----------- */
+
+/* ... */
+
+line = LINEIN(old)
+
+do while LINES(old) > 0
+  line_number = STREAM(old, 'C', 'QUERY SEEK READ LINE')
+  if line_number >= 20 & line_number <= 30  then ; iterate
+
+  call LINEOUT new, line
+
+  line = LINEIN(old)
+end
+
+/* ... */
+
+/* @@PLEAC@@_7.9 */
+/* ------------------------------------------------------------------ */
+/* AFAIK, no REXX interpreter has an '-i' switch to force in-place    */
+/* modification of files. The file modification has to be programmed  */
+/* in, and it is this approach that will be used here.                */
+/* ------------------------------------------------------------------ */
+
+/*
+   In-place modification not possible since replacement is not the
+   same size. The 1st command-line is assumed to be the file name
+*/
+
+file = ARG(1) ; tmpnam = tmpnam()
+
+call STREAM file, 'C', 'OPEN READ' ; call STREAM tmpnam, 'C', 'OPEN WRITE'
+
+/* Use REXXToolkit's 'strftime' */
+today = strftime("+%Y-%m-%d", makeYMD()) ; line = LINEIN(file)
+
+do while LINES(file) > 0
+  line = subst("DATE", line, today) ; call LINEOUT tmpnam,, line
+  line = LINEIN(file)
+end
+
+call STREAM file, 'C', 'CLOSE' ; call STREAM tmpnam, 'C', 'CLOSE'
+
+call sysMoveObject file, "file.orig" ; call sysMoveObject tmpnam, file
+call sysFileDelete "file.orig"
+
+/* @@PLEAC@@_7.10 */
+/* ------------------------------------------------------------------ */
+/* While it's possible, using the ANSI Standard I/O routines, to alter*/
+/* the contents of a file in-place, including appending additional da-*/
+/* ta, it isn't possible to truncate the file. Therefore, in order to */
+/* ensure file intergrity is maintained [i.e. file contains only any  */
+/* necessary (not extraneous) data], a new file should be created, and*/
+/* necessary data copied into it. Of course, this could be done as a  */
+/* later step - in the interim, the extraneous data could be overwrit-*/
+/* ten with some arbitrary value marking it as such. Messy, yes, but  */
+/* doable :) !                                                        */
+/* ------------------------------------------------------------------ */
+
+/* [1] In-place modification of same-or-greater-length data */
+
+file = "..."
+
+call STREAM file, 'C', 'OPEN BOTH'
+
+/* Move write pointer to start of file */
+call STREAM file, 'C', 'SEEK' '1' 'WRITE' 'CHAR'
+
+/* Locate and read required data */
+data = CHARIN(file, some_offset, some_amount)
+
+/* Do something to data ... */
+data = ...
+
+/* Write it back out, in-place, exactly replacing old data */
+call CHAROUT file, some_offset, data
+
+call STREAM file 'C', 'CLOSE'
+
+/* ----------- */
+
+/*
+   [2] In-place modification of less-length data - file contents
+   [bar the 'padded' items] should later be copied to a new file
+*/
+
+file = "..."
+
+call STREAM file, 'C', 'OPEN BOTH'
+
+/* Record initial size of file */
+bytes = CHARS(file)
+
+/* Move write pointer to start of file */
+call STREAM file, 'C', 'SEEK' '1' 'WRITE' 'CHAR'
+
+/* Locate and read required data */
+data = CHARIN(file, some_offset, some_amount)
+
+/* Do something to data ... */
+data = ...
+
+/* Write it back out partly replacing old data */
+call CHAROUT file, some_offset, data
+
+/* Pad out rest of file with arbitrary byte value */
+call CHAROUT file, (some_offset + LENGTH(data)), D2C(0)
+
+call STREAM file 'C', 'CLOSE'
+
+/* ----------------------------- */
+
+/* Preferred approach - copy data to new file then rename / delete */
+old = "..." ; new = "..."
+
+call STREAM old, 'C', 'OPEN READ' ; call STREAM new, 'C', 'OPEN WRITE'
+
+/* Read, process, and write new data to new file */
+/* ... */
+
+call STREAM old, 'C', 'CLOSE' ; call STREAM new, 'C', 'CLOSE'
+
+call sysMoveObject old, "old.orig" ; call sysMoveObject new, old
+call sysFileDelete "old.orig"
+
+/* @@PLEAC@@_7.11 */
+/* ------------------------------------------------------------------ */
+/* The ANSI Standard I/O BIF's, STREAM, LINE[IN|OUT], CHAR[IN|OUT],   */
+/* don't implement file locking: a file may be opened by multiple     */
+/* scripts for both read and write access, and there is no means of   */
+/* specifiying, for example, that exclusive file access is needed.    */
+/*                                                                    */
+/* Where synchronised file update is required, say in updating a shar-*/
+/* ed log file, the choice is to:                                     */
+/*                                                                    */
+/* * Use low-level routines that offer file locking [e.g. via library */
+/*   or (Regina-only) GCI facility]                                   */
+/* * Use an inter-process mutual exclusion mechanism [e.g. process th-*/
+/*   at needs to write to the file acquires exclusive access (no other*/
+/*   process can open the file for any purpose until it is released), */
+/*   then releases it when done]                                      */
+/* * Use some other inter-process signaling mechanism [e.g. access is */
+/*   available to all processes, and any process that updates the file*/
+/*   (e.g. appends to it) signals that the file has been updated. The */
+/*   other processes will, on next attempt to use the file detect its */
+/*   'status' change, so will close and reopen it, thus 'refreshing'  */
+/*   their view of the file]                                          */
+/*                                                                    */
+/* The latter two approaches are possible via the mutex and event sem-*/
+/* aphore facilities of the 'rexxUtil library. However, only an examp-*/
+/* le of the former will be shown here.                               */
+/* ------------------------------------------------------------------ */
+
+/*
+   Canonical example of mutex semaphore use in REXX ['rexxUtil'
+   library] an approach that can be applied to ensure a process
+   has exclusive access to a file. However, in order for this
+   to work reliably all processes must follow the same protocol:
+
+   - acquire lock
+   - use file, then close
+   - release lock
+
+   Disadvantage is that only one process can use the file at any
+   one time regardless of whether it is a read or update operation
+*/
+
+/* Attempt to acquire handle to existing semaphore */
+sem = sysOpenMutexSem("SEMNAME")
+
+/* If failed, then no semaphore exists, so create one */
+if sem == 0 then ; sem = sysCreateMutexSem("SEMNAME")
+
+timeout = 3000 /* ms */
+
+/* Attempt to acquire exclusive access to resource */
+if sysRequestMutexSem(sem, timeout) == 0 then do
+
+  /* Ok, resource is acquired; so something with it */
+  /* ... */
+
+  /* All done with resource, so release it */
+  call sysReleaseMutexSem sem
+
+end ; else do
+
+  /* Could not acquire resource - locked by other process */
+  /* ... */
+
+end
+
+/* Close handle to semaphore - last 'close' will destroy it */
+call sysCloseMutexSem sem
+
+/* ----------------------------- */
+
+/*
+   Implementations of Perl examples
+*/
+
+/* ... prologue code omitted ... */
+
+numfile = "..." ; timeout = 2
+
+if sysRequestMutexSem(sem) \= 0 then do
+  say "Cannot immediately write-lock the file" numfile "blocking..."
+  call sysSleep timeout
+
+  if sysRequestMutexSem(sem) \= 0 then do
+    say "Can't get write-lock on" numfile
+  end ; else do
+    /* ... do something with 'numfile' ... */
+
+    /* All done ... release lock */
+    call sysReleaseMutexSem sem
+  end
+end ; else do
+  /* ... do something with 'numfile' ... */
+
+  /* All done ... release lock */
+  call sysReleaseMutexSem sem
+end
+
+/* ----------- */
+
+/* Can't implement 'select' example */
+
+/* ----------- */
+
+/* ... prologue code omitted ... */
+
+numfile = "..." ; timeout = 2
+
+if sysRequestMutexSem(sem) \= 0 then do
+  say "Cannot write-lock the file" numfile "exiting ..."
+  exit 1
+end
+
+if STREAM(numfile, 'C', 'OPEN BOTH') \= "READY:" then do
+  say "Cannot open the file" numfile "exiting..."
+  exit 1
+end
+
+/* ... do stuff with 'numfile' ... */
+
+/* Close file and release semaphore */
+call STREAM numfile, 'C', 'CLOSE' ; call sysReleaseMutexSem sem
+
+/* @@PLEAC@@_7.12 */
+/* ------------------------------------------------------------------ */
+/* There is, in the ANSI Standard I/O routines, no user control over  */
+/* file buffering - it is all handled internally - thus most of the   */
+/* examples in this section are not implementable.                    */
+/* ------------------------------------------------------------------ */
+
+/* It *is* possible to flush any file, including STDOUT */
+call STREAM "<stdout>", 'C', 'FLUSH'
+
+/* ----------------------------- */
+
+/*
+   See PLEAC 18 for examples of socket-based code
+*/
+
+/* @@PLEAC@@_7.13 */
+/* ------------------------------------------------------------------ */
+/* No such functionality is available natively in REXX. However, it   */
+/* might be possible to use Regina's GCI facility to make available   */
+/* the *NIX 'select' function [and any support functions it may need] */
+/* in order to perform this task.                                     */
+/* ------------------------------------------------------------------ */
+
+@@INCOMPLETE@@
+@@INCOMPLETE@@
+
+/* @@PLEAC@@_7.14 */
+/* ------------------------------------------------------------------ */
+/* No such functionality is available natively in REXX. However, it   */
+/* might be possible to use Regina's GCI facility to make available   */
+/* the *NIX 'fcntl' function [and any support functions it may need]  */
+/* in order to perform this task.                                     */
+/* ------------------------------------------------------------------ */
+
+@@INCOMPLETE@@
+@@INCOMPLETE@@
+
+/* @@PLEAC@@_7.15 */
+/* ------------------------------------------------------------------ */
+/* The number of bytes in a file may be determined:                   */
+/*                                                                    */
+/* * Via the 'STREAM' BIF [which probably uses 'ioctl' on *NIX]       */
+/* * Via the 'CHARS' BIF                                              */
+/* * Opening the file, and seeking to the end                         */
+/* ------------------------------------------------------------------ */
+
+file = "..."
+
+say "File" file "is" STREAM(file, 'C', 'QUERY SIZE') "bytes in size."
+
+/* ----------------------------- */
+
+file = "..."
+
+call STREAM file, 'C', 'OPEN READ' ; bytes = CHARS(file)
+call STREAM file, 'C', 'CLOSE'
+
+say "File" file "is" bytes "bytes in size."
+
+/* ----------------------------- */
+
+file = "..."
+
+call STREAM file, 'C', 'OPEN READ'
+call STREAM file, 'C', 'SEEK' '<0' 'READ' 'CHAR'
+
+bytes = STREAM(file, 'C', 'QUERY SEEK READ CHAR')
+
+call STREAM file, 'C', 'CLOSE'
+
+say "File" file "is" bytes "bytes in size."
+
+/* @@PLEAC@@_7.16 */
+/* ------------------------------------------------------------------ */
+/* REXX, through its ANSI Standard I/O functions, does not support fi-*/
+/* le descriptor-based I/O; instead, the file name is used as the han-*/
+/* dle. However, it is possible to query an open file's handle, though*/
+/* this is of little practical use unless a library of low-level rout-*/
+/* ines allowing file handle manipulation, is used. Thus, most of the */
+/* code in this section is not implementable.                         */
+/* ------------------------------------------------------------------ */
+
+filename = "..."
+
+/* Store file handle in a variable */
+variable = STREAM(filename, 'C', 'QUERY HANDLE')
+
+/* Pass file handle as argument to subroutine */
+call subroutine STREAM(filename, 'C', 'QUERY HANDLE'), filename
+
+/* ----------- */
+
+subroutine : procedure
+  fh = ARG(1) ; filename = ARG(2)
+  say "File handle for file" filename "is" fh
+  return
+
+/* ----------------------------- */
+
+/* Should display 0, 1, 2, respectively, the 'standard' I/O handles */
+say STREAM("<stdin>", 'C', 'QUERY HANDLE')
+say STREAM("<stdout>", 'C', 'QUERY HANDLE')
+say STREAM("<stderr>", 'C', 'QUERY HANDLE')
+
+/* @@PLEAC@@_7.17 */
+/* ------------------------------------------------------------------ */
+/* REXX, through its ANSI Standard I/O functions, does not support fi-*/
+/* le descriptor-based I/O; instead, the file name is used as the han-*/
+/* dle. Therefore, the task of caching 'open file handles' is not app-*/
+/* licable. Thus, the code in this section is not implementable.      */
+/* ------------------------------------------------------------------ */
+
+/* *** Translation skipped *** */
+
+/* @@PLEAC@@_7.18 */
+/* ------------------------------------------------------------------ */
+/* REXX, through its ANSI Standard I/O functions, does not support fi-*/
+/* le descriptor-based I/O. Some of the tasks in this section may be  */
+/* performed by substituting file names for file descriptors, whilst  */
+/* those involving shell invocation may be performed by constructing  */
+/* a command string, and passing it to the ADDRESS instruction for ex-*/
+/* ecution.                                                           */
+/* ------------------------------------------------------------------ */
+
+filenames = "a.txt b.txt c.txt" ; stuff_to_print = "..."
+
+do while filenames <> NULL
+  parse var filenames file filenames
+  call LINEOUT file, stuff_to_print
+end
+
+/* ----------------------------- */
+
+/* Generate data file */
+datain = "..."
+call LINEOUT datain, "..."
+
+/* Output file names */
+f1 = "..." ; f2 = "..." ; f3 = "..."
+
+/* Build command string - redirects data to several files */
+cmd = "tee" f1 f2 f3
+
+/*
+   Execute command string through the shell, with data
+   directed to STDOUT, and 'tee'd to the output files
+*/
+address SYSTEM cmd with INPUT STREAM datain,
+                        OUTPUT STREAM "<stdout>"
+
+/* Delete the input data file */
+call sysFileDelete datain
+
+/* @@PLEAC@@_7.19 */
+/* ------------------------------------------------------------------ */
+/* REXX, through its ANSI Standard I/O functions, does not support fi-*/
+/* le descriptor-based I/O, thus most of the examples in this section */
+/* cannot be implemented.                                             */
+/*                                                                    */
+/* The only descriptor-based task that may be performed is the use of */
+/* the 'STREAM' BIF to query the file descriptor of currently-open    */
+/* file [example shown below]. It is, of course, possible to pass this*/
+/* information on to a shell script [invoked via the ADDRESS instruct-*/
+/* ion], but this would merely be a, probably useless, contrivance.   */
+/* ------------------------------------------------------------------ */
+
+/* Open the file */
+call STREAM file, 'C', 'OPEN READ'
+
+/* Print file descriptor of this open file */
+say STREAM(file, 'C', 'QUERY HANDLE')
+
+/* Close the file */
+call STREAM file, 'C', 'CLOSE'
+
+/* Print [invalid] file descriptor of this, now-closed, file */
+say STREAM(file, 'C', 'QUERY HANDLE')
+
+/* @@PLEAC@@_7.20 */
+/* ------------------------------------------------------------------ */
+/* REXX, through its ANSI Standard I/O functions, does not support fi-*/
+/* le descriptor-based I/O, thus the notion of copying file handles is*/
+/* moot. However, whilst STDIN, STDOUT, and STDERR cannot be directly */
+/* altered, they can be temporarily mapped to files within the context*/
+/* of the ADDRESS instruction [an example is shown below].            */
+/* ------------------------------------------------------------------ */
+
+RANDOMCMD = "cat" /* Platform-specific [*NIX] */
+
+INFILE = "program.in" ; OUTFILE = "program.out"
+
+/* Redirect command output */
+address path RANDOMCMD with input STREAM INFILE,
+                            output STREAM OUTFILE,
+                            error STREAM "<stdout>"
+
+/* Reset redirected streams to default values */
+address path with input NORMAL output NORMAL error NORMAL
+
+/* @@PLEAC@@_7.21 */
+/* ------------------------------------------------------------------ */
+/* Program: netlock                                                   */
+/* ------------------------------------------------------------------ */
+
+@@INCOMPLETE@@
+@@INCOMPLETE@@
+
+/* @@PLEAC@@_7.22 */
+/* ------------------------------------------------------------------ */
+/* Program: lockarea                                                  */
+/* ------------------------------------------------------------------ */
+
+@@INCOMPLETE@@
+@@INCOMPLETE@@
+
+
+/* @@PLEAC@@_9.0 */
+/* ------------------------------------------------------------------ */
+/* Directories, that is, files which contain other files, is a concept*/
+/* unique to hierarchical file systems, something not universally     */
+/* implemented, most notably, in early versions of VM/CMS and MVS/TSO,*/
+/* notable mainframe operating systems, as well as desktop computer   */
+/* systems like CP/M. Though this is probably of little interest to   */
+/* most, it is mentioned because one of REXX's strengths is its true  */
+/* cross-platform operability [that is, across widely varying OS, not */
+/* *NIX variants and Win32 :) !]. The code examples shown here are not*/
+/* cross-platform but strongly tied to the *NIX environment in keep-  */
+/* with the Perl Cookbook's *NIX orientation.                         */
+/*                                                                    */
+/* Also, this section makes extensive use of both the 'rexxUtil' and  */
+/* 'rexxRe' libraries; scripts using this code will need to include   */
+/* the following at the start of the sript:                           */
+/*                                                                    */
+/*   call rxFuncAdd 'sysLoadFuncs', 'rexxUtil', 'sysLoadFuncs'        */
+/*   call sysLoadFuncs                                                */
+/*   call rxFuncAdd 'reLoadFuncs', 'rexxRE', 'reLoadFuncs'            */
+/*   call reLoadFuncs                                                 */
+/*                                                                    */
+/* and at the end:                                                    */
+/*                                                                    */
+/*   call reDropFuncs                                                 */
+/*   call sysDropFuncs                                                */
+/* ------------------------------------------------------------------ */
+
+/*
+   *NIX-specific approach: 'stat' utility
+
+   Rename 'entry' to 'statinfo', a compound variable; leaf '.1' is a
+   string containing:
+
+     filename filetype size access modification change
+
+   Other data may be obtained by altering value of 'statflds'
+*/
+
+filename = "/usr/bin/vi"
+statflds = "%n %F %s %x %y %z" ; cmd = "stat --format '" || statflds || "'"
+
+address SYSTEM cmd filename with OUTPUT STEM statinfo.
+
+if RC \= 0 then do
+  say "Couldn't 'stat' " filename ":" RC ; exit RC
+end ; else do
+  /* Parse and display data */
+  parse var statinfo.1 filename filetype filesize atime mtime ctime
+  say "Filname:     " filename
+  say "Type of file:" filetype
+  /* ... */
+end
+
+/* ----------- */
+
+/*
+   Regina-only: also possible to utilise GCI facility to directly invoke
+   the 'stat' C library function. This could be wrapped up in a native
+   REXX function, as shown:
+
+     UNIXstat : procedure expose (globals)
+       filename = ARG(1) ; statinfo = NULL
+
+       ... setup 'stat' with GCI ...
+       ... invoke 'stat' ...
+       ... parse and reformat 'stat'-returned data ...
+
+       return statinfo
+
+   GCI implementations of both, 'stat' and 'utime', appear in the Appendix
+*/
+
+filename = "/usr/bin" ; entry = UNIXstat(filename)
+
+if entry == NULL then do
+  say "Couldn't 'stat' " filename ":" 1 ; exit 1
+end ; else do
+  /* Parse and display data */
+  parse var entry filename filetype filesize atime mtime ctime
+  say "Filname:     " filename
+  say "Type of file:" filetype
+  /* ... */
+end
+
+/* ----------------------------- */
+
+/*
+   A more cross-platform [though with some Regina-specific options]
+   approach using 'STREAM' BIF. Note more data is obtainable but
+   not used in example, and only the modification time [not the
+   status change / revision time] obtainable in this manner
+*/
+
+parse value STREAM(filename, 'C', 'FSTAT') with . . . . . . filesize
+
+parse value STREAM(filename, 'C', 'QUERY SIZE'),
+            STREAM(filename, 'C', 'QUERY TIMESTAMP'),
+            with filesize mtime
+
+/* ----------------------------- */
+
+if STREAM(filename, 'C', 'OPEN READ') \= "READY:" then
+  say "Error opening" filename
+
+/* ----------- */
+
+/*
+   It is not possible to determine whether a file / stream has been
+   opened in 'text' or 'binary' mode, merely whether it contains
+   data or not. If needed, the stream can be read and checks for
+   the platform's 'line terminator' characters [usually CR, LF or
+   CRLF] made
+*/
+
+if STREAM(filename, 'C', 'QUERY SIZE') == 0 then
+  say filename "does not have data in it"
+
+/* ----------------------------- */
+
+/*
+   Hierarchical filesystem support cannot be assumed to exist on all
+   platforms [though with the widespread adoption of *NIX or *NIX-based
+   concepts on various platforms e.g. z/OS UNIX Sytem Services, Mac OSX,
+   this is not as true as in the past].
+
+   For 'directory traversal' tasks it is common to see use made of the
+   'rexxUtil' library's, 'sysFileTree', routine
+*/
+
+dirname = "/usr/bin"
+
+if sysFileTree(dirname||"/", 'dirtree.', 'fso') \= 0 then do
+  say "Couldn't open" dirname ":" 1 ; exit 1
+end ; else do
+  do i = 1 to dirtree.0
+    say "Inside" dirname "is something called" dirtree.i
+  end
+end
+
+/* @@PLEAC@@_9.1 */
+/* ------------------------------------------------------------------ */
+/* Several library routines exist for querying file timestamps:       */
+/*                                                                    */
+/* * STREAM BIF                                                       */
+/* * RexxUtil library's: sysGetFileDateTime [mtime, ctime only]       */
+/*                       sysSetFileDateTime [mtime only]              */
+/*                                                                    */
+/* but there is no support for modifying timestamps, where one has to */
+/* resort to:                                                         */
+/*                                                                    */
+/* * Invoking [via ADDRESS SYSTEM] a utility such as 'touch'          */
+/* * Binding to a C library function such as 'stat' or 'utime' via an */
+/*   interpreter-specific mechanism [such as Regina's GCI]            */
+/*                                                                    */
+/* The 'UNIXstat' and 'UNIXutime' routines used below [code included  */
+/* in the Appendix] are examples of the latter.                       */
+/* ------------------------------------------------------------------ */
+
+/* Update both access and modification time */
+parse value UNIXstat(filename) with . . . READTIME WRITETIME .
+call UNIXutime NEWREADTIME, NEWWRITETIME, filename
+
+/* ----------------------------- */
+
+SECONDS_PER_DAY = 60 * 60 * 24
+
+parse value UNIXstat(file) with . . . atime mtime .
+parse value (atime - 7 * SECONDS_PER_DAY) (mtime - 7 * SECONDS_PER_DAY),
+            with atime mtime
+
+if \UNIXutime(atime, mtime, file) then do
+  say "couldn't backdate" file "by a week w/ utime" ; exit 1
+end
+
+/* ----------------------------- */
+
+/* Update access time only */
+parse value UNIXstat(filename) with . . . . mtime .
+call UNIXutime TIME('T'), mtime, file
+
+/* ----------------------------- */
+
+/* uvi - vi a file without changing its access times */
+if ARG() < 1 then do ; say "usage: uvi filename" ; exit 1 ; end ; file =
+ARG(1)
+
+editor = VALUE("EDITOR",, SYSTEM) ; if editor == NULL then ; editor = "vi"
+address SYSTEM editor file
+
+if \UNIXutime(atime, mtime, file) then do
+  say "couldn't restore" file "to orig times" ; exit 1
+end
+
+exit 0
+
+/* @@PLEAC@@_9.2 */
+
+/*
+   Cross platform approach using 'rexxUtil' library's, 'sysFileDelete',
+   routine. Whilst a zero return code indicates success, a non-zero
+   return code [actual value is platform-dependant] indicates the type
+   of problem encountered e.g. not found, still in use, etc
+*/
+
+call sysFileDelete FILENAME
+
+if RESULT \= 0 then do
+  say "Can't delete" FILENAME ":" RESULT ; exit RESULT
+end
+
+/* ----------------------------- */
+
+FILENAMES = "f1 f2 f3 ..." ; allFilesDeleted = TRUE
+
+do while FILENAMES <> NULL
+  parse var FILENAMES FILE FILENAMES
+  call sysFileDelete FILE ; if RESULT then ; allFilesDeleted = FALSE
+end
+
+if \allFilesDeleted then do
+  say "Couldn't delete all of" FILENAMES ":" 1 ; exit 1
+end
+
+/* ----------------------------- */
+
+filelist = "f1 f2 f3 ..." ; totfiles = WORDS(filelist) ; count = totfiles
+
+do while filelist <> NULL
+  parse var filelist file filelist
+  call sysFileDelete file ; if RESULT then ; count = count - 1
+end
+
+if count \= totfiles then ; say "Could only delete" count "of" totfiles
+"files"
+
+/* @@PLEAC@@_9.3 */
+
+/*
+   Cross platform approach using 'rexxUtil' library's, 'sysCopyObject',
+   routine. Whilst a zero return code indicates success, a non-zero
+   return code [actual value is platform-dependant] indicates the type
+   of problem encountered e.g. not found, still in use, etc
+*/
+
+call sysCopyObject oldfile, newfile
+
+if RESULT \= 0 then do
+  say "Can't copy" oldfile "to" newfile ":" RESULT ; exit RESULT
+end
+
+/* ----------------------------- */
+
+/*
+   File copy effected by copying contents of an existing file to
+   a newly-created file. Note: implict opening of file(s), and optional
+   closing
+*/
+
+IN = 'oldfile' ; OUT = 'newfile' ; BUFSIZE = 256
+
+do while CHARS(IN) > 0
+  char = CHARIN(IN,, BUFSIZE) ; if char <> NULL then ; call CHAROUT OUT,
+char
+end
+
+/* ----------------------------- */
+
+/*
+   Command-line utilities may easily be used for this task, but it is
+   important to consider how any output [i.e. stdout, stderr] will
+   be handled, and whether return codes are significant and whether
+   they should be checked.
+*/
+
+/* *NIX */
+dev = "/dev/null" ; cmd = "cp -pvd" oldfile newfile
+address SYSTEM cmd with OUTPUT STREAM dev ERROR STREAM dev
+if RC \= 0 then ; say "Error ..."
+
+/* OpenVMS */
+dev = "NL:" ; cmd = "copy" oldfile newfile
+address SYSTEM cmd with OUTPUT STREAM dev ERROR STREAM dev
+if RC \= 1 then ; say "Error ..."
+
+/* Win32 [Return codes unreliable, so best parse output for command status]
+*/
+dev = "NUL:" ; cmd = "copy/v/b/y" oldfile newfile
+address SYSTEM cmd with OUTPUT STEM result. ERROR STREAM dev
+parse var result.1 numberCopied .
+if numberCopied \= 1 then ; say "Error ..."
+
+/* ----------------------------- */
+
+/*
+   Copies contents of source file to newly-created / truncated target file
+*/
+
+call sysCopyObject "datafile.dat", "datafile.bak"
+
+if RESULT \= 0 then do
+  say "copy failed:" RESULT ; exit RESULT
+end
+
+/* ----------- */
+
+/*
+   Adjusts behaviour to either rename source file to target file [if they
+   reside on the same device], or creates a new target file and copies
+   contents of source file into it
+*/
+
+call sysMoveObject "datafile.new", "datafile.dat"
+
+if RESULT \= 0 then do
+  say "move failed:" RESULT ; exit RESULT
+end
+
+/* @@PLEAC@@_9.4 */
+/* ------------------------------------------------------------------ */
+/* I'm not entirely sure what the code in this section is meant to do */
+/* but I've proceeded on the assumption that, for a group of filenames*/
+/* it is loading the corresponding device / inode pairs into a hash   */
+/* using those pairs as an alternate identifier for each file.        */
+/* ------------------------------------------------------------------ */
+
+do_my_thing : procedure expose (globals) seen.
+  filename = ARG(1) ; key = makeDeviceInodePair(filename)
+  if SYMBOL('seen.key') \= 'VAR' then do
+    /* Do something with 'filename' since not previously seen */
+    nop
+  end
+  return
+
+/* ----------------------------- */
+
+files = "..."
+
+drop seen. keys. ; i = 0
+
+do while files <> NULL
+  parse var files file files
+  key = makeDeviceInodePair(file)
+  /* Either add a new entry or append to exisitng entry */
+  if SYMBOL('seen.key') \= 'VAR' then do
+    seen.key = file ; i = i + 1 ; keys.i = key
+  end ; else ; seen.key = seen.key file
+end
+
+keys.0 = i
+
+/* Sort keys */
+call sysStemSort 'keys.', 'ascending'
+
+/* Traverse in sorted key order */
+do i = 1 for keys.0
+  key = keys.i
+
+  /* 'files' is a list of 1 or more filenames */
+  files = seen.key
+
+  do while files <> NULL
+    parse var files file files
+    /* Do something with each filename ... */
+  end
+end
+
+exit 0
+
+/* ----------- */
+
+makeDeviceInodePair : procedure expose (globals)
+  /* Could have used 'UNIXstat' custom function to do this */
+  cmd = "stat --format '%D %i'"
+  address SYSTEM cmd ARG(1) with OUTPUT STEM devinode.
+  if RC \= 0 then ; return NULL
+  return devinode.1
+
+/* @@PLEAC@@_9.5 */
+/* ------------------------------------------------------------------ */
+/* Directory traversal is typically performed using the 'rexxUtil'    */
+/* library's, 'sysFileTree', routine. Whilst it's full capabilities   */
+/* are not illustrated here, it is possible to generate lists of only */
+/* files, only directories, or both, as well as the entire tree from  */
+/* the specified location; path can be a fully qualified name or a    */
+/* glob [e.g. *.*].                                                   */
+/* ------------------------------------------------------------------ */
+
+dirname = "/tmp"
+
+/* Directory names must with the path separator character */
+if sysFileTree(dirname||"/", 'files.', 'fo') \= 0 then
+  say "Can't open directory" dirname
+
+/* Traverse file list */
+do i = 1 to files.0
+  /* Do something with each file, accessed as: 'files.i' ... */
+end
+
+/* ----------------------------- */
+
+dirname = "/tmp"
+
+say "text files in" dirname "are:"
+
+if sysFileTree(dirname||"/", 'files.', 'fo') \= 0 then
+  say "Can't open directory" dirname
+
+/* Traverse file list selecting only text files */
+do i = 1 to files.0
+  if isTextFile(files.i) then say files.i
+end
+
+/* ----------- */
+
+isTextFile : procedure expose (globals)
+  /* No standard BIF for this task, so use 'file' utility [*NIX-only] */
+  cmd = "file -bN"
+  address SYSTEM cmd ARG(1) with OUTPUT STEM filetype.
+  if RC \= 0 then ; return FALSE
+  return filetype.1 == "ASCII text"
+
+/* ----------------------------- */
+
+/* '.' and '..' don't show up in 'sysFileTree' generated lists */
+
+/* ----------------------------- */
+
+plainFiles : procedure expose (globals)
+  dirname = ARG(1) ; filelist = NULL
+
+  /*
+     Generated file list:
+     - files only, via 'fo' option
+     - automatically exclude '.' and '..'
+  */
+  if sysFileTree(dirname||"/", 'files.', 'fo') \= 0 then do
+    say "Can't open directory" dirname ; exit 1
+  end
+
+  /* Sort stem */
+  call sysStemSort 'files.', 'ascending'
+
+  /* Traverse sorted file list, and generate list of only 'regular' files */
+  do i = 1 to files.0
+    if isRegularFile(files.i) then ; filelist = filelist files.i
+  end
+
+  return STRIP(filelist)
+
+/* ----------- */
+
+isRegularFile : procedure expose (globals)
+  fstatinfo = STREAM(ARG(1), 'C', 'FSTAT')
+  return WORD(fstatinfo, WORDS(fstatinfo)) == "RegularFile"
+
+/* @@PLEAC@@_9.6 */
+/* ------------------------------------------------------------------ */
+/* Filtering a list of files is performed via globbing [use made of   */
+/* the 'glob' system function, either directly, via a custom function */
+/* which itself uses it ('sysFileTree'), or by invoking the shell (a  */
+/* simple trick is to issue an 'echo PATTERN' command), or by applying*/
+/* regex patterns to a list of files.                                 */
+/*                                                                    */
+/* Whilst the Perl examples illustrate several variations of this bas-*/
+/* ic approach, the present code will only make use of two custom fun-*/
+/* ctions, 'glob' and 'grep', both of which may be found in the Appen-*/
+/* dix. As the names imply, 'glob' uses 'glob' functionality via the  */
+/* 'sysFileTree' utility routine, and 'grep' utlises the regex routine*/
+/* in the 'rexxRE' library.                                           */
+/* ------------------------------------------------------------------ */
+
+list = glob("*.c")
+
+/* ----------- */
+
+files = grep("\.c$", glob(path, 'NAME'))
+
+/* ----------------------------- */
+
+files = grep("\.[cChH]$", glob(path, 'NAME'))
+
+/* ----------------------------- */
+
+dirname = "/tmp" ; files = NULL
+
+if sysFileTree(dirname||"/", 'files.', 'fo') \= 0 then
+  say "Can't open directory" dirname
+
+/* Traverse file list, and generate list of only 'text' files */
+do i = 1 to files.0
+  if isTextFile(files.i) then ; files = files files.i
+end
+
+files = STRIP(files)
+
+/* ----------- */
+
+isTextFile : procedure expose (globals)
+  /* No standard BIF for this task, so use 'file' utility [*NIX-only] */
+  cmd = "file -bN"
+  address SYSTEM cmd ARG(1) with OUTPUT STEM filetype.
+  if RC \= 0 then ; return FALSE
+  return filetype.1 == "ASCII text"
+
+/* ----------------------------- */
+
+dirname = "/tmp" ; dirs = NULL
+
+/* Extract subdirectories only */
+if sysFileTree(dirname||"/", 'dirs.', 'do') \= 0 then
+  say "Can't open directory" dirname
+
+/* Traverse subdirectory building list of subdirectory names */
+do i = 1 to dirs.0
+  dirs = dirs extractPathComponent(dirs.i, 'NAME')
+end
+
+/* Include only numerics in final list */
+dirs = grep("^[[:digit:]].*$", STRIP(dirs))
+
+/* @@PLEAC@@_9.7 */
+/* ------------------------------------------------------------------ */
+/* This section mainly illustrates various uses of the 'sysFileTree'  */
+/* 'sysFileTree' routine, the rough equivalent in functionality of    */
+/* Perl's 'File::Find' module.                                        */
+/* ------------------------------------------------------------------ */
+
+dirlist = "..."
+
+do while dirlist <> NULL
+  parse var dirlist dir dirlist
+  /*
+     'processFiles' implemented in next section - applies 'file_proc'
+     to each file
+  */
+  call processFiles dir "file_proc"
+end
+
+/* ----------- */
+
+file_proc : procedure expose (globals)
+  file = ARG(1)
+  /* ... do something to file ... */
+  return
+
+/* ----------------------------- */
+
+dirname = "." ; if ARG(1, 'E') then ; dirname = ARG(1)
+
+if sysFileTree(dirname||"/", 'filetree.', 'dso') \= 0 then
+  say "Can't open directory" dirname
+
+/* Traverse file tree ... */
+do i = 1 to filetree.0
+  say filetree.i || "/"
+end
+
+/* ----------------------------- */
+
+dirname = "." ; if ARG(1, 'E') then ; dirname = ARG(1)
+
+dirsize = 0
+
+if sysFileTree(dirname||"/", 'filetree.', 'fso') \= 0 then
+  say "Can't open directory" dirname
+
+/* Traverse file tree ... */
+do i = 1 to filetree.0
+  dirsize = dirsize + getFileSize(filetree.i)
+end
+
+say dirname "contains" dirsize "bytes"
+
+/* ----------- */
+
+getFileSize : procedure expose (globals)
+  fstatinfo = STREAM(ARG(1), 'C', 'FSTAT')
+  return WORD(fstatinfo, WORDS(fstatinfo) - 1)
+
+/* ----------------------------- */
+
+/*
+   fdirs - find all directories
+*/
+
+/* [1] - 'sysFileTree' reports only directories */
+dirname = "." ; if ARG(1, 'E') then ; dirname = ARG(1)
+
+if sysFileTree(dirname||"/", 'filetree.', 'dso') \= 0 then
+  say "Can't open directory" dirname
+
+/* Traverse file tree ... */
+do i = 1 to filetree.0
+  say filetree.i
+end
+
+/* ----------- */
+
+/*
+   [2] - 'sysFileTree' reports both files and directories; filter
+   directories out manually
+*/
+dirname = "." ; if ARG(1, 'E') then ; dirname = ARG(1)
+
+if sysFileTree(dirname||"/", 'filetree.', 'bso') \= 0 then
+  say "Can't open directory" dirname
+
+/* Traverse file tree ... */
+do i = 1 to filetree.0
+  if isDirectory(filetree.i) then ; say filetree.i
+end
+
+/* ----------- */
+
+isDirectory : procedure expose (globals)
+  fstatinfo = STREAM(ARG(1), 'C', 'FSTAT')
+  return WORD(fstatinfo, WORDS(fstatinfo)) == "Directory"
+
+/* @@PLEAC@@_9.8 */
+/* ------------------------------------------------------------------ */
+/* This section utilises techniques earlier illustrated [use of the   */
+/* 'sysFileTree' routine, and custom functions 'glob' and 'grep']. Key*/
+/* difference here is that directory traversal is packaged into two   */
+/* custom functions ['processDirectories' and 'processFiles'] and use */
+/* of the 'interpret' instruction is made to apply functions to each  */
+/* directory / file [like a 'foreach' routine on a list or string].   */
+/* ------------------------------------------------------------------ */
+
+/* rmtree1 - remove whole directory trees like rm -r */
+if ARG() < 1 then do ; say "usage: rmtree1 dir .." ; exit 1 ; end
+
+do i = 1 for ARG()
+  call removeFileTree ARG(i)
+end
+
+exit 0
+
+/* ----------- */
+
+removeFileTree : procedure expose (globals)
+  dirname = ARG(1)
+
+  /* *NIX */
+  dev = "/dev/null" ; cmd = "rm -fr" dirname
+  address SYSTEM cmd with OUTPUT STREAM dev ERROR STREAM dev
+
+  return
+
+/* ----------------------------- */
+
+/* rmtree2 - remove whole directory trees like rm -r */
+if ARG() < 1 then do ; say "usage: rmtree2 dir .." ; exit 1 ; end
+
+do i = 1 for ARG()
+  call removeFileTree ARG(i)
+end
+
+exit 0
+
+/* ----------- */
+
+removeFileTree : procedure expose (globals)
+  dirname = ARG(1)
+
+  call processDirectories dirname, "removeDir", "removeFile"
+  call removeDir dirname
+
+  return
+
+/* ----------- */
+
+removeDir : ; call sysRMDir ARG(1) ; return
+removeFile : ; call sysFileDelete ARG(1) ; return
+
+/* ----------- */
+
+processDirectories : procedure expose (globals)
+  dirname = ARG(1) ; dirproc = ARG(2) ; fileproc = ARG(3)
+
+  cmd = "call" dirproc "dir"
+
+  call sysFileTree dirname||"/", 'dirtree.', 'do'
+
+  if dirtree.0 > 0 then do
+    do i = 1 to dirtree.0
+      call processDirectories dirtree.i, dirproc, fileproc
+      dir = dirtree.i ; interpret cmd
+    end
+  end
+
+  call processFiles dirname, fileproc
+
+  return
+
+/* ----------- */
+
+processFiles : procedure expose (globals)
+  dirname = ARG(1) ; proc = ARG(2) ; cmd = "call" proc "file"
+
+  call sysFileTree dirname||"/", 'files.', 'fo'
+  do i = 1 to files.0
+    file = files.i ; interpret cmd
+  end
+
+  return
+
+/* @@PLEAC@@_9.9 */
+
+NAMES = "f1 f2 f3 ..."
+
+do while NAMES <> NULL
+  parse var NAMES file NAMES ; newname = " ... "
+  call sysMoveObject file, newname
+  if RESULT \= 0 then ; say "Couldn't rename" file "to" newname ":" RESULT
+end
+
+/* ----------------------------- */
+
+/*
+   Command-line utilities may easily be used for this task, but it is
+   important to consider how any output [i.e. stdout, stderr] will
+   be handled, and whether return codes are significant and whether
+   they should be checked.
+*/
+
+/* *NIX */
+dev = "/dev/null" ; cmd = "mv" oldfile newfile
+address SYSTEM cmd with OUTPUT STREAM dev ERROR STREAM dev
+if RC \= 0 then ; say "Error ..."
+
+/* OpenVMS */
+dev = "NL:" ; cmd = "rename" oldfile newfile
+address SYSTEM cmd with OUTPUT STREAM dev ERROR STREAM dev
+if RC \= 1 then ; say "Error ..."
+
+/* Win32 [Return codes unreliable, so best parse output for command status]
+*/
+dev = "NUL:" ; cmd = "ren" oldfile newfile
+address SYSTEM cmd with OUTPUT STEM result. ERROR STREAM dev
+parse var result.1 numberCopied .
+if numberCopied \= 1 then ; say "Error ..."
+
+/* ----------------------------- */
+
+/*
+   Note: Implementation is barely functionally equivalent to Perl's
+   [owing to Perl's superior regex facilities], and is not as flexible,
+   in particular it:
+
+   * Expects a list of files on the command-line
+   * Requires the 'expr' to be a regex because it will be passed to
+     the 'subst' routine
+   * Requires that 'expr' be passed as two arguments:
+     - 'from' -> regex
+     - 'to'   -> new name
+*/
+
+/* rename - Larry's filename fixer */
+if ARG() < 1 then do ; say "usage: rename from to files" ; exit 1 ; end
+from = ARG(1) ; to = ARG(2) ; files = ARG()
+
+do i = 3 to files
+  old = ARG(i) ; new = subst(old, from, to)
+  if new \= old then ; call sysMoveObject old, new
+end
+
+exit 0
+
+/* @@PLEAC@@_9.10 */
+/* ------------------------------------------------------------------ */
+/* This is no more than a parsing task, easily performed using PARSE  */
+/* in combination with BIF's such as POS and LASTPOS. A simple example*/
+/* follows:                                                           */
+/*                                                                    */
+/*   PATHSEP = "\" ; path = "c:\d1\d2\d3\file.ext"                    */
+/*                                                                    */
+/*   drive = "-1"                                                     */
+/*   if POS(":", path) == 2 then do                                   */
+/*     parse var path drive ":" name "." extension                    */
+/*   end ; else do                                                    */
+/*     parse var path name "." extension                              */
+/*   end                                                              */
+/*                                                                    */
+/*   basename = SUBSTR(name, LASTPOS(PATHSEP, name) + 1)              */
+/*   subdir = LEFT(name, LASTPOS(PATHSEP, name))                      */
+/*                                                                    */
+/*   say "[" || drive || "|" || name || "|" || extension || "|",      */
+/*       || basename || "]"                                           */
+/*   say subdir                                                       */
+/*                                                                    */
+/* For convenience this functionality has been included as the:       */
+/*                                                                    */
+/*   extractPathComponent                                             */
+/*   extractPathComponents                                            */
+/*                                                                    */
+/* routines included in the Appendix. These routines currently only   */
+/* recognise *NIX and Win32 paths, so cannot be said to be cross-     */
+/* platform. It should not be too difficult to extend them to also    */
+/* recognise paths / filespecs on other platforms such as:            */
+/*                                                                    */
+/*   VMS:   NODE"user pass"::device:[dir.subdir]filename.type;ver     */
+/*   MacOS: drv:dir:file                                              */
+/*   MVS:   dsnlvl1.dsnlvl2.dsnlvl3(member)                           */
+/*          dsnlvl1.dsnlvl2.dsnlvl3                                   */
+/*   CMS:   fn fmode ftype                                            */
+/* ------------------------------------------------------------------ */
+
+base = extractPathComponent(path, 'NAME')
+dir = extractPathComponent(path, 'SUB')
+
+parse value extractPathComponents(path, "NAME SUB EXT"),
+      with base dir ext
+
+/* ----------- */
+
+path = "/usr/lib/libc.a"
+
+file = extractPathComponent(path, 'NAME')
+dir = extractPathComponent(path, 'SUB')
+
+say "dir is" BL(dir) || ", file is" file
+
+/* ----------- */
+
+path = "/usr/lib/libc.a"
+
+parse value extractPathComponents(path, "NAME SUB EXT"),
+      with name dir ext
+
+say "dir is" BL(dir) || ", name is" name || ", extension is ." || ext
+
+/* ----------- */
+
+path = "Hard%20Drive:System%20Folder:README.txt"
+
+parse var path drive ":" folder ":" name "." ext
+
+dir = drive || ":" || folder
+
+say "dir is" dir || ", name is" name || ", extension is ." || ext
+
+/* @@PLEAC@@_9.11 */
+/* ------------------------------------------------------------------ */
+/* Program: symirror                                                  */
+/* ------------------------------------------------------------------ */
+
+@@INCOMPLETE@@
+@@INCOMPLETE@@
+
+/* @@PLEAC@@_9.12 */
+/* ------------------------------------------------------------------ */
+/* Program: lst                                                       */
+/* ------------------------------------------------------------------ */
+
+@@INCOMPLETE@@
+@@INCOMPLETE@@
+
+
 /* ------------------------------------------------------------------ */
 /* @@PLEAC@@_10.0                                                     */
 /*                                                                    */ 
