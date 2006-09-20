@@ -28,20 +28,20 @@ impl_contents = File.open(ARGV[1]).readlines.push("@@PLEAC@@_FAKE")
 
 style = ''
 in_style = false
-in_body_style = false
+in_to_remove = false
 for i in impl_contents
     if i =~ /(.*\/style>)/i
         style += $1
         break
     elsif in_style
-        if i =~ /\bbody\b/i
-            in_body_style = true
+        if i =~ /\bbody\b/i || i =~ /\ba\b/i || i =~ /\ba:hover\b/i
+            in_to_remove = true
         end
-        if ! in_body_style
+        if ! in_to_remove
             style += i
         end
-        if in_body_style && i =~ /\}/
-            in_body_style = false
+        if in_to_remove && i =~ /\}/
+            in_to_remove = false
         end
     elsif i =~ /(<style.*)/
         style += $1
