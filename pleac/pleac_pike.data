@@ -16,6 +16,37 @@
 // @@PLEAC@@_APPENDIX
 // (this section is optional; use it if you need to import very
 // generic stuff for the whole code)
+//
+// Note: To avoid clutter each example will only include any necessary
+// code. However, it should be understood that:
+//
+// * The following constants need to be defined:
+//
+//    constant FALSE = 0, TRUE = 1, PROBLEM = 1, OK = 0,
+//      EOF = -1, NULL = "", NEWLINE = "\n", LF = 10, SPACE = 32;
+//
+// * Each example needs to be enclosed within the following block:
+//
+//    int main(int argc, array(string) argv)
+//    {
+//      ...
+//    }
+//
+//   where a 'main' is not provided. Also:
+//
+//   - Any function definitions would ordinarily be placed
+//     before, and outside of, 'main'
+//   - Variables can be assumed to be locals residing in 'main';
+//     any 'global' variables will be defined at the start of the
+//     code example prior to any function definitions
+
+// ----------------------------
+
+string chop(string s, void|int size)
+{
+  int length = sizeof(s);
+  return size > 0 && size < length ? s[..length - (size + 1)] : s;
+}
 
 // @@PLEAC@@_1.0
 // in pike only double quotes are used for strings
@@ -494,7 +525,6 @@ int bin2dec(string n)
 }
 
 // @@PLEAC@@_2.5
-
 // foreach(enumerate(int count, int step, int start);; int val)
 // {
 //   // val is set to each of count integers starting at start
@@ -542,7 +572,6 @@ write("\n");
 // Childhood is: 5 6 7 8 9 10 11 12 
 
 // @@PLEAC@@_2.6
-
 int arabic;
 string roman = String.int2roman(arabic);        // handles values up to 10000
 
@@ -563,7 +592,6 @@ write("Converted back, %s is %d\n", roman_fifteen, arabic_fifteen);
 // Converted back, XV is 15
 
 // @@PLEAC@@_2.7
-
 int y,x;
 int rand = random(y-x+1)+x;
 
@@ -592,21 +620,236 @@ string password = random_string(8);      // creates an untypable string
 string password = MIME.encode_base64(random_string(8))[..7];
 
 // @@PLEAC@@_2.8
-
 random_seed(int seed);
 random_seed((int)argv[1]);
 
 // @@PLEAC@@_2.9
-
 // Crypto.Random.random(int max)
 // Crypto.Random.random_string(int length)
 // Crypto.Random.blocking_random_string(int length)
 // Crypto.Random.add_entropy(string random_data, int entropy)
 
+// @@PLEAC@@_2.10
+float gaussian_rand()
+{
+  float u1, u2, w, g1, g2;
+  
+  do
+  {
+    u1 = 2.0 * random(1.0) - 1.0; u2 = 2.0 * random(1.0) - 1.0;
+    w = u1 * u1 + u2 * u2;
+  } while (w > 1.0);
+  
+  w = sqrt((-2.0 * log(w)) / w); g2 = u1 * w; g1 = u2 * w;
+
+  return g1;
+}
+
+// ----
+
+float mean = 25.0, sdev = 2.0;
+float salary = gaussian_rand() * mean + sdev;
+
+write("You have been hired at: %.2f\n", salary);
+
+// @@PLEAC@@_2.11
+float deg2rad(float deg)
+{
+  return (deg / 180.0) * Math.pi;
+}
+
+float rad2deg(float rad)
+{
+  return (rad / Math.pi) * 180.0;
+}
+
+// ----
+
+write("%f\n", Math.convert_angle(180, "deg", "rad"));
+write("%f\n", deg2rad(180.0));
+
+// ----------------------------
+
+float degree_sin(float deg)
+{
+  return sin(deg2rad(deg));
+}
+
+// ----
+
+float rad = deg2rad(380.0);
+write("%f\n", sin(rad));
+write("%f\n", degree_sin(380.0));
+
+// @@PLEAC@@_2.12
+float my_tan(float theta)
+{
+  return sin(theta) / cos(theta);
+}
+
+// ----
+
+float theta = 3.7;
+
+write("%f\n", my_tan(theta));
+write("%f\n", tan(theta));
+
+// @@PLEAC@@_2.13
+float value = 100.0;
+
+float log_e = log(value);
+float log_10 = Math.log10(value);
+
+// ----------------------------
+
+float log_base(float base, float value)
+{
+  return log(value) / log(base);
+}
+
+// ----
+
+float answer = log_base(10.0, 10000.0);
+
+write("log(10, 10,000) = %f\n", answer);
+
+// @@PLEAC@@_2.14
+// Pike offers a solid matrix implementation; highlights:
+// * Operator overloading makes matrix operations succinct
+// * Matrices may be of various types, thus allowing user to
+//   choose between range representation and speed
+// * Wide variety of operations available
+
+Math.Matrix a = Math.Matrix( ({ ({3, 2, 3}), ({5, 9, 8})  }) ),
+            b = Math.Matrix( ({ ({4, 7}), ({9, 3}), ({8, 1}) }) );
+
+Math.Matrix c = a * b;
+
+// ------------
+
+Math.Matrix t = c->transpose();
+
+// @@PLEAC@@_2.15
+// @@INCOMPLETE@@
+
+// @@PLEAC@@_2.16
+// Like C, Pike supports decimal-alternate notations. Thus, for example,
+// the integer value, 867, is expressable in literal form as:
+//
+//   Hexadecimal -> 0x363
+//   Octal       -> 01543
+//
+// For effecting such conversions using strings there is 'sprintf' and
+// 'sscanf'.
+
+int dec = 867;
+string hex = sprintf("%x", dec);
+string oct = sprintf("%o", dec);
+
+// ------------
+
+int dec;
+string hex = "363"; sscanf(hex, "%x", dec);
+
+// ------------
+
+int dec;
+string oct = "1543"; sscanf(oct, "%o", dec);
+
+// ----------------------------
+
+int number;
+
+write("Gimme a number in decimal, octal, or hex: ");
+sscanf(Stdio.stdin->gets(), "%D", number);
+
+write("%d %x %o\n", number, number, number);
+
+// @@PLEAC@@_2.17
+string commify_series(int series)
+{
+  return reverse((reverse((string)series) / 3.0) * ",");
+}
+
+// ----
+
+int hits = 3452347;
+
+write("Your website received %s accesses last month.\n", commify_series(hits));
+
+// ----------------------------
+
+string commify(string s)
+{
+  function t = lambda(string m) { return reverse((reverse(m) / 3.0) * ","); };
+  return Regexp.PCRE("([0-9]+)")->replace(s, t);
+}
+
+// ----
+
+int hits = 3452347;
+string output = sprintf("Your website received %d accesses last month.", hits);
+
+write("%s\n", commify(output));
+
+// @@PLEAC@@_2.18
+string pluralise(int value, string root, void|string singular_, void|string plural_)
+{
+  string singular = singular_ ? singular_ : "";
+  string plural = plural_ ? plural_ : "s";
+
+  return root + ( (value > 1) ? plural : singular );
+}
+
+// ----
+
+int duration = 1;
+write("It took %d %s\n", duration, pluralise(duration, "hour"));
+write("%d %s %s enough.\n", duration, pluralise(duration, "hour"),
+      pluralise(duration, "", "is", "are"));
+
+duration = 5;
+write("It took %d %s\n", duration, pluralise(duration, "hour"));
+write("%d %s %s enough.\n", duration, pluralise(duration, "hour"),
+      pluralise(duration, "", "is", "are"));
+
+// ----------------------------
+
+// Non-regexp implementation, uses the string-based, 'has_prefix'
+// and 'replace' library functions
+string plural(string singular)
+{
+  mapping(string : string) e2 =
+    (["ss":"sses", "ph":"phes", "sh":"shes", "ch":"ches",
+      "ey":"eys", "ix":"ices", "ff":"ffs"]);
+
+  mapping(string : string) e1 =
+    (["z":"zes", "f":"ves", "y":"ies", "s":"ses", "x":"xes"]);
+
+  foreach(({e2, e1}), mapping(string : string) endings) 
+  {
+    foreach(indices(endings), string ending)
+    {
+      if (has_suffix(singular, ending))
+      {
+        return replace(singular, ending, endings[ending]);
+      }
+    }
+  }
+
+  return singular;
+}
+
+// ----
+
+int main()
+{
+  foreach(aggregate("mess", "index", "leaf", "puppy"), string word)
+    write("%6s -> %s\n", word, plural(word));
+}
 
 // @@PLEAC@@_2.19
 // @@INCLUDE@@ include/pike/ch02/bigfact
-
 
 // @@PLEAC@@_3.0
 // Pike has an extensive Calendar module that provides all manners of
@@ -618,7 +861,6 @@ write("Today is day %d of the current year.\n", Calendar.now()->year_day());
 // Today is day 325 of the current year.
 
 // @@PLEAC@@_3.1
-
 int day, month, year;
 mapping now=localtime(time());
 year  = now->year+1900;
@@ -644,7 +886,6 @@ write("The current date is %04d %02d %02d\n", @lambda(){ return ({ now->year_no(
 // functional approach aspect.
 
 // @@PLEAC@@_3.2
-
 // dwim_time() handles most common date and time formats.
 Calendar.dwim_time("2:40:25 23.11.2004");
 // Result: Second(Tue 23 Nov 2004 2:40:25 CET)
@@ -681,7 +922,6 @@ Calendar.Day()->set_timezone("UTC")->hour(2)->minute(40)->second(25);
 // Result: Second(Tue 23 Nov 2004 2:40:25 UTC)
 
 // @@PLEAC@@_3.3
-
 int unixtime=1101174025;
 int day, month, year;
 mapping then=localtime(unixtime);
@@ -701,7 +941,6 @@ write("Dateline: %02d:%02d:%02d-%04d/%02d/%02d\n", othen->hour_no(),
 // Dateline: 02:40:25-2004/11/23
 
 // @@PLEAC@@_3.4
-
 int days_offet=55;
 int hour_offset=2;
 int minute_offset=17;
@@ -728,7 +967,6 @@ write("Nat was 55 days old on: %d/%d/%d\n", then->month_no(), then->month_day(),
 // Nat was 55 days old on: 3/14/1973
 
 // @@PLEAC@@_3.5
-
 int bree = 361535725;         // 16 Jun 1981, 4:35:25
 int nat  = 96201950;          // 18 Jan 1973, 3:45:50
 
@@ -799,7 +1037,6 @@ write("Bree came %d days, %d:%d:%d after Nat\n",
 // Bree came 3071 days, 0:49:36 after Nat
 
 // @@PLEAC@@_3.6
-
 mapping day=localtime(time());
 day->mday;
 // Result: 2
@@ -828,7 +1065,6 @@ write("in the week number %d.\n", date->week_no());
 // in the week number 25.
 
 // @@PLEAC@@_3.7
-
 string date = "1998-06-03";
 int yyyy;
 int mm;
@@ -849,7 +1085,6 @@ day->month_day();
 // Result: 3
 
 // @@PLEAC@@_3.8
-
 object now=Calendar.dwim_time("Sun Sep 21 15:33:36 1997");
 // Result: Second(Sun 21 Sep 1997 15:33:36 CEST)
 
@@ -903,7 +1138,6 @@ now->format_smtp();           // "Thu, 18 Jan 1973 3:45:50 +0100"
 now->format_http();           // "Thu, 18 Jan 1973 02:45:50 GMT"
 
 // @@PLEAC@@_3.9
-
 int t=time();                 // current time in unixtime seconds
 float t0=time(t);             // higher precision time passed since t
 float t1=time(t);
@@ -974,7 +1208,6 @@ void gaugethis(int size, int number_of_times, function rand)
 }
 
 // @@PLEAC@@_3.10
-
 int abort_on_signal=1;         // if true, aport on signal
 sleep(0.25, abort_on_signal);
 
@@ -982,7 +1215,6 @@ delay(0.25); // uses busy-wait for accuracy,
              // may be interrupted by signal handlers
 
 // @@PLEAC@@_3.11
-
 Calendar.dwim_time("Tue, 26 May 1998 23:57:38 -0400")->distance(
     Calendar.dwim_time("Wed, 27 May 1998 05:04:03 +0100"))->format_elapsed();   
 // Result: "0:06:25"
@@ -990,7 +1222,6 @@ Calendar.dwim_time("Tue, 26 May 1998 23:57:38 -0400")->distance(
 // @@INCLUDE@@ include/pike/ch03/hopdelta
 
 // @@PLEAC@@_4.0
-
 // nested arrays are supported
 array flat = ({ "this", "that", "the", "other" });
 array nested = ({ "this", "that", ({ "the", "other" }) });
@@ -1015,7 +1246,6 @@ array(array) require1 ({ ({ "this", "that" }), ({ "the", "other" }) });
 
 
 // @@PLEAC@@_4.1
-
 // list
 array(string) a = ({ "quick", "brown", "fox" });
 
@@ -1039,7 +1269,6 @@ array(string) ships = ({ "Niña", "Pinta", "Santa María" }); // right
 // @@INCLUDE@@ include/pike/ch04/commify_series
 
 // @@PLEAC@@_4.3
-
 void what_about_that_array(array list)
 {
     write("The array now has %d elements.\n", sizeof(list));
@@ -1073,7 +1302,6 @@ people[10000]=0;
 
 
 // @@PLEAC@@_4.4
-
 foreach(list; int index; mixed item)
 {
   // do something with item (and possibly index)
@@ -1171,7 +1399,6 @@ foreach(hash; int key;)
 // (they are all references anyways) so this section does not apply
 
 // @@PLEAC@@_4.6
-
 mapping seen = ([]);
 array   uniq = ({});
 foreach(list;; mixed item)
@@ -1229,7 +1456,6 @@ write("users logged in: %s\n", users*" ");
 
 
 // @@PLEAC@@_4.7
-
 // one of pikes strenghts are operators.
 // the following are the only idiomatic solutions to the problem
 
@@ -1240,7 +1466,6 @@ array aonly = A-B;
 
 
 // @@PLEAC@@_4.8
-
 array a = ({ 1, 3, 5, 6, 7, 8 });
 array b = ({ 2, 3, 5, 7, 9 });
 
@@ -1261,7 +1486,6 @@ array symdiff= a^b;
 // ({ 1, 6, 8, 2, 9 })
 
 // @@PLEAC@@_4.9
-
 // join arrays
 
 // appending to an array will always create a new array and pike is designed to
@@ -1282,9 +1506,7 @@ write("%s\n", members*" ");
 // Time Flies Like An Arrow
 // Fruit Flies Like A Banana
 
-
 // @@PLEAC@@_4.10
-
 // almost any operation you do on the elements will add more overhead than
 // reversing the array, if there is any possible optimization, pike will do it
 // for you.
@@ -1314,7 +1536,6 @@ array descending = Array.sort_array(users, lambda(mixed a, mixed b)
                                    );
 
 // @@PLEAC@@_4.11
-
 array arr = ({ 0,1,2,3,4,5,6,7,8,9 });
 int n=3;
 array front = arr[..n-1];
@@ -1370,7 +1591,6 @@ array pair = pop2(beverates);
 // and beverages has (Dew, Jolt, Cola)
 
 // @@PLEAC@@_4.12
-
 mixed match = search(arr, element);
 
 int test(mixed element)
@@ -1406,7 +1626,6 @@ else
 
 
 // @@PLEAC@@_4.13
-
 array matching=({});
 
 foreach(list;; mixed element)
@@ -1422,7 +1641,6 @@ array matching = test(list[*])-({ 0 });
 
 
 // @@PLEAC@@_4.14
-
 // since pike has different types for strings and numbers, ints and floats are
 // of course sorted numerically 
 // (sort() is destructive, the original array is changed)
@@ -1440,7 +1658,6 @@ sort((array(int))unsorted, unsorted);
 // unsorted is now sorted.
 
 // @@PLEAC@@_4.15
-
 array unordered;
 int compare(mixed a, mixed b)
 {
@@ -1589,7 +1806,6 @@ sort( ((array(int))passwd[*][2]), passwd);
 sort( ((array(int))passwd[*][3]), passwd);
 
 // @@PLEAC@@_4.16
-
 ADT.CircularList circular;
 circular->push_front(circular->pop_back());
 circular->push_back(circular->pop_front());
@@ -1610,7 +1826,6 @@ while(1)
 }
 
 // @@PLEAC@@_4.17
-
 array arr;
 Array.shuffle(arr);  // this uses the fisher-yates shuffle
 
@@ -1654,8 +1869,8 @@ void naive_shuffle(array list)
 
 // @@PLEAC@@_4.18
 // @@INCLUDE@@ include/pike/ch04/words
-// @@PLEAC@@_4.19
 
+// @@PLEAC@@_4.19
 int factorial(int n)
 {
   int s=1;
@@ -1669,8 +1884,8 @@ write("%d\n", factorial(500));
 // @@INCLUDE@@ include/pike/ch04/permute
 //-------------------------------------------------------------
 // @@INCLUDE@@ include/pike/ch04/mjd_permute
-// @@PLEAC@@_5.0
 
+// @@PLEAC@@_5.0
 // creating a mapping from arrays
 mapping age = mkmapping( ({ "Nat", "Jules", "Josh", }), ({ 24, 25, 17 }) );
 
@@ -2014,7 +2229,6 @@ mapping multihash_delete(mapping hash, mixed key, mixed value)
 }
 
 // @@PLEAC@@_5.8
-
 // search for a value in a mapping
 mapping lookup;
 mixed value;
@@ -2049,7 +2263,6 @@ foreach(food_color; string food; string color)
 write("%{%s %}were yellow foods.\n", foods_with_color->yellow);
 
 // @@PLEAC@@_5.9
-
 mapping hash;
 foreach(sort(indices(hash));; mixed key)
 {
@@ -2072,7 +2285,6 @@ foreach(foods;; string food)
 
 
 // @@PLEAC@@_5.10
-
 // the natural way to merge two mappings is to use + or |
 // for mappings both operations are equivalent.
 mapping A, B;
@@ -2140,7 +2352,6 @@ m;
 // allocate memory everytime an element is added
 
 // @@PLEAC@@_5.14
-
 mapping count = ([]);
 foreach(ARRAY;; mixed element)
 {
@@ -2373,7 +2584,6 @@ Stdio.File file = Stdio.File(path, "rwcx");
 // since the filename is contained in a string, this problem does not apply
 
 // @@PLEAC@@_7.3
-
 string filename;
 
 if(filename[0] == "~")
@@ -2425,7 +2635,6 @@ fh = Stdio.FakeFile();
 
 
 // @@PLEAC@@_7.6
-
 // since the usual way to handle files is to read them into a string, then just
 // assign your data to a string and work from there:
 
@@ -2452,6 +2661,1662 @@ int kilosize = size/1024;
 write("<P>Script size is %dk\n", kilosize);
 write("<P>Last script update: %s\n", Calendar.Second(raw_time)->format_nicez());
 
+// @@PLEAC@@_9.0
+Stdio.Stat entry;
+
+entry = file_stat("/bin/vi");
+entry = file_stat("/usr/bin");
+entry = file_stat(argv[1]);
+
+// ------------
+
+Stdio.Stat entry; int ctime, size;
+
+entry = file_stat("/bin/vi");
+ctime = entry->ctime;
+size = entry->size;
+
+// ------------
+
+// A routine detecting whether a file is a 'text' file doesn't appear
+// to exist, so have implemented the following [crude] function(s)
+// which search for a LF / NEWLINE in the file:
+
+// Usable with any file
+int(0..1) containsText(Stdio.File file)
+{
+  string c;
+  while ((c = file->read(1)) != NULL) { (c == NEWLINE) && return 1; }
+  return 0;
+}
+
+// Alternate version, expects a buffered file [usually containing text]
+int(0..1) containsText(Stdio.FILE file)
+{
+  int c;
+  while ((c = file->getchar()) != EOF) { (c == LF) && return 1; }
+  return 0;
+}
+
+// Yet another alternative - this time we cheat and use the *NIX 'file'
+// utility :) !
+
+int(0..1) isTextFile(string filename)
+{
+  return chop(Process.popen("file -bN " + filename), 1)  == "ASCII text";
+}
+
+// ----
+
+containsText(Stdio.File(argv[1])) || write("File %s doesn't have any text in it\n", argv[1]);
+
+isTextFile(argv[1]) || write("File %s doesn't have any text in it\n", argv[1]);
+
+// ------------
+
+Filesystem.Traversion dirtree = Filesystem.Traversion("/usr/bin");
+
+foreach(dirtree; string dir; string file)
+{
+  write("Inside %s is something called %s\n", chop(dir, 1), file);
+}
+
+// @@PLEAC@@_9.1
+string filename = "example.txt";
+
+Stdio.Stat fs = file_stat(filename);
+int readtime = fs->atime, writetime = fs->mtime;
+
+System.utime(filename, readtime, writetime);
+
+// ----------------------------
+
+constant SECONDS_PER_DAY = 60 * 60 * 24;
+
+string filename = "example.txt";
+
+Stdio.Stat fs = file_stat(filename);
+int atime = fs->atime, mtime = fs->mtime;
+
+atime -= 7 * SECONDS_PER_DAY; mtime -= 7 * SECONDS_PER_DAY;
+
+System.utime(filename, atime, mtime);
+
+// ----------------------------
+
+argc != 1 || die("usage: " + argv[0] + " filename");
+
+Stdio.Stat fs = file_stat(argv[1]);
+int atime = fs->atime, mtime = fs->mtime;
+
+Process.system(getenv("EDITOR") || "vi" + " " + argv[1]);
+
+mixed result = catch { System.utime(argv[1], atime, mtime); };
+(result == OK) || write("Error updating timestamp on file, %s!\n", argv[1]);
+
+// @@PLEAC@@_9.2
+string filename = "...";
+
+rm(filename) || write("Can't delete, %s!\n", filename);
+
+// ------------
+
+int(0..1) rmAll(array(string) filelist)
+{
+  mixed result = catch
+  {
+    foreach(filelist, string filename) { rm(filename) || throw(PROBLEM); }
+  };
+  
+  return result == OK;
+}
+
+// ----
+
+array(string) filelist = ({"/tmp/x", "/tmp/y", "/tmp/z"});
+
+rmAll(filelist) || write("Can't delete all files in array!\n");
+
+// ----------------------------
+
+void die(string msg, void|int(1..256) rc) { werror(msg + NEWLINE); exit(rc ? rc : PROBLEM); }
+
+// ----
+
+string filename = "...";
+
+rm(filename) || die("Can't delete " + filename);
+
+// ----------------------------
+
+array(string) filelist = ({"/tmp/x", "/tmp/y", "/tmp/z"});
+
+int deleted, count = sizeof(filelist);
+
+foreach(filelist, string filename) { rm(filename) && ++deleted; }
+
+(deleted == count) || write("Could only delete %d of %d files\n", deleted, count);
+
+// @@PLEAC@@_9.3
+string oldfile = "/tmp/old", newfile = "/tmp/new";
+
+Stdio.cp(oldfile, newfile) || write("Error copying file\n");
+
+// ----------------------------
+
+string oldfile = "/tmp/old", newfile = "/tmp/new";
+
+mixed result = catch { Stdio.write_file(newfile, Stdio.read_file(oldfile)); };
+
+(result == OK) || write("Problem copying file %s to file %s\n", oldfile, newfile);
+
+// ----------------------------
+
+// Note: This is a cross between, 'Process.system', which displays
+// output on stdout, and, 'Process.popen', which does not display
+// output [it returns it as a string] but does not return the status
+// code
+int system(string cmd)
+{
+  Stdio.File fout = Stdio.File(), ferr = Stdio.File();
+  Stdio.File pout = fout->pipe(Stdio.PROP_IPC),
+             perr = ferr->pipe(Stdio.PROP_IPC);
+
+  int rc = Process.spawn(cmd, 0, pout, perr)->wait();
+
+  pout->close(); destruct(pout); fout->close(); destruct(fout);
+  perr->close(); destruct(perr); ferr->close(); destruct(ferr);
+
+  return rc;
+}
+
+int(0..1) unixFileCopy(string oldfile, string newfile)
+{
+  string cmd = "cp --force --reply=yes " + oldfile + " " + newfile;
+  return system(cmd) == OK;
+}
+
+int(0..1) vmsFileCopy(string oldfile, string newfile)
+{
+  string cmd = "copy " + oldfile + " " + newfile;
+  return system(cmd) == OK;
+}
+
+// ----
+
+string oldfile = "/tmp/old", newfile = "/tmp/new";
+
+unixFileCopy(oldfile, newfile) || write("Problem copying file %s to file %s\n", oldfile, newfile);
+
+// ----------------------------
+
+string oldfile = "/tmp/old", newfile = "/tmp/new";
+
+mv(oldfile, newfile) || write("Problem moving / renaming file %s to file %s\n", oldfile, newfile);
+
+// @@PLEAC@@_9.4
+mapping(array(int):int) seen = ([]);
+
+// ----
+
+void do_my_thing(string filename)
+{
+  Stdio.Stat fs = file_stat(filename);
+  array(int) arr = aggregate(fs->inode, fs->dev);
+
+  // Could do this [apply a lambda assigned to variable 'p']:
+  //
+  //    ... || (p(arr), seen[arr] = 1);
+  //
+  //    function p = lambda(array(int) arr) { ... };
+  //
+  // to process a file that has not previously been seen
+  
+  (seen[arr] && (seen[arr] += 1)) || (seen[arr] = 1);
+}
+
+// ----------------------------
+
+constant SEP = ":"; mapping(array(int):string) seen = ([]);
+
+// ----
+
+array(string) files = ({"f1.txt", "f2.txt", "f3.txt"});
+
+foreach(files, string filename)
+{
+  Stdio.Stat fs = file_stat(filename);
+  array(int) arr = aggregate(fs->inode, fs->dev);
+  (seen[arr] && (seen[arr] += (SEP + filename))) || (seen[arr] = filename);
+}
+
+// ----
+
+array(array(int)) idxarr = indices(seen); sort(idxarr);
+
+foreach(idxarr, array(int) inodev)
+{
+  foreach(seen[inodev] / SEP, string filename)
+  {
+    // ... do stuff with each filename ...
+    write("%s\n", filename);
+  }
+}
+
+// @@PLEAC@@_9.5
+string dirname = "..."; array(string) DIR = get_dir(dirname);
+
+foreach(DIR, string filename)
+{
+  string path = dirname + "/" + filename;
+  // ... do something with 'path' ...
+}
+
+// ----------------------------
+
+string dirname = "/usr/local/bin"; int|array(string) DIR = get_dir(dirname);
+
+DIR || die("Can't open " + dirname);
+
+write("Text files in %s are:\n", dirname);
+
+foreach(DIR, string filename)
+{
+  string path = dirname + "/" + filename;
+
+  // 'isTextFile' defined in an earlier section
+  isTextFile(path) && write("%s\n", filename);
+}
+
+// ----------------------------
+
+// '.' and '..' don't show up in a 'get_dir'-generated array
+
+// ----------------------------
+
+array(string) plain_files(string dirname)
+{
+  // 'filter' procedure
+  function fp =
+    lambda(string filename, string dirname)
+    {
+      // 'isTextFile' defined in an earlier section
+      return !has_prefix(filename, ".") && isTextFile(dirname + "/" + filename);
+    };
+
+  // 'map' procedure
+  function mp =
+    lambda(string filename, string dirname)
+    {
+      return dirname + "/" + filename;
+    };
+
+  array(string) paths = map(filter(get_dir(dirname), fp, dirname), mp, dirname);
+
+  sort(paths);
+
+  return paths;
+}
+
+// @@PLEAC@@_9.6
+// A 'glob' workalike that filters using regular expressions
+//
+// Note: Pike offers many non-regexp-based string pattern matching
+// functions [e.g. 'has_prefix' and other 'has_...' functions,
+// 'search', etc]. These are preferable in many situations as they are
+// much faster than regexprs. However, code shown here mostly uses
+// regexprs in order to better match the Perl examples
+//
+int(0..1)|array(string) grep(string regexp, string|array(string) arr)
+{
+  if (stringp(arr)) return Regexp.match(regexp, arr);
+
+  if (arrayp(arr))
+  {
+    function fp =
+      lambda(string filename, string regexp)
+      {
+        return Regexp.match(regexp, filename);
+      };
+
+    return filter(arr, fp, regexp);
+  }
+
+  return 0;
+}
+
+// ----------------------------
+
+string dirname = "...";
+int|array(string) filenames = glob("*.c", get_dir(dirname));
+
+// ------------
+
+string dirname = "...";
+int|array(string) filenames = grep("\.c$", get_dir(dirname));
+
+// ------------
+
+string dirname = "...";
+int|array(string) filenames = grep("\.[CHch]$", get_dir(dirname));
+
+// ----------------------------
+
+string dirname = "...";
+int|array(string) dir = get_dir(dirname);
+
+dir || die("Couldn't open " + dirname + " for reading");
+
+//
+// Note: Pike arrays are immutable, so we use a mapping to emulate
+// mutable arrays by using a numeric index as the key :)
+//
+mapping(int:string) files = ([]); int idx = -1; string path;    
+
+foreach(dir, string file)
+{
+  if (!grep("\.[CHch]$", file)) continue;
+  path = dirname + "/" + file;
+  isTextFile(path) && (files[++idx] = path);
+}
+
+//
+// Note: Traverse a mapping-based, emulated array in index order:
+//
+//  foreach(sort(indices(files)), int i)
+//  {
+//    write("%d -> %s\n", i, files[i]); 
+//  }
+//
+
+// @@PLEAC@@_9.7
+//
+// Routine inspired by library function, 'Stdio.recursive_rm'. A little
+// extra code helped make it more generally useful
+//
+void|mixed process_directory(string path, function(string, mixed ... : void|mixed) op, mixed ... extra_args)
+{
+  Stdio.Stat file = file_stat(path, 1); if (!file) return 0;
+
+  if (file->isdir)
+    if (array(string) files = get_dir(path))
+      foreach(files, string file)
+        process_directory(path + "/" + file, op, @extra_args);
+
+  return op(path, @extra_args);
+}
+
+// ----------------------------
+
+array(string) dirlist = ({ "/tmp/d1", "/tmp/d2", "/tmp/d3" });
+
+// Do something with each directory in the list
+foreach(dirlist, string dir)
+{
+  // Delete directory [if empty]     -> rm(dir); 
+  // Make it the 'current directory' -> cd(dir);
+  // Get list of files it contains   -> array(string) filelist = get_dir(dir);
+  // Get directory metadata          -> Stdio.Stat ds = file_stat(dir);
+}
+
+// ------------
+
+array(string) dirlist = ({ "/tmp/d1", "/tmp/d2", "/tmp/d3" });
+
+function pf =
+  lambda(string path)
+  {
+    // ... do something to the file or directory ...
+    write("%s\n", path);
+  };
+
+// For each directory in the list ...
+foreach(dirlist, string dir)
+{
+  int|array(string) filelist = get_dir(dir);
+
+  if (!filelist) { write("%s does not exist\n", dir); continue; }
+  if (sizeof(filelist) == 0) { write("%s is empty\n", dir); continue; }
+
+  // For each file / directory in the directory ...
+  foreach(filelist, string filename)
+  {
+    // Apply function to process the file / directory
+    pf(dir + "/" + filename);
+  }
+}
+
+// ------------
+
+// Special steps need to be taken in above routines to distinguish 
+// between files and directories. Easiest to abstract out directory
+// traversal into a single routine [so allowing for recursive traversal
+// of entire tree], and have it apply a lambda to each file
+
+array(string) dirlist = ({ "/tmp/d1", "/tmp/d2", "/tmp/d3" });
+
+function pf =
+  lambda(string path)
+  {
+    // ... do something to the file or directory ...
+    write("%s\n", path);
+  };
+
+// For each directory in the list ...
+foreach(dirlist, string dir)
+{
+  process_directory(dir, pf);
+}
+
+// ----------------------------
+
+void accum_filesize(string path, array(int) accum)
+{
+  int|Stdio.Stat fs = file_stat(path);
+
+  // Accumulate size only if it is a regular file
+  (fs && fs->isreg) && (accum[0] += fs->size);
+}
+
+// ------------
+
+// Verify arguments ...
+argc == 2 || die("usage: " + argv[0] + " dir");
+Stdio.Stat fs; string dir = argv[1];
+((fs = file_stat(dir)) && fs->isdir) || die(dir + " does not exist / not a directory");
+
+// Collect data [use an array to accumulate results]
+array(int) dirsize = ({0});
+process_directory(dir, accum_filesize, dirsize); 
+
+// Report results
+write("%s contains %d bytes\n", dir, dirsize[0]);
+
+// ----------------------------
+
+void biggest_file(string path, array(mixed) biggest)
+{
+  int|Stdio.Stat fs = file_stat(path);
+
+  if (fs && fs->isreg && biggest[1] < fs->size)
+  {
+    biggest[0] = path; biggest[1] = fs->size;
+  }
+}
+
+// ------------
+
+// Verify arguments ...
+argc == 2 || die("usage: " + argv[0] + " dir");
+Stdio.Stat fs; string dir = argv[1];
+((fs = file_stat(dir)) && fs->isdir) || die(dir + " does not exist / not a directory");
+
+// Collect data [use an array to store results]
+array(mixed) biggest = ({"", 0});
+process_directory(dir, biggest_file, biggest); 
+
+// Report results
+write("Biggest file is %s containing %d bytes\n", biggest[0], biggest[1]);
+
+// ----------------------------
+
+void youngest_file(string path, array(mixed) youngest)
+{
+  int|Stdio.Stat fs = file_stat(path);
+
+  if (fs && fs->isreg && youngest[1] > fs->ctime)
+  {
+    youngest[0] = path; youngest[1] = fs->ctime;
+  }
+}
+
+// ------------
+
+// Verify arguments ...
+argc == 2 || die("usage: " + argv[0] + " dir");
+Stdio.Stat fs; string dir = argv[1];
+((fs = file_stat(dir)) && fs->isdir) || die(dir + " does not exist / not a directory");
+
+// Collect data [use an array to store results]
+array(mixed) youngest = ({"", Int.NATIVE_MAX});
+process_directory(dir, youngest_file, youngest); 
+
+// Report results
+write("Youngest file is %s dating %s\n", youngest[0], ctime(youngest[1]));
+
+// ----------------------------
+
+void print_name_if_dir(string path)
+{
+  int|Stdio.Stat fs = file_stat(path);
+  if (fs && fs->isdir) write("%s\n", path);
+}
+
+// ------------
+
+// Verify arguments ...
+argc == 2 || die("usage: " + argv[0] + " dir");
+Stdio.Stat fs; string dir = argv[1];
+((fs = file_stat(dir)) && fs->isdir) || die(dir + " does not exist / not a directory");
+
+// Print directory names
+process_directory(dir, print_name_if_dir); 
+
+// @@PLEAC@@_9.8
+// Easy way - recommended
+int(0..1) rmTree(string dirname) { return Stdio.recursive_rm(dirname); }
+
+// ----
+
+string dirtree = "/tmp/dirtree";
+
+rmTree(dirtree) || write("Problem removing directory tree %s\n", dirtree);
+
+// ----------------------------
+
+// Another way, but unnecessary - probably for customised deletions only
+int(0..1) rmTree(string dirname) { return process_directory(dirname, rm); }
+
+// ----
+
+string dirtree = "/tmp/dirtree";
+
+rmTree(dirtree) || write("Problem removing directory tree %s\n", dirtree);
+
+// @@PLEAC@@_9.9
+// A list of file names
+array(string) names = ({"f1.txt", "f2.txt", "f3.txt"});
+
+// Dynamically assigned 'rename' procedure - can be reassigned at any time
+function rename = lambda(string name) { return replace(name, ".txt", ".text"); };
+
+// Process all files
+foreach(names, string name)
+{
+  // Generate new name from existing name by applying 'rename' procedure
+  string newname = rename(name); 
+
+  // Perform actual rename task on file
+  mv(name, newname) || write("Could not rename %s to %s\n", name, newname);
+}
+
+// ----------------------------
+
+// Slightly different to the Perl example, though it does use regexp
+// and intent is roughly the same.
+//
+// pike SCRIPTNAME '\.txt$' '.text' f1.txt f2.txt df3.txg
+//
+//    f1.txt  -> f1.text
+//    f2.txt  -> f2.text
+//    df3.txg -> df3.txg [no change]
+//
+
+argc > 2 || die("usage: " + argv[0] + " expr repl files...");
+
+string expr = argv[1], repl = argv[2];
+
+foreach(argv[3..], string name)
+{
+  string newname = Regexp.replace(expr, name, repl); 
+
+  if (!equal(name, newname))
+    mv(name, newname) || write("Could not rename %s to %s\n", name, newname);
+} 
+
+// @@PLEAC@@_9.10
+string file_extension(string filename, void|string separator)
+{
+  return (filename / (separator || "."))[-1];
+}
+
+mapping(string:string) file_parse(string path)
+{
+  return
+    mkmapping(({"dirname", "basename", "extension"}),
+      ({dirname(path), basename(path), file_extension(basename(path))}));
+}
+
+// ----------------------------
+
+string path = "/tmp/dirtree/s/s1/s1.txt";
+
+// ----
+
+string dir = dirname(path);
+string base = basename(path);
+
+mapping(string:string) pm = file_parse(path);
+write("%s\n", pm["dirname"]);
+write("%s\n", pm["basename"]);
+write("%s\n", pm["extension"]);
+
+// ------------
+
+string path = "/usr/lib/libc.a";
+
+// ----
+
+string dir = dirname(path);
+string base = basename(path);
+
+write("dir is %s, file is %s\n", dir, base);
+
+// ------------
+
+string path = "/usr/lib/libc.a";
+
+// ----
+
+mapping(string:string) pm = file_parse(path);
+
+write("dir is %s, name is %s, extension is %s\n",
+  pm["dirname"], pm["basename"], "." + pm["extension"]);
+
+// ----------------------------
+
+// Handle as a general purpose parse task
+string path = "Hard%20Drive:System%20Folder:README.txt";
+
+// ----
+
+mapping(string:string)
+  pm = mkmapping(({"drive", "folder", "filename"}),
+                 replace(path, "%20", " ") / ":"),
+
+  fm = mkmapping(({"name", "extension"}),
+                 pm["filename"] / ".");
+
+write("dir is %s, name is %s, extension is %s\n",
+  pm["drive"] + ":" + pm["folder"],
+  fm["name"], "." + fm["extension"]);
+
+// ----------------------------
+
+// See implementation for 'file_extension' function above
+
+// @@PLEAC@@_9.11
+@@INCOMPLETE@@
+@@INCOMPLETE@@
+
+// @@PLEAC@@_9.12
+@@INCOMPLETE@@
+@@INCOMPLETE@@
+
+// @@PLEAC@@_10.0
+// Here, in this simple example, 'greeted', is used as a 'global'
+// variable. In a more complex program, however, this would not be
+// the case [subsequent sections exlain why]
+int greeted;
+
+// ----
+
+void hello()
+{
+  write("hi there!, this procedure has been called %d times\n", ++greeted);
+}
+
+int how_many_greetings()
+{
+  return greeted;
+}
+
+// ------------
+
+int main()
+{
+  hello();
+  int greetings = how_many_greetings();
+  write("bye there!, there have been %d greetings so far\n", greetings);
+}
+
+// ----------------------------
+
+// Alternate means of defining functions [could, optionally, have also
+// included type information in 'function' declaration]; could also
+// have been done within scope of 'main'
+
+int greeted;
+
+// ----
+
+function hello = lambda()
+  {
+    write("hi there!, this procedure has been called %d times\n", ++greeted);
+  };
+
+function how_many_greetings = lambda() { return greeted; };
+
+// ------------
+
+int main()
+{
+  hello();
+  int greetings = how_many_greetings();
+  write("bye there!, there have been %d greetings so far\n", greetings);
+}
+
+// @@PLEAC@@_10.1
+// Subroutine parameters are named, that is, access to these items from
+// within a function is reliant on their being named in the parameter
+// list [together with mandatory type information], something which is
+// in line with many other commonly-used languages
+
+float hypotenuse(float side1, float side2)
+{
+  // Arguments passed to this function are accessable as, 'side1',
+  // and 'side2', respectively, and each is expected to be a 'float'
+  // type
+  return side1 * side1 + side2 * side2;
+}
+
+// ----
+
+// 'side1' -> 3.0
+// 'side2' -> 4.0
+float diag = hypotenuse(3.0, 4.0);
+
+// ------------
+
+// However, Pike also allows parameters [and return types where applicable]:
+// * To have one of a set of types [see (1)]
+// * To have a generic type [see (2)]
+// * To be optional, in which case any arguments are packaged as an
+//   array, and array notation needed to access each item [see (3)]
+
+// (1). Here the function will accept either 'int' or 'float'
+// arguments, and perform runtime type checking to identify what is
+// supplied
+float hypotenuse(int|float side1, int|float side2)
+{
+  // If 'int' arguments passed. convert to 'float'
+  float s1 = intp(side1) ? (float) side1 : side1;
+  float s2 = intp(side2) ? (float) side2 : side2;
+
+  return s1 * s1 + s2 * s2;
+}
+
+// ----
+
+// Both are legal calls
+float diag = hypotenuse(3.0, 4.0);
+float diag = hypotenuse(3, 4);
+
+// ------------
+
+// (2). Here the function still expects to be called with two arguments 
+// but each may be of *any* type [admittedly a very contrived example
+// of little utility except for illustrative value]. Such a function
+// is almost entirely reliant on careful runtime type checking if it
+// is to behave reliably
+float hypotenuse(mixed side1, mixed side2)
+{
+  if (stringp(side1)) { ... }
+  if (arrayp(side1)) { ... }
+  if (objectp(side1)) { ... }
+  ...  
+}
+
+// ----
+
+// All are legal calls
+float diag = hypotenuse(3.0, 4.0);
+float diag = hypotenuse(3, 4);
+float diag = hypotenuse("3", "4");
+float diag = hypotenuse(({3}), ({4}));
+
+// ------------
+
+// (3). Here, the function is defined to accept two, mandatory
+// parameters [still accessable via name], then a set of zero or more
+// optional parameters, which are accessable within the function body
+// via an array [the placeholder, 'args', represents an array of zero
+// or more elements each corresponding to one of the passed arguments
+float hypotenuse(float side1, mixed side2, mixed ... args)
+{
+  // Mandatory parameters still accessable as usual
+  ... side1 ... side2 ...
+
+  // Total number of arguments passed to function determinable via:
+  int total_passed_args = query_num_arg();
+  
+  // 'args' contains all optional arguments: 0 - N
+  int optional_args = sizeof(args);
+
+  // Process variable arguments ...
+  foreach(args, mixed arg)
+  {
+    ... if (strinp(arg)) { ... }
+  }
+
+  ...
+}
+
+// ----
+
+// All are legal calls
+float diag = hypotenuse(3.0, 4.0);
+float diag = hypotenuse(3.0, 4.0, "a");
+float diag = hypotenuse(3.0, 4.0, lambda(){ return 5; }, "fff");
+float diag = hypotenuse(3.0, 4.0, 1, "x", ({ 6, 7, 9 }));
+
+// ----------------------------
+
+// Modifies copy
+array(int|float) int_all(array(int|float) arr)
+{
+  array(int|float) retarr = copy_value(arr);
+  int i; for(int i; i < sizeof(retarr); ++i) { retarr[i] = (int) arr[i]; }
+  return retarr;
+}
+
+// Modifies original
+array(int|float) trunc_all(array(int|float) arr)
+{
+  int i; for(int i; i < sizeof(arr); ++i) { arr[i] = (int) arr[i]; }
+  return arr;
+}
+
+// ----
+
+array(int|float) nums = ({1.4, 3.5, 6.7});
+
+// Copy modified - 'ints' and 'nums' separate arrays
+array(int|float) ints = int_all(nums);
+write("%O\n", nums);
+write("%O\n", ints);
+
+// Original modified - 'ints' acts as alias for 'nums'
+ints = trunc_all(nums);
+write("%O\n", nums);
+write("%O\n", ints);
+
+// @@PLEAC@@_10.2
+void some_func()
+{
+  // Variables declared within a function are local to that function
+  mixed variable = something;
+}
+
+// ----------------------------
+
+// Assuming these are defined at file level, that is, outside of 'main'
+// or any other function they are accessable by every other member of
+// the same file [and if this file (read: class or program) is the
+// only one comprising the 'system', they are effectively 'global']
+string name = argv[1]; int age = (int) argv[2];
+
+int c = fetch_time();
+
+int condition;
+
+// ------------
+
+int run_check()
+{
+  ...
+  condition = 1;
+}
+
+int check_x(int x)
+{
+  string y = "whatever";
+
+  // Whilst 'run_check' has access to 'name', 'age', and 'c' [because
+  // these are declared at a higher scope], it does not have access to
+  // 'y' or any other locally defined variable
+  run_check();
+
+  // 'run_check' will have updated 'condition'
+  if (condition) write("got x: %d\n", x);
+}
+
+// @@PLEAC@@_10.3
+// Pike does not implement C style 'static' variables [i.e. persisent
+// local variables], nor does it implement C++ style 'class variables'
+// [oddly enough, also implemented in C++ via use of the 'static'
+// keyword], both of which could be used to implement solutions to the
+// problems presented in this section. Also, there is no direct
+// equivalent to Perl's 'BEGIN' block [closest equivalent is the
+// class 'create' method]. So, to solve a problem like implementing a
+// 'counter':
+//
+// * Use Pike's OOP facilities [simple, natural]
+// * Use closures [somewhat unwieldly, but possible]
+
+// OOP Approach
+class Counter
+{
+  private int counter;
+
+  static void create(int start) { counter = start; }
+  public int next() { return ++counter; }
+  public int prev() { return --counter; }
+}
+
+// ----
+
+int main()
+{
+  Counter counter = Counter(42);
+
+  write("%d\n", counter->next());
+  write("%d\n", counter->prev());
+}
+
+// ----------------------------
+
+// A refinement of the previous implementation that mimics 'static'
+// variables
+
+class Static
+{
+  // 'static' variable that is shared by all instance of 'Counter'
+  int counter;
+
+  class Counter
+  {
+    public int next() { return ++counter; }
+    public int prev() { return --counter; }
+  }
+
+  Counter make() { return Counter(); }
+
+  public void create(int counter_) { counter = counter_; }
+}
+
+// ----
+
+int main()
+{
+  Static mkst = Static(42);
+
+  Static.Counter counter_1 = mkst->make();
+  Static.Counter counter_2 = mkst->make();
+
+  // Same value of, 'counter', is accessed by each object
+  write("%d\n", counter_1->next());
+  write("%d\n", counter_1->next());
+
+  write("%d\n", counter_2->next());
+  write("%d\n", counter_2->prev());
+}
+
+// ----------------------------
+
+// Closure Approach [Admittedly somewhat contrived: a Scheme overdose ;) !]
+
+function(string : function(void : int)) make_counter(int start)
+{
+  int counter = start;
+  int next_counter() { return ++counter; };
+  int prev_counter() { return --counter; };
+  
+  return
+    lambda(string op)
+    {
+      if (op == "next") return next_counter;
+      if (op == "prev") return prev_counter;
+      return 0;
+    };
+}
+
+int next_counter(function(string : function(void : int)) counter)
+{
+  return counter("next")();
+}
+
+int prev_counter(function(string : function(void : int)) counter)
+{
+  return counter("prev")();
+}
+
+// ----
+
+int main()
+{
+  function(string : function(void : int)) counter = make_counter(42);
+
+  write("%d\n", next_counter(counter));
+  write("%d\n", prev_counter(counter));
+}
+
+// @@PLEAC@@_10.4
+// It's possible to obtain a great deal of program metadata through the
+// following sets of library functions:
+//
+// * 'this_object', and the sets of 'object_...' and 'program_...'
+//   functions
+// * 'Program' module [provides object inheritance metadata]
+//
+// The use of, 'this_object', in particular, allows the current object
+// instance to be interrogated like a hash table i.e. all variables and
+// methods are accessable as hash table entries.
+//
+// Unfortunately, however, it doesn't appear possible to obtain the
+// current method / function name, at least, not without resorting
+// to tricks like embedding a string in each method explicitly naming
+// it.
+//
+// An example of program metadata use appears in chapter 'Objects and
+// Ties'. Since the function name cannot, AFAICT, be obtained, the
+// current section is not implemented.
+//
+
+// @@PLEAC@@_10.5
+// Procedure parameters are passed by reference [read: the handle or
+// address (or whatever) of an object is passed and is used to uniquely
+// identify that object], so there is no special treatment required.
+// If an argument represents a mutable object then care should be taken
+// to not mutate the object within the function, either by making a copy
+// of the object [e.g. use 'copy_value' to clone it], or by using a
+// 'read-only' control structure like 'foreach' [if applicable] to
+// access it
+
+int|array(int) array_diff(array(int) a, array(int) b)
+{
+  // Ensure an array copy is made ...
+  int|array(int) ret = sizeof(a) != sizeof(b) ? 0 : copy_value(a);
+  if (!ret) ret;
+
+  // ... transformed, and returned
+  for (int i; i < sizeof(ret); ++i) { ret[i] -= b[i]; }; return ret;
+}
+
+// ----------------------------
+
+int|array(int) add_vec_pair(array(int) a, array(int) b)
+{
+  int vecsize = sizeof(a);
+
+  // Ensure an array copy is made ...
+  int|array(int) ret = vecsize != sizeof(b) ? 0 : allocate(vecsize);
+  if (!ret) ret;
+
+  // ... transformed, and returned
+  for (int i; i < vecsize; ++i) { ret[i] = a[i] + b[i]; }; return ret;
+}
+
+// ----
+
+array(int) a = ({1, 2}), b = ({5, 8});
+array(int) c = add_vec_pair(a, b);
+write("%O\n", c);
+
+// @@PLEAC@@_10.6
+// Just as for subroutine parameters, Pike allows variation in return
+// types, where it may be of a specific type, one of a set of types, or
+// a generic return type. Whilst the Perl examples require that the
+// user to nominate a return type when the function is called, in Pike
+// it is handled in one of two ways:
+//
+// * Ensure function and receiving variable type match [see (1)]
+// * Use generic receiving variable, and type check [see (2)]
+
+// (1). Subroutine has set of return types. Whilst type checking
+// does occur [thus user code only need handle these known types
+// because other types won't be allowed], caller/ receiver needs to
+// type check so as correctly handle known cases
+int|array(int)|string mysub()
+{
+  ...
+  return 5;
+  ...
+  return ({5});
+  ...
+  return "5";
+}
+
+// ----
+
+int|array(int)|string receiver = mysub();
+
+if (intp(receiver)) { ... }
+if (arrayp(receiver)) { ... }
+if (stringp(receiver)) { ... }
+...
+
+// ----------------------------
+
+// (2). Subroutine has generic return type, so no type checking occurs.
+// It is up to the caller / receiver to thoroughly type check lest
+// some unforseen type be returned and possibly mishandled
+mixed mysub()
+{
+  ...
+  return 5;
+  ...
+  return ({5});
+  ...
+  return "5";
+}
+
+// ----
+
+mixed receiver = mysub();
+
+if (intp(receiver)) { ... }
+if (arrayp(receiver)) { ... }
+if (stringp(receiver)) { ... }
+...
+
+// @@PLEAC@@_10.7
+// Pike doesn't directly support named / keyword parameters, but these
+// can be easily mimiced using an array of mappings as function arguments
+// The mappings, themselves, could be implemented via a custom class
+// [see (1)], or via the 'mapping'type [see (2) - Perl examples]
+
+// (1)
+class KeyedValue
+{
+  string key; mixed value;
+
+  static void create(string key_, mixed value_)
+  {
+    key = key_; value = value_;
+  }
+}
+
+void the_func(array(KeyedValue) keyargs)
+{
+  foreach(keyargs, KeyedValue kv)
+  {
+    write("Key: %10s|Value: %10O\n", kv->key, kv->value);
+  }
+}
+
+// ----
+
+int main()
+{
+  array(KeyedValue) keyargs =
+    aggregate(KeyedValue("name", "Bob"),
+              KeyedValue("age", 36),
+              KeyedValue("income", 51000));
+
+  the_func(keyargs);
+}
+
+// ----------------------------
+
+// (2)
+class RaceTime
+{
+  int time; string dim;
+
+  static void create(int time_, string dim_)
+  {
+    time = time_; dim = dim_;
+  }
+}
+
+void the_func(mapping(string : RaceTime) ... args)
+{
+  int start_time, finish_time, increment_time;
+  string start_dim, finish_dim, increment_dim;
+
+  foreach(args, mapping(string : RaceTime) arg)
+  {
+    arg["start"] && (start_time = arg["start"]->time, start_dim = arg["start"]->dim);
+    arg["finish"] && (finish_time = arg["finish"]->time, finish_dim = arg["finish"]->dim);
+    arg["increment"] && (increment_time = arg["increment"]->time, increment_dim = arg["increment"]->dim);
+  }
+
+  write("times: start %d, finish %d, increment %d\n",
+        start_time, finish_time, increment_time);
+}
+
+// ----
+
+int main()
+{
+  array(mapping(string : RaceTime)) named_args =
+    ({
+      (["increment" : RaceTime(20, "s")]),
+      (["start" : RaceTime(5, "m")]),
+      (["finish" : RaceTime(3, "m")]) });
+
+  // Package arguments as array for passing to function
+  the_func(@named_args);
+
+  named_args =
+    ({
+      (["start" : RaceTime(5, "m")]),
+      (["finish" : RaceTime(30, "m")]) });
+
+  // Ditto
+  the_func(@named_args);
+
+  // Pass argument(s) directly in argument list
+  the_func((["finish" : RaceTime(30, "m")]));
+}
+
+// @@PLEAC@@_10.8
+// It is languages that support pattern matching, such as Prolog, Oz and
+// SML, that tend to offer such facilities. These languages all offer
+// a 'match all and throw away' operator that can be used in place of 
+// an identifier name(s), and have the resultant value(s) be discarded.
+// Such a facility helps keep code uncluttered because only values
+// that are required need to be named.
+//
+// Pike does not implement pattern matching, so does not sport such an
+// operator, nor any equivalent facility. Thus, none of the examples in
+// this section are directly implementable.
+//
+
+// @@PLEAC@@_10.9
+// Pike supports the return of a single value from a function. Where
+// multiple values need to be returned, they can be packaged as an
+// aggregate such as an array or mapping, and *that* item returned.
+// The caller / receiver would, of course, be responsible for
+// appropriately extracting required elements from that returned item
+// (this process could be hardcoded, or generalised using extensive
+// runtime type checking). Alternatively, a custom class encapsulating
+// the return values can be used and an instance of that item returned
+// and processed
+//
+
+array(mixed) somefunc()
+{
+  array(int) arr = ({1, 2, 3});
+  mapping(string : int) hash = (["x" : 1, "y" : 2, "z" : 3]);
+
+  // Return an array containing an array and a hash
+  return aggregate(arr, hash);
+}
+
+// ----
+
+// Get return array
+array(mixed) arr = somefunc();
+
+// Extract and process elements
+foreach(arr, mixed item)
+{
+  write("Return item has type: %t, value: %O\n", item, item);
+}
+
+// ----------------------------
+
+class RetValues
+{
+  array(int) arr; mapping(string : int) hash;
+
+  static void create()
+  {
+    arr = aggregate(1, 2, 3);
+    hash = aggregate_mapping("x", 1, "y", 2, "z", 3);
+  }
+}
+  
+RetValues somefunc() { return RetValues(); }
+
+// ----
+
+RetValues rv = RetValues();
+
+write("Return item has type: %t, value: %O\n", rv->arr, rv->arr);
+write("Return item has type: %t, value: %O\n", rv->hash, rv->hash);
+
+// @@PLEAC@@_10.10
+// Pike offers a very simple, consistent means of 'returning failure':
+// return 0 [representing 'false'] when a task does not succeed, otherwise
+// return whatever was the expected value. This design is extensively
+// used in the Pike library, and is well supported by the language in
+// that:
+// * Alternate return types may be specified
+// * A 'mixed' return type, indicating possible return of any type
+//   value, may be used
+
+void die(string msg, void|int(1..256) rc) { werror(msg + NEWLINE); exit(rc ? rc : PROBLEM); }
+
+// ----
+
+int|array(string) afunc()
+{
+  ...
+
+  if (ok)
+    // ... return an array ...
+  else
+    // failure, so return 0
+    return 0;
+}
+
+// ----
+
+int main()
+{
+  int|array(string) arr = afunc();
+
+  if (!arr) die("Error with 'afunc' ...");
+
+  // ok, so use 'arr' ...
+}
+
+// @@PLEAC@@_10.11
+// Whether Pike is seen to support prototyping depends on the definition
+// of this term used:
+//
+// * Prototyping along the lines used in Ada, Modula X, and even C / C++,
+//   in which a procedure's interface is declared separately from its
+//   implementation, is *not* supported
+//
+// * Prototyping in which, as part of the procedure definition, parameter
+//   information must be supplied. This is a requirement in Pike in that
+//   parameter number, names and type, must be given. Return types must
+//   also be specified, but there is an exeption when using lambdas
+
+void func_with_no_arg() { ... }
+
+void func_with_one_arg(int arg1) { ... }
+
+void func_with_two_arg(int arg1, string arg2) { ... }
+
+void func_with_three_arg(int arg1, string arg2, float arg3) { ...}
+
+// ----
+
+// Return type, 'void', specified 
+function f = lambda(int arg1 : void) { ... }
+
+// Return type not specified, defaults to 'mixed'
+function g = lambda(int arg1) { ... }
+
+// @@PLEAC@@_10.12
+// Like so many modern languages, Pike implements exception handling
+// using the 'catch' and 'throw' keywords 
+
+// ----
+
+// Not exactly like the Perl example, but a way of immediately exiting
+// from an application [note: using, 'exit', prevents any of the 'atexit'
+// call backs from executing, so application cleanup may be compromised]
+
+void die(string msg, void|int(1..256) rc) { werror(msg + NEWLINE); exit(rc ? rc : PROBLEM); }
+
+// ----
+
+die("some message");
+
+// ----------------------------
+
+int(0..1) rmAll(array(string) filelist)
+{
+  // 'result' will be 0 if the 'catch' block succeeds
+  mixed result = catch
+  {
+    foreach(filelist, string filename) { rm(filename) || throw(PROBLEM); }
+  };
+
+  // Return value of 'catch' block can be tested, and appropriate
+  // action taken; here, a non-zero return code will be returned
+  // [like many library functions] to indicate failure
+  return result == OK;
+}
+
+// ----
+
+// Attempt to remove the following files ...
+
+array(string) files = ({"...", "...", "..."});
+
+rmAll(files) || die("Could not remove all files - exiting");
+
+// @@PLEAC@@_10.13
+
+// Global variable
+int age = 18;
+
+// ----
+
+void print_age()
+{
+  // Global value, 'age', is accessed
+  write("Age is %d\n", age);
+}
+
+// ------------
+
+int main()
+{
+  // A local variable named, 'age' will act to 'shadow' the globally
+  // defined version, thus any changes to, 'age', will not affect
+  // the global version
+  int age = 5;
+
+  // Prints 18, the current value of the global version
+  print_age();
+
+  // Local version is altered, *not* global version
+  age = 23;
+
+  // Prints 18, the current value of the global version
+  print_age();
+}
+
+// ----------------------------
+
+// Global variable
+int age = 18;
+
+// ----
+
+void print_age()
+{
+  // Global value, 'age', is accessed
+  write("Age is %d\n", age);
+}
+
+// ------------
+
+int main()
+{
+  // Here no local version declared: any changes affect global version
+  age = 5;
+
+  // Prints 5, the new value of the global version
+  print_age();
+
+  // Global version again altered
+  age = 23;
+
+  // Prints 23, the new value of the global version
+  print_age();
+}
+
+// ----------------------------
+
+// Global variable
+int age = 18;
+
+// ----
+
+void print_age()
+{
+  // Global value, 'age', is accessed
+  write("Age is %d\n", age);
+}
+
+// ------------
+
+int main()
+{
+  // Global version value saved into local version
+  int age = global::age;
+
+  // Prints 18, the new value of the global version
+  print_age();
+
+  // Global version this time altered
+  global::age = 23;
+
+  // Prints 23, the new value of the global version
+  print_age();
+
+  // Global version value restored from saved local version
+  global::age = age;
+
+  // Prints 18, the restored value of the global version
+  print_age();
+}
+
+// @@PLEAC@@_10.14
+// Define functions - will be considered constant / unchangeable
+void grow() { write("grow\n"); }
+void shrink() { write("shrink\n"); }
+
+// ----
+
+// Execute functions: 'grow', 'shrink' output respectively
+grow(); shrink();
+
+// Attempt to redefine, 'grow' fails because it is considered a
+// constant value:
+//
+//   grow = shrink;
+//
+
+// However, it is possible to bind 'shrink' to a new local variable
+// called, 'grow'
+function grow = shrink;
+
+// Execute functions: 'shrink', 'shrink' output respectively because
+// local 'grow' shadows global version, and it is referencing the
+// code for 'shrink'
+grow(); shrink();
+
+// ------------
+
+// Define functions by assigning lambdas to global variables
+function(void : void) grow = lambda() { write("grow\n"); }
+function(void : void) shrink = lambda() { write("shrink\n"); }
+
+// ----
+
+// Execute functions: 'grow', 'shrink' output respectively
+grow(); shrink();
+
+// Attempt to redefine, 'grow' successful since a simple variable
+// assignment is being performed
+grow = shrink;
+
+// Execute functions: 'shrink', 'shrink' output respectively - 'grow'
+// has, effectively, been 'redefined' [note: reference to original
+// 'grow' code has been lost (but it could have been saved, then
+// restored)]
+grow(); shrink();
+
+// ----------------------------
+
+function barney = lambda() { ... };
+
+// ...
+
+// 'fred' is now an alias for the code attached to 'barney'
+function fred = barney;
+
+// ----------------------------
+
+function red = lambda(string text)
+  {
+    return "<FONT COLOR='red'>" + text + "</FONT>";
+  };
+
+// ----
+
+write("%s\n", red("careful here"));
+
+// ------------
+
+function colour_font = lambda(string colour, string text)
+  {
+    return "<FONT COLOR='" + colour + "'>" + text + "</FONT>";
+  };
+
+function red = lambda(string text) { return colour_font("red", text); };
+function green = lambda(string text) { return colour_font("green", text); };
+
+// ... more 'colour' functions ...
+
+// ----
+
+write("%s\n", red("careful here"));
+write("%s\n", green("careful there"));
+// ... 
+
+// ------------
+
+// Pike offers the 'compile' family of functions that allow for the
+// runtime compilation and [in combinaton with other Pike functions]
+// the subsequent execution, of Pike code, obtained either as a
+// dynamically-generated string, or loaded from file / URL. This,
+// AFAICT, is the Pike feature closest to that of the 'eval' function
+// found in languages like Scheme. The example here is rather
+// contrived and unwieldly, but it does show how code is generated,
+// compiled, and executed, and it *does* closely follow the Perl code
+//
+
+// Assemble text needed to build function
+string build_colour_func(string colour)
+{
+  // Could also use library function, 'sprintf', to build string
+  string bodytext = "\"<FONT COLOR='" + colour + "'>\" + text + \"</FONT>\"";
+  return "string " + colour + "(string text) { return " + bodytext + "; };";
+}
+
+int main(int argc, array(string) argv)
+{
+  // 1. Generate source code. A function is built for each colour by
+  //    calling, 'build_colour_func', and all the text collected into
+  //    'cf_text'
+  array(string) colours =
+    ({"red", "blue", "green", "yellow", "orange", "purple", "violet"});
+
+  string cf_text = "";
+
+  foreach(colours, string colour)
+  {
+    cf_text += build_colour_func(colour);
+  }
+
+  // 2. Compile generated source code, and make it accessable to the
+  //    current program. These two steps are, here, combined for brevity,
+  //    but consist of the following:
+  //
+  //        program prog = compile_string(cf_text);
+  //        object cf_code = prog();
+  //
+  //    The latter step sees the code's 'create' method called for
+  //    initialisation, and also makes items accessable via:
+  //
+  //        cf_code[ITEMNAME]
+  //  
+  //    For example, the function, 'red', may be:
+  //        referenced -> cf_code["red"]
+  //        applied    -> cf_code["red"](" ... ")
+  //  
+  object cf_code = compile_string(cf_text)();
+
+  // 3. Apply the generated functions
+  mapping(string:string) colours_and_text = 
+    (["red":"baron", "blue":"zephyr", "green":"beret",
+      "yellow":"ribbon", "orange":"county", "purple":"haze",
+      "violet":"temper"]);
+
+  foreach(indices(colours_and_text), string colour)
+  {
+    // Get relevant function
+    function colour_func = cf_code[colour];
+
+    // Apply function with relevant argument(s)
+    write("%s\n", colour_func(colours_and_text[colour]));
+
+    // Or, above lines can be replaced with:
+    //     write("%s\n", cf_code[colour](colours_and_text[colour]));
+  }
+}    
+
 // @@PLEAC@@_10.15
 // @@INCOMPLETE@@
 
@@ -2470,3 +4335,43 @@ write("<P>Last script update: %s\n", Calendar.Second(raw_time)->format_nicez());
 
 // then outside
 write(object_of_your_class->chartreuse("stuff"));
+
+// @@PLEAC@@_10.16
+// Alternate, though identically-behaving, nested subroutine definitions
+
+int outer(int arg)
+{
+  int x = arg + 35;
+  int inner() { return x * 19; };
+  return x + inner();
+}
+
+// ------------
+
+int outer(int arg)
+{
+  int x = arg + 35;
+  function(void : int) inner = lambda() { return x * 19; };
+  return x + inner();
+}
+
+// ------------
+
+function outer = lambda(int arg)
+  {
+    int x = arg + 35;
+    return (lambda() { return x * 19; })() + x;
+  };
+
+// ------------
+
+function(int : int) outer = lambda(int arg)
+  {
+    int x = arg + 35;
+    return (lambda() { return x * 19; })() + x;
+  };
+
+// @@PLEAC@@_10.17
+@@INCOMPLETE@@
+@@INCOMPLETE@@
+
