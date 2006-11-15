@@ -1,16 +1,50 @@
 ;;; -*- scheme -*-
 
 ;;; @@PLEAC@@_NAME
-;;; @@SKIP@@ Guile 1.5
+;;; @@SKIP@@ Guile 1.8
 
 ;;; @@PLEAC@@_WEB
 ;;; @@SKIP@@ http://www.gnu.org/software/guile/
 
 ;;; @@PLEAC@@_INTRO
-;;; @@SKIP@@ The code requires a really recent version of Guile (out of CVS, or the beta version which is tested right now).
+;;; @@SKIP@@ Sections 1 - 3, and 7 - 9, largely completed using Guile 1.5; subsequent additions use Guile 1.8.
 
+;;; @@PLEAC@@_APPENDIX
+;;; @@SKIP@@ General-purpose, custom functions that might be used in several sections, appear here 
 
-;;; @@PLEAC@@_1.0
+;; Helper which aims to reduce code clutter by:
+;; * Replacing the oft-used, '(display item) (newline)' combination
+;; * Avoiding overuse of '(string-append)' for simple output tasks
+(define (print item . rest)
+  (let ((all-item (cons item rest)))
+    (for-each
+      (lambda (item) (display item) (display " "))      
+      all-item))
+  (newline))
+
+;; ------------
+
+;; Slightly modified version of '(qx)' from Chapter 4
+(use-modules (ice-9 popen) (srfi srfi-1) (srfi srfi-13))
+
+(define (drain-output port)
+  (let loop ((chars '())
+             (next (read-char port)))
+    (if (eof-object? next)
+        ; Modified to not return last 'line' with newline
+        (list->string (reverse! (cdr chars)))
+        (loop (cons next chars)
+              (read-char port)))))
+
+(define (qx pipeline)
+  (let* ((pipe (open-input-pipe pipeline))
+         (output (drain-output pipe)))
+    (close-pipe pipe)
+    output))
+
+;; ------------
+
+;; @@PLEAC@@_1.0
 (define string "\\n")                    ; two characters, \ and an n
 (define string "\n")                     ; a "newline" character
 (define string "Jon \"Maddog\" Orwant")  ; literal double quotes
@@ -19,7 +53,7 @@
 (define a "This is a multiline here document
 terminated by a closing double quote")
 
-;;; @@PLEAC@@_1.1
+;; @@PLEAC@@_1.1
 ;; Use substring
 
 (substring str start end)
@@ -70,12 +104,12 @@ terminated by a closing double quote")
 ;; his wasn't wondrous
 (set! s (string-take s 9))
 
-;;; @@PLEAC@@_1.2
+;; @@PLEAC@@_1.2
 (define a (or b c))
 (define a (if (defined? b) b c))
 (define a (or (and (defined? b) b) c))
 
-;;; @@PLEAC@@_1.3
+;; @@PLEAC@@_1.3
 ;; This doesn't really make sense in Scheme... temporary variables are
 ;; a natural construct and cheap.  If you want to swap variables in a
 ;; block without introducing any new variable names, you can use let:
@@ -88,7 +122,7 @@ terminated by a closing double quote")
   ;; ...
   )
 
-;;; @@PLEAC@@_1.4
+;; @@PLEAC@@_1.4
 (define num (char->integer char))
 (define char (integer->char num))
 
@@ -109,7 +143,7 @@ terminated by a closing double quote")
     (display ibm)
     (newline)))
 
-;;; @@PLEAC@@_1.5
+;; @@PLEAC@@_1.5
 ;; Convert the string to a list of characters
 (map proc
      (string->list str))
@@ -169,7 +203,7 @@ terminated by a closing double quote")
   (slowcat (current-input-port))
   (for-each (lambda (f) (call-with-input-file f slowcat)) args))
 
-;;; @@PLEAC@@_1.6
+;; @@PLEAC@@_1.6
 (define revbytes (list->string (reverse (string->list str))))
 
 ;;; Or from SRFI-13
@@ -190,7 +224,7 @@ terminated by a closing double quote")
 ;; A little too verbose on the command line
 ;; guile --use-srfi=13 -c '(with-input-from-file "/usr/share/dict/words" (lambda () (do ((word (read-line) (read-line))) ((eof-object? word)) (if (and (> (string-length word) 5) (string=? word (string-reverse word))) (write-line word)))))'
 
-;;; @@PLEAC@@_1.7
+;; @@PLEAC@@_1.7
 ;; Use regexp-substitute/global
 (regexp-substitute/global
  #f "([^\t]*)(\t+)" str
@@ -206,7 +240,7 @@ terminated by a closing double quote")
        #\space))))
  'post)
 
-;;; @@PLEAC@@_1.8
+;; @@PLEAC@@_1.8
 ;; just interpolate $abc in strings:
 (define (varsubst str)
   (regexp-substitute/global #f "\\$(\\w+)" str
@@ -230,7 +264,7 @@ terminated by a closing double quote")
   (regexp-substitute/global #f "\\${([^{}]+)}" str
    'pre (lambda (m) (eval-string (match:substring m 1))) 'post))
 
-;;; @@PLEAC@@_1.9
+;; @@PLEAC@@_1.9
 (use-modules (srfi srfi-13))
 
 (string-upcase "bo beep")     ; BO PEEP
@@ -259,7 +293,7 @@ terminated by a closing double quote")
     (randcap (current-input-port))
     (for-each (lambda (f) (call-with-input-file f randcap)) args)))
 
-;;; @@PLEAC@@_1.10
+;; @@PLEAC@@_1.10
 ;; You can do this with format.  Lisp/Scheme format is a little
 ;; different from what you may be used to with C/Perl style printf
 ;; (actually far more powerful) , but if you keep in mind that we use
@@ -268,7 +302,7 @@ terminated by a closing double quote")
 
 (format #f "I have ~A guanacos." n)
 
-;;; @@PLEAC@@_1.11
+;; @@PLEAC@@_1.11
 (define var "
         your text
         goes here")
@@ -299,7 +333,7 @@ terminated by a closing double quote")
                         (loop (substring leader 0 pos) (cdr lst))))))))
     (regexp-substitute/global #f rx str 'pre 'post)))
 
-;;; @@PLEAC@@_1.12
+;; @@PLEAC@@_1.12
 (use-modules (srfi srfi-13))
 
 (define text "Folding and splicing is the work of an editor,
@@ -330,7 +364,7 @@ mobile electrons!")
 
 (display (wrap text 20))
 
-;;; @@PLEAC@@_1.13
+;; @@PLEAC@@_1.13
 (define str "Mom said, \"Don't do that.\"")
 (set! str (regexp-substitute/global #f "['\"]" str 'pre "\\"
                                     match:substring 'post))
@@ -340,7 +374,7 @@ mobile electrons!")
                                   #f "\W" "is a test!" 'pre "\\"
                                   match:substring 'post)))
 
-;;; @@PLEAC@@_1.14
+;; @@PLEAC@@_1.14
 (use-modules (srfi srfi-13))
 
 (define str "  space  ")
@@ -348,7 +382,7 @@ mobile electrons!")
 (string-trim-right str)    ; "  space"
 (string-trim-both str)     ; "space"
 
-;;; @@PLEAC@@_1.15
+;; @@PLEAC@@_1.15
 (use-modules (srfi srfi-2) (srfi srfi-13) (ice-9 format))
 
 (define parse-csv
@@ -375,7 +409,7 @@ mobile electrons!")
     ((null? fields))
   (format #t "~D : ~A\n" i (car fields)))
 
-;;; @@PLEAC@@_1.16
+;; @@PLEAC@@_1.16
 (use-modules (srfi srfi-13) (srfi srfi-14))
 
 ;; Knuth's soundex algorithm from The Art of Computer Programming, Vol 3
@@ -403,7 +437,7 @@ mobile electrons!")
 (soundex "Lloyd")  ; L300
 (soundex "Ladd")   ; L300
 
-;;; @@PLEAC@@_1.17
+;; @@PLEAC@@_1.17
 #!/usr/local/bin/guile -s
 !#
 
@@ -482,7 +516,6 @@ turnkey         => turn-key")
 (define wage 536)                     ;; $5.36/hour
 (define week (* 40 wage))             ;; $214.40
 (format #t "One week's wage is: $~$\n" (/ week 100.0))
-
 
 ;; @@PLEAC@@_2.3
 (round num)                           ;; rounds to inexact whole number
@@ -779,7 +812,6 @@ turnkey         => turn-key")
   (cond ((not (eof-object? perm))
          (format #t "The decimal value is ~D\n" (string->number perm 8))
          (loop (read-line)))))
-
 
 ;; @@PLEAC@@_2.17
 ;; once again, format is our friend :)
@@ -1251,6 +1283,1915 @@ turnkey         => turn-key")
 ;; The index of the last element is 10000.
 ;; Element #3 is `'.
 ;;-----------------------------
+
+;; @@PLEAC@@_4.4
+; Using a 'list' i.e. chain of pairs
+(define *mylist* '(1 2 3))
+
+; Apply procedure to each member of 'mylist'
+(for-each
+  (lambda (item) (print item))
+  *mylist*)
+
+;; ------------
+
+; Using a 'vector' i.e. one-dimensional array
+(define *bad-users* '#("lou" "mo" "sterling" "john"))
+
+(define (complain user)
+  (print "You're a *bad user*," user))
+
+(array-for-each
+  (lambda (user) (complain user))
+  *bad-users*)
+
+;; ------------
+
+; Could probably get away with sorting a list of strings ...
+(define *sorted-environ*
+  (sort (environ) string<?))
+
+(for-each
+  (lambda (var) (display var) (newline))
+  *sorted-environ*)
+
+;; ----
+
+; ... but the intent here is to sort a hash table, so we'll use
+; an 'assoc', Scheme's native dictionary type, which is really
+; nothing more than a list of conses / dotted pairs [hash tables
+; will be used in later examples]
+(define (cons->env-string a)
+  (string-append (car a) "=" (cdr a)))
+
+(define (env-string->cons s)
+  (let ((key-value (string-split s #\=)))
+    (cons (car key-value) (cadr key-value))))
+
+(define *sorted-environ-assoc*
+  (sort
+    (map
+      (lambda (var) (env-string->cons var))
+      (environ))
+    (lambda (left right) (string<? (car left) (car right))) ))
+
+(for-each
+  (lambda (var)
+    (print (car var) "=" (cdr var)))
+  *sorted-environ-assoc*)
+
+;; ----------------------------
+
+(define *MAX-QUOTA* 100)
+
+(define (get-all-users) ...)
+(define (get-usage user) ...)
+(define (complain user) ...)
+
+(for-each
+  (lambda (user)
+    (let ((disk-usage (get-usage user)))
+      (if (> disk-usage *MAX-QUOTA*)
+        (complain user))))
+  (get-all-users))
+
+;; ----------------------------
+
+(for-each
+  (lambda (user) (if (string=? user "tchrist") (print user)))
+  (string-split (qx "who|cut -d' ' -f1|uniq") #\newline))
+
+;; ----------------------------
+
+(use-modules (srfi srfi-13) (srfi srfi-14))
+
+(do ((line (read-line) (read-line)))
+    ((eof-object? line))
+  (for-each
+    (lambda (word) (print (string-reverse word)))
+    (string-tokenize line char-set:graphic)))
+
+;; ----------------------------
+
+; Updates vector in-place [accepts variable number of vectors]
+; See also the library function, 'array-map-in-order!' and its
+; brethren
+(define (vector-map-in-order! proc vec . rest)
+  (let ((all-vec (cons vec rest)))
+    (for-each
+      (lambda (vec)
+        (let ((end (vector-length vec)))
+          (let loop ((idx 0))
+            (cond
+              ((= idx end) '())
+              (else
+                (vector-set! vec idx (apply proc (list (vector-ref vec idx))))
+                (loop (+ idx 1)))) )))
+      all-vec)))
+
+;; ----
+
+; A non-mutating version - illustration only, as library routines
+; [SRFI-43 and built-ins] should be preferred
+(define (vector-map-in-order proc vec . rest)
+  (let* ((all-vec (cons vec rest))
+         (new-vec-len (reduce + 0 (map vector-length all-vec)))
+         (new-vec (make-vector new-vec-len))
+         (new-vec-idx 0))
+    (let loop ((all-vec all-vec))
+      (cond
+        ((= new-vec-idx new-vec-len) new-vec)
+        (else
+          (array-for-each
+            (lambda (element)
+              (vector-set! new-vec new-vec-idx (apply proc (list element)))
+              (set! new-vec-idx (+ new-vec-idx 1)))
+            (car all-vec))
+          (loop (cdr all-vec)) ))) ))
+
+;; ------------
+
+(define *array* '#(1 2 3))
+
+(array-for-each
+  (lambda (item)
+    (print "i =" item))
+  *array*)
+
+;; ------------
+
+(define *array* '#(1 2 3))
+
+(array-for-each
+  (lambda (item)
+    (print "i =" item))
+  *array*)
+
+; Since a 'vector' is mutable, in-place updates allowed
+(vector-map-in-order!
+  (lambda (item) (- item 1))
+  *array*)
+
+(print *array*)
+
+;; ------------
+
+(define *a* '#(0.5 3))
+(define *b* '#(0 1))
+
+(vector-map-in-order!
+  (lambda (item) (* item 7))
+  *a* *b*)
+
+(print *a* *b*)
+
+;; ----------------------------
+
+; Using 'for-each' to iterate over several container items is a
+; simple matter of passing a list of those items e.g. a list of
+; strings, or of arrays etc.
+;
+; However, complications arise when:
+; * Heterogenous list of items e.g. list contains all of arrays,
+;   hashes, strings, etc. Necesitates different handling based on type
+; * Item needs updating. It is not possible to alter the item reference
+;   and updating an item's internals is only possible if the relevant
+;   mutating procedures are implemented e.g. specified string characters
+;   may be altered in-place, but character deletion requires a new be
+;   created [i.e. altering the item reference], so is not possible
+
+(define *scalar* "123 ")
+(define *array* '#(" 123 " "456 "))
+(define *hash* (list (cons "key1" "123 ") (cons "key2" " 456")))
+
+; Illustrates iteration / handling of heterogenous types
+(for-each
+  (lambda (item)
+    (cond
+      ((string? item) (do-stuff-with-string item))
+      ((vector? item) (do-stuff-with-vector item))
+      ((pair? item) (do-stuff-with-hash item))
+      (else (print "unknown type"))))
+  (list *scalar* *array* *hash*))
+
+; So, for item-replacement-based updating you need to use explicit
+; iteration e.g. 'do' loop, or recursion [as is done in the code for
+; 'vector-map-in-order!'] - examples in next section. Or, you could
+; create a new 'for-each' type control structure using Scheme's
+; macro facility [example not shown]
+
+;; @@PLEAC@@_4.5
+(define *array* '#(1 2 3))
+
+;; ----
+
+; Whilst a 'vector' is mutable, 'array-for-each' passes only a copy
+; of each cell, thus there is no way to perform updates
+(array-for-each
+  (lambda (item)
+    ... do some non-array-mutating task with 'item'...)
+  *array*)
+
+;; ------------
+
+; For mutating operations, use one of the mutating 'array-map-...' routines
+; or the custom, 'vector-map-in-order!'
+(vector-map-in-order!
+  (lambda (item)
+    ... do some array-mutating task with 'item'...)
+  *array*)
+
+;; ------------
+
+; Alternatively, use 'do' to iterate over the array and directly update 
+(let ((vector-length (vector-length *array*)))
+  (do ((i 0 (+ i 1)))
+      ((= i vector-length))
+    ... do some array-mutating task with current array element ...))
+
+;; ------------
+
+; Alternatively, use a 'named let' to iterate over array and directly update 
+(let ((vector-length (vector-length *array*)))
+  (let loop ((i 0))
+    (cond
+      ((= i vector-length) '())
+      (else
+        ... do some array-mutating task with current array element ...
+        (loop (+ i 1)))) ))
+
+;; ----------------------------
+
+(define *fruits* '#("Apple" "Blackberry"))
+
+;; ------------
+
+(array-for-each
+  (lambda (fruit)
+    (print fruit "tastes good in a pie."))
+  *fruits*)
+
+;; ------------
+
+(let ((vector-length (vector-length *fruits*)))
+  (do ((i 0 (+ i 1)))
+      ((= i vector-length))
+    (print (vector-ref *fruits* i) "tastes good in a pie.") ))
+
+;; ----------------------------
+
+(define *rogue-cats* '("Blacky" "Ginger" "Puss"))
+
+(define *name-list* (acons 'felines *rogue-cats* '()))
+
+;; ------------
+
+(for-each
+  (lambda (cat)
+    (print cat "purrs hypnotically.."))
+  (cdr (assoc 'felines *name-list*)))
+
+;; ------------
+
+(let loop ((felines (cdr (assoc 'felines *name-list*))))
+  (cond
+    ((null? felines) '())
+    (else
+      (print (car felines) "purrs hypnotically..")
+      (loop (cdr felines)))))
+
+;; @@PLEAC@@_4.6
+(use-modules (srfi srfi-1))
+
+; Simplest [read: least code] means of removing duplicates is to use 
+; SRFI-1's 'delete-duplicates' routine
+
+(define *non-uniq-num-list* '(1 2 3 1 2 3))
+(define *uniq* (delete-duplicates *my-non-uniq-num-list*)
+
+;; ------------
+
+(use-modules (srfi srfi-1))
+
+; Another simple alternative is to use SRFI-1's 'lset-union' routine. In
+; general, the 'lset-...' routines:
+; - convenient, but not fast; probably best avoided for 'large' sets
+; - operate on standard lists, so simple matter of type-converting arrays and such
+; - care needs to be taken in choosing the needed equality function
+
+(define *non-uniq-string-list* '("abc" "def" "ghi" "abc" "def" "ghi"))
+(define *uniq* (lset-union string=? *non-uniq-string-list* *non-uniq-string-list*))
+
+;; ----
+
+(define *non-uniq-sym-list* '('a 'b 'c 'a 'b 'c))
+(define *uniq* (lset-union equal? *my-non-uniq-sym-list* *my-non-uniq-sym-list*))
+
+;; ----
+
+(define *non-uniq-num-list* '(1 2 3 1 2 3))
+(define *uniq* (lset-union = *my-non-uniq-num-list* *my-non-uniq-num-list*))
+
+;; ----------------------------
+
+;; Perl Cookbook-based examples - illustrative only, *not* recommended approaches
+
+(use-modules (srfi srfi-1))
+
+(define *list* '(1 2 3 1 2 7 8 1 8 2 1 3))
+(define *seen* '())
+
+; Use hash to filter out unique items
+(for-each
+  (lambda (item)
+    (if (not (assoc-ref *seen* item))
+      (set! *seen* (assoc-set! *seen* item #t))))
+  *list*)
+
+; Generate list of unique items
+(define *uniq*
+  (fold-right
+    (lambda (pair accum) (cons (car pair) accum))
+    '()
+    *seen*))
+
+;; ------------
+
+(define *list* '(1 2 3 1 2 7 8 1 8 2 1 3))
+(define *seen* '())
+
+; Build list of unique items by checking set membership
+(for-each
+  (lambda (item)
+    (if (not (member item *seen*))
+      (set! *seen* (cons item *seen*))))
+  *list*)
+
+;; ------------
+
+(define *users*
+  (sort
+    (string-split (qx "who|cut -d' ' -f1") #\newline)
+    string<?))
+
+(define *seen* '())
+
+; Build list of unique users by checking set membership
+(for-each
+  (lambda (user)
+    (if (not (member user *seen*))
+      (set! *seen* (cons item *seen*))))
+  *list*)
+
+;; @@PLEAC@@_4.7
+; All problems in this section involve, at core, set difference
+; operations. Thus, the most compact and straightforward approach is
+; to utilise SRFI-1's 'lset-difference' routine
+
+(use-modules (srfi srfi-1))
+
+(define *a* '(1 3 5 6 7 8))
+(define *b* '(2 3 5 7 9))
+
+; *difference* contains elements in *a* but not in *b*: 1 6 8
+(define *difference* (lset-difference = *a* *b*))
+
+; *difference* contains elements in *b* but not in *a*: 2 9
+(set! *difference* (lset-difference = *b* *a*))
+
+;; ----------------------------
+
+;; Perl Cookbook-based example - illustrative only, *not* recommended approaches
+
+(use-modules (srfi srfi-1))
+
+(define *a* '(1 3 5 6 7 8))
+(define *b* '(2 3 5 7 9))
+
+(define *a-only* '())
+
+; Build list of items in *a* but not in *b*
+(for-each
+  (lambda (item)
+    (if (not (member item *b*))
+      (set! *a-only* (cons item *a-only*))))
+  *a*)
+
+;; @@PLEAC@@_4.8
+; The SRFI-1 'lset-xxx' routines are appropriate here
+
+(use-modules (srfi srfi-1))
+
+(define *a* '(1 3 5 6 7 8))
+(define *b* '(2 3 5 7 9))
+
+; Combined elements of *a* and *b* sans duplicates: 1 2 3 5 6 7 8 9
+(define *union* (lset-union = *a* *b*))
+
+; Elements common to both *a* and *b*: 3 5 7
+(define *intersection* (lset-intersection = *a* *b*))
+
+; Elements in *a* but not in *b*: 1 6 8
+(define *difference* (lset-difference = *a* *b*))
+
+;; ----------------------------
+
+;; Perl Cookbook-based example - illustrative only, *not* recommended approaches
+
+(use-modules (srfi srfi-1))
+
+(define *a* '(1 3 5 6 7 8))
+(define *b* '(2 3 5 7 9))
+
+(define *union* '())
+(define *isect* '())
+(define *diff* '())
+
+;; ------------
+
+; Union and intersection
+(for-each
+  (lambda (item) (set! *union* (assoc-set! *union* item #t)))
+  *a*)
+
+(for-each
+  (lambda (item)
+    (if (assoc-ref *union* item)
+      (set! *isect* (assoc-set! *isect* item #t)))
+    (set! *union* (assoc-set! *union* item #t)))
+  *b*)
+
+; Difference *a* and *b*
+(for-each
+  (lambda (item)
+    (if (not (assoc-ref *isect* item))
+      (set! *diff* (assoc-set! *diff* item #t))))
+  *a*)
+
+(set! *union*
+  (fold
+    (lambda (pair accum) (cons (car pair) accum))
+    '()
+    *union*))
+
+(set! *isect*
+  (fold
+    (lambda (pair accum) (cons (car pair) accum))
+    '()
+    *isect*))
+
+(set! *diff*
+  (fold
+    (lambda (pair accum) (cons (car pair) accum))
+    '()
+    *diff*))
+
+(print "Union count:       " (length *union*))
+(print "Intersection count:" (length *isect*))
+(print "Difference count:  " (length *diff*))
+
+;; @@PLEAC@@_4.9
+; Arrays, specifically vectors in the current context, are fixed-size
+; entities; joining several such together requires copying of their
+; contents into a new, appropriately-sized, array. This task may be
+; performed:
+
+; * Directly: loop through existing arrays copying elements into a
+;   newly-created array
+
+(define (vector-join vec . rest)
+  (let* ((all-vec (cons vec rest))
+         (new-vec-len (reduce + 0 (map vector-length all-vec)))
+         (new-vec (make-vector new-vec-len))
+         (new-vec-idx 0))
+    (let loop ((all-vec all-vec))
+      (cond
+        ((= new-vec-idx new-vec-len) new-vec)
+        (else
+          (array-for-each
+            (lambda (element)
+              (vector-set! new-vec new-vec-idx element)
+              (set! new-vec-idx (+ new-vec-idx 1)))
+            (car all-vec))
+          (loop (cdr all-vec)) ))) ))
+
+;; ----
+
+(define *array1* '#(1 2 3))
+(define *array2* '#(4 5 6))
+
+(define *newarray*
+  (vector-join *array1* *array2*))
+
+;; ----------------------------
+
+; * Indirectly; convert arrays to lists, append the lists, convert
+;   resulting list back into an array
+
+(define *array1* '#(1 2 3))
+(define *array2* '#(4 5 6))
+
+(define *newarray*
+  (list->vector (append (vector->list *array1*) (vector->list *array2*)) ))
+
+; Of course if random access is not required, it is probably best to simply
+; use lists since a wealth of list manipulation routines are available
+
+;; ----------------------------
+
+; While Perl offers an all-purpose 'splice' routine, a cleaner approach is
+; to separate out such functionality; here three routines are implemented
+; together offering an equivalent to 'splice'. The routines are:
+; * vector-replace! [use with 'vector-copy' to avoid changing original]
+;   e.g. (vector-replace! vec ...)
+;        (set! new-vec (vector-replace! (vector-copy vec) ...))
+; * vector-delete
+; * vector-insert
+
+(define (vector-replace! vec pos item . rest)
+  (let* ((all-items (cons item rest))
+         (pos (if (< pos 0) (+ (vector-length vec) pos) pos))
+         (in-bounds
+           (not (> (+ pos (length all-items)) (vector-length vec)))))
+    (if in-bounds
+      (let loop ((i pos) (all-items all-items))
+        (cond
+          ((null? all-items) vec)
+          (else
+            (vector-set! vec i (car all-items))
+            (loop (+ i 1) (cdr all-items))) ))
+    ;else
+      vec)))
+
+(define (vector-delete vec pos len)
+  (let* ((new-vec-len (- (vector-length vec) len))
+         (new-vec #f)
+         (pos (if (< pos 0) (+ (vector-length vec) pos) pos)))
+    (cond
+      ((< new-vec-len 0) vec)
+      (else
+        (set! new-vec (make-vector new-vec-len))
+        (let loop ((vec-idx 0) (new-vec-idx 0))
+          (cond
+            ((= new-vec-idx new-vec-len) new-vec)
+            (else
+              (if (= vec-idx pos) (set! vec-idx (+ vec-idx len)))
+              (vector-set! new-vec new-vec-idx (vector-ref vec vec-idx))
+              (loop (+ vec-idx 1) (+ new-vec-idx 1)) ))) )) ))
+
+; This routine would probably benefit from having 'cmd' implemented as a keyword
+; argument. However, 'cmd' implemented as a positional to keep example simple
+(define (vector-insert vec pos cmd item . rest)
+  (let* ((all-item-vec (list->array 1 (cons item rest)))
+         (all-item-vec-len (vector-length all-item-vec))
+         (vec-len (vector-length vec))
+         (new-vec (make-vector (+ vec-len all-item-vec-len)))
+         (pos (if (< pos 0) (+ (vector-length vec) pos) pos)))
+    (if (eq? cmd 'after) (set! pos (+ pos 1)))
+    (vector-move-left! vec 0 pos new-vec 0)
+    (vector-move-left! all-item-vec 0 all-item-vec-len new-vec pos)
+    (vector-move-left! vec pos vec-len new-vec (+ pos all-item-vec-len))
+    new-vec))
+
+;; ----
+
+(define *members* '#("Time" "Flies"))
+(define *initiates* '#("An" "Arrow"))
+
+(set! *members* (vector-join *members* *initiates*))
+
+;; ------------
+
+(set! *members* (vector-insert *members* 1 'after "Like" *initiates*))
+(print *members*)
+
+(set! *members* (vector-replace *members* 0 "Fruit"))
+(set! *members* (vector-replace *members* -2 "A" "Banana"))
+(print *members*)
+
+; was: '#("Time" "Flies" "An" "Arrow")
+; now: '#("Fruit" "Flies" "Like" "A" "Banana")
+
+;; @@PLEAC@@_4.10
+; As for appending arrays, there is the choice of iterating through
+; the array:
+(define (vector-reverse! vec)
+  (let loop ((i 0) (j (- (vector-length vec) 1)))
+    (cond
+      ((>= i j) vec)
+      (else
+        (vector-ref-swap! vec i j)
+        (loop (+ i 1) (- j 1)))) ))
+
+;; ------------
+
+(define *array* '#(1 2 3))
+
+(vector-reverse! *array*)
+
+;; ------------
+
+(define *array* '#(1 2 3))
+
+(do ((i (- (vector-length *array*) 1) (- i 1)))
+    ((< i 0))
+  ... do something with *array* ...)
+
+;; ----------------------------
+
+; or of converting to / from a list, performing any manipulation using
+; the list routines
+
+(define *array* '#(1 2 3))
+
+(define *newarray*
+  (list->vector (reverse (sort (vector->list *array*) <)) ))
+
+;; @@PLEAC@@_4.11
+(define *array* '#(1 2 3 4 5 6 7 8))
+
+;; ------------
+
+; Remove first 3 elements
+(define *front* (vector-delete *array* 0 3))
+
+; Remove last 3 elements
+(define *end* (vector-delete *array* -1 3))
+
+;; ----------------------------
+
+; Another helper routine
+(define (vector-slice vec pos len)
+  (let* ((vec-len (vector-length vec))
+         (pos (if (< pos 0) (+ vec-len pos) pos))
+         (in-bounds
+           (not (> (+ pos len) vec-len))))
+    (if in-bounds
+      (let ((new-vec (make-vector len)))
+        (let loop ((vec-idx pos) (new-vec-idx 0))
+          (cond
+            ((= new-vec-idx len) new-vec)
+            (else
+              (vector-set! new-vec new-vec-idx (vector-ref vec vec-idx))
+              (loop (+ vec-idx 1) (+ new-vec-idx 1))) )))
+    ;else
+      vec)))
+
+; Both the following use, 'values', to return two values; this approach
+; is quite contrived and is taken to mimic the Perl examples, not
+; because it is a recommended one [returning a single list would probably
+; be more sensible]
+(define (shift2 vec)
+  (let ((vec (vector-slice vec 0 2)))
+    (values (vector-ref vec 0) (vector-ref vec 1)) ))
+
+(define (pop2 vec)
+  (let ((vec (vector-slice vec -1 2)))
+    (values (vector-ref vec 0) (vector-ref vec 1)) ))
+
+;; ------------
+
+(define *friends* '#('Peter 'Paul 'Mary 'Jim 'Tim))
+
+(let-values ( ((this that) (shift2 *friends*)) )
+  (print this ":" that))
+
+;; ------------
+
+(define *beverages* '#('Dew 'Jolt 'Cola 'Sprite 'Fresca))
+
+(let-values ( ((d1 d2) (pop2 *beverages*)) )
+  (print d1 ":" d2))
+
+;; @@PLEAC@@_4.12
+; SRFI-1 [list manipulation] routines are ideal for the types of task
+; in this and the next section, in particular, 'for-each' and 'find',
+; 'list-index', and many others for more specialist functions. The same
+; applies to vectors with the SRFI-43 routines, 'vector-index' and
+; 'vector-skip', though the approach taken in this chapter has been to
+; implement functionally similar vector manipulation routines to more
+; closely mimic the Perl examples
+
+; Return #f, or first index for which 'pred' returns true
+(define (vector-first-idx pred vec) 
+  (let ((vec-len (vector-length vec)))
+    (let loop ((idx 0))
+      (cond
+        ((= idx vec-len) #f)
+        (else
+          (if (pred (vector-ref vec idx))
+            idx
+          ;else
+            (loop (+ idx 1))) )))))
+
+; Return #f, or first index for which 'pred' returns true
+(define (list-first-idx pred list)
+  (let loop ((idx 0) (list list))
+    (cond
+      ((null? list) #f)
+      (else
+        (if (pred (car list))
+          idx
+        ;else
+          (loop (+ idx 1) (cdr list))) ))))
+
+;; ------------
+
+(define *array* '#(1 2 3 4 5 6 7 8))
+
+(print
+  (vector-first-idx
+    (lambda (x) (= x 9))
+    *array*))
+
+;; ----
+
+(define *list* '(1 2 3 4 5 6 7 8))
+
+(print
+  (list-first-idx
+    (lambda (x) (= x 4))
+    *list*))
+
+;; ----
+
+(use-modules (srfi srfi-1))
+
+(print
+  (list-index
+    (lambda (x) (= x 4))
+    *list*))
+
+;; ----------------------------
+
+; The Perl 'highest paid engineer' example isn't really a 'first match'
+; type of problem - the routines shown earlier really aren't suited to
+; this. Better suited, instead, are the SRFI-1 routines like 'fold',
+; 'fold-right' and 'reduce', even old standbys like 'filter' and 'for-each'
+
+(define +null-salary-rec+
+  (list '() 0 '()))
+
+(define *salaries*
+  (list
+    (list 'engineer 43000 'Bob)
+    (list 'programmer 48000 'Andy)
+    (list 'engineer 35000 'Champ) 
+    (list 'engineer 49000 'Bubbles)
+    (list 'programmer 47000 'Twig)
+    (list 'engineer 34000 'Axel) ))
+
+;; ----------------------------
+
+(define *highest-paid-engineer*
+  (reduce
+    (lambda (salary-rec acc)
+      (if
+        (and
+          (eq? (car salary-rec) 'engineer)
+          (> (cadr salary-rec) (cadr acc)))
+        salary-rec
+      ;else
+        acc))
+    +null-salary-rec+
+    *salaries*))
+
+(print *highest-paid-engineer*)
+
+;; ------------
+
+(define *highest-paid-engineer*
+  (fold-right
+    (lambda (salary-rec acc)
+      (if (> (cadr salary-rec) (cadr acc))
+        salary-rec
+      ;else
+        acc))
+    +null-salary-rec+
+    (filter
+      (lambda (salary-rec)
+        (eq? (car salary-rec) 'engineer))
+      *salaries*)) )
+
+(print *highest-paid-engineer*)
+
+;; ------------
+
+(define *highest-paid-engineer* +null-salary-rec+)
+
+(for-each
+  (lambda (salary-rec)
+    (if
+      (and
+        (eq? (car salary-rec) 'engineer)
+        (> (cadr salary-rec) (cadr *highest-paid-engineer*)))
+      (set! *highest-paid-engineer* salary-rec)))
+  *salaries*)
+
+(print *highest-paid-engineer*)
+
+;; @@PLEAC@@_4.13
+; All tasks in this section consist of either generating a collection,
+; or filtering a larger collection, of elements matching some criteria;
+; obvious candidates are the 'filter' and 'array-filter' routines, though
+; others like 'for-each' can also be applied
+
+(define *list-matching* (filter PRED LIST))
+(define *vector-matching* (array-filter PRED ARRAY))
+
+;; ----------------------------
+
+(define *nums* '(1e7 3e7 2e7 4e7 1e7 3e7 2e7 4e7))
+
+(define *bigs* 
+  (filter
+    (lambda (num) (> num 1000000))
+    *nums*))
+
+;; ------------
+
+(define *users*
+  (list
+    '(u1 . 2e7)
+    '(u2 . 1e7)
+    '(u3 . 4e7)
+    '(u4 . 3e7) ))
+
+(define *pigs*
+  (fold-right
+    (lambda (pair accum) (cons (car pair) accum))
+    '()
+    (filter
+      (lambda (pair) (> (cdr pair) 1e7))
+      *users*)))
+
+(print *pigs*)
+
+;; ------------
+
+(define *salaries*
+  (list
+    (list 'engineer 43000 'Bob)
+    (list 'programmer 48000 'Andy)
+    (list 'engineer 35000 'Champ) 
+    (list 'engineer 49000 'Bubbles)
+    (list 'programmer 47000 'Twig)
+    (list 'engineer 34000 'Axel) ))
+
+(define *engineers*
+  (filter
+    (lambda (salary-rec)
+      (eq? (car salary-rec) 'engineer))
+    *salaries*))
+
+(print *engineers*)
+
+;; ------------
+
+(define *applicants*
+  (list
+    (list 'a1 26000 'Bob)
+    (list 'a2 28000 'Andy)
+    (list 'a3 24000 'Candy) ))
+
+(define *secondary-assistance*
+  (filter
+    (lambda (salary-rec)
+      (and
+        (> (cadr salary-rec) 26000)
+        (< (cadr salary-rec) 30000)))
+    *applicants*))
+
+(print *secondary-assistance*)
+
+;; @@PLEAC@@_4.14
+; Sorting numeric data in Scheme is very straightforward ...
+
+(define *unsorted* '(5 8 1 7 4 2 3 6)) 
+
+;; ------------
+
+; Ascending sort - use '<' as comparator
+(define *sorted* 
+  (sort
+    *unsorted*
+    <))
+
+(print *sorted*)
+
+;; ------------
+
+; Descending sort - use '>' as comparator
+(define *sorted* 
+  (sort
+    *unsorted*
+    >))
+
+(print *sorted*)
+
+;; @@PLEAC@@_4.15
+; A customised lambda may be passed as comparator to 'sort', so
+; sorting on one or more 'fields' is quite straightforward
+
+(define *unordered* '( ... ))
+
+; COMPARE is some comparator suited for the element type being
+; sorted
+(define *ordered*
+  (sort
+    *unordered*
+    (lambda (left right)
+      (COMPARE left right))))
+
+;; ------------
+
+(define *unordered*
+  (list
+    (cons 's 34)
+    (cons 'e 12)
+    (cons 'c 45)
+    (cons 'q 11)
+    (cons 'g 24) ))
+
+(define *pre-computed*
+  (map
+    ; Here element is returned unaltered, but it would normally be
+    ; transformed in som way
+    (lambda (element) element)
+    *unordered*))
+
+(define *ordered-pre-computed*
+  (sort
+    *pre-computed*
+    ; Sort on the first field [assume it is the 'key'] 
+    (lambda (left right)
+      (string<?
+        (symbol->string (car left))
+        (symbol->string (car right))))))
+
+; Extract the second field [assume it is the 'value']
+(define *ordered*
+  (map 
+    (lambda (element) (cdr element))
+    *ordered-pre-computed*))
+
+;; ----------------------------
+
+(define *employees*
+  (list
+    (list 'Bob 43000 123 42)
+    (list 'Andy 48000 124 35)
+    (list 'Champ 35000 125 37) 
+    (list 'Bubbles 49000 126 34)
+    (list 'Twig 47000 127 36)
+    (list 'Axel 34000 128 31) ))
+
+(define *ordered*
+  (sort
+    *employees*
+    (lambda (left right)
+      (string<?
+        (symbol->string (car left))
+        (symbol->string (car right))))))
+
+;; ------------
+
+(for-each
+  (lambda (employee)
+    (print (car employee) "earns $" (cadr employee)))
+  (sort
+    *employees*
+    (lambda (left right)
+      (string<?
+        (symbol->string (car left))
+        (symbol->string (car right))))))
+
+;; ------------
+
+(define *bonus*
+  (list
+    '(125 . 1000)
+    '(127 . 1500) ))
+
+(for-each
+  (lambda (employee)
+    (let ((bonus (assoc-ref *bonus* (caddr employee))))
+      (if (not bonus)
+        '()
+      ;else
+        (print (car employee) "earned bonus" bonus) )))
+  (sort
+    *employees*
+    (lambda (left right)
+      (string<?
+        (symbol->string (car left))
+        (symbol->string (car right))))))
+
+;; ----------------------------
+
+(use-modules (srfi srfi-1) (ice-9 rdelim) (ice-9 regex))
+
+(define *filename* "/etc/passwd")
+(define *users* '())
+
+(let ((port (open-input-file *filename*)))
+  (let loop ((line&terminator (read-line port 'split)))
+    (cond
+      ((eof-object? (cdr line&terminator)) '())
+      (else
+        (set! *users*
+          (assoc-set!
+            *users*
+            (car (string-split (car line&terminator) #\:))
+            #t))
+        (loop (read-line port 'split)) ))) 
+  (close-input-port port))
+
+(for-each
+  (lambda (user) (print (car user)))
+  (sort
+    *users*
+    (lambda (left right)
+      (string<?
+        (car left)
+        (car right)))))
+
+;; @@PLEAC@@_4.16
+; Use SRFI-1's 'circular-list' routine to build a circular list
+(use-modules (srfi srfi-1))
+
+(define *processes* (circular-list 1 2 3 4 5))
+
+(let loop ((processes *processes*))
+  (print "Handling process" (car processes))
+  (sleep 1)
+  (loop (cdr processes)))
+
+;; @@PLEAC@@_4.17
+(use-modules (srfi srfi-1))
+
+; Implements Fischer-Yates shuffle algorithm
+(define (vector-shuffle! vec)
+  (let ((vector-length (vector-length vec)))
+    (let loop ((i vector-length) (j (+ 1 (random vector-length))))
+      (cond
+        ((= i 1) '())
+        ((not (= i j))
+          (vector-ref-swap! vec (- i 1) (- j 1))
+          (loop (- i 1) (+ 1 (random (- i 1)))))
+        (else
+          (loop (- i 1) (+ 1 (random (- i 1))))) ))))
+
+(define (vector-ref-swap! vec idx1 idx2)
+  (let ((tmp (vector-ref vec idx1)))
+    (vector-set! vec idx1 (vector-ref vec idx2))
+    (vector-set! vec idx2 tmp)))
+
+; Generate vector of values 1 .. 10
+(define *irange* (list->vector (iota 10 1 1)))
+
+; Shuffle array values
+(vector-shuffle! *irange*)
+
+;; @@PLEAC@@_4.18
+;; @@INCOMPLETE@@
+;; @@INCOMPLETE@@
+
+;; @@PLEAC@@_4.19
+;; @@INCOMPLETE@@
+;; @@INCOMPLETE@@
+
+;; @@PLEAC@@_5.0
+;; ---------------------------------------------------------------------
+;; Scheme offers two dictionary types:
+;;
+;; * Association list [list of pairs e.g. '((k1 . v1) (k2 . v2) ...)]
+;; * Hash table [vector of pairs plus hash algorithm]
+;;
+;; Implementation differences aside, they are remarkably similar in that
+;; the functions operating on them are similar named, and offer the same
+;; interface. Examples:
+;;
+;; * Retrieve an item: (assoc-ref hash key) (hash-ref hash key)
+;; * Update an item:   (assoc-set! hash key value) (hash-set! hash key value) 
+;;
+;; Hash tables would tend to be used where performance was critical e.g.
+;; near constant-time lookups, or where entry updates are frequent, whilst
+;; association lists would be used where table-level traversals and 
+;; manipulations require maximum flexibility
+;;
+;; Many of the sections include examples using both association lists and
+;; hash tables. However, where only one of these is shown, implementing
+;; the other is usually a trivial exercise. Finally, any helper functions
+;; will be included in the Appendix
+;; ---------------------------------------------------------------------
+
+; Association lists
+(define *age*
+  (list
+    (cons 'Nat 24)
+    (cons 'Jules 25)
+    (cons 'Josh 17)))
+
+;; or, perhaps more compactly:
+(define *age*
+  (list
+    '(Nat . 24)
+    '(Jules . 25)
+    '(Josh . 17)))
+
+;; ------------
+
+; Guile built-in association list support
+(define *age* (acons 'Nat 24 '()))
+(set! *age* (acons 'Jules 25 *age*))
+(set! *age* (acons 'Josh 17 *age*))
+
+;; ----
+
+; SRFI-1 association list support
+(use-modules (srfi srfi-1))
+
+(define *age* (alist-cons 'Nat 24 '()))
+(set! *age* (alist-cons 'Jules 25 *age*))
+(set! *age* (alist-cons 'Josh 17 *age*))
+
+;; ------------
+
+(define *food-colour*
+  (list
+    '(Apple . "red")
+    '(Banana . "yellow")
+    '(Lemon . "yellow")
+    '(Carrot . "orange")))
+
+;; ----------------------------
+
+; Hash tables. Guile offers an implementation, and it is also 
+; possible to use SRFI-69 hash tables; only the former will be
+; illustrated here
+
+(define *age* (make-hash-table 20))
+; or
+(define *age* (make-vector 20 '()))
+
+(hash-set! *age* 'Nat 24)
+(hash-set! *age* 'Jules 25)
+(hash-set! *age* 'Josh 17)
+
+(hash-for-each
+  (lambda (key value) (print key))
+  *age*)
+
+; or, if vector used as hash table, can also use:
+
+(array-for-each
+  (lambda (pair)
+    (if (not (null? pair)) (print (car pair))))
+  *age*)
+
+;; ------------
+
+(define *food-colour* (make-hash-table 20))
+
+(hash-set! *food-colour* 'Apple "red")
+(hash-set! *food-colour* 'Banana "yellow")
+(hash-set! *food-colour* 'Lemon "yellow")
+(hash-set! *food-colour* 'Carrot "orange")
+
+;; @@PLEAC@@_5.1
+(set! *hash* (acons key value *hash*))
+
+;; ------------
+
+(set! *food-colour* (acons 'Raspberry "pink" *food-colour*))
+
+(print "Known foods:")
+(for-each
+  (lambda (pair) (print (car pair)))
+  *food-colour*)
+
+;; ----------------------------
+
+(hash-set! *hash* key value)
+
+;; ------------
+
+(hash-set! *food-colour* 'Raspberry "pink")
+
+(print "Known foods:")
+(hash-for-each
+  (lambda (key value) (print key))
+  *food-colour*)
+
+;; @@PLEAC@@_5.2
+; 'assoc' returns the pair, (key . value)
+(if (assoc key hash)
+  ... found ...
+;else
+  ... not found ...
+
+; 'assoc-ref' returns the value only
+(if (assoc-ref hash key)
+  ... found ...
+;else
+  ... not found ...
+
+;; ------------
+
+; *food-colour* association list from an earlier section
+
+(for-each
+  (lambda (name)
+    (let ((pair (assoc name *food-colour*)))
+      (if pair
+        (print (symbol->string (car pair)) "is a food")
+      ;else
+        (print (symbol->string name) "is a drink") )))
+  (list 'Banana 'Martini))
+
+;; ----------------------------
+
+; 'hash-get-handle' returns the pair, (key . value)
+(if (hash-get-handle hash key)
+  ... found ...
+;else
+  ... not found ...
+
+; 'hash-ref' returns the value only
+(if (hash-ref hash key)
+  ... found ...
+;else
+  ... not found ...
+
+;; ------------
+
+; *food-colour* hash table from an earlier section
+
+(for-each
+  (lambda (name)
+    (let ((value (hash-ref *food-colour* name)))
+      (if value
+        (print (symbol->string name) "is a food")
+      ;else
+        (print (symbol->string name) "is a drink") )))
+  (list 'Banana 'Martini))
+
+;; ----------------------------
+
+(define *age* (make-hash-table 20))
+
+(hash-set! *age* 'Toddler 3)
+(hash-set! *age* 'Unborn 0)
+(hash-set! *age* 'Phantasm '())
+
+(for-each
+  (lambda (thing)
+    (let ((value (hash-ref *age* thing)))
+      (display thing)
+      (if value (display " Exists"))
+      (if (and value (not (string-null? value))) (display " Defined"))
+      ; Testing for non-zero as true is not applicable, so testing
+      ; for non-equality with zero 
+      (if (and value (not (eq? value 0))) (display " True"))
+      (print "") ))
+  (list 'Toddler 'Unborn 'Phantasm 'Relic))
+
+;; @@PLEAC@@_5.3
+(assoc-remove! hash key)
+
+;; ------------
+
+(use-modules (srfi srfi-1))
+
+; *food-colour* association list from an earlier section
+
+(define (print-foods)
+  (let ((foods
+          (fold-right
+            (lambda (pair accum) (cons (car pair) accum))
+            '()
+            *food-colour*)))
+    (display "Keys: ") (print foods)
+    (print "Values:")
+    (for-each
+      (lambda (food)
+        (let ((colour (assoc-ref *food-colour* food)))
+          (cond
+            ((string-null? colour) (display "(undef) "))
+            (else (display (string-append colour " "))) )))
+      foods))
+    (newline))
+
+(print "Initially:")
+(print-foods)
+
+(print "\nWith Banana undef")
+(assoc-set! *food-colour* 'Banana "")
+(print-foods)
+
+(print "\nWith Banana deleted")
+(assoc-remove! *food-colour* 'Banana)
+(print-foods)
+
+;; ----------------------------
+
+(hash-remove! hash key)
+
+;; ------------
+
+(use-modules (srfi srfi-1))
+
+; *food-colour* hash table from an earlier section
+
+(define (print-foods)
+  (let ((foods
+          (hash-fold
+            (lambda (key value accum) (cons key accum))
+            '()
+            *food-colour*)))
+    (display "Keys: ") (print (reverse foods))
+    (print "Values:")
+    (for-each
+      (lambda (food)
+        (let ((colour (hash-ref *food-colour* food)))
+          (cond
+            ((string-null? colour) (display "(undef) "))
+            (else (display (string-append colour " "))) )))
+      foods))
+    (newline))
+
+(print "Initially:")
+(print-foods)
+
+(print "\nWith Banana undef")
+(hash-set! *food-colour* 'Banana "")
+(print-foods)
+
+(print "\nWith Banana deleted")
+(hash-remove! *food-colour* 'Banana)
+(print-foods)
+
+;; @@PLEAC@@_5.4
+; Since an association list is nothing more than a list of pairs, it
+; may be traversed using 'for-each'
+(for-each
+  (lambda (pair)
+    (let ((key (car pair))
+          (value (cdr pair)))
+      ... do something with key / value ...))
+  hash)
+
+;; ----------------------------
+
+; A 'for-each'-like function is available for hash table traversal
+(hash-for-each
+  (lambda (key value)
+    ... do something with key / value ...)
+  hash)
+
+; If the hash table is directly implemented as a vector, then it is
+; also possible to traverse it using, 'array-for-each', though a 
+; check for empty slots is needed 
+(array-for-each
+  (lambda (pair)
+    (if (not (null? pair)) ... do something with key / value ...))
+  hash)
+
+;; ----------------------------
+
+; *food-colour* association list from an earlier section
+
+(for-each
+  (lambda (pair)
+    (let ((food (car pair))
+          (colour (cdr pair)))
+      (print (symbol->string food) "is" colour) ))
+  *food-colour*)
+
+;; ------------
+
+; *food-colour* association list from an earlier section
+
+(for-each
+  (lambda (food)
+    (print (symbol->string food) "is" (assoc-ref *food-colour* food)))
+  (sort
+    (fold-right
+      (lambda (pair accum) (cons (car pair) accum))
+      '()
+      *food-colour*)
+    (lambda (left right)
+      (string<? (symbol->string left) (symbol->string right)))))
+
+;; ----------------------------
+
+(use-modules (srfi srfi-1) (ice-9 rdelim) (ice-9 regex))
+
+(define *filename* "from.txt")
+(define *from* '())
+
+(let ((port (open-input-file *filename*)))
+  (let loop ((line&terminator (read-line port 'split)))
+    (cond
+      ((eof-object? (cdr line&terminator)) '())
+      (else
+        (let* ((key (string->symbol
+                      (match:substring
+                        (string-match
+                          "^From: (.*)" (car line&terminator))
+                        1) ))
+               (value (assoc-ref *from* key)))
+          (if (not value) (set! value 0))
+          (set! *from* (assoc-set! *from* key (+ 1 value))))
+        (loop (read-line port 'split)) ))) 
+  (close-input-port port))
+
+(for-each
+  (lambda (person)
+    (print (symbol->string person) ":" (number->string (assoc-ref *from* person))))
+  (sort
+    (fold-right
+      (lambda (pair accum) (cons (car pair) accum))
+      '()
+      *from*)
+    (lambda (left right)
+      (string<? (symbol->string left) (symbol->string right)))))
+
+;; @@PLEAC@@_5.5
+; All approaches shown in the previous section apply here also, so
+; there is little to be gained by repeating those examples [i.e. the
+; use of 'for-each' and similar]. It is always possible, of course,
+; to directly recurse over an association list:
+
+; *food-colour* association list from an earlier section
+
+(define *sorted-food-colour*
+  (sort
+    *food-colour*
+    (lambda (left right)
+      (string<?
+        (symbol->string (car left))
+        (symbol->string (car right)))) ))
+
+(let loop ((hash *sorted-food-colour*))
+  (cond
+    ((null? hash) '())
+    (else  
+      (print
+        (symbol->string (car (car hash))) "=>" (cdr (car hash)) )
+      (loop (cdr hash))) ))
+
+;; @@PLEAC@@_5.6
+; AFAIK, Scheme doesn't offer a facility similar to Perl's 'Tie::IxHash'.
+; Therefore, use an association list if retrieval [from a dictionary
+; type container] in insertion order is required.
+
+(define *food-colour* (acons 'Banana "Yellow" '()))
+(set! *food-colour* (acons 'Apple "Green" *food-colour*))
+(set! *food-colour* (acons 'Lemon "yellow" *food-colour*))
+
+(print "In insertion order, the foods are:")
+(for-each
+  (lambda (pair)
+    (let ((food (car pair))
+          (colour (cdr pair)))
+      (print "  " (symbol->string food)) ))
+  *food-colour*)
+
+(print "Still in insertion order, the food's colours are:")
+(for-each
+  (lambda (pair)
+    (let ((food (car pair))
+          (colour (cdr pair)))
+      (print (symbol->string food) "is coloured" colour) ))
+  *food-colour*)
+
+;; ----------------------------
+
+; Of course, insertion order is lost if the association list is sorted,
+; or elements removed, so if maintaining insertion order is vital, it
+; might pay to associate data with a timestamp [e.g. create a timestamped
+; record / structure], and manipulate those entities [no example given]
+
+;; @@PLEAC@@_5.7
+(define *ttys* '())
+
+(for-each
+  (lambda (user-tty-pair)
+    (let* ((user-tty-pair (string-split user-tty-pair #\space))
+           (user (string->symbol (car user-tty-pair)))
+           (newtty (cadr user-tty-pair))
+           (current-ttys (assoc-ref *ttys* user)))
+      (set! *ttys*
+        (assoc-set! *ttys* user
+          (if (not current-ttys)
+            newtty
+            (string-append current-ttys " " newtty)) ))))
+  (string-split (qx "who|cut -d' ' -f1,2") #\newline))
+
+(for-each
+  (lambda (user-ttys)
+    (print (symbol->string (car user-ttys)) ":" (cdr user-ttys)))
+  (sort
+    *ttys*
+    (lambda (left right)
+      (string<?
+        (symbol->string (car left))
+        (symbol->string (car right))))) )
+
+;; ----------------------------
+
+(use-modules (ice-9 regex))
+
+(define (multi-hash-delete hash key value)
+  (let ((value-found (assoc-ref hash key)))
+    (if value-found
+      (assoc-ref hash key
+        (regexp-substitute/global
+          #f (string-match value value-found) 'pre "" 'post "")))))
+
+;; @@PLEAC@@_5.8
+; Alternate implementatons of a hash inversion function; both assume
+; key is a symbol, value is a string
+
+(define (assoc-invert assoc)
+  (map
+    (lambda (pair)
+      (cons
+        (string->symbol (cdr pair))
+        (symbol->string (car pair))))
+    assoc))
+
+;; ------------
+
+(define (assoc-invert assoc)
+  (let loop ((assoc assoc) (new-assoc '()))
+    (cond
+      ((null? assoc) new-assoc)
+      (else 
+        (loop (cdr assoc)
+              (acons
+                (string->symbol (cdar assoc))
+                (symbol->string (caar assoc)) new-assoc)) )) ))
+
+;; ----------------------------
+
+(define *surname*
+  (list
+    '(Mickey . "Mantle")
+    '(Babe . "Ruth")))
+
+(define *first-name* (assoc-invert *surname*))
+
+(print (assoc-ref *first-name* 'Mantle))
+
+;; ----------------------------
+
+; foodfind
+
+(define *given* (string->symbol (cadr (command-line))))
+
+(define *colour*
+  (list
+    '(Apple . "red")
+    '(Lemon . "yellow")
+    '(Carrot . "orange")))
+
+(define *food* (assoc-invert *colour*))
+
+(if (assoc-ref *colour* *given*)
+  (print
+    (symbol->string *given*) 
+    "is a food with colour"
+    (assoc-ref *colour* *given*)))
+
+(if (assoc-ref *food* *given*)
+  (print
+    (assoc-ref *food* *given*)
+    "is a food with colour"
+    (symbol->string *given*)))
+
+;; @@PLEAC@@_5.9
+; *food-colour* association list from an earlier section
+
+; Use 'sort' to sort the entire hash, on key or on value, ascending or
+; descending order
+(define *sorted-on-key:food-colour*
+  (sort
+    *food-colour*
+    (lambda (left right)
+      (string<?
+        (symbol->string (car left))
+        (symbol->string (car right)))) ))
+
+(define *sorted-on-value:food-colour*
+  (sort
+    *food-colour*
+    (lambda (left right)
+      (string<?
+        (cdr left)
+        (cdr right))) ))
+
+;; ------------
+
+(for-each
+  (lambda (pair)
+    (let ((food (car pair))
+          (colour (cdr pair)))
+      (print
+        (symbol->string food)
+        "is"
+        colour)))
+  *sorted-on-key:food-colour*)
+
+;; ----------------------------
+
+; Alternatively, generate a list of keys or values, sort as required,
+; and use list to guide the hash traversal
+
+(define *sorted-food-colour-keys*
+  (sort
+    (fold-right
+      (lambda (pair accum) (cons (car pair) accum))
+      '()
+      *food-colour*)
+    (lambda (left right)
+      (string<?
+        (symbol->string left)
+        (symbol->string right))) ))
+
+(define *sorted-food-colour-values*
+  (sort
+    (fold-right
+      (lambda (pair accum) (cons (cdr pair) accum))
+      '()
+      *food-colour*)
+    (lambda (left right)
+      (string<? left right)) ))
+
+;; ------------
+
+(for-each
+  (lambda (food)
+    (print (symbol->string food) "is" (assoc-ref *food-colour* food)))
+  *sorted-food-colour-keys*)
+
+;; @@PLEAC@@_5.10
+; If merging is defined as the combining of the contents of two or more
+; hashes, then it is simply a matter of copying the contents of each
+; into a new hash
+
+; Association lists can simply be appended together
+(define *food-colour*
+  (list
+    '(Apple . "red")
+    '(Banana . "yellow")
+    '(Lemon . "yellow")
+    '(Carrot . "orange")))
+
+(define *drink-colour*
+  (list
+    '(Galliano . "yellow")
+    '(Mai Tai . "blue")))
+
+(define *ingested-colour* (append *food-colour* *drink-colour*))
+
+;; ----------------------------
+
+; Hash tables built from vectors can be copied element by element into
+; a new vector, or spliced together using 'vector-join' [see Chapter 4]
+
+(define *food-colour* (make-vector 20 '())
+; ...
+(define *drink-colour* (make-vector 20 '())
+; ...
+
+(define *ingested-colour*
+  (vector-join *food-colour* *drink-colour*))
+
+;; @@PLEAC@@_5.11
+(define *common* '())
+(define *this-not-that* '())
+
+;; ------------
+
+(define *dict1*
+  (list
+    '(Apple . "red")
+    '(Lemon . "yellow")
+    '(Carrot . "orange")))
+
+(define *dict2*
+  (list
+    '(Apple . "red")
+    '(Carrot . "orange")))
+
+;; ------------
+
+; Find items common to '*dict1*' and '*dict2*'
+(for-each
+  (lambda (pair)
+    (let ((key (car pair))
+          (value (cdr pair)))
+      (if (assoc-ref *dict2* key)
+        (set! *common* (cons key *common*))) ))
+  *dict1*)
+
+;; ------------
+
+; Find items in '*dict1*' but not '*dict2*'
+(for-each
+  (lambda (pair)
+    (let ((key (car pair))
+          (value (cdr pair)))
+      (if (not (assoc-ref *dict2* key))
+        (set! *this-not-that* (cons key *this-not-that*))) ))
+  *dict1*)
+
+;; ----------------------------
+
+(define *non-citrus* '())
+
+(define *citrus-colour*
+  (list
+    '(Lemon . "yellow")
+    '(Orange . "orange")
+    '(Lime . "green")))
+
+(define *food-colour*
+  (list
+    '(Apple . "red")
+    '(Banana . "yellow")
+    '(Lemon . "yellow")
+    '(Carrot . "orange")))
+
+(for-each
+  (lambda (pair)
+    (let ((key (car pair))
+          (value (cdr pair)))
+      (if (not (assoc-ref *citrus-colour* key))
+        (set! *non-citrus* (cons key *non-citrus*))) ))
+  *food-colour*)
+
+;; @@PLEAC@@_5.12
+; All objects [including functions] are first class entities, so there
+; is no problem / special treatment needed to use any object, including
+; those classed as 'references' [e.g. file handles or ports] as keys
+
+(use-modules (srfi srfi-1) (srfi srfi-13))
+
+(define *ports* '())
+
+(for-each
+  (lambda (filename)
+    (let ((port (open-input-file filename)))
+      (set! *ports* (assoc-set! *ports* port filename)) ))
+  '("/etc/termcap" "/vmlinux" "/bin/cat"))
+
+(print
+  (string-append "open files: "
+    (string-drop
+      (fold-right
+        (lambda (pair accum) (string-append ", " (cdr pair) accum))
+        ""
+        *ports*)
+      2)))
+
+(for-each
+  (lambda (pair)
+    (let ((port (car pair))
+          (filename (cdr pair)))
+      (seek port 0 SEEK_END)
+      (print filename "is" (number->string (ftell port)) "bytes long.")
+      (close-input-port port) ))
+  *ports*)
+
+;; @@PLEAC@@_5.13
+; An association list takes on the size of the number of elements with
+; which it is initialised, so presizing is implicit
+
+(define *hash* '())         ; zero elements
+
+;; ------------
+
+(define *hash*              ; three elements
+  (list
+    '(Apple . "red")
+    '(Lemon . "yellow")
+    '(Carrot . "orange")))
+
+;; ----------------------------
+
+; A size [i.e. number of entries] must be specified when a hash table
+; is created, so presizing is implicit
+
+(define *hash* (make-hash-table 100))
+
+;; ------------
+
+(define *hash* (make-vector 100 '()))
+
+;; @@PLEAC@@_5.14
+(define *array*
+  (list 'a 'b 'c 'd 'd 'a 'a 'c 'd 'd 'e))
+
+;; ----------------------------
+
+(define *count* '())
+
+(for-each
+  (lambda (element)
+    (let ((value (assoc-ref *count* element)))
+      (if (not value) (set! value 0))
+      (set! *count* (assoc-set! *count* element (+ 1 value)))))
+  *array*)
+
+;; ----------------------------
+
+(define *count* (make-hash-table 20))
+
+(for-each
+  (lambda (element)
+    (let ((value (hash-ref *count* element)))
+      (if (not value) (set! value 0))
+      (hash-set! *count* element (+ 1 value))))
+  *array*)
+
+;; @@PLEAC@@_5.15
+(define *father*
+  (list
+    '(Cain . Adam)
+    '(Abel . Adam)
+    '(Seth . Adam)
+    '(Enoch . Cain)
+    '(Irad . Enoch)
+    '(Mehujael . Irad)
+    '(Methusael . Mehujael)
+    '(Lamech . Methusael)
+    '(Jabal . Lamech)
+    '(Jubal . Lamech)
+    '(Tubalcain . Lamech)
+    '(Enos . Seth)))
+
+;; ------------
+
+(use-modules (srfi srfi-1) (ice-9 rdelim))
+
+(let ((port (open-input-file *filename*)))
+  (let loop ((line&terminator (read-line port 'split)))
+    (cond
+      ((eof-object? (cdr line&terminator)) '())
+      (else
+        (let ((person (string->symbol (car line&terminator))))
+          (let loop ((father (assoc-ref *father* person)))
+            (if father
+            (begin
+              (print father)
+              (loop (assoc-ref *father* father)) )))
+        (loop (read-line port 'split)) ))))
+  (close-input-port port))
+
+;; ------------
+
+(use-modules (srfi srfi-1) (ice-9 rdelim))
+
+(define (assoc-invert-N:M assoc)
+  (let ((new-assoc '()))
+    (for-each
+      (lambda (pair)
+        (let* ((old-key (car pair))
+               (new-key (cdr pair))
+               (new-key-found (assoc-ref new-assoc new-key)))
+          (if (not new-key-found)
+            (set! new-assoc (acons new-key (list old-key) new-assoc)) 
+          ;else
+            (set! new-assoc (assoc-set! new-assoc new-key (cons old-key new-key-found))) )))
+      assoc)
+  new-assoc))
+
+(define *children* (assoc-invert-N:M *father*))
+
+(let ((port (open-input-file *filename*)))
+  (let loop ((line&terminator (read-line port 'split)))
+    (cond
+      ((eof-object? (cdr line&terminator)) '())
+      (else
+        (let* ((person (string->symbol (car line&terminator)))
+               (children-found (assoc-ref *children* person)))
+          (print (symbol->string person) "begat:")
+          (if (not children-found)
+            (print "nobody")
+          ;else
+            (for-each
+              (lambda (child) (print (symbol->string child) ","))
+              children-found))
+        (loop (read-line port 'split)) ))))
+  (close-input-port port))
+
+;; @@PLEAC@@_5.16
+;; @@INCOMPLETE@@
+;; @@INCOMPLETE@@
 
 ;; @@PLEAC@@_7.0
 ;; use (open-input-file filename) or (open filename O_RDONLY)
@@ -2213,6 +4154,762 @@ your data goes here
 
 (define (extension path . args)
   (caddr (apply file-parse path args)))
+
+;; @@PLEAC@@_10.0
+; Note: Some of the examples will show code blocks in this style:
+;
+;  (define
+;    ... code here ...
+;  )
+;
+; This is not generally considered good style, and is not recommended;
+; it is only used here to more clearly highlight block scope 
+
+; By convention a 'global variable' i.e. a variable that is defined at
+; the top-level, and as such, visible within any scope, is named with
+; beginning and ending asterisks [and one to be used as a constant
+; with beginning and ending plus signs]
+
+(define *greeted* 0)
+
+(define (hello)
+  (set! *greeted* (+ *greeted* 1))
+  (print "hi there!, this procedure has been called" *greeted* "times"))
+
+(define (how-many-greetings) *greeted*)
+
+;; ------------
+
+(hello)
+
+(define *greetings* (how-many-greetings))
+
+(print "bye there!, there have been" *greetings* "greetings so far")
+
+;; @@PLEAC@@_10.1
+; Subroutine parameters are named [whether directly, or indirectly in
+; the case of variable arguments - see next example]; this is the only
+; means of access [This contrasts with languages like Perl and REXX which
+; allow access to arguments via array subscripting, and function calls,
+; respectively]
+(define (hypotenuse side1 side2)
+  (sqrt (sum (* side1 side1) (* side2 side2))))
+
+(define *diag* (hypotenuse 3 4))
+
+;; ----
+
+; 'other-sides' is the name of a list of containing any additional
+; parameters. Note that a name is still used to access values
+(define (hypotenuse side1 . other-sides)
+  (let ((all-sides (cons side1 other-sides)))
+    (for-each
+      (lambda (side) ...)
+      all-sides)
+  ...))
+
+;; ----
+
+(define *diag* (hypotenuse 3 4))
+
+;; ----
+
+; Possible to pack parameters into a single structure [e.g. list or
+; array], and access values contained therein
+(define (hypotenuse sides)
+  (let ((side1 (car sides)) (side2 (caar sides)))
+    (sqrt (sum (* side1 side1) (* side2 side2)))))
+
+;; ----
+
+(define *args* '(3 4))
+(define *diag* (hypotenuse *args*))
+
+;; ------------
+
+; Parameters passed by reference, however, whether original object is
+; modified depends on choice of functions used to manipulate them
+; [most functions create copies and return these; mutating versions of
+; same functions may also exist [see next example] 
+(define *nums* (vector 1.4 3.5 6.7))
+
+(define (int-all vec)
+  (vector-map-in-order
+    (lambda (element) (inexact->exact (round element)))
+    vec))
+
+; Copy created
+(define *ints* (int-all *nums*))
+
+(print *nums*)
+(print *ints*)
+
+;; ----
+
+(define *nums* (vector 1.4 3.5 6.7))
+
+(define (trunc-all vec)
+  (array-map-in-order!
+    (lambda (element) (inexact->exact (round element)))
+    vec))
+
+; Original modified
+(trunc-all *nums*)
+
+;; @@PLEAC@@_10.2
+; Scheme is lexically-scoped; variables defined within a block are
+; visible only within that block. Whilst nested / subordinate blocks
+; have access to those variables, neither the caller, nor any called
+; procedures have direct access to those same variables
+
+(define (some-func parm1 parm2 parm3)
+  ... paramaters visible here ...
+
+  (let ((var1 ...) (var2 ...) (var3 ...) ...)
+    ... parameters also visible here, but variables, 'var1' etc
+        only visible within this block ...
+  )
+  ... paramaters also visible here, but still within procedure body ...
+)
+
+;; ------------
+
+; Top-level definitions - accessable globally 
+(define *name* (caar (command-line)))
+(define *age* (cadr (command-line)))
+
+(define *start* (fetch-time))
+
+;; ----
+
+; Lexical binding - accessable only within this block
+(let ((name (caar (command-line)))
+      (age (cadr (command-line)))
+      (start (fetch-time)))
+   ... variables only visible here ...
+)
+
+;; ------------
+
+(define *pair* '(1 . 2))
+
+; 'a' and 'b' need to be dereferenced and separately defined [Also,
+; since globally defined, should really be named, '*a*', '*b*', etc]
+(define a (car *pair*))
+(define b (cdr *pair*))
+(define c (fetch-time))
+
+(define (run-check)
+  ... do something with 'a', 'b', and 'c' ...
+)
+
+(define (check-x x y)
+  (if (run-check)
+    (print "got" x)))
+
+; Calling 'check-x'; 'run-check' has access to 'a', 'b', and 'c'
+(check-x ...)
+
+;; ----
+
+; If defined within a block, variables 'a', 'b', and 'c' are no longer
+; accessable anywhere except that scope. Therefore, 'run-check' as
+; defined above can no longer access these variables [in fact, the code
+; will fail because variables 'a', 'b', and 'c' do not exist when
+; 'run-check' is defined]
+(let ((a (car *pair*))
+      (b (cdr *pair*))
+      (c (fetch-time)))
+   ...
+   (check-x ...)  
+   ...
+)
+
+;; ----
+
+; The procedures, 'run-check' and 'check-x' are defined within the
+; same block as variables, 'a', 'b', and 'c', so have direct access to
+; them
+(let* ((a (car *pair*))
+       (b (cdr *pair*))
+       (c (fetch-time))
+
+       (run-check
+         (lambda () ... do something with 'a', 'b', and 'c' ...))
+
+       (check-x
+         (lambda (x y)
+           (if (run-check)
+             (print "got" x)))) )
+   ...
+   (check-x ...)  
+   ...
+)
+
+;; @@PLEAC@@_10.3
+; Ordinarily, a variable must be initialised when it is defined,
+; whether at the top-level: 
+(define *variable* 1)
+
+; ... or within a 'let' binding
+(let* ((variable 1)
+       (mysub
+         (lambda () ... accessing 'variable' ...)))
+  ... do stuff ...
+)
+
+; However, since Scheme allows syntactic extensions via 'macros' [of
+; which there are two varieties: hygenic and LISP-based], it is
+; possible to create new forms which alter this behaviour. For example,
+; in this tutorial: http://home.comcast.net/~prunesquallor/macro.txt
+; there is a macro implementation equivalent to 'let, 'called,
+; 'bind-values', which allows variables to be defined without initial
+; values; an example follows:
+
+; Initialisation values for 'a' and 'b' not specified
+(bind-values ((a) b (c (+ *global* 5)))
+  ... do stuff ...
+)
+
+; In Scheme many things are possible, but not all those things are
+; offered as standard features :) !
+
+;; ------------
+
+(let* ((counter 42)
+       (next-counter
+         (lambda () (set! counter (+ counter 1)) counter))
+       (prev-counter
+         (lambda () (set! counter (- counter 1)) counter)))
+
+  ... do stuff with 'next-counter' and 'prev-counter' ...
+)
+
+;; ----
+
+; A more complete, and practical, variation of the above code:
+
+; 'counter' constructor
+(define (make-counter start)
+  (let* ((counter 42)
+         (next-counter
+           (lambda () (set! counter (+ counter 1)) counter))
+         (prev-counter
+           (lambda () (set! counter (- counter 1)) counter)))
+  (lambda (op)
+    (cond
+      ((eq? op 'prev) prev-counter)
+      ((eq? op 'next) next-counter)
+      (else (lambda () (display "error:counter"))) ))))
+
+; Interface functions to 'counter' functionality
+(define (prev-counter counter) (apply (counter 'prev) '()))
+(define (next-counter counter) (apply (counter 'next) '()))
+
+; Create a 'counter'
+(define *counter* (make-counter 42))
+
+; Use the 'counter' ...
+(print (prev-counter *counter*))
+(print (prev-counter *counter*))
+(print (next-counter *counter*))
+
+;; @@PLEAC@@_10.4
+; Scheme interpreters generally provide a rich collection of procedure
+; metadata, as well as easy access to a program's current 'execution
+; state'. Put simply, provision of a powerful, highly customisable
+; debugging / tracing facility is almost taken for granted. However, using
+; it to perform as trivial a task as obtaining the current function name
+; is less than trivial [at least it seems so in Guile] as it appears to
+; require quite some setup work. Additionally, the documentation talks
+; about facilities e.g. trap installation, that don't appear to be
+; available [at least, I couldn't find them].
+;
+; Example below uses in-built debugging facilities to dump a backtrace
+; to a string port and extract the caller's name from the resulting
+; string. Not exactly elegant ...
+
+; Execute using: guile --debug ... else no useful output seen
+(use-modules (ice-9 debug))
+
+(define (child num)
+  ; Create stack [i.e. activation record] object, discarding
+  ; irrelevant frames
+  (let ((s (make-stack #t 3 1))
+        (trace-string-port (open-output-string))
+        (parent-name ""))
+
+    ; Dump backtrace to string port
+    (display-backtrace s trace-string-port)
+
+    ; Extract caller's name from backtrace data
+    ; [shamefully crude - don't do this at home !]
+    (set! parent-name
+      (caddr (string-tokenize
+               (cadr (string-split
+                       (get-output-string trace-string-port)
+                       #\newline))
+               char-set:graphic)))
+
+    ; Who's your daddy ?
+    (print parent-name)))
+
+; Each invocation of 'child' should see 'parent' displayed as
+; the caller
+(define (parent)
+  (child 1)
+  (child 2)
+  (child 3))
+
+(parent) 
+
+;; @@PLEAC@@_10.5
+; Procedure parameters are references to entities, so there is no special
+; treatment required. If an argument represents a mutable object such
+; as an array, then care should be taken to not mutate the object within
+; the procedure, or a copy of the object be made and used
+
+(array-diff *array1* *array2*)
+
+;; ------------
+
+(define (add-vector-pair x y)
+  (let* ((vector-length (vector-length x))
+         (new-vec (make-vector vector-length)))
+    (let loop ((i 0))
+      (cond 
+        ((= i vector-length) new-vec)
+        (else
+          (vector-set! new-vec i (+ (vector-ref x i) (vector-ref y i)))
+          (loop (+ i 1)) ))) ))
+
+;; ----
+
+(define *a* '#(1 2))
+(define *b* '#(5 8))
+
+(define *c* (add-vector-pair *a* *b*))
+
+(print *c*)
+
+;; ----
+
+  ...
+
+  (if (and (vector? a1) (vector? a2))
+    (print (add-vector-pair a1 a2))
+  ;else
+    (print "usage: add-vector-pair a1 a2"))
+
+  ...
+
+;; @@PLEAC@@_10.6
+; AFAIK there is no Scheme equivalent to Perl's 'return context' where
+; it is possible to use language primitives [e.g. 'wantarray'] to 
+; dynamically specify the return type of a procedure. It is, however,
+; possible to:
+; * Return one of several types from a procedure, whether based on 
+;   processing results [e.g. 'false' on error, numeric on success], or
+;   perhaps specified via control argument
+; * Check procedure return type and take appropriate action
+
+(define (my-sub)
+  (let* ((datatype (vector '() 7 '(1 2 3) "abc" 'sym)))
+    (vector-ref datatype (random (vector-length datatype))) ))
+
+;; ----
+
+; '*result*' is bound to a randomly chosen datatype
+(define *result* (my-sub))
+
+(cond
+  ; It is common to return an empty list to represent 'void'
+  ((null? *result*) (print "void context"))
+
+  ((list? *result*) (print "list context"))
+  ((number? *result*) (print "scalar context"))
+  ((string? *result*) (print "string context"))
+  ((symbol? *result*) (print "atom context"))
+  (else (print "Unknown type")))
+
+;; @@PLEAC@@_10.7
+; Keyword parameters are fully supported. Note that pairs have
+; replaced Perl strings in the examples since they are easier to
+; manipulate
+
+(use-modules (ice-9 optargs))
+
+(define* (the-func #:key (increment (cons 10 's))
+                         (finish (cons 0 'm))
+                         (start (cons 0 'm)))
+  (print increment)
+  (print finish)
+  (print start))
+
+(the-func)
+(the-func #:increment (cons 20 's) #:start (cons 5 'm) #:finish (cons 30 'm))
+(the-func #:start (cons 5 'm) #:finish (cons 30 'm))
+(the-func #:finish (cons 30 'm))
+(the-func #:start (cons 5 'm) #:increment (cons 20 's))
+
+;; @@PLEAC@@_10.8
+;; @@INCOMPLETE@@
+;; @@INCOMPLETE@@
+
+;; @@PLEAC@@_10.9
+; The return of multiple values, whether arrays or other items, may be 
+; achieved via:
+; * Packaging return items as a single list, structure or array, an
+;   approach which is usable across many languages, though can be
+;   clunky because the procedure caller must manually extract all
+;   items
+; * The 'values' procedure, a more Schemish idiom, is usually used in
+;   conjunction with the 'call-with-values' procedure [the former combines
+;   multiple values, the latter captures and cleanly extracts them]. It
+;   comes into its own, however, when used to create a 'macro' [an
+;   extension to the Scheme language] like 'let-values', a variation of
+;   the 'let' form that allows multiple return values to be placed directly
+;   into separate variables. Implementation shown here is from 'The
+;   Scheme Programming Language, 3rd Edition' by R. Kent Dybvig, though
+;   there exists a more standard implementation in SRFI-11. There is also
+;   the 'receive' functionality accessable via: (use-modules (ice-9 receive))
+
+; [1] Implementation of 'somefunc' returning muliple values via packaging
+; items within a list that is returned
+(define (somefunc)
+  (let ((a (make-vector 5))
+        (h (make-hash-table 5)))
+    (list a h) ))
+
+; Retrieving procedure values requires that the return list be captured
+; and each contained item separately extracted ['let*' used in place of
+; 'let' to ensure correct retrieval order]
+(let* ((return-list (somefunc))
+       (a (car return-list))
+       (b (cadr return-list)))
+
+  ... do something with 'a' and 'b' ...)
+
+;; ----------------------------
+
+; [2] Implementation of 'somefunc' returning muliple values using the
+; 'values' procedure 
+
+(use-syntax (ice-9 syncase)) 
+
+; 'let-values' from: http://www.scheme.com/tspl3/syntax.html#fullletvalues
+(define-syntax let-values
+  (syntax-rules ()
+    ((_ () f1 f2 ...) (let () f1 f2 ...))
+    ((_ ((fmls1 expr1) (fmls2 expr2) ...) f1 f2 ...)
+     (lvhelp fmls1 () () expr1 ((fmls2 expr2) ...) (f1 f2 ...))))) 
+
+(define-syntax lvhelp
+  (syntax-rules ()
+    ((_ (x1 . fmls) (x ...) (t ...) e m b)
+     (lvhelp fmls (x ... x1) (t ... tmp) e m b))
+    ((_ () (x ...) (t ...) e m b)
+     (call-with-values
+       (lambda () e)
+       (lambda (t ...)
+         (let-values m (let ((x t) ...) . b)))))
+    ((_ xr (x ...) (t ...) e m b)
+     (call-with-values
+       (lambda () e)
+       (lambda (t ... . tmpr)
+         (let-values m (let ((x t) ... (xr tmpr)) . b))))))) 
+
+;; ------------
+
+(define (somefunc)
+  (let ((a (make-vector 5))
+        (h (make-hash-table 5)))
+    (values a h) ))
+
+; Multiple return items placed directly into separate variables
+(let-values ( ((a h) (somefunc)) )
+  (print (array? a))
+  (print (hash-table? h)))
+
+;; @@PLEAC@@_10.10
+; Like most modern languages, Scheme supports exceptions for handling
+; failure, something that will be illustrated in another section. However,
+; conventions exist as to the choice of value used to indicate failure:
+; * Empty list i.e. '() is often used for this task, as is it's string
+;   counterpart, "", the empty string
+; * Return false i.e. #f to indicate failed / not found etc, and a valid
+;   value otherwise [e.g. testing set membership: if not a member, return
+;   #f, but if a member, return the item itself rather than #t]
+
+; Return empty list as indicating 'failure'
+(define (sub-failed) '())
+
+;; ------------
+
+(define (look-for-something)
+  ...
+  (if (something-found)
+    ; Item found, return the item
+    something
+  ;else
+    ; Not found, indicate failure
+    #f
+  ))
+
+;; ----
+
+(if (not (look-for-something))
+  (print "Item could not be found ...")
+;else
+  ; do something with item ...
+  ...
+
+;; ------------
+
+; An interesting variation on returning #f as a failure indicator is
+; in using the, 'false-if-exception' procedure whereby a procedure is
+; executed, any exceptions it may throw caught, and handled by simply
+; returning #f. See example in section on Exception Handling below.
+
+;; ------------
+
+(define (ioctl) ... #f)
+
+(or (ioctl) (begin (print "can't ioctl") (exit 1)))
+
+;; @@PLEAC@@_10.11
+; Whether Scheme is seen to support prototyping depends on the definition
+; of this term used:
+; * Prototyping along the lines used in Ada, Modula X, and even C / C++,
+;   in which a procedure's interface is declared separately from its
+;   implementation, is *not* supported
+; * Prototyping in which, as part of the procedure definition, parameter 
+;   information must be supplied. This is a requirement in Scheme in that
+;   parameter number and names must be given, though there is no need to
+;   supply type information [optional and keyword parameters muddy the
+;   waters somewhat, but the general principle applies]
+
+(define (func-with-no-arg) ...)
+(define (func-with-one-arg arg1) ...)
+(define (func-with-two-arg arg1 arg2) ...)
+(define (func-with-three-arg arg1 arg2 arg3) ...)
+
+;; @@PLEAC@@_10.12
+; Not exactly like the Perl example, but a way of immediately
+; exiting from an application
+(define (die msg . error-code)
+  (display (string-append msg "\n") (current-error-port))
+  (exit (if (null? error-code) 1 (car error-code))))
+
+;; ----
+
+(die "some message")
+
+;; ------------
+
+; An exception is thrown via 'throw'; argument must be a symbol
+(throw 'some-exception)
+
+; Invalid attempts - these, themselves force a 'wrong-type-arg
+; exception to be thrown
+(throw #t)
+(throw "my message")
+(throw 1)
+
+;; ------------
+
+; Example of a 'catch all' handler - 'proc' is executed, and any
+; exception thrown is handled, in this case by simply returning false
+(define (false-if-exception proc)
+  (catch #t
+    proc
+    (lambda (key . args) #f)))
+
+(define (func)
+  (print "Starting 'func' ...")
+  (throw 'myexception 1)
+  (print "Leaving 'func' ..."))
+
+;; ----
+
+(if (not (false-if-exception main))
+  (print "'func' raised an exception")
+  (print "'func' executed normally"))
+
+;; ------------
+
+; More typical exception handling example in which:
+; * 'func' is executed
+; * 'catch' either:
+;   - returns return value of 'func' [if successful]
+;   - executes handler(s)
+
+(define (full-moon-exception-handler key . args)
+  (print "I'm executing after stack unwound !"))
+
+(define (full-moon-exception-prewind-handler key . args)
+  (print "I'm executing with the stack still intact !"))
+
+(define (func)
+  (print "Starting 'func' ...")
+  (throw 'full-moon-exception 1)
+  (print "Leaving 'func' ..."))
+
+(catch 'full-moon-exception
+   func
+   full-moon-exception-handler
+   full-moon-exception-prewind-handler)
+
+;; @@PLEAC@@_10.13
+; Scheme is lexically-scoped, so same-name, higher-level variables
+; are merely shadowed in lower-level blocks. Upon exit from those
+; blocks the higher-level values are again available. Therefore, the
+; saving of global variables, as required by Perl, is not necessary
+
+; Global variable
+(define age 18)
+
+; Procedure definition creates a closure - it captures the earlier
+; version of, age', and will retain it
+(define (func)
+  (print age))
+
+(if (condition)
+  ; New 'local' variable created which acts to shadow the global
+  ; version
+  (let ((age 23))
+
+    ; Prints 23 because the global variable is shadowed within 
+    ; this block 
+    (print age)
+
+    ; However, lexical-scoping ensures 'func' still accesses the
+    ; 'age' which was active when it was defined
+    (func) ))
+
+; The use of 'fluid-let' allows for similar behaviour to Perl's i.e.
+; it mimics dynamic scope, but it does so cleanly in that once its
+; scope ends any affected global variables are restored to previous
+; values
+(if (condition)
+
+  ; This does not create a new 'local' variables but temporarily
+  ; sets the global variable, 'age' to 23
+  (fluid-let ((age 23))
+
+    ; Prints 23 because it is accessing the global version of 'age'
+    (print age)
+
+    ; Prints 23 because it is its lexically-scoped version of 'age'
+    ; that has its value altered, albeit temporarily
+    (func) ))
+
+;; @@PLEAC@@_10.14
+; Define two procedures, bind them to identifiers
+(define (grow) (print "grow"))
+(define (shrink) (print "shrink"))
+
+; Separate procedures executed
+(grow)
+(shrink)
+
+; Rebind identifier; now acts as alias for latter
+(define grow shrink)
+
+; Same procedure executed in both cases
+(grow)
+(shrink)
+
+;; ------------
+
+; As for previous except that rebinding is localised and
+; ends once local scope exited
+(let ((grow shrink))
+  (grow)
+  (shrink))
+
+;; ----------------------------
+
+; Example of dynamically creating [from text data] and binding
+; procedures. The example here is conceptually similar to the Perl
+; example in that it makes use of an 'eval' type of facility to
+; generate code from text. In Scheme such tasks are generally better
+; dealt with using macros 
+
+; List of procedure name / first argument pairs
+(define *colours*
+  (list
+    '("red" . "baron")
+    '("blue" . "zephyr")
+    '("green" . "beret")
+    '("yellow" . "ribbon")
+    '("orange" . "county")
+    '("purple" . "haze")
+    '("violet" . "temper") ))
+
+; Build a series of procedures dynamically by traversing the
+; *colours* list and obtaining:
+; * Procedure name from first item of pair
+; * Procedure argument from second item of pair
+(for-each
+  (lambda (colour)
+    (let ((proc-string
+            (string-append
+              "(define " (car colour) " (lambda () "
+              "\"<FONT COLOR=" (car colour) ">" (cdr colour)
+              "</FONT>\"))" )))
+      (eval-string proc-string)))
+   *colours*)
+
+; Apply each of the dynamically-built procedures
+(for-each
+  (lambda (colour)
+    (print (apply (string->procedure (car colour)) '())))
+  *colours*)
+
+;; @@PLEAC@@_10.15
+; AFAICT Guile doesn't implement an AUTOLOAD facility in which a
+; 'replacement' function is available should another one fail to
+; load [though there is an autoload feature available with modules
+; which is a load-on-demand facility aimed at conserving memory and
+; speeding up initial program load time].
+;
+; One might think it would be feasable, however, to use exception
+; handling to provide roughly similar functionality:
+
+; Catch all exceptions
+(catch #t
+  ; Undefined procedure, 'x'
+  x
+  ; Exception handler could load missing code ?
+  (lambda (key . args) ... ))
+
+; However, an undefined function call is reported as:
+;
+;    ERROR: Unbound variable: ...
+;
+; and this situation doesn't appear to be user-trappable. 
+;
+
+;; @@PLEAC@@_10.16
+; Both implementations below  are correct, and exhibit identical
+; behaviour 
+
+(define (outer arg)
+  (let* ((x (+ arg 35))
+         (inner (lambda () (* x 19))))
+    (+ x (inner))))
+
+;; ----------------------------
+
+(define (outer arg)
+  (let ((x (+ arg 35)))
+    (define (inner) (* x 19))
+    (+ x (inner))))
+
+;; @@PLEAC@@_10.17
+;; @@INCOMPLETE@@
+;; @@INCOMPLETE@@
 
 ;; @@PLEAC@@_13.0
 ;; Guile OOP is in the (oop goops) module (based on CLOS).  All
