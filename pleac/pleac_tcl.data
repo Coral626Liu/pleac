@@ -10,6 +10,107 @@
 # @@PLEAC@@_INTRO
 # @@SKIP@@ Version: Tcl 8.4
 
+# @@PLEAC@@_APPENDIX
+# @@SKIP@@ General-purpose, custom functions that might be used in several sections, appear here
+
+# coroutines.
+# recursion messes with the uplevel stuff. so using this imperative
+# version instead.
+# what we have here is an eqivalent of ruby's str.gsub! &block mechanism,
+# where each matched string is passed into the block and the results are
+# used for substitution.
+
+proc gregsub {re txt block} {
+    set res {}
+    while 1 {
+        #fetch the regexp first
+        set part [lindex [regexp -inline $re $txt] 1]
+        if {![string length $part]} {
+                append res $txt
+                break
+        }
+
+        #now substitute with original
+        set lst [split [regsub -- $re $txt "\0"] "\0"]
+        append res [lindex $lst 0] [apply $block $part]
+        set txt [lindex $lst 1]
+    }
+    return $res
+}
+
+proc regrange {p1 sep p2 data block} {
+    set on 0
+    set delay 0
+    if {![string compare $sep "..."]} {
+        set delay 1
+    }
+    if ![llength $p1] { ;# {} for start from begining.
+        set on 1
+        set p1 {$-^} ;# never match any thing more.
+    }
+
+    foreach line $data {
+        switch -exact -- $sep {
+            {..}  {
+                if {[regexp -- $p1 $line]} {set on 1} elseif {[regexp -- $p2 $line]} {set delay 1}
+                if {$on} {
+                    #do thingies.
+                    apply $block $line
+                }
+                if {$delay} {
+                    set on 0
+                    set delay 0
+                }
+            }
+            {...} {
+                if {[regexp -- $p1 $line]} {set delay 0} elseif {[regexp -- $p2 $line]} {set on 0}
+                if {$on} {
+                    #do thingies.
+                    apply $block $line
+                }
+                if {!$delay} {
+                    set on 1
+                    set delay 1
+                }
+            }
+            default {
+                error "wrong range operator $sep"
+            }
+        }
+    }
+}
+
+proc with-file {file block} {
+    set fd [open $file]
+    uplevel 1 [list apply $block $fd]
+    close $fd
+}
+
+proc read-lines {fd block} {
+    while {[gets $fd line] >= 0} {
+        uplevel 1 [list apply $block $line]
+    }
+}
+
+proc readlines {fd block} {
+    set data [read -nonewline $fd]
+    set variable options
+    set cr "\n"
+    if [info exist options(CR)] {
+        set cr $options(CR)
+    }
+    foreach line [split [regsub -all -- $cr $data "\0" ] "\0" ] {
+        uplevel 1 [list apply $block $line]
+        puts -nonewline $cr
+    }
+}
+
+proc argf-iter {block} {
+    variable options
+    foreach file $::argv {
+        with-file $file [list fd "return \[readlines \$fd {$block}\]"]
+    }
+}
 
 # @@PLEAC@@_1.0
 
