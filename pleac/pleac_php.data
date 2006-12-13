@@ -22,10 +22,11 @@ $string = "Jon 'Maddog' Orwant";    # literal single quotes
 $a = 
 "This is a multiline
 here document";
-$a = <<<EOF;
+
+$a = <<<EOF
 This is a multiline here document
 terminated by EOF on a line by itself
-EOF
+EOF;
 #-----------------------------
 
 # @@PLEAC@@_1.1
@@ -202,7 +203,6 @@ eval('$ibm = pack("C*", '.implode(',',$ascii).');');
 print "$ibm\n";             # prints "IBM"
 #-----------------------------
 
-
 # @@PLEAC@@_1.5
 #-----------------------------
 // using perl regexp
@@ -257,7 +257,6 @@ print "$checksum\n";
 # @@INCLUDE@@ include/php/slowcat.php
 #-----------------------------
 
-
 # @@PLEAC@@_1.6
 #-----------------------------
 $revchars = strrev($string);
@@ -282,7 +281,6 @@ $is_palindrome = ($word === strrev($word));
 % php -r 'while (!feof(STDIN)) { $word = rtrim(fgets(STDIN)); if ($word == strrev($word) && strlen($word) > 5) print $word; }' < /usr/dict/words
 #-----------------------------
 
-
 # @@PLEAC@@_1.8
 #-----------------------------
 $text = preg_replace('/\$(\w+)/e', '$$1', $text);
@@ -303,7 +301,6 @@ $text = preg_replace('/\$(\w+)/e','isset($$1)?$$1:\'[NO VARIABLE: $$1]\'', $text
 
 // As PHP arrays are used as hashes too, separation of section 4
 // and section 5 makes little sense.
-
 
 # @@PLEAC@@_1.9
 #-----------------------------
@@ -338,7 +335,6 @@ if (strtoupper($a) == strtoupper($b)) { // or strcasecmp($a, $b) == 0
 // % php randcap.php < genesis | head -9
 #-----------------------------
 
-
 # @@PLEAC@@_1.10
 #-----------------------------
 echo $var1 . func() . $var2; // scalar only
@@ -354,6 +350,9 @@ $phrase = "I have " . ($n + 1) . " guanacos.";
 // Interpolating functions not available in PHP
 #-----------------------------
 
+# @@PLEAC@@_1.11
+# @@INCOMPLETE@@
+# @@INCOMPLETE@@
 
 # @@PLEAC@@_1.12
 #-----------------------------
@@ -369,7 +368,6 @@ while(!feof(STDIN)) {
     print "\n\n";
 }
 #-----------------------------
-
 
 # @@PLEAC@@_1.13
 #-----------------------------
@@ -395,7 +393,6 @@ $string = "this is\\ a\\ test\\!";
 $string = preg_replace('/(\W)/', '\\\$1', 'is a test!');
 #-----------------------------
 
-
 # @@PLEAC@@_1.14
 #-----------------------------
 $string = trim($string);
@@ -419,6 +416,9 @@ function sub_trim($string) {
 }
 #-----------------------------
 
+# @@PLEAC@@_1.15
+# @@INCOMPLETE@@
+# @@INCOMPLETE@@
 
 # @@PLEAC@@_1.16
 #-----------------------------
@@ -459,7 +459,6 @@ foreach($pwents as $username => $fullname) {
 }
 #-----------------------------
 
-
 # @@PLEAC@@_1.17
 #-----------------------------
 # @@INCLUDE@@ include/php/fixstyle.php
@@ -478,10 +477,864 @@ while (!feof($input)) {
 }
 #-----------------------------
 
+// @@PLEAC@@_2.0
+// As is the case under so many other languages floating point use under PHP is fraught
+// with dangers. Although the basic techniques shown below are valid, please refer to
+// the official PHP documentation for known issues, bugs, and alternate approaches 
+
+// @@PLEAC@@_2.1
+// Two basic approaches to numeric validation:
+// * Built-in functions like 'is_numeric', 'is_int', 'is_float' etc
+// * Regexes, as shown below
+
+$s = '12.345';
+
+preg_match('/\D/', $s) && die("has nondigits\n");
+preg_match('/^\d+$/', $s) || die("not a natural number\n");
+preg_match('/^-?\d+$/', $s) || die("not an integer\n");
+preg_match('/^[+-]?\d+$/', $s) || die("not an integer\n");
+preg_match('/^-?\d+\.?\d*$/', $s) || die("not a decimal\n");
+preg_match('/^-?(?:\d+(?:\.\d*)?|\.\d+)$/', $s) || die("not a decimal\n");
+preg_match('/^([+-]?)(?=\d|\.\d)\d*(\.\d*)?([Ee]([+-]?\d+))?$/', $s) || die("not a C float\n");
+
+// ----------------------------
+
+function getnum($s)
+{
+  sscanf($s, "%D", $number); return isset($number) ? $number : 0;
+}
+
+echo getnum(123) . "\n";   // ok
+echo getnum(0xff) . "\n";  // ..
+echo getnum(044) . "\n";   // ..
+
+echo getnum('x') . "\n";   // fail
+
+// @@PLEAC@@_2.2
+// In PHP floating point comparisions are 'safe' [meaning the '==' comparison operator
+// can be used] as long as the value consists of 14 digits or less [total digits, either
+// side of the decimal point e.g. xxxxxxx.xxxxxxx, xxxxxxxxxxxxxx., .xxxxxxxxxxxxxx]. If
+// values with more digits must be compared, then:
+//
+// * Represent as strings, and take care to avoid any implicit conversions e.g. don't pass
+//   a float as a float to a function and expect all digits to be retained - they won't be -
+//   then use 'strcmp' to compare the strings
+//
+// * Avoid float use; perhaps use arbitrary precision arithmetic. In this case, the
+//   'bccomp' function is relevant
+
+// Will work as long as each floating point value is 14 digits or less
+if ($float_1 == $float_2)
+{
+  ; // ...
+}
+
+// Compare as strings
+$cmp = strcmp('123456789.123456789123456789', '123456789.123456789123456788');
+
+// Use 'bccomp'
+$precision = 5; // Number of significant comparison digits after decimal point
+if (bccomp('1.111117', '1.111116', $precision))
+{
+  ; // ...
+}
+
+$precision = 6;
+if (bccomp('1.111117', '1.111116', $precision))
+{
+  ; // ...
+}
+
+// ----------------------------
+
+$wage = 536;
+$week = $wage * 40;
+printf("One week's wage is: $%.2f\n", $week / 100);
+
+// @@PLEAC@@_2.3
+// Preferred approach
+$rounded = round($unrounded, $precision);
+
+// Possible alternate approach
+$format = "%[width].[prec]f";
+$rounded = sprintf($format, $unrounded);
+
+// ------------
+
+$a = 0.255; $b = round($a, 2);
+echo "Unrounded: {$a}\nRounded: {$b}\n";
+
+$a = 0.255; $b = sprintf("%.2f", $a);
+echo "Unrounded: {$a}\nRounded: {$b}\n";
+
+$a = 0.255;
+printf("Unrounded: %.f\nRounded: %.2f\n", $a, $a);
+
+// ----------------------------
+
+echo "number\tint\tfloor\tceil\n";
+
+foreach(array(3.3, 3.5, 3.7, -3.3) as $number)
+{
+  printf("%.1f\t%.1f\t%.1f\t%.1f\n", $number, (int) $number, floor($number), ceil($number));
+}
+
+// @@PLEAC@@_2.4
+// PHP offers the 'bindec' and 'decbin' functions to converting between binary and decimal
+
+$num = bindec('0110110');
+
+$binstr = decbin(54);
+
+// @@PLEAC@@_2.5
+foreach (range($X, $Y) as $i)
+{
+  ; // ...
+}
+
+foreach (range($X, $Y, 7) as $i)
+{
+  ; // ...
+}
+
+for ($i = $X; $i <= $Y; $i++)
+{
+  ; // ...
+}
+
+for ($i = $X; $i <= $Y; $i += 7)
+{
+  ; // ...
+}
+
+// ----------------------------
+
+echo "Infancy is:"; foreach(range(0, 2) as $i) echo " {$i}\n";
+echo "Toddling is:"; foreach(range(3, 4) as $i) echo " {$i}\n";
+echo "Childhood is:"; foreach(range(5, 12) as $i) echo " {$i}\n";
+
+// @@PLEAC@@_2.6
+// PHP offers no native support for Roman Numerals. However, a 'Numbers_Roman' class
+// is available for download from PEAR: [http://pear.php.net/package/Numbers_Roman].
+// Note the following 'include' directives are required:
+//
+//   include_once('Numbers/Roman.php');
+
+$roman = Numbers_Roman::toNumeral($arabic);
+$arabic = Numbers_Roman::toNumber($roman);
+
+// ----------------------------
+
+$roman_fifteen = Numbers_Roman::toNumeral(15);
+
+$arabic_fifteen = Numbers_Roman::toNumber($roman_fifteen);
+
+printf("Roman for fifteen is: %s\n", $roman_fifteen);
+printf("Arabic for fifteen is: %d\n", $arabic_fifteen);
+
+// @@PLEAC@@_2.7
+// Techniques used here simply mirror Perl examples, and are not an endorsement
+// of any particular RNG technique
+
+// In PHP do this ...
+$random = rand($lowerbound, $upperbound);
+$random = rand($x, $y);
+
+// ----------------------------
+
+function make_password($chars, $reqlen)
+{
+  $len = strlen($chars);
+  for ($i = 0; $i < $reqlen; $i++) $password .= substr($chars, rand(0, $len), 1);
+  return $password;
+}
+
+$chars = 'ABCDEfghijKLMNOpqrstUVWXYz'; $reqlen = 8;
+
+$password = make_password($chars, $reqlen);
+
+// @@PLEAC@@_2.8
+// PHP sports a large number of C Standard Library routines including the 'srand'
+// function, used to re-seed the RNG used with calls to the 'rand' function. Thus,
+// as per Perl example:
+
+while (TRUE)
+{
+  $seed = (int) fgets(STDIN);
+  if (!empty($seed)) break;
+}
+
+srand($seed);
+
+// @@PLEAC@@_2.9
+// The above is considered - for many reasons - a poor way of seeding the RNG. PHP
+// also offers alternate versions of the functions, 'mt_srand' and 'mt_rand',
+// which are described as faster, and more 'random', though key to obtaining a
+// more 'random' distribution of generated numbers seems to be through using
+// a combination of a previously saved random value in combination with an
+// unrepeatable value [like the current time in microseconds] that is multiplied
+// by a large prime number, or perhaps as part of a hash [examples available in
+// PHP documentation for 'srand' and 'mt_srand']
+
+mt_srand($saved_random_value + microtime() * 1000003);
+
+// or
+
+mt_srand(($saved_random_value + hexdec(substr(md5(microtime()), -8))) & 0x7fffffff);
+
+// Use of 'mt_rand' together with an appropriate seeding approach should help better
+// approximate the generation of a 'truly random value'
+$truly_random_value = mt_rand();
+
+// @@PLEAC@@_2.10
+function random() { return (float) rand() / (float) getrandmax(); }
+
+function gaussian_rand()
+{
+  $u1 = 0.0; $u2 = 0.0; $g1 = 0.0; $g2 = 0.0; $w = 0.0;
+  
+  do
+  {
+    $u1 = 2.0 * random() - 1.0; $u2 = 2.0 * random() - 1.0;
+    $w = $u1 * $u1 + $u2 * $u2;
+  } while ($w > 1.0);
+  
+  $w = sqrt((-2.0 * log($w)) / $w); $g2 = $u1 * $w; $g1 = $u2 * $w;
+
+  return $g1;
+}
+
+// ------------
+
+$mean = 25.0; $sdev = 2.0;
+$salary = gaussian_rand() * $mean + $sdev;
+
+printf("You have been hired at: %.2f\n", $salary);
+
+// @@PLEAC@@_2.11
+// 'deg2rad' and 'rad2deg' are actually PHP built-ins, but here is how you might implement
+/  them if needed
+function deg2rad_($deg) { return ($deg / 180.0) * M_PI; }
+function rad2deg_($rad) { return ($rad / M_PI) * 180.0; }
+
+// ------------
+
+printf("%f\n", deg2rad_(180.0));
+printf("%f\n", deg2rad(180.0));
+
+// ----------------------------
+
+function degree_sin($deg) { return sin(deg2rad($deg)); }
+
+// ------------
+
+$rad = deg2rad(380.0);
+
+printf("%f\n", sin($rad));
+printf("%f\n", degree_sin(380.0));
+
+// @@PLEAC@@_2.12
+function my_tan($theta) { return sin($theta) / cos($theta); }
+
+// ------------
+
+$theta = 3.7;
+
+printf("%f\n", my_tan($theta));
+printf("%f\n", tan($theta));
+
+// @@PLEAC@@_2.13
+$value = 100.0;
+
+$log_e = log($value);
+$log_10 = log10($value);
+
+// ----------------------------
+
+function log_base($base, $value) { return log($value) / log($base); }
+
+// ------------
+
+$answer = log_base(10.0, 10000.0);
+
+printf("log(10, 10,000) = %f\n", $answer);
+
+// @@PLEAC@@_2.14
+// PHP offers no native support for matrices. However, a 'Math_Matrix' class
+// is available for download from PEAR: [http://pear.php.net/package/Math_Matrix].
+// Note the following 'include' directives are required:
+//
+//  include_once('Math/Matrix.php');
+
+$a = new Math_Matrix(array(array(3, 2, 3), array(5, 9, 8)));
+$b = new Math_Matrix(array(array(4, 7), array(9, 3), array(8, 1)));
+
+echo $a->toString() . "\n";
+echo $b->toString() . "\n";
+
+// NOTE: When I installed this package I had to rename the 'clone' method else
+// it would not load, so I chose to rename it to 'clone_', and this usage is
+// shown below. This bug may well be fixed by the time you obtain this package
+
+$c = $a->clone_();
+$c->multiply($b);
+
+echo $c->toString() . "\n";
+
+// @@PLEAC@@_2.15
+// PHP offers no native support for complex numbers. However, a 'Math_Complex' class
+// is available for download from PEAR: [http://pear.php.net/package/Math_Complex].
+// Note the following 'include' directives are required:
+//
+//   include_once('Math/Complex.php');
+//   include_once('Math/TrigOp.php');
+//   include_once('Math/ComplexOp.php');
+
+$a = new Math_Complex(3, 5);
+$b = new Math_Complex(2, -2);
+
+$c = Math_ComplexOp::mult($a, $b);
+
+echo $c->toString() . "\n";
+
+// ----------------------------
+
+$d = new Math_Complex(3, 4);
+$r = Math_ComplexOp::sqrt($d);
+
+echo $r->toString() . "\n";
+
+// @@PLEAC@@_2.16
+// Like C, PHP supports decimal-alternate notations. Thus, for example, the integer
+// value, 867, is expressable in literal form as:
+//
+//   Hexadecimal -> 0x363
+//   Octal       -> 01543
+//
+// For effecting such conversions using strings there is 'sprintf' and 'sscanf'.
+
+$dec = 867;
+$hex = sprintf("%x", $dec);
+$oct = sprintf("%o", $dec);
+
+// ------------
+
+$dec = 0;
+$hex = "363";
+
+sscanf($hex, "%x", $dec);
+
+// ------------
+
+$dec = 0;
+$oct = "1543";
+
+sscanf($oct, "%o", $dec);
+
+// ----------------------------
+
+$number = 0;
+
+printf("Gimme a number in decimal, octal, or hex: ");
+sscanf(fgets(STDIN), "%D", $number);
+
+printf("%d %x %o\n", $number, $number, $number);
+
+// @@PLEAC@@_2.17
+// PHP offers the 'number_format' built-in function to, among many other format tasks, 
+// commify numbers. Perl-compatible [as well as extended] regexes are also available
+
+function commify_series($s) { return number_format($s, 0, "", ","); }
+
+// ------------
+
+$hits = 3456789;
+
+printf("Your website received %s accesses last month\n", commify_series($hits));
+
+// ----------------------------
+
+function commify($s)
+{
+  return strrev(preg_replace('/(\d\d\d)(?=\d)(?!\d*\.)/', '${1},', strrev($s)));
+}
+
+// ------------
+
+$hits = 3456789;
+
+echo commify(sprintf("Your website received %d accesses last month\n", $hits));
+
+// @@PLEAC@@_2.18
+function pluralise($value, $root, $singular="" , $plural="s")
+{
+  return $root . (($value > 1) ? $plural : $singular);
+}
+
+// ------------
+
+$duration = 1;
+printf("It took %d %s\n", $duration, pluralise($duration, "hour"));
+printf("%d %s %s enough.\n", $duration, pluralise($duration, "hour"),
+      pluralise($duration, "", "is", "are"));
+
+$duration = 5;
+printf("It took %d %s\n", $duration, pluralise($duration, "hour"));
+printf("%d %s %s enough.\n", $duration, pluralise($duration, "hour"),
+      pluralise($duration, "", "is", "are"));
+
+// ----------------------------
+
+function plural($singular)
+{
+  $s2p = array('/ss$/' => 'sses', '/([psc]h)$/' => '${1}es', '/z$/' => 'zes',
+               '/ff$/' => 'ffs', '/f$/' => 'ves', '/ey$/' => 'eys',
+               '/y$/' => 'ies', '/ix$/' => 'ices', '/([sx])$/' => '$1es',
+               '$' => 's');
+
+  foreach($s2p as $s => $p)
+  {
+    if (preg_match($s, $singular)) return preg_replace($s, $p, $singular);
+  }
+}
+
+// ------------
+
+foreach(array("mess", "index", "leaf", "puppy") as $word)
+{
+  printf("%6s -> %s\n", $word, plural($word));
+}
+
+// @@PLEAC@@_2.19
+// @@INCOMPLETE@@
+// @@INCOMPLETE@@
+
+// @@PLEAC@@_3.0
+// PHP's date / time suport is quite extensive, and appears grouped into three areas of
+// functionality:
+//
+// * UNIX / C Library [libc]-based routines, which include [among others]:
+//   - localtime, gmtime
+//   - strftime, strptime, mktime
+//   - time, getdate, gettimeofday, 
+//
+// * PHP 'native' functions, those date / time routines released in earlier versions,
+//   and which otherwise provide 'convenience' functionality; these include:
+//   - date
+//   - strtotime
+//
+// * 'DateTime' class-based. This facility appears [according to the PHP documentation]
+//   to be extremely new / experimental, so whilst usage examples will be provided, they
+//   should not be taken to be 'official' examples, and obviously, subject to change.
+//   My own impression is that this facility is currently only partially implemented,
+//   so there is limited use for these functions. The functions included in this group
+//   are some of the 'date_'-prefixed functions; they are, however, not used standalone,
+//   but as methods in conjunction with an object. Typical usage:
+//
+//     $today = new DateTime();             // actually calls: date_create($today, ...);
+//     echo $today->format('U') . "\n";     // actually calls: date_format($today, ...);
+//
+// Also worth mentioning is the PEAR [PHP Extension and Repository] package, 'Calendar',
+// which offers a rich set of date / time manipulation facilities. However, since it is
+// not currently shipped with PHP, no examples appear
+
+// Helper functions for performing date arithmetic 
+
+function dateOffset()
+{
+  static $tbl = array("sec" => 1, "min" => 60, "hou" => 3600, "day" => 86400, "wee" => 604800);
+  $delta = 0;
+
+  foreach (func_get_args() as $arg)
+  {
+    $kv = explode("=", $arg);
+    $delta += $kv[1] * $tbl[strtolower(substr($kv[0], 0, 3))];
+  }
+
+  return $delta;
+}
+
+function dateInterval($intvltype, $timevalue)
+{
+  static $tbl = array("sec" => 1, "min" => 60, "hou" => 3600, "day" => 86400, "wee" => 604800);
+  return (int) round($timevalue / $tbl[strtolower(substr($intvltype, 0, 3))]);
+}
+
+// ----------------------------
+
+// Extract indexed array from 'getdate'
+$today = getdate();
+printf("Today is day %d of the current year\n", $today['yday']);
+
+// Extract indexed, and associative arrays, respectively, from 'localtime'
+$today = localtime();
+printf("Today is day %d of the current year\n", $today[7]);
+
+$today = localtime(time(), TRUE);
+printf("Today is day %d of the current year\n", $today['tm_yday']);
+
+// @@PLEAC@@_3.1
+define(SEP, "-");
+
+// ------------
+
+$today = getdate();
+
+$day = $today['mday'];
+$month = $today['mon'];
+$year = $today['year'];
+
+// Either do this to use interpolation:
+$sep = SEP;
+echo "Current date is: {$year}{$sep}{$month}{$sep}{$day}\n";
+
+// or simply concatenate:
+echo "Current date is: " . $year . SEP . $month . SEP . $day . "\n";
+
+// ------------
+
+$today = localtime(time(), TRUE);
+
+$day = $today['tm_mday'];
+$month = $today['tm_mon'] + 1;
+$year = $today['tm_year'] + 1900;
+
+printf("Current date is: %4d%s%2d%s%2d\n", $year, SEP, $month, SEP, $day);
+
+// ------------
+
+$format = 'Y' . SEP . 'n' . SEP . 'd';
+
+$today = date($format);
+
+echo "Current date is: {$today}\n";
+
+// ------------
+
+$sep = SEP;
+
+$today = strftime("%Y$sep%m$sep%d");
+
+echo "Current date is: {$today}\n";
+
+// @@PLEAC@@_3.2
+$timestamp = mktime($hour, $min, $sec, $month, $day, $year);
+
+$timestamp = gmmktime($hour, $min, $sec, $month, $day, $year);
+
+// @@PLEAC@@_3.3
+$dmyhms = getdate();            // timestamp: current date / time
+
+$dmyhms = getdate($timestamp);  // timestamp: arbitrary
+
+$day = $dmyhms['mday'];
+$month = $dmyhms['mon'];
+$year = $dmyhms['year'];
+
+$hours = $dmyhms['hours'];
+$minutes = $dmyhms['minutes'];
+$seconds = $dmyhms['seconds'];
+
+// @@PLEAC@@_3.4
+// Date arithmetic is probably most easily performed using timestamps [i.e. *NIX Epoch
+// Seconds]. Dates - in whatever form - are converted to timestamps, these are
+// arithmetically manipulated, and the result converted to whatever form required.
+// Note: use 'mktime' to create timestamps properly adjusted for daylight saving; whilst
+// 'strtotime' is more convenient to use, it does not, AFAIK, include this adjustment
+
+$when = $now + $difference;
+$then = $now - $difference;
+
+// ------------
+
+$now = mktime(0, 0, 0, 8, 6, 2003);
+
+$diff1 = dateOffset("day=1"); $diff2 = dateOffset("weeks=2");
+
+echo "Today is:                 " . date('Y-m-d', $now) . "\n";
+echo "One day in the future is: " . date('Y-m-d', $now + $diff1) . "\n";
+echo "Two weeks in the past is: " . date('Y-m-d', $now - $diff2) . "\n";
+
+// ----------------------------
+
+// Date arithmetic performed using a custom function, 'dateOffset'. Internally, offset may
+// be computed in one of several ways:
+// * Direct timestamp manipulation - fastest, but no daylight saving adjustment 
+// * Via 'date' built-in function - slower [?], needs a base time from which to
+//   compute values, but has daylight saving adjustment 
+// * Via 'strtotime' built-in function - as for 'date'
+// * Via 'DateTime' class
+//
+// Approach used here is to utilise direct timestamp manipulation in 'dateOffset' [it's
+// performance can also be improved by replacing $tbl with a global definition etc],
+// and to illustrate how the other approaches might be used 
+
+// 1. 'dateOffset'
+
+$birthtime = mktime(3, 45, 50, 1, 18, 1973);
+
+$interval = dateOffset("day=55", "hours=2", "min=17", "sec=5");
+
+$then = $birthtime + $interval;
+
+printf("Birthtime is: %s\nthen is:      %s\n", date(DATE_RFC1123, $birthtime), date(DATE_RFC1123, $then));
+
+// ------------
+
+// 2. 'date'
+
+// Base values, and offsets, respectively
+$hr = 3; $min = 45; $sec = 50; $mon = 1; $day = 18; $year = 1973;
+
+$yroff = 0; $monoff = 0; $dayoff = 55; $hroff = 2; $minoff = 17; $secoff = 5;
+
+// Base date
+$birthtime = mktime($hr, $min, $sec, $mon, $day, $year, TRUE);
+
+$year = date('Y', $birthtime) + $yroff;
+$mon = date('m', $birthtime) + $monoff;
+$day = date('d', $birthtime) + $dayoff;
+
+$hr = date('H', $birthtime) + $hroff;
+$min = date('i', $birthtime) + $minoff;
+$sec = date('s', $birthtime) + $secoff;
+
+// Offset date
+$then = mktime($hr, $min, $sec, $mon, $day, $year, TRUE);
+
+printf("Birthtime is: %s\nthen is:      %s\n", date(DATE_RFC1123, $birthtime), date(DATE_RFC1123, $then));
+
+// ------------
+
+// 3. 'strtotime'
+
+// Generate timestamp whatever way is preferable
+$birthtime = mktime(3, 45, 50, 1, 18, 1973);
+$birthtime = strtotime("1/18/1973 03:45:50");
+
+$then = strtotime("+55 days 2 hours 17 minutes 2 seconds", $birthtime);
+
+printf("Birthtime is: %s\nthen is:      %s\n", date(DATE_RFC1123, $birthtime), date(DATE_RFC1123, $then));
+
+// ------------
+
+// 4. 'DateTime' class
+
+$birthtime = new DateTime("1/18/1973 03:45:50");
+$then = new DateTime("1/18/1973 03:45:50");
+$then->modify("+55 days 2 hours 17 minutes 2 seconds");
+
+printf("Birthtime is: %s\nthen is:      %s\n", $birthtime->format(DATE_RFC1123), $then->format(DATE_RFC1123));
+
+// @@PLEAC@@_3.5
+// Date intervals are most easily computed using timestamps [i.e. *NIX Epoch
+// Seconds] which, of course, gives the interval result is seconds from which
+// all other interval measures [days, weeks, months, years] may be derived.
+// Refer to previous section for discussion of daylight saving and other related
+// problems
+
+$interval_seconds = $recent - $earlier;
+
+// ----------------------------
+
+// Conventional approach ...
+$bree = strtotime("16 Jun 1981, 4:35:25");
+$nat = strtotime("18 Jan 1973, 3:45:50");
+
+// ... or, with daylight saving adjustment
+$bree = mktime(4, 35, 25, 6, 16, 1981, TRUE);
+$nat = mktime(3, 45, 50, 1, 18, 1973, TRUE);
+
+$difference = $bree - $nat;
+
+// 'dateInterval' custom function computes intervals in several measures given an
+// interval in seconds. Note, 'month' and 'year' measures not provided
+printf("There were %d seconds between Nat and Bree\n", $difference);
+printf("There were %d weeks between Nat and Bree\n", dateInterval("weeks", $difference));
+printf("There were %d days between Nat and Bree\n", dateInterval("days", $difference));
+printf("There were %d hours between Nat and Bree\n", dateInterval("hours", $difference));
+printf("There were %d minutes between Nat and Bree\n", dateInterval("mins", $difference));
+
+// @@PLEAC@@_3.6
+// 'getdate' accepts a timestamp [or implicitly calls 'time'] and returns an array of
+// date components. It returns much the same information as 'strptime' except that
+// the component names are different
+
+$today = getdate();
+
+$weekday = $today['wday'];
+$monthday = $today['mday'];
+$yearday = $today['yday'];
+
+$weeknumber = (int) round($yearday / 7.0);
+
+// Safter method of obtaining week number
+$weeknumber = strftime('%U') + 1;
+
+// ----------------------------
+
+define(SEP, "/");
+
+$day = 16;
+$month = 6;
+$year = 1981;
+
+$timestamp = mktime(0, 0, 0, $month, $day, $year);
+
+$date = getdate($timestamp);
+
+$weekday = $date['wday'];
+$monthday = $date['mday'];
+$yearday = $date['yday'];
+
+$weeknumber = (int) round($yearday / 7.0);
+
+$weeknumber = strftime('%U', $timestamp) + 1;
+
+// Interpolate ...
+$sep = SEP;
+echo {$month}{$sep}{$day}{$sep}{$year} was a {$date['weekday']} in week {$weeknumber}\n";
+
+// ... or, concatenate
+echo $month . SEP . $day . SEP . $year . " was a " . $date['weekday']
+     . " in week " . $weeknumber . "\n";
+
+// @@PLEAC@@_3.7
+// 'strtotime' parses a textual date expression by attempting a 'best guess' at
+// the format, and either fails, or generates a timestamp. Timestamp could be fed
+// into any one of the various functions; example:
+$timestamp = strtotime("1998-06-03"); echo strftime('%Y-%m-%d', $timestamp) . "\n";
+
+// 'strptime' parses a textual date expression according to a specified format,
+// and returns an array of date components; components can be easily dumped
+print_r(strptime("1998-06-03", '%Y-%m-%d'));
+
+// ----------------------------
+
+// Parse date string according to format
+$darr = strptime("1998-06-03", '%Y-%m-%d');
+
+if (!empty($darr))
+{
+  // Show date components in 'debug' form
+  print_r($darr);
+
+  // Check whether there was a parse error i.e. one or more components could not
+  // be extracted from the string
+  if (empty($darr['unparsed']))
+  {
+    // Properly parsed date, so validate required components using, 'checkdate'
+    if (checkdate($darr['tm_mon'] + 1, $darr['tm_mday'], $darr['tm_year'] + 1900))
+      echo "Parsed date verified as correct\n";
+    else
+      echo "Parsed date failed verification\n";
+  }
+  else
+  {
+    echo "Date string parse not complete; failed components: {$darr['unparsed']}\n";
+  }
+}
+else
+{
+  echo "Date string could not be parsed\n";
+}
+
+// @@PLEAC@@_3.8
+// 'date' and 'strftime' both print a date string based on:
+// * Format String, describing layout of date components
+// * Timestamp [*NIX Epoch Seconds], either given explicitly, or implictly
+//   via a call to 'time' which retrieves current time value
+
+$ts = 1234567890;
+
+date('Y/m/d', $ts); 
+date('Y/m/d', mktime($h, $m, $s, $mth, $d, $y, $is_dst)); 
+
+date('Y/m/d');         // same as: date('Y/m/d', time());
+
+// ------------
+
+$ts = 1234567890;
+
+strftime('%Y/%m/%d', $ts);
+strftime('%Y/%m/%d', mktime($h, $m, $s, $mth, $d, $y, $is_dst));
+
+strftime('%Y/%m/%d');  // same as: strftime('%Y/%m/%d', time());
+
+// ----------------------------
+
+// 'mktime' creates a local time timestamp
+$t = strftime('%a %b %e %H:%M:%S %z %Y', mktime(3, 45, 50, 1, 18, 73, TRUE));
+echo "{$t}\n";
+
+// 'gmmktime' creates a GMT time timestamp
+$t = strftime('%a %b %e %H:%M:%S %z %Y', gmmktime(3, 45, 50, 1, 18, 73));
+echo "{$t}\n";
+
+// ----------------------------
+
+// 'strtotime' parses a textual date expression, and generates a timestamp 
+$t = strftime('%A %D', strtotime("18 Jan 1973, 3:45:50"));
+echo "{$t}\n";
+
+// This should generate output identical to previous example
+$t = strftime('%A %D', mktime(3, 45, 50, 1, 18, 73, TRUE));
+echo "{$t}\n";
+
+// @@PLEAC@@_3.9
+// PHP 5 and above can use the built-in, 'microtime'. Crude implementation for ealier versions:
+// function microtime() { $t = gettimeofday(); return (float) ($t['sec'] + $t['usec'] / 1000000.0); } 
+
+// ------------
+
+$before = microtime();
+
+$line = fgets(STDIN);
+
+$elapsed = microtime() - $before;
+
+printf("You took %.3f seconds\n", $elapsed);
+
+// ------------
+
+define(NUMBER_OF_TIMES, 100);
+define(SIZE, 500);
+
+for($i = 0; $i < NUMBER_OF_TIMES; $i++)
+{
+  $arr = array();
+  for($j = 0; $j < SIZE; $j++) $arr[] = rand();
+
+  $begin = microtime();
+  sort($arr);
+  $elapsed = microtime() - $begin;
+
+  $total_time += $elapsed;
+}
+
+printf("On average, sorting %d random numbers takes %.5f seconds\n", SIZE, $total_time / (float) NUMBER_OF_TIMES);
+
+// @@PLEAC@@_3.10
+// Low-resolution: sleep time specified in seconds
+sleep(1);
+
+// High-resolution: sleep time specified in microseconds [not reliable under Windows]
+usleep(250000);
+
+// @@PLEAC@@_3.11
+// @@INCOMPLETE@@
+// @@INCOMPLETE@@
 
 # @@PLEAC@@_4.1
 $a = array('quick', 'brown', 'fox');
 
+# @@PLEAC@@_4.2
+# @@INCOMPLETE@@
+# @@INCOMPLETE@@
+
+# @@PLEAC@@_4.3
+# @@INCOMPLETE@@
+# @@INCOMPLETE@@
 
 # @@PLEAC@@_4.4
 foreach ($list as $item) {
@@ -538,3 +1391,1643 @@ print_r($array);
 
 // TODO: explain the old each() and list() iteration construct.
 // foreach is new in PHP 4, and there are subtle differences.
+
+// @@PLEAC@@_9.0
+$entry = stat("/bin/vi");
+$entry = stat("/usr/bin");
+$entry = stat($argv[1]);
+
+// ------------
+
+$entry = stat("/bin/vi");
+
+$ctime = $entry["ctime"];
+$size = $entry["size"];
+
+// ----------------------------
+
+// For the simple task of determining whether a file contains, text', a simple
+// function that searches for a newline could be implemented. Not exactly
+// foolproof, but very simple, low overhead, no installation headaches ...
+function containsText($file)
+{
+  $status = FALSE;
+
+  if (($fp = fopen($file, 'r')))
+  {
+    while (FALSE !== ($char = fgetc($fp)))
+    {
+      if ($char == "\n") { $status = TRUE; break; }
+    }
+
+    fclose($fp);
+  }
+
+  return $status;
+}
+
+// PHP offers the [currently experimental] Fileinfo group of functions to
+// determine file types based on their contents / 'magic numbers'. This
+// is functionality similar to the *NIX, 'file' utility. Note that it must
+// first be installed using the PEAR utility [see PHP documentation] 
+function isTextFile($file)
+{
+  // Note: untested code, but I believe this is how it is supposed to work
+  $finfo = finfo_open(FILEINFO_NONE);
+  $status = (finfo_file($finfo, $file) == "ASCII text");
+  finfo_close($finfo);
+  return $status;
+}
+
+// Alternatively, use the *NIX utility, 'file', directly
+function isTextFile($file)
+{
+  return exec(trim("file -bN " . escapeshellarg($file))) == "ASCII text";
+}
+
+// ----
+
+containsText($argv[1]) || die("File {$argv[1]} doesn't have any text in it\n");
+
+isTextFile($argv[1]) || die("File {$argv[1]} doesn't have any text in it\n");
+
+// ----------------------------
+
+$dirname = "/usr/bin/";
+
+($dirhdl = opendir($dirname)) || die("Couldn't open {$dirname}\n");
+
+while (($file = readdir($dirhdl)) !== FALSE)
+{
+  printf("Inside %s is something called: %s\n", $dirname, $file);
+}
+
+closedir($dirhdl);
+
+// @@PLEAC@@_9.1
+$filename = "example.txt";
+
+// Get the file's current access and modification time, respectively
+$fs = stat($filename);
+
+$readtime = $fs["atime"];
+$writetime = $fs["mtime"];
+
+// Alter $writetime, and $readtime ...
+
+// Update file timestamp
+touch($filename, $writetime, $readtime);
+
+// ----------------------------
+
+$filename = "example.txt";
+
+// Get the file's current access and modification time, respectively
+$fs = stat($filename);
+
+$atime = $fs["atime"];
+$mtime = $fs["mtime"];
+
+// Dedicated functions also exist to retrieve this information:
+//
+// $atime = $fileatime($filename);
+// $mtime = $filemtime($filename);
+//
+
+// Perform date arithmetic. Traditional approach where arithmetic is performed
+// directly with Epoch Seconds [i.e. the *NIX time stamp value] will work ...
+
+define("SECONDS_PER_DAY", 60 * 60 * 24);
+
+// Set file's access and modification times to 1 week ago
+$atime -= 7 * SECONDS_PER_DAY;
+$mtime -= 7 * SECONDS_PER_DAY;
+
+// ... but care must be taken to account for daylight saving. Therefore, the
+// recommended approach is to use library functions to perform such tasks:
+
+$atime = strtotime('-7 days', $atime);
+$mtime = strtotime('-7 days', $mtime);
+
+// Update file timestamp
+touch($filename, $mtime, $atime);
+
+// Good idea to clear the cache after such updates have occurred so fresh
+// values will be retrieved on next access
+clearstatcache();
+
+// ----------------------------
+
+$argc == 2 || die("usage: {$argv[0]} filename\n");
+
+$filename = $argv[1];
+$fs = stat($filename);
+
+$atime = $fs["atime"];
+$mtime = $fs["mtime"];
+
+// Careful here: since interactive, use, 'system', not 'exec', to launch [latter
+// does not work under *NIX - at least, not for me :)]
+system(trim(getenv("EDITOR") . " vi " . escapeshellarg($filename)), $retcode);
+
+touch($filename, $mtime, $atime) || die("Error updating timestamp on file, {$filename}!\n");
+
+// @@PLEAC@@_9.2
+// The 'unlink' function is used to delete regular files, whilst the 'rmdir' function
+// does the same on non-empty directories. AFAIK, no recursive-deletion facility
+// exists, and must be manually programmed
+
+$filename = "...";
+
+@unlink($filename) || die("Can't delete, {$filename}!\n");
+
+// ------------
+
+$files = glob("...");
+$problem = FALSE;
+
+// Could simply use a foreach loop
+foreach($files as $filename) { @unlink($filename) || $problem = TRUE; }
+
+//
+// Alternatively, an applicative approach could be used, one closer in spirit to
+// largely-functional languages like Scheme
+//
+// function is_all_deleted($deleted, $filename) { return @unlink($filename) && $deleted; }
+// $problem = !array_reduce($files, "is_all_deleted", TRUE);
+//
+
+if ($problem)
+{
+  fwrite(STDERR, "Could not delete all of:");
+  foreach($files as $filename) { fwrite(STDERR, " " . $filename); }
+  fwrite(STDERR, "\n"); exit(1);
+} 
+
+// ------------
+
+function rmAll($files)
+{
+  $count = 0;
+
+  foreach($files as $filename) { @unlink($filename) && $count++; };
+
+  return $count;
+
+// An applicative alternative using 'create_function', PHP's rough equivalent of 'lambda' ...
+//
+//  return array_reduce($files,
+//    create_function('$count, $filename', 'return @unlink($filename) && $count++;'), 0);
+}
+
+// ----
+
+$files = glob("...");
+$toBeDeleted = sizeof($files);
+$count = rmAll($files);
+
+($count == $toBeDeleted) || die("Could only delete {$count} of {$toBeDeleted} files\n");
+
+// @@PLEAC@@_9.3
+$oldfile = "/tmp/old"; $newfile = "/tmp/new";
+
+copy($oldfile, $newfile) || die("Error copying file\n");
+
+// ----------------------------
+
+// All the following copy a file by copying its contents. Examples do so in a single
+// operation, but it is also possible to copy arbitrary blocks, or, line-by-line in 
+// the case of 'text' files
+$oldfile = "/tmp/old"; $newfile = "/tmp/new";
+
+if (is_file($oldfile))
+  file_put_contents($newfile, file_get_contents($oldfile));
+else
+  die("Problem copying file {$oldfile} to file {$newfile}\n");
+
+// ------------
+
+$oldfile = "/tmp/old"; $newfile = "/tmp/new";
+
+fwrite(($nh = fopen($newfile, 'wb')), fread(($oh = fopen($oldfile, 'rb')), filesize($oldfile)));
+fclose($oh);
+fclose($nh);
+
+// ------------
+
+// As above, but with some error checking / handling
+$oldfile = "/tmp/old"; $newfile = "/tmp/new";
+
+($oh = fopen($oldfile, 'rb')) || die("Problem opening input file {$oldfile}\n");
+($nh = fopen($newfile, 'wb')) || die("Problem opening output file {$newfile}\n");
+
+if (($filesize = filesize($oldfile)) > 0)
+{
+  fwrite($nh, fread($oh, $filesize)) || die("Problem reading / writing file data\n");
+}
+
+fclose($oh);
+fclose($nh);
+
+// ----------------------------
+
+// Should there be platform-specfic problems copying 'very large' files, it is
+// a simple matter to call a system command utility via, 'exec'
+
+// *NIX-specific example. Could check whether, 'exec', succeeded, but checking whether
+// a file exists after the operation might be a better approach
+$oldfile = "/tmp/old"; $newfile = "/tmp/new";
+
+is_file($newfile) && unlink($newfile);
+
+exec(trim("cp --force " . escapeshellarg($oldfile) . " " . escapeshellarg($newfile)));
+
+is_file($newfile) || die("Problem copying file {$oldfile} to file {$newfile}\n");
+
+// For other operating systems just change:
+// * filenames
+// * command being 'exec'ed
+// as the rest of the code is platform independant
+
+// @@PLEAC@@_9.4
+function makeDevInodePair($filename)
+{
+  if (!($fs = @stat($filename))) return FALSE;
+  return strval($fs["dev"] . $fs["ino"]);
+}
+
+// ------------
+
+function do_my_thing($filename)
+{
+  // Using a global variable to mimic Perl example, but could easily have passed
+  // '$seen' as an argument
+  global $seen;
+
+  $devino = makeDevInodePair($filename);
+
+  // Process $filename if it has not previously been seen, else just increment
+  if (!isset($seen[$devino]))
+  {
+    // ... process $filename ...
+
+    // Set initial count
+    $seen[$devino] = 1;
+  }
+  else
+  {
+    // Otherwise, just increment the count
+    $seen[$devino] += 1;
+  }
+}
+
+// ----
+
+// Simple example
+$seen = array();
+
+do_my_thing("/tmp/old");
+do_my_thing("/tmp/old");
+do_my_thing("/tmp/old");
+do_my_thing("/tmp/new");
+
+foreach($seen as $devino => $count)
+{
+  echo "{$devino} -> {$count}\n";
+}
+
+// ------------
+
+// A variation on the above avoiding use of global variables, and illustrating use of
+// easily-implemented 'higher order' techniques
+
+// Helper function loosely modelled on, 'array_reduce', but using an array as
+// 'accumulator', which is returned on completion
+function array_update($arr, $lambda, $updarr)
+{
+  foreach($arr as $key) $lambda($updarr, $key);
+  return $updarr;
+}
+
+function do_my_thing(&$seen, $filename)
+{
+  if (!array_key_exists(($devino = makeDevInodePair($filename)), $seen))
+  {
+    // ... processing $filename ...
+
+    // Update $seen
+    $seen[$devino] = 1;
+  }
+  else
+  {
+    // Update $seen
+    $seen[$devino] += 1;
+  }
+}
+
+// ----
+
+// Simple example
+$files = array("/tmp/old", "/tmp/old", "/tmp/old", "/tmp/new");
+
+// Could do this ...
+$seen = array();
+array_update($files, "do_my_thing", &$seen);
+
+// or this:
+$seen = array_update($files, "do_my_thing", array());
+
+// or a 'lambda' could be used:
+array_update($files,
+             create_function('$seen, $filename', '... code not shown ...'),
+             &$seen);
+
+foreach($seen as $devino => $count)
+{
+  echo "{$devino} -> {$count}\n";
+}
+
+// ----------------------------
+
+$files = glob("/tmp/*");
+
+define(SEP, ";");
+$seen = array();
+
+foreach($files as $filename)
+{
+  if (!array_key_exists(($devino = makeDevInodePair($filename)), $seen))
+    $seen[$devino] = $filename;
+  else
+    $seen[$devino] = $seen[$devino] . SEP . $filename;
+}
+
+$devino = array_keys($seen);
+sort($devino);
+
+foreach($devino as $key)
+{
+  echo $key . ":";
+  foreach(split(SEP, $seen[$key]) as $filename) echo " " . $filename;
+  echo "\n";
+}
+
+// @@PLEAC@@_9.5
+// Conventional POSIX-like approach to directory traversal
+$dirname = "/usr/bin/";
+
+($dirhdl = opendir($dirname)) || die("Couldn't open {$dirname}\n");
+
+while (($file = readdir($dirhdl)) !== FALSE)
+{
+  ; // ... do something with $dirname/$file
+    // ...
+}
+
+closedir($dirhdl);
+
+// ------------
+
+// Newer [post PHP 4], 'applicative' approach - an array of filenames is
+// generated that may be processed via external loop ...
+
+$dirname = "/usr/bin/";
+
+foreach(scandir($dirname) as $file)
+{
+  ; // ... do something with $dirname/$file
+    // ...
+}
+
+// .. or, via callback application, perhaps after massaging by one of the
+// 'array' family of functions [also uses, 'array_update', from earlier section]
+
+$newlist = array_update(array_reverse(scandir($dirname)),
+                        create_function('$filelist, $file',  ' ; '),
+                        array());
+
+// And don't forget that the old standby, 'glob', that returns an array of
+// paths filtered using the Bourne Shell-based wildcards, '?' and '*', is
+// also available
+
+foreach(glob($dirname . "*") as $path)
+{
+  ; // ... do something with $path
+    // ...
+}
+
+// ----------------------------
+
+// Uses, 'isTextFile', from an earlier section
+$dirname = "/usr/bin/";
+
+echo "Text files in {$dirname}:\n";
+
+foreach(scandir($dirname) as $file)
+{
+  // Take care when constructing paths to ensure cross-platform operability 
+  $path = $dirname . $file;
+
+  if (is_file($path) && isTextFile($path)) echo $path . "\n";
+}
+
+// ----------------------------
+
+function plain_files($dirname)
+{
+  ($dirlist = glob($dirname . "*")) || die("Couldn't glob {$dirname}\n");
+
+  // Pass function name directly if only a single function performs filter test
+  return array_filter($dirlist, "is_file");
+
+  // Use, 'create_function', if a multi-function test is needed
+  //
+  // return array_filter($dirlist, create_function('$path', 'return is_file($path);'));
+  //
+}
+
+// ------------
+
+foreach(plain_files("/tmp/") as $path)
+{
+  echo $path . "\n";
+}
+
+// @@PLEAC@@_9.6
+$dirname = "/tmp/";
+
+// Full paths
+$pathlist = glob($dirname . "*.c");
+
+// File names only - glob-based matching
+$filelist = array_filter(scandir($dirname),
+                         create_function('$file', 'return fnmatch("*.c", $file);'));
+
+// ----------------------------
+
+$dirname = "/tmp/";
+
+// File names only - regex-based matching [case-insensitive]
+$filelist = array_filter(scandir($dirname),
+                         create_function('$file', 'return eregi("\.[ch]$", $file);'));
+
+// ----------------------------
+
+$dirname = "/tmp/";
+
+// Directory names - all-digit names
+$dirs = array_filter(glob($dirname . "*", GLOB_ONLYDIR),
+                     create_function('$path', 'return ereg("^[0-9]+$", basename($path));'));
+
+// @@PLEAC@@_9.7
+// Recursive directory traversal function and helper: traverses a directory tree
+// applying a function [and a variable number of accompanying arguments] to each
+// file
+
+class Accumulator
+{
+  public $value;
+  public function __construct($start_value) { $this->value = $start_value; }
+}
+
+// ------------
+
+function process_directory_($op, $func_args)
+{
+  if (is_dir($func_args[0]))
+  {
+    $current = $func_args[0];
+    foreach(scandir($current) as $entry)
+    {
+      if ($entry == "." || $entry == "..") continue;
+      $func_args[0] = $current . "/" . $entry;
+      process_directory_($op, $func_args);
+    }
+  }
+  else
+  {
+    call_user_func_array($op, $func_args);
+  }
+}
+
+function process_directory($op, $dir)
+{
+  if (!is_dir($dir)) return FALSE;
+  $func_args = array_slice(func_get_args(), 1);
+  process_directory_($op, $func_args);
+  return TRUE;
+}
+
+// ----------------------------
+
+$dirlist = array("/tmp/d1", "/tmp/d2", "/tmp/d3");
+
+// Do something with each directory in the list
+foreach($dirlist as $dir)
+{
+  ;
+  // Delete directory [if empty]     -> rmdir($dir); 
+  // Make it the 'current directory' -> chdir($dir);
+  // Get list of files it contains   -> $filelist = scandir($dir);
+  // Get directory metadata          -> $ds = stat($dir);
+}
+
+// ------------
+
+$dirlist = array("/tmp/d1", "/tmp/d2", "/tmp/d3");
+
+function pf($path)
+{
+  // ... do something to the file or directory ...
+  printf("%s\n", $path);
+}
+
+// For each directory in the list ...
+foreach($dirlist as $dir)
+{
+  // Is this a valid directory ?
+  if (!is_dir($dir)) { printf("%s does not exist\n", $dir); continue; }
+
+  // Ok, so get all the directory's entries
+  $filelist = scandir($dir);
+
+  // An 'empty' directory will contain at least two entries: '..' and '.'
+  if (count($filelist) == 2) { printf("%s is empty\n", $dir); continue; }
+
+  // For each file / directory in the directory ...
+  foreach($filelist as $file)
+  {
+    // Ignore '..' and '.' entries
+    if ($file == "." || $file == "..") continue;
+
+    // Apply function to process the file / directory
+    pf($dir . "/" . $file);
+  }
+}
+
+// ----------------------------
+
+function accum_filesize($file, $accum)
+{
+  is_file($file) && ($accum->value += filesize($file));
+}
+
+// ------------
+
+// Verify arguments ...
+$argc == 2 || die("usage: {$argv[0]} dir\n");
+$dir = $argv[1];
+
+is_dir($dir) || die("{$dir} does not exist / not a directory\n");
+
+// Collect data [use an object to accumulate results]
+$dirsize = new Accumulator(0);
+process_directory("accum_filesize", $dir, $dirsize); 
+
+// Report results
+printf("%s contains %d bytes\n", $dir, $dirsize->value);
+
+// ----------------------------
+
+function biggest_file($file, $accum)
+{
+  if (is_file($file))
+  {
+    $fs = filesize($file);
+    if ($accum->value[1] < $fs) { $accum->value[0] = $file; $accum->value[1] = $fs; }
+  }
+}
+
+// ------------
+
+// Verify arguments ...
+$argc == 2 || die("usage: {$argv[0]} dir\n");
+$dir = $argv[1];
+
+is_dir($dir) || die("{$dir} does not exist / not a directory\n");
+
+// Collect data [use an object to accumulate results]
+$biggest = new Accumulator(array("", 0));
+process_directory("biggest_file", $dir, $biggest); 
+
+// Report results
+printf("Biggest file is %s containing %d bytes\n", $biggest->value[0], $biggest->value[1]);
+
+// ----------------------------
+
+function youngest_file($file, $accum)
+{
+  if (is_file($file))
+  {
+    $fct = filectime($file);
+    if ($accum->value[1] > $fct) { $accum->value[0] = $file; $accum->value[1] = $fct; }
+  }
+}
+
+// ------------
+
+// Verify arguments ...
+$argc == 2 || die("usage: {$argv[0]} dir\n");
+$dir = $argv[1];
+
+is_dir($dir) || die("{$dir} does not exist / not a directory\n");
+
+// Collect data [use an object to accumulate results]
+$youngest = new Accumulator(array("", 2147483647));
+process_directory("youngest_file", $dir, $youngest); 
+
+// Report results
+printf("Youngest file is %s dating %s\n", $youngest->value[0], date(DATE_ATOM, $youngest->value[1]));
+
+// @@PLEAC@@_9.8
+// AFAICT, there is currently no library function that recursively removes a
+// directory tree [i.e. a directory, it's subdirectories, and any other files]
+// with a single call. Such a function needs to be custom built. PHP tools
+// with which to do this:
+// * 'unlink', 'rmdir', 'is_dir', and 'is_file' functions, will all take care
+//   of the file testing and deletion
+// * Actual directory traversal requires obtaining directory / subdirectory
+//   lists, and here there is much choice available, though care must be taken
+//   as each has it's own quirks
+//   - 'opendir', 'readdir', 'closedir'
+//   - 'scandir'
+//   - 'glob'
+//   - SPL 'directory iterator' classes [newish / experimental - not shown here]
+//
+// The PHP documentation for 'rmdir' contains several examples, each illustrating
+// one of each approach; the example shown here is loosely based on one of these
+// examples
+
+// Recursor - recursively traverses directory tree
+function rmtree_($dir)
+{
+  $dir = "$dir";
+
+  if ($dh = opendir($dir))
+  {
+    while (FALSE !== ($item = readdir($dh)))
+    {
+      if ($item != "." && $item != "..")
+      {
+        $subdir = $dir . "/" . "$item";
+
+        if (is_dir($subdir)) rmtree_($subdir);
+        else @unlink($subdir);
+      }
+    }
+
+    closedir($dh); @rmdir($dir);
+  }
+}
+
+// Launcher - performs validation then starts recursive routine
+function rmtree($dir)
+{
+  if (is_dir($dir))
+  {
+    (substr($dir, -1, 1) == "/") && ($dir = substr($dir, 0, -1));
+    rmtree_($dir); return !is_dir($dir);
+  }
+
+  return FALSE;
+}
+
+// ------------
+
+$argc == 2 || die("usage: rmtree dir\n");
+
+rmtree($argv[1]) || die("Could not remove directory {$argv[1]}\n");
+
+// @@PLEAC@@_9.9
+$filepairs = array("x.txt" => "x2.txt", "y.txt" => "y.doc", "zxc.txt" => "cxz.txt");
+
+foreach($filepairs as $oldfile => $newfile)
+{
+  @rename($oldfile, $newfile) || fwrite(STDERR, sprintf("Could not rename %s to %s\n", $oldfile, $newfile));
+}
+
+// ----------------------------
+
+// Call a system command utility via, 'exec'. *NIX-specific example. Could check whether,
+// 'exec', succeeded, but checking whether a renamed file exists after the operation might
+// be a better approach
+
+$oldfile = "/tmp/old"; $newfile = "/tmp/new";
+
+is_file($newfile) && unlink($newfile);
+
+exec(trim("mv --force " . escapeshellarg($oldfile) . " " . escapeshellarg($newfile)));
+
+is_file($oldfile) || die("Problem renaming file {$oldfile} to file {$newfile}\n");
+
+// For other operating systems just change:
+// * filenames
+// * command being 'exec'ed
+// as the rest of the code is platform independant
+
+// ----------------------------
+
+// A modified implementation of Larry's Filename Fixer. Rather than passing
+// a single expression, a 'from' regexp is passed; each match in the file
+// name(s) is changed to the value of 'to'. It otherwise behaves the same
+//
+
+$argc > 2 || die("usage: rename from to [file ...]\n");
+
+$from = $argv[1];
+$to = $argv[2]; 
+
+if (count(($argv = array_slice($argv, 3))) < 1)
+  while (!feof(STDIN)) $argv[] = substr(fgets(STDIN), 0, -1);
+
+foreach($argv as $file)
+{
+  $was = $file;
+  $file = ereg_replace($from, $to, $file);
+
+  if (strcmp($was, $file) != 0)
+    @rename($was, $file) || fwrite(STDERR, sprintf("Could not rename %s to %s\n", $was, $file));
+}
+
+// @@PLEAC@@_9.10
+$base = basename($path);
+$dir = dirname($path);
+
+// PHP's equivalent to Perl's 'fileparse'
+$pathinfo = pathinfo($path);
+
+$base = $pathinfo['basename'];
+$dir = $pathinfo['dirname'];
+$ext = $pathinfo['extension'];
+
+// ----------------------------
+
+$path = "/usr/lib/libc.a";
+
+printf("dir is %s, file is %s\n", dirname($path), basename($path));
+
+// ------------
+
+$path = "/usr/lib/libc.a";
+
+$pathinfo = pathinfo($path);
+
+printf("dir is %s, name is %s, extension is %s\n", $pathinfo['dirname'], $pathinfo['basename'], $pathinfo['extension']);
+
+// ----------------------------
+
+// Handle Mac example as a simple parse task. However, AFAIK, 'pathinfo' is cross-platform,
+// so should handle file path format differences transparently
+$path = "Hard%20Drive:System%20Folder:README.txt";
+
+$macp = array_combine(array("drive", "folder", "filename"), split("\:", str_replace("%20", " ", $path)));
+$macf = array_combine(array("name", "extension"), split("\.", $macp["filename"])); 
+
+printf("dir is %s, name is %s, extension is %s\n", ($macp['drive'] . ":" . $macp['folder']), $macf['name'], ("." . $macf['extension']));
+
+// ----------------------------
+
+// Not really necessary since we have, 'pathinfo', but better matches Perl example
+function file_extension($filename, $separator = ".")
+{
+  return end(split(("\\" . $separator), $filename));
+}
+
+// ----
+
+echo file_extension("readme.txt") . "\n";
+
+// @@PLEAC@@_9.11
+// @@INCOMPLETE@@
+// @@INCOMPLETE@@
+
+// @@PLEAC@@_9.12
+// @@INCOMPLETE@@
+// @@INCOMPLETE@@
+
+// @@PLEAC@@_10.0
+// Since defined at outermost scope, $greeted may be considered a global variable
+$greeted = 0;
+
+// ------------
+
+// Must use, 'global', keyword to inform functions that $greeted already exists as
+// a global variable. If this is not done, a local variable of that name is implicitly
+// defined
+function howManyGreetings()
+{
+  global $greeted;
+  return $greeted;
+}
+
+function hello()
+{
+  global $greeted;
+  $greeted++;
+  echo "high there!, this procedure has been called {$greeted} times\n";
+}
+
+// ------------
+
+hello();
+$greetings = howManyGreetings();
+echo "bye there!, there have been {$greetings} greetings so far\n";
+
+// @@PLEAC@@_10.1
+// Conventionally-defined function together with parameter list
+function hypotenuse($side1, $side2)
+{
+  return sqrt(pow($side1, 2) + pow($side2, 2));
+}
+
+// ----
+
+// Alternative is to define the function without parameter list, then use
+// 'func_get_arg' to extract arguments
+function hypotenuse()
+{
+  // Could check number of arguments passed with: 'func_num_args', which
+  // would be the approach used if dealing with variable number of arguments
+  $side1 = func_get_arg(0); $side2 = func_get_arg(1);
+
+  return sqrt(pow($side1, 2) + pow($side2, 2));
+}
+
+// ------------
+
+// 1. Conventional function call
+$diag = hypotenuse(3, 4);
+
+// ------------
+
+// 2. Function call using, 'call_user_func' library routines
+$funcname = 'hypotenuse';
+
+// a. Pass function name, and variable number of arguments
+$diag = call_user_func($funcname, 3, 4);
+
+// b. Package arguments as array, pass together with function name
+$args = array(3, 4); 
+$diag = call_user_func_array($funcname, $args);
+
+// ----------------------------
+
+$nums = array(1.4, 3.5, 6.7);
+
+// ------------
+
+// Pass-by-value
+function int_all($arr)
+{
+  return array_map(create_function('$n', 'return (int) $n;'), $arr);
+}
+
+// Pass-by-reference
+function trunc_em(&$n)
+{
+  foreach ($n as &$value) $value = (int) $value;
+}
+
+// ------------
+
+// $nums untouched; $ints is new array
+$ints = int_all($nums);
+
+// $nums updated
+trunc_em($nums);
+
+// @@PLEAC@@_10.2
+// Strictly-speaking, PHP is neither lexically [no environment capture] nor
+// dynamically [no variable shadowing] scoped. A script in which several
+// functions have been defined has two, entirely separate, scopes:
+//
+// * A 'top-level' scope i.e. everything outside each function
+//
+// * A 'local scope' within each function; each function is a self-contained
+//   entity and cannot [via conventional means] access variables outside its
+//   local scope. Accessing a variable that has not been locally defined
+//   serves to define it i.e. accessing a variable assumed to be global
+//   sees a local variable of that name defined
+//
+// The way 'global' variables are provided is via a predefined array of
+// variable names, $GLOBALS [it is one of a special set of variables known
+// as 'superglobals'; such variables *are* accessable in all scopes]. Each
+// entry in this array is a 'global' variable name, and may be freely
+// accessed / updated. A more convenient means of accessing such variables
+// is via the 'global' keyword: one or more variables within a function is
+// declared 'global', and those names are then taken to refer to entries
+// in the $GLOBALS array rather than seeing local variables of that name
+// accessed or defined
+
+function some_func()
+{
+  // Variables declared within a function are local to that function
+  $variable = "something";
+}
+
+// ----------------------------
+
+// Top-level declared variables
+$name = $argv[1]; $age = $argv[2];
+
+$c = fetch_time();
+
+$condition = 0;
+
+// ------------
+
+function run_check()
+{
+  // The globally-declared variable, '$condition', is not accessable within
+  // the function unless it declared as 'global. Had this not been done then
+  // attempts to access, '$condition', would have seen a local variable
+  // of that name declared and updated. Same applies to other variables
+  global $condition, $name, $age, $c;
+
+  $condition = 1;
+  // ...
+}
+
+function check_x($x)
+{
+  $y = "whatever";
+
+  // This function only has access to the parameter, '$x', and the locally
+  // declared variable, '$y'.
+
+  // Whilst 'run_check' has access to several global variables, the current
+  // function does not. For it to access the global variable, '$condition',
+  // it must be declared 'global'
+  run_check();
+
+  global $condition;
+
+  // 'run_check' will have updated, '$condition', and since it has been
+  // declared 'global' here, it is accessable
+
+  if ($condition)
+  {
+    ; // ...
+  }
+}
+
+// @@PLEAC@@_10.3
+// Local scopes are not created in the same way as in Perl [by simply enclosing
+// within braces]: only via the creation of functions are local scopes created
+
+// Doesn't create a local scope; '$myvariable' is created at top-level
+{
+  $myvariable = 7;
+}
+
+// '$myvariable' is accessable here
+echo $myvariable . "\n";
+
+// ------------
+
+{
+  $counter = 0;
+
+  // Local scope created within function, but not within surrounding braces
+  // so:
+  // * '$counter' is actually a top-level variable, so globally accessable
+  // * 'next_counter' has no implict access to '$counter'; must be granted
+  //   via 'global' keyword
+
+  function next_counter() { global $counter; $counter++; }
+}
+
+// ----------------------------
+
+// PHP doesn't, AFAIK, offer an equivalent to Perl's BEGIN block. Similar
+// behaviour may be obtained by defining a class, and including such code
+// in its constructor
+
+class BEGIN
+{
+  private $myvariable;
+
+  function __construct()
+  {
+    $this->myvariable = 5;
+  }
+
+  function othersub()
+  {
+    echo $this->myvariable . "\n";
+  }
+}
+
+// ------------
+
+$b = new BEGIN();
+
+$b->othersub();
+
+// ----------------------------
+
+// PHP, like C, supports 'static' local variables, that is, those that upon
+// first access are initialised, and thence retain their value between function
+// calls. However, the 'counter' example is better implemented as a class
+
+class Counter
+{
+  private $counter;
+
+  function __construct($counter_init)
+  {
+    $this->counter = $counter_init;
+  }
+
+  function next_counter() { $this->counter++; return $this->counter; }
+  function prev_counter() { $this->counter; return $this->counter; }
+}
+
+// ------------
+
+$counter = new Counter(42);
+echo $counter->next_counter() . "\n";
+echo $counter->next_counter() . "\n";
+echo $counter->prev_counter() . "\n";
+
+// @@PLEAC@@_10.4
+// AFAICT there is no means of obtaining the name of the currently executing
+// function, or, for that matter, perform any stack / activation record,
+// inspection. It *is* possible to:
+//
+// * Obtain a list of the currently-defined functions ['get_defined_functions']
+// * Check whether a specific function exists ['function_exists']
+// * Use the 'Reflection API'
+//
+// So, to solve this problem would seem to require adopting a convention where
+// a string representing the function name is passed as an argument, or a local
+// variable [perhaps called, '$name'] is so set [contrived, and of limited use]
+
+function whoami()
+{
+  $name = "whoami";
+  echo "I am: {$name}\n";
+}
+
+// ------------
+
+whoami();
+
+// @@PLEAC@@_10.5
+// In PHP all items exist as 'memory references' [i.e. non-modifiable pointers],
+// so when passing an item as a function argument, or returning an item from
+// a function, it is this 'memory reference' that is passed, and *not* the
+// contents of that item. Should several references to an item exist [e.g. if
+// passed to a function then at least two such references would exist in
+// different scopes] they would all be refering to the same copy of the item.
+// However, if an attempt is made to alter the item is made, a copy is made
+// and it is the copy that is altered, leaving the original intact.
+// 
+// The PHP reference mechanism is used to selectively prevent this behaviour,
+// and ensure that if a change is made to an item that no copy is made, and that
+// it is the original item that is changed. Importantly, there is no efficiency
+// gain from passing function parameters using references if the parameter item
+// is not altered.
+
+// A copy of the item referred to by, '$arr', is made, and altered; original
+// remains intact
+function array_by_value($arr)
+{
+  $arr[0] = 7;
+  echo $arr[0] . "\n"; 
+}
+
+// No copy is made; original item referred to by, '$arr', is altered
+function array_by_ref(&$arr)
+{
+  $arr[0] = 7;
+  echo $arr[0] . "\n"; 
+}
+
+// ------------
+
+$arr = array(1, 2, 3);
+
+echo $arr[0] . "\n";         // output: 1 
+array_by_value($arr);        // output: 7
+echo $arr[0] . "\n";         // output: 1 
+
+$arr = array(1, 2, 3);
+
+echo $arr[0] . "\n";         // output: 1 
+array_by_ref($arr);          // output: 7
+echo $arr[0] . "\n";         // output: 7 
+
+// ----------------------------
+
+// Since, 'add_vecpair', does not attempt to alter either, '$x' or '$y', it makes
+// no difference whether they are 'passed by value', or 'passed by reference'
+function add_vecpair($x, $y)
+{
+  $r = array();
+  $length = count($x);
+  for($i = 0; $i < $length; $i++) $r[$i] = $x[$i] + $y[$i];
+  return $r;
+}
+
+// ...
+count($arr1) == count($arr2) || die("usage: add_vecpair ARR1 ARR2\n");
+
+// 'passed by value'
+$arr3 = add_vecpair($arr1, $arr2);
+
+// 'passed by reference' [also possible to override default 'passed by value'
+// if required]
+$arr3 = add_vecpair(&$arr1, &$arr2);
+
+// @@PLEAC@@_10.6
+// PHP can be described as a dynamically typed language because variables serve
+// as identifiers, and the same variable may refer to data of various types.
+// As such, the set of arguments passed to a function may vary in type between
+// calls, as can the type of return value. Where this is likely to occur type
+// checking should be performed either / both within the function body, and
+// when obtaining it's return value. As for Perl-style 'return context', I
+// don't believe it is supported by PHP
+
+// Can return any type
+function mysub()
+{
+  // ...
+  return 5;
+  // ...
+  return array(5);
+  // ...
+  return "5";
+}
+
+// Throw away return type [i.e. returns a 'void' type ?]
+mysub();
+
+// Check return type. Can do via:
+// * gettype($var)
+// * is_xxx e.g. is_array($var), is_muneric($var), ...
+$ret = mysub();
+
+if (is_numeric($ret))
+{
+  ; // ...
+}
+
+if (is_array($ret))
+{
+  ; // ...
+}
+
+if (is_string($ret))
+{
+  ; // ...
+}
+
+// @@PLEAC@@_10.7
+// PHP doesn't directly support named / keyword parameters, but these can be
+// easily mimiced using a class of key / value pairs, and passing a variable
+// number of arguments
+
+class KeyedValue
+{
+  public $key, $value;
+  public function __construct($key, $value) { $this->key = $key; $this->value = $value; }
+}
+
+function the_func()
+{
+  foreach (func_get_args() as $arg)
+  {
+    printf("Key: %10s|Value:%10s\n", $arg->key, $arg->value);
+  }
+}
+
+// ----
+
+the_func(new KeyedValue("name", "Bob"),
+         new KeyedValue("age", 36),
+         new KeyedValue("income", 51000));
+
+// ----------------------------
+
+// Alternatively, an associative array of key / value pairs may be constructed.
+// With the aid of the 'extract' built-in function, the key part of this array
+// may be intsntiated to a variable name, thus more closely approximating the
+// behaviour of true named parameters
+
+function the_func($var_array)
+{
+  extract($var_array);
+
+  if (isset($name)) printf("Name:   %s\n", $name);
+  if (isset($age)) printf("Age:    %s\n", $age);
+  if (isset($income)) printf("Income: %s\n", $income);
+}
+
+// ----
+
+the_func(array("name" => "Bob", "age" => 36, "income" => 51000));
+
+// ----------------------------
+
+class RaceTime
+{
+  public $time, $dim;
+  public function __construct($time, $dim) { $this->time = $time; $this->dim = $dim; }
+}
+
+function the_func($var_array)
+{
+  extract($var_array);
+
+  if (isset($start_time)) printf("start:  %d - %s\n", $start_time->time, $start_time->dim);
+  if (isset($finish_time)) printf("finish: %d - %s\n", $finish_time->time, $finish_time->dim);
+  if (isset($incr_time)) printf("incr:   %d - %s\n", $incr_time->time, $incr_time->dim);
+}
+
+// ----
+
+the_func(array("start_time" => new RaceTime(20, "s"),
+               "finish_time" => new RaceTime(5, "m"),
+               "incr_time" => new RaceTime(3, "m")));
+
+the_func(array("start_time" => new RaceTime(5, "m"),
+               "finish_time" => new RaceTime(30, "m")));
+
+the_func(array("start_time" => new RaceTime(30, "m")));
+
+// @@PLEAC@@_10.8
+// The 'list' keyword [looks like a function but is actually a special language
+// construct] may be used to perform multiple assignments from a numerically
+// indexed array of values, and offers the added bonus of being able to skip
+// assignment of one, or more, of those values
+
+function func() { return array(3, 6, 9); }
+
+// ------------
+
+list($a, $b, $c) = array(6, 7, 8);
+
+// Provided 'func' returns an numerically-indexed array, the following
+// multiple assignment will work
+list($a, $b, $c) = func();
+
+// Any existing variables no longer wanted would need to be 'unset'
+unset($b);
+
+// As above, but second element of return array discarded
+list($a,,$c) = func();
+
+// ----------------------------
+
+// Care needed to ensure returned array is numerically-indexed
+list($dev, $ino,,,$uid) = array_slice(array_values(stat($filename)), 0, 13);
+
+// @@PLEAC@@_10.9
+// Multiple return values are possible via packing a set of values within a
+// numerically-indexed array and using 'list' to extract them
+
+function some_func() { return array(array(1, 2, 3), array("a" => 1, "b" => 2)); }
+
+// ------------
+
+list($arr, $hash) = some_func();
+
+// ----------------------------
+
+function some_func(&$arr, &$hash) { return array($arr, $hash); }
+
+// ------------
+
+$arrin = array(1, 2, 3); $hashin = array("a" => 1, "b" => 2);
+
+list($arr, $hash) = some_func($arrin, $hashin);
+
+// @@PLEAC@@_10.10
+// AFAICT, most of the PHP library functions are designed to return some required 
+// value on success, and FALSE on exit. Whilst it is possible to return NULL, or
+// one of the recognised 'empty' values [e.g. "" or 0 or an empty array etc],
+// FALSE actually seems to be the preferred means of indicating failure
+
+function a_func() { return FALSE; }
+
+a_func() || die("Function failed");
+
+if (!a_func()) die("Function failed");
+
+// @@PLEAC@@_10.11
+// Whether PHP is seen to support prototyping depends on the accepted
+// definition of this term:
+//
+// * Prototyping along the lines used in Ada, Modula X, and even C / C++,
+//   in which a function's interface is declared separately from its
+//   implementation, is *not* supported
+//
+// * Prototyping in which, as part of the function definition, parameter
+//   information must be supplied. In PHP a function definition neither
+//   parameter, nor return type, information needs to be supplied, though
+//   it is usual to see a parameter list supplied [indicates the number,
+//   positional order, and optionally, whether a parameter is passed by
+//   reference; no type information is present]. In short, prototyping in
+//   PHP is optional, and limited
+
+function func_with_one_arg($arg1)
+{
+  ; // ...
+}
+
+function func_with_two_arg($arg1, $arg2)
+{
+  ; // ...
+}
+
+function func_with_three_arg($arg1, $arg2, $arg3)
+{
+  ; // ...
+}
+
+// The following may be interpreted as meaning a function accepting no
+// arguments:
+function func_with_no_arg()
+{
+  ; // ...
+}
+
+// whilst the following may mean a function taking zero or more arguments
+function func_with_no_arg_information()
+{
+  ; // ...
+}
+
+// @@PLEAC@@_10.12
+// Unlike in Perl, PHP's 'die' [actually an alias for 'exit'] doesn't throw
+// an exception, but instead terminates the script, optionally either
+// returning an integer value to the operating system, or printing a message.
+// So, the following, does not exhibit the same behaviour as the Perl example
+
+die("some message); 
+
+// Instead, like so many modern languages, PHP implements exception handling
+// via the 'catch' and 'throw' keywords. Furthermore, a C++ or Java programmer
+// would find PHP's exception handling facility remarkably similar to those
+// of their respective languages. A simple, canonical example follows:
+
+// Usual to derive new exception classes from the built-in, 'Exception',
+// class
+class MyException extends Exception
+{
+  // ...
+}
+
+// ...
+
+try
+{
+  // ...
+  if ($some_problem_detected) throw new MyException("some message", $some_error_code);
+  // ..
+}
+
+catch (MyException $e)
+{
+  ; // ... handle the problem ...
+}
+
+// ----------------------------
+
+class FullMoonException extends Exception
+{
+  // ...
+}
+
+// ...
+
+try
+{
+  // ...
+  if ($some_problem_detected) throw new FullMoonException("...", $full_moon_error_code);
+  // ..
+}
+
+catch (FullMoonException $e)
+{
+  // ... rethrow the exception - will propagate to higher level ...
+  throw $e;
+}
+
+// @@PLEAC@@_10.13
+// Please refer to discussion about PHP scope in section two of this chapter.
+// Briefly, PHP assumes a variable name within a function to be local unless
+// it has been specifically declared with the, 'global', keyword, in which
+// case it refers to a variable in the 'superglobal' array, '$GLOBALS'. Thus,
+// inadvertant variable name shadowing cannot occur since it is it not possible 
+// to use the same name to refer to both a local and a global variable. If
+// accessing a global variable care should be taken to not accidentally update
+// it. The techniques used in this section are simply not required.
+
+// *** NOT TRANSLATED ***
+
+// @@PLEAC@@_10.14
+// In PHP once a function has been defined it remains defined. In other words,
+// it cannot be undefined / deleted, nor can that particular function name be
+// reused to reference another function body. Even the lambda-like functions
+// created via the 'create_function' built-in, cannot be undefined [they exist
+// until script termination, thus creating too many of these can actually
+// exhaust memory !]. However, since the latter can be assigned to variables,
+// the same variable name can be used to reference difference functions [and
+// when this is done the reference to the previous function is lost (unless
+// deliberately saved), though the function itself continues to exist].
+//
+// If, however, all that is needed is a simple function aliasing facility,
+// then just assign the function name to a variable, and execute using the
+// variable name
+
+// Original function
+function expand() { echo "expand\n"; }
+
+// Prove that function exists
+echo (function_exists('expand') ? "yes" : "no") . "\n";
+
+// Use a variable to alias it
+$grow = 'expand';
+
+// Call function via original name, and variable, respectively
+expand();
+
+$grow(); 
+
+// Remove alias variable
+unset($grow);
+
+// ----------------------------
+
+function fred() { echo "fred\n"; }
+
+$barney = 'fred';
+
+$barney();
+
+unset($barney);
+
+fred();
+
+// ------------
+
+$fred = create_function('', 'echo "fred\n";');
+
+$barney = $fred;
+
+$barney();
+
+unset($barney);
+
+$fred();
+
+// ----------------------------
+
+function red($text) { return "<FONT COLOR='red'>$text</FONT>"; }
+
+echo red("careful here") . "\n";
+
+// ------------
+
+$colour = "red";
+
+$$colour = create_function('$text', 'global $colour;
+return "<FONT COLOR=\'$colour\'>$text</FONT>";');
+
+echo $$colour("careful here") . "\n";
+
+unset($$colour);
+
+// ----
+
+$colours = split(" ", "red blue green yellow orange purple violet");
+
+foreach ($colours as $colour)
+{
+  $$colour = create_function('$text', 'global $colour;
+  return "<FONT COLOR=\'$colour\'>$text</FONT>";');
+}
+
+foreach ($colours as $colour) { echo $$colour("Careful with this $colour, James") . "\n"; }
+
+foreach ($colours as $colour) { unset($$colour); }
+
+// @@PLEAC@@_10.15
+// PHP sports an AUTOLOAD facility that is quite easy to use, but, AFAICT, is geared
+// towards the detection of unavailable classes rather than for individual functions.
+// Here is a rudimentary example:
+
+function __autoload($classname)
+{
+  if (!file_exists($classname))
+  {
+    // Class file does not exist, so handle situation; in this case,
+    // issue error message, and exit program
+    die("File for class: {$classname} not found - aborting\n");
+  }
+  else
+  {
+    // Class file exists, so load it
+    require_once $classname;
+  }
+}
+
+// ------------
+
+// Attempt to instantiate object of undefined class 
+new UnknownClassObject();
+
+// Execution continues here if class exists
+// ...
+
+// ----------------------------
+
+// It is also possible to perform [quite extensive] introspection on functions,
+// variables etc, so it is possible to check whether a function exists before
+// executing it, thus allowing a non-existent functions to be searched for and
+// loaded from a source file, or perhaps dynamically defined. An example of what
+// could be described as a custom autoload facility appears below.
+
+$colours = array("red", "blue", "green", "yellow", "orange", "purple", "violet");
+
+foreach ($colours as $colour)
+{
+  $$colour = create_function('$text', 'global $colour;
+  return "<FONT COLOR=\'$colour\'>$text</FONT>";');
+}
+
+// Let's add a new colour to the list
+array_push($colours, "chartreuse"); 
+
+foreach ($colours as $colour)
+{
+  // Checking whether function is defined
+  if (!function_exists($$colour))
+  {
+    // Doesn't exist, so dynamically define it
+    $$colour = create_function('$text', 'global $colour;
+    return "<FONT COLOR=\'$colour\'>$text</FONT>";');
+
+    // Alternatively, if it exists in a source file, 'include' the file:
+    // include "newcolours.php"
+  }
+
+  echo $$colour("Careful with this $colour, James") . "\n";
+}
+
+foreach ($colours as $colour) unset($$colour); 
+
+// @@PLEAC@@_10.16
+// *** Warning *** Whilst PHP *does* allow functions to be defined within other
+// functions it needs to be clearly understood that these 'inner' functions:
+// * Do not exist until the outer function is called a first time, at which time
+//   they then remain defined
+// * Are global in scope, so are accessable outside the function by their name;
+//   the fact that they are nested within another function has, AFAICT, no bearing
+//   on name resolution
+// * Do not form a closure: the inner function is merely 'parked' within the
+//   outer function, and has no implicit access to the outer function's variables
+//   or other inner functions
+
+function outer($arg)
+{
+  $x = $arg + 35;
+  function inner() { return $x * 19; }
+
+  // *** wrong *** 'inner' returns 0 * 19, not ($arg + 35) * 19
+  return $x + inner();
+}
+
+// ----------------------------
+
+function outer($arg)
+{
+  $x = $arg + 35;
+
+  // No implicit access to outer function scope; any required data must be
+  // explicity passed
+  function inner($x) { return $x * 19; }
+
+  return $x + inner($x);
+}
+
+// ------------ 
+
+// Equivalent to previously-shown code
+function inner($x)
+{
+  return $x * 19;
+}
+
+function outer($arg)
+{
+  $x = $arg + 35;
+  return $x + inner($x);
+}
+
+// @@PLEAC@@_10.17
+// @@INCOMPLETE@@
+// @@INCOMPLETE@@
+
