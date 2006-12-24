@@ -872,6 +872,1134 @@ char * extension(const char * path){
 // fprintf(stdout, "ext is %s\n", extension(path));
 // ext is .a
 
+// @@PLEAC@@_10.0
+#include <stdio.h>
+
+// Declaring the variable as 'static' ensures it has 'file scope', that is:
+// * It may be considered globally accessable within the current source file
+// * Is not visible to code defined outside the current file
+static int greeted = 0;
+
+int howManyGreetings(void);
+void hello(void);
+
+// ------------
+
+int main(void)
+{
+  hello();
+
+  int greetings = howManyGreetings();
+
+  printf("bye there!, there have been %d greetings so far\n", greetings);
+}
+
+// ------------
+
+int howManyGreetings(void)
+{
+  return greeted;
+}
+
+void hello(void)
+{
+  printf("high there!, this function has been called %d times\n", ++greeted);
+}
+
+// @@PLEAC@@_10.1
+// Standard C requires that a function be prototyped, hence the name and type of parameters
+// must be specified, and the argumemt list in any calls to that function must match the
+// parameter list, as illustrated here. 
+
+#include <math.h>
+
+double hypotenuse(double side1, double side2);
+
+// ----
+
+int main(void)
+{
+  double diag = hypotenuse(3.0, 4.0);
+}
+
+// ----
+
+double hypotenuse(double side1, double side2)
+{
+  return sqrt(pow(side1, 2.0) + pow(side2, 2.0));
+}
+
+// ----------------------------
+
+// Standard C does not support the dynamic packaging / unpackaging of arguments, thus it is
+// *not* possible to call a function which has, for example, been declared to expect two
+// parameters, with a single argument, to to pass it its arguments packed as elements in
+// a single array and expect those elements to be 'unpacked' from the array. If the function
+// is to be passed an array when called, then it must be declared to expect an array. Put
+// simply, the function call must conform to the function declaration and definition
+
+#include <math.h>
+
+double hypotenuse(double sidearr[]);
+
+// ----
+
+int main(void)
+{
+  double sidearr[] = {3.0, 4.0};
+  double diag = hypotenuse(sidearr);
+}
+
+// ----
+
+double hypotenuse(double sidearr[])
+{
+  return sqrt(pow(sidearr[0], 2.0) + pow(sidearr[1], 2.0));
+}
+
+// ----------------------------
+
+// Scope does exist to implement functions that may be passed a variable number of parameters.
+// However, such functions have to be especially written to determine the number and type of
+// arguments passed, a task that is generally quite precarious because there is little system
+// support for it, and it is strongly reliant on the programmer adhering to certain conventions.
+// For instance, it is not possible to determine the type of the arguments passed. Instead, this
+// must be determined by 'hints' [e.g. 'printf' uses the format specifiers in the format
+// string to determine argument type], or by strictly adhering to other conventions [e.g. 
+// assuming a specific number of arguments, or using a value to indicate the 'last' argument
+
+#include <math.h>
+#include <stdarg.h>
+
+// Note: at least one parameter must be specified, the rest may then be unspecified i.e. a
+// variable number
+double hypotenuse(double side1, ...);
+
+// ----
+
+int main(void)
+{
+  double diag = hypotenuse(3.0, 4.0);
+}
+
+// ----
+
+// Note: at least one parameter must be specified, the rest may then be unspecified i.e. a
+// variable number
+double hypotenuse(double side1, ...)
+{
+  va_list ap;
+
+  va_start(ap, side1);
+
+  // Here we're assuming exactly two arguments are passed: the first argument is 'side1'
+  // and the first [and only] variable argument is extracted into 'side2'. Any additional
+  // arguments ar simply ignored. Normally, however, 'va_arg' is placed in a loop, and 
+  // each argument extracted in turn
+  double side2 = va_arg(ap, double);
+
+  va_end(ap);
+
+  return sqrt(pow(side1, 2.0) + pow(side2, 2.0));
+}
+
+// ----------------------------
+
+#include <stddef.h>
+
+void int_all(const double arr[], int retarr[], size_t arrsize);
+
+// ----
+
+int main(void)
+{
+  const double nums[] = {1.4, 3.5, 6.7};
+
+  const size_t ARRSIZE = sizeof(nums) / sizeof(double);
+  int ints[ARRSIZE];
+
+  int_all(nums, ints, ARRSIZE);
+}
+
+// ----
+
+void int_all(const double arr[], int retarr[], size_t arrsize)
+{
+  for (size_t i = 0; i < arrsize; ++i)
+  {
+    // Since 'retarr' is type 'int', implicit data conversion occurs, but data could
+    // be lost; 'arr' is untouched, and is protected since it is 'const' qualified
+    retarr[i] = arr[i];
+  }
+}
+
+// ----------------------------
+
+#include <stddef.h>
+#include <math.h>
+
+void trunc_em(double arr[], size_t arrsize);
+
+// ----
+
+int main(void)
+{
+  double nums[] = {1.4, 3.5, 6.7};
+  trunc_em(nums, sizeof(nums) / sizeof(double));
+}
+
+// ----
+
+void trunc_em(double arr[], size_t arrsize)
+{
+  for (size_t i = 0; i < arrsize; ++i)
+  {
+    // Safer to use 'floor' instead of casting
+    arr[i] = floor(arr[i]);
+  }
+}
+
+// @@PLEAC@@_10.2
+// Variables declared within a function body are local to that function, and those declared
+// outside a function body are global, that is, are visible throughout the executable
+// unless their visibility has been restricted to the source file in which they are defined
+// via the 'static' keyword
+
+void somefunc(void)
+{
+  // All these variables are local to this function
+  int variable;
+  int another, an_array[5];
+
+  ; // ...
+}
+
+// ----------------------------
+
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
+
+// File scope variables
+static char* name = NULL;
+static int age = 0;
+static int c = 0;
+static int condition = 0;
+
+void run_check(void);
+void check_x(int x);
+
+// ----
+
+int main(int argc, char** argv)
+{
+  name = strcpy(malloc(strlen(argv[1]) + 1), argv[1]);
+  age = atoi(argv[2]);
+
+  check_x(age);
+
+  free(name);
+}
+
+// ------------
+
+void run_check(void)
+{
+  // Full access to file scope variables
+  condition = 1;
+  // ...
+}
+
+void check_x(int x)
+{
+  // Full access to file scope variables
+  const char y[] = "whatever";
+
+  run_check();
+
+  // 'condition' updated by 'run_check'
+  if (condition)
+  {
+    ; // ...
+  }
+}
+
+// @@PLEAC@@_10.3
+// Through use of the 'static' keyword it is possible to create 'persistent private variables',
+// that is, variables that are accessable only by a select set of functions, and that retain
+// their value in between function calls. In Standard C these may be implemented in two ways:
+// * File Scope Variables. Here a source file contains global variable(s) [those residing
+//   outside any function body] declared as 'static'. Only the set of function defined within
+//   that file has access those variables, thus they may be considered 'private', and since
+//   they retain their value in between function calls, are also 'persistent'
+
+// File: 'mysubs.h'
+void mysub(void);
+void reset(void);
+
+// ----
+
+// File: 'mysubs.c'
+static int variable = 1;
+
+void mysub(void)
+{
+  ; // ... do something with 'variable' ...
+}
+ 
+void reset(void) { variable = 1; }
+
+// ----
+
+// File: 'test.c'
+#include "mysubs.h"
+
+int main(void)
+{
+  // 'variable' is not accessable here
+
+  // Call 'mysub', which can access 'variable'
+  mysub();
+
+  // Call 'reset' which sets 'variable' to 1  
+  reset();
+}
+
+// ------------
+
+// File: 'counter.h'
+int increment(void);
+int decrement(void);
+
+// File: 'counter.c'
+static int counter = 0;
+
+int increment(void) { return ++counter; }
+int decrement(void) { return --counter; }
+
+// File: 'test.c'
+#include <stdio.h>
+#include "counter.h"
+
+int main(void)
+{
+  int a = increment();
+  printf("%d\n", a);
+
+  a = decrement();
+  printf("%d\n", a);
+}
+
+// * Function Scope Variables. These are local variables declared 'static'; they are visible
+//   only within the function body [hence are 'private'], and persist in between calls of that
+//   function
+
+#include <stdio.h>
+
+enum CMD_TYPE {INC_CMD, DEC_CMD};
+
+int Counter(enum CMD_TYPE cmd_type);
+
+// ----
+
+int main(void)
+{
+  int a = Counter(INC_CMD);
+  printf("%d\n", a);
+
+  a = Counter(DEC_CMD);
+  printf("%d\n", a);
+}
+
+// ----
+
+int Counter(enum CMD_TYPE cmd_type)
+{
+  static int counter = 0;
+
+  // GNU Extension: nested functions, have direct access to 'counter'
+  int increment(void) { return ++counter; }
+  int decrement(void) { return --counter; }
+
+  if (cmd_type == INC_CMD) increment();
+  if (cmd_type == DEC_CMD) decrement();
+
+  return counter;  
+}
+
+// @@PLEAC@@_10.4
+// Standard C offers no facility for performing ad-hoc, runtime stack inspection; therefore,
+// information such as the currently-executing function name, cannot be obtained. However,
+// there is a GNU extension which allows the embedding of the function name within the
+// function body, and code may be written to somehow utilise this information. Two additional
+// GNU extension functions - '__builtin_return_address' and '__builtin_frame_address' - *do*
+// allow runtime stack inspection. However, this does not include access to information such
+// as the function name.
+
+void whoami(void)
+{
+  // A Standard C facility, '__func__', performs a similar role
+  printf("I am function: %s\n", __FUNCTION__);
+}
+
+// @@PLEAC@@_10.5
+// Standard C supports only 'pass-by-value', that is, a copy of each argument is passed when
+// calling a function. The approach is the same whether the argument is a primitive type such
+// as an 'int', an aggregate type such as a struct, or an array, or, a specialised type like
+// a pointer. Despite this, 'pass-by-reference' is possible, though it is performed indirectly
+// via pointers. Put simply, when an argument needs to be modified, or to avoid the overhead
+// of copying a potentially 'large' argument, its address [i.e. pointer] is passed in its
+// place. The pointer is then used to refer to the actual item [hence 'reference'].
+// In all such cases, bar one, the address of the referred item must be specifically obtained.
+// The exception is when passing arrays; the system automatically passes a pointer rather than
+// copying the array: the address of the first array element from which all other element
+// locations can be computed.
+
+void array_diff(int arr1[], int arr2[]);
+
+// ----
+
+int main(void)
+{
+  int arr1[] = {1, 2, 3}, arr2[] = {4, 5, 6};
+
+  // Call 'array_diff' with 'arr1' and 'arr2' as arguments. Although each argument is
+  // passed-by-value, because they are arrays, only the address of the first element
+  // is passed. Effectively, 'references' to these arrays are passed, and the overhead
+  // of copying is avoided
+  array_diff(arr1, arr2);
+}
+
+// ----
+
+void array_diff(int arr1[], int arr2[])
+{
+  ; // ...
+}
+
+// ----------------------------
+
+#include <stdlib.h>
+
+int* add_vecpair(const int* vec1, const int* vec2, int size);
+
+// ----
+
+int main(void)
+{
+  int a[] = {1, 2}, b[] = {5, 8};
+
+  int* c = add_vecpair(a, b, 2);
+
+  free(c);
+}
+
+// ----
+
+int* add_vecpair(const int* vec1, const int* vec2, int size)
+{
+  int* retvec = malloc(size * sizeof(int));
+
+  for(int i = 0; i < size; ++i)
+  {
+    retvec[i] = vec1[i] + vec2[i];
+  }
+
+  return retvec;
+}
+
+// @@PLEAC@@_10.6
+// Standard C is a statically-typed language based on type declarations. This means that:
+// * Each variable, as well each function's parameters and return value, is declared to have
+//   a type; this is a permanent attribute which cannot be altered [except through 'casting'
+//   which may be seen as selective circumvention of the type system]. Put simply, a variable
+//   declared to be of type 'X' can only be assigned such types; a function declared to return
+//   type 'X' must return such a type
+// * Type checking is done at compilation time, so it should not be possible [except through
+//   casting] to generate code that is not type conformant e.g. attempts to assign type 'Y'
+//   where a type 'X' is expected, or to return an array instead of a struct from a function,
+//   should fail as compilation errors 
+//
+// The short of it is that, in Standard C, 'return context' is something that is determined at
+// compilation time, therefore is not something that can be altered. Runtime-determined
+// 'return context' is really only something meaningful in dynamically-typed, interpreted
+// languages.
+// 
+// That being said, it *is* possible to implement a crude, very limited, form of
+// runtime-determined 'return context' via the use of 'void*'. The Perl 'mysub' example, below,
+// will use this approach. Please note the intent here is to show possibilities; the approach is
+// an example of 'selective type system circumvention', and is not generally a recommended one 
+// unless it is part of a larger library specifcally designed for this purpose
+
+#include <stdio.h>
+
+enum ret_type { WANT_NULL, WANT_INT, WANT_INT_ARRAY } RET_TYPE;
+
+void* mysub(void* arg);
+
+// ----
+
+int main(void)
+{
+  mysub(NULL);
+
+  RET_TYPE = WANT_INT;
+  int a = mysub(5);
+  printf("%d\n", a);
+
+  RET_TYPE = WANT_INT_ARRAY;
+  int arr[] = {1, 2, 3};
+  int* retarr = mysub(arr);
+  printf("%d:%d:%d\n", arr[0], arr[1], arr[2]);
+}
+
+// ----
+
+void* mysub(void* arg)
+{
+  if (RET_TYPE == WANT_INT) return (int) arg;
+  if (RET_TYPE == WANT_INT_ARRAY) return (int*) arg;
+  return NULL;
+}
+
+// @@PLEAC@@_10.7
+// Standard C offers no support for named / keyword parameters. It is of course possible to
+// mimic such functionality in several ways:
+// * Bury key=value pairs in a string, and pass string as single argument
+// * Adopt a convention of passing arguments as hash table entries, or as list nodes
+// * Use variable argument functions with structs of key / value pairs
+// In all cases argument unpacking must be performed within the function body, so the 
+// approach can hardly be called transparent. Additionally, a fair amount of code would be
+// needed to build a usable, flexible and robust facility, and such facilities *are*
+// available as third party libraries
+// @@INCOMPLETE@@
+
+// @@PLEAC@@_10.8
+// It's generally only interpreted languages, or those supporting some sort of pattern
+// matching that implement such a facility. In Standard C a function must return a value in
+// conformance with its return type specification [returning nothing - 'void' - may still be
+// seen as returning a value]. Where the return value is an aggregate - struct or array - it
+// is not possible to perform selective 'masking out' of it's contents; the entire item is
+// captured then processed as needs be. Therefore the examples in this section could not be
+// implemented
+
+// @@PLEAC@@_10.9
+// Standard C allows only the return of a single value. The return of multiple values *can*,
+// however, be simulated by packaging them within an aggregate type: a struct or an array.
+// The catch is, however, that the return value must be manually 'unpacked', thus using
+// this approach is a deliberate design decision rather than the use of an ad-hoc facility
+
+#include <stdlib.h>
+#include <stdio.h>
+
+typedef struct HASH_
+{
+  char* key;
+  char* value;
+} HASH;
+
+typedef struct ARRAY_HASH_
+{
+  char* array;
+  HASH* hash;
+} ARRAY_HASH;
+
+ARRAY_HASH some_func(char array[], HASH hash[]);
+
+// ----
+
+int main(void)
+{
+  // GNU Extensions: compound literals
+  ARRAY_HASH refs = some_func((char[]) {'a', 'b', 'c'}, (HASH[]) {{"k1", "v1"}, {"k2", "v2"}});
+
+  printf("%c\n", refs.array[1]);
+  printf("%s:%s\n", refs.hash[1].key, refs.hash[1].value);
+}
+
+// ----
+
+ARRAY_HASH some_func(char array[], HASH hash[])
+{
+  ; // ... do something with 'array' and 'hash'
+
+  // GNU Extensions: compound literals
+  return (ARRAY_HASH) {array, hash};
+}
+
+// @@PLEAC@@_10.10
+// Unlike in Perl, it is not possible for a function to selectively return / not return a
+// value; a function is defined to either return a specific type, or to return no value at
+// all [i.e. to return 'void']. Thus, this approach cannot be used to 'return failure'.
+// Conventions used in Standard C to indicate function failure include:
+// * Return a pointer; the return of a NULL-valued pointer may indicate 'failure' such as,
+//   for example, the inability to allocate dynamic memory, or, in the case of the 'fopen'
+//   library function, the failure to open a file
+// * Return an 'int' value where a 0 or positive value indicates success, and a -1 value 
+//   indicates failure. Some library functions also set the 'errno' global variable to a
+//   known error code for further diagnostic information
+
+#include <stdlib.h>
+
+char* func(void)
+{
+  int error_detected = 0;
+  char* valid_char_pointer;
+
+  ; // ...
+
+  if (error_detected) return NULL;
+
+  ; // ...
+  
+  return valid_char_pointer;
+}
+
+// ----------------------------
+
+#include <stdlib.h>
+#include <stdio.h>
+
+void die(const char* msg)
+
+int sfunc(void);
+char* afunc(void);
+char* hfunc(void);
+
+// ------------
+
+int main(void)
+{
+  int s; char *a, *h;
+ 
+  if ((s = sfunc()) == -1) die("'sfunc' failed\n");
+  if ((a = afunc()) == NULL) die("'afunc' failed\n");
+  if ((h = hfunc()) == NULL) die("'hfunc' failed\n");
+}
+
+// ------------
+
+void die(const char* msg)
+{
+  fputs(msg, stderr);
+  exit(EXIT_FAILURE);
+}
+
+// ----
+
+int sfunc(void)
+{
+  int error_detected = 0;
+  int valid_int_value;
+
+  ; // ...
+
+  if (error_detected) return -1;
+
+  ; // ...
+  
+  return valid_int_value;
+}
+
+char* afunc(void)
+{
+  int error_detected = 0;
+  char* valid_char_pointer;
+
+  ; // ...
+
+  if (error_detected) return NULL;
+
+  ; // ...
+  
+  return valid_char_pointer;
+}
+
+char* hfunc(void)
+{
+  int error_detected = 0;
+  char* valid_char_pointer;
+
+  ; // ...
+
+  if (error_detected) return NULL;
+
+  ; // ...
+  
+  return valid_char_pointer;
+}
+
+// @@PLEAC@@_10.11
+// Whilst in Perl function prototyping is optional, this is not the case in C, where it is
+// necessary to:
+// * Declare a function before use; this could either be a function declaration separate from
+//   the function definition, or the function definition itself which serves as its own
+//   declaration
+// * Specify both parameter positional and type information; parameter names are optional in
+//   declarations, mandatory in definitions
+// * Specify return type; in the past this was optional, but now this is mandatory
+
+#include <stdlib.h>
+#include <stdio.h>
+
+// Function Declaration
+int* myfunc(int arg1, int arg2); // Also possible: int* myfunc(int, int);
+
+// ----
+
+int main(void)
+{
+  // Call function with all required arguments; this is the only calling method
+  // [except for calling via function pointer which still needs all arguments supplied]
+  int* results = myfunc(3, 5);
+
+  // Let's look at our return array's contents
+  printf("%d:%d\n", results[0], results[1]);
+
+  free(results);
+}
+
+// ----
+
+// Function Definition
+int* myfunc(int arg1, int arg2)
+{
+  // Allocate some memory, pack arguments into array for return
+  int* results = malloc(2 * sizeof(int));
+
+  *(results + 0) = arg1;
+  *(results + 1) = arg2;
+
+  return results;
+}
+
+// ------------
+
+// Other Perl examples are omitted since there is no variation in C function calling or
+// parameter handling
+
+// @@PLEAC@@_10.12
+// Though perhaps not a widely used idiom in Standard C the language does offer exception
+// handling support. Some pertinent reading:
+//
+// * http://en.wikipedia.org/wiki/Exception_handling
+// * http://portal.acm.org/citation.cfm?coll=GUIDE&dl=GUIDE&id=512997
+//
+// The example in this section doesn't strctly follow the Perl code, but merely shows how
+// an exception can be thrown, and handled. The approach used is based on code from:
+//
+// * http://ldeniau.home.cern.ch/ldeniau/html/exception/exception.html
+// 
+// It is worth mentioning that 'exception handling support' consists of the provision, in
+// the Standard C library, of the 'setjmp' and 'longjmp' functions. Exception handling
+// code such as that used here is essentially an infrastrucure built around these two
+// functions with 'setjmp' being used to create a destination for a later invocation of
+// 'longjmp' to 'goto' [a.k.a. perform a non-local exit], and in the process, ensuring
+// the 'program state' is wound back to the time the 'setjmp' call was made. Further
+// details are obtainable by referencing the relevant documentation.
+
+#include <stdio.h>
+#include "exception.h"
+
+enum
+{
+  E_invalid = 0,     // This exception can never be thrown
+
+  E_bad_exit,        // 'standard' exceptions
+  E_bad_alloc,
+  E_bad_cast,
+  E_bad_typeid,
+
+  E_usr_fullmoon,    // User-defined exceptions
+  
+  E_last_exception   // Last exception id
+};
+
+int main(void)
+{
+  printf("main - entry\n");
+
+  try
+  {
+    printf("try block - entry\n");
+    printf("... doing stuff ...\n");
+
+    // if (... error condition detected ...)
+         throw(E_usr_fullmoon);
+
+    // Control never gets here ...
+    printf("try block - end\n");
+  }
+
+  catch (E_usr_fullmoon)
+  {
+    printf("Caught a 'fullmoon' exception\n");
+  }
+
+  catch_any
+  {
+    printf("Caught an unknown exception, error code: %d\n", exception);
+  }
+
+  endtry;
+
+  // Control gets here regardless of whether an exception is thrown or not
+  printf("main - end\n");
+}
+
+// Include here, or separately compile and link with your executable
+#include "exception.c"
+
+// @@PLEAC@@_10.13
+// In Standard C it *isn't possible* to access a global variable that has been shadowed by a
+// local variable of the same name, thus there is no need to save / restore such variables. If
+// both global and local variable need to be accessable, consider renaming one of them. An
+// oft used convention is to name global variables using capitals; thus the same name may be
+// used to indicate the variables are related, but the different case ensures that each remains
+// visible
+
+#include <stdio.h>
+
+// Global variable
+static int age = 18;
+
+// ----
+
+void print_age(void)
+{
+  // Global value, 'age', is accessed
+  printf("Age is %d\n", age);
+}
+
+// ------------
+
+int main(void)
+{
+  // A local variable named, 'age' will act to 'shadow' the globally
+  // defined version, thus any changes to, 'age', will not affect
+  // the global version
+  int age = 5;
+
+  // Prints 18, the current value of the global version
+  print_age();
+
+  // Local version is altered, *not* global version
+  age = 23;
+
+  // Prints 18, the current value of the global version
+  print_age();
+}
+
+// ----------------------------
+
+#include <stdio.h>
+
+// Global variable
+static int age = 18;
+
+// ----
+
+void print_age(void)
+{
+  // Global value, 'age', is accessed
+  printf("Age is %d\n", age);
+}
+
+// ------------
+
+int main(void)
+{
+  // Here no local version declared: any changes affect global version
+  age = 5;
+
+  // Prints 5, the new value of the global version
+  print_age();
+
+  // Global version again altered
+  age = 23;
+
+  // Prints 23, the new value of the global version
+  print_age();
+}
+
+// ----------------------------
+
+#include <stdio.h>
+
+// Global variable
+int AGE = 18;
+
+// ----
+
+void print_age(void)
+{
+  // Global value, 'AGE', is accessed
+  printf("Age is %d\n", AGE);
+}
+
+// ------------
+
+int main(void)
+{
+  int age = AGE;
+
+  // Prints 18, the new value of 'AGE'
+  print_age();
+
+  // Global variable is altered
+  AGE = 23;
+
+  // Prints 23, the new value of 'AGE'
+  print_age();
+
+  // 'AGE' restored from saved local version
+  AGE = age;
+
+  // Prints 18, the restored value of 'AGE'
+  print_age();
+}
+
+// @@PLEAC@@_10.14
+// Standard C does not allow the redefinition of a function at runtime. A function's name
+// [as seen in source code] is, at runtime, actually an unalterable value: the address of
+// a chunk of code. Therefore, a function named 'f' will, for as long as the executable 
+// exists, be associated with a particular chunk of code.
+
+void f(void)
+{
+  ; // ... 
+}
+
+// ----
+
+int main(void)
+{
+  f();                   // Call function 'f'
+
+  void (*fp)(void) = f;  // Get address of function 'f'; place in function pointer variable 
+  fp();                  // Call function 'f' using its address
+}
+
+// However, if the convention of using a function pointer variable to call a function, is
+// adopted, then it becomes possible to call one of possibly several same-signature [i.e.
+// same parameter list and return type] functions by simply assigning a different address
+// to the variable. In this way it is possible to not only execute other available functions,
+// but also those residing in external libraries [i.e. shared libraries / DLL's]
+
+// Perl 'grow / expand' combined example
+#include <stdio.h>
+
+typedef void (*FPTR)(void);
+
+void grow(void) { printf("grow\n"); }
+void expand(void) { printf("expand\n"); }
+
+// ----
+
+int main(void)
+{
+  // Display addresses of each function; each should be a different value
+  printf("grow -> %x | expand -> %x\n", grow, expand);
+
+  // Call functions directly by name
+  grow();
+  expand();
+
+  // Call functions indirectly using function pointer variable 
+  FPTR fp = grow;
+  fp();
+
+  fp = expand;
+  fp();
+
+  // Local scope 
+  {
+    // Current version of 'fp' will shadow outer scope version
+    FPTR fp = grow;
+
+    // Should now be 'grow'
+    fp();
+  }
+
+  // Should still be 'expand' since the 'fp' at this scope was untouched
+  fp();
+}
+
+// ----------------------------
+
+#include <stdio.h>
+
+typedef void (*FPTR)(void);
+
+void fred_func(void) { printf("fred\n"); }
+void barney_func(void) { printf("barney\n"); }
+
+// ----
+
+int main(void)
+{
+  // Note: 'fred' is the pointer variable name. It is *not* possible to redefine function
+  // names
+  FPTR fred = fred_func;
+  fred();
+
+  fred = barney_func;
+  fred();
+}
+
+// ----------------------------
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+const char* red(const char* text)
+{
+  return strcat(strcat(strcpy(malloc(64), "<FONT COLOR='red'>"), text), "</FONT>");
+}
+
+// ----
+
+int main(void)
+{
+  const char* color_tag = red("careful here");
+  printf("%s\n", color_tag);
+  free(color_tag);
+}
+
+// ----------------------------
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+const char* color_font(const char* color, const char* text)
+{
+  return strcat(strcat(strcat(strcat(strcpy(malloc(128), "<FONT COLOR='"), color), "'>"), text), "</FONT>");
+}
+
+const char* red(const char* text) { return color_font("red", text); }
+const char* blue(const char* text) { return color_font("blue", text); }
+const char* green(const char* text) { return color_font("green", text); }
+
+// ----
+
+int main(void)
+{
+  const char* color_tag = red("careful here");
+  printf("%s\n", color_tag);
+  free(color_tag);
+
+  color_tag = blue("careful here");
+  printf("%s\n", color_tag);
+  free(color_tag);
+
+  color_tag = green("careful here");
+  printf("%s\n", color_tag);
+  free(color_tag);
+}
+
+// ----------------------------
+
+// It isn't possible, in Standard C, to generate code 'on the fly' as is done in the Perl
+// examples. The code must have been pre-generated, and either statically linked [i.e. 
+// actually part of the executable] or be dynamically loadable [i.e. residing in an external
+// library which may be located and loaded]. A more appropriate way to solve this problem
+// is simply to directly call the 'color_font' function with the required arguments, two
+// approaches of which are shown below in (1) and (2)
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+const char* color_font(const char* color, const char* text)
+{
+  return strcat(strcat(strcat(strcat(strcpy(malloc(128), "<FONT COLOR='"), color), "'>"), text), "</FONT>");
+}
+
+// ----
+
+// (1) Traverse parallel arrays of arguments
+int main(void)
+{
+  const char* colors[] = {"red", "blue", "green", "yellow", "orange", "purple", "violet", NULL};
+  const char* texts[] = {"x", "y", "z", "a", "b", "c", "d", NULL};
+
+  const char* color_tag;
+  
+  for (const char **color = colors, **text = texts; *color != NULL; ++color, ++text)
+  {
+    color_tag = color_font(*color, *text);
+    printf("%s\n", color_tag);
+    free(color_tag);
+  }
+}
+
+// ----
+
+// (2) Package arguments as a struct; traverse array of such structs
+typedef struct TAG_TEXT_
+{
+  const char* color;
+  const char* text;
+} TAG_TEXT;
+
+int main(void)
+{
+  const TAG_TEXT tags[] =
+  {
+    {"red", "x"}, {"blue", "y"}, {"green", "z"}, {"yellow", "a"},
+    {"orange", "b"}, {"purple", "c"}, {"violet", "d"}
+  };
+  const int TAGS = sizeof(tags) / sizeof(TAG_TEXT);
+
+  const char* color_tag;
+
+  for (int i = 0; i < TAGS; ++i)
+  {
+    color_tag = color_font(tags[i].color, tags[i].text);
+    printf("%s\n", color_tag);
+    free(color_tag);
+  }
+}
+
+// @@PLEAC@@_10.15
+// Undefined function calls are detected as errors at code generation time:
+//
+// * At compilation time a function must be explicitly declared before being called i.e. it
+//   must have a prototype, else a compilation error occurs
+// * At linkage time [i.e. when currently-generated code is combined with library code to
+//   create an executable module] the code identified with a function must be available,
+//   [or, with shared libraries, in a known location] else a linkage error occurs
+//
+// In short, in the Standard C language, no runtime detection of 'missing' functions is
+// possible since such code could never have been generated in the first place.
+//
+// However, if the convention of using a function pointer to call a function, is adopted,
+// it does become possible to check whether the function pointer variable is assigned a non-NULL
+// address, presumably the address of a valid function. Unfortunately, without the aid of
+// specialised, platform-specific library routines, it is not possible to verify the validity
+// of this address; an attempted function call either succeeds or fails, and may fail because
+// it was a bogus address. Again, the Standard C language offers no runtime detection of
+// something like a 'bogus' function address.
+//
+// The combination of 'call-by-function-pointer', and a suitable set of shared library handling
+// functions does make it possible to implement an dynamic code loading facility, even a
+// full-blown AUTOLOAD facility. However, it is important to realise that this is an
+// infrastructure built on top of the Standard C language, not an integral language feature.
+//
+// In the *NIX environment the 'dlopen', 'dlsymbol', 'dlerror', and 'dlclose' set of functions
+// is commonly used for shared library management, and would form the basis for implementing
+// an AUTOLOAD facility. The following is an example of a very minimal dynamic loading system
+// illustrating how a function named 'chartreuse' residing in a shared library called 'colors.so'
+// would be loaded, called, and unloaded. Note that this is not an example of dynamic code
+// generation, as in the Perl example, since the 'chartreuse' function *must already exist*
+// for it to even have a chance of executing.
+//
+// Of course it is possible to write code that creates C source file(s), invokes various
+// code generation tools, and builds a shared library which may subsequently be loaded and
+// run. Again, though, this is a custom infrastructure, not an integral language facility.
+// @@INCOMPLETE@@
 
 // @@PLEAC@@_10.16
 //------------------------------------------------------------------
@@ -887,6 +2015,9 @@ int outer( int arg1 ){
   return x + inner();
 }
 
+// @@PLEAC@@_10.17
+// @@INCOMPLETE@@
+// @@INCOMPLETE@@
 
 // @@PLEAC@@_11.15
 //------------------------------------------------------------------
