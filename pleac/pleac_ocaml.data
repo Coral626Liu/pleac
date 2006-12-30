@@ -3439,6 +3439,60 @@ let sortedMailByHash fn =
 List.iter (fun m -> print_endline m) (sortedMailByHash "mbox");;
 
 
+(* @@PLEAC@@_16.1 *)
+
+#load "unix.cma"
+
+let read_process command =
+  let buffer_size = 2048 in
+  let buffer = Buffer.create buffer_size in
+  let string = String.create buffer_size in
+  let in_channel = Unix.open_process_in command in
+  let chars_read = ref 1 in
+  while !chars_read <> 0 do
+    chars_read := input in_channel string 0 buffer_size;
+    Buffer.add_string buffer (String.sub string 0 !chars_read)
+  done;
+  close_in in_channel;
+  Buffer.contents buffer
+
+let read_process_lines command =
+  let lines = ref [] in
+  let in_channel = Unix.open_process_in command in
+  begin
+    try
+      while true do
+        lines := input_line in_channel :: !lines
+      done;
+    with End_of_file ->
+      close_in in_channel
+  end;
+  List.rev !lines
+
+let output_string = read_process "program args"
+let output_lines = read_process_lines "program args"
+
+(*-----------------------------*)
+
+let readme, writeme = Unix.pipe ()
+
+let () =
+  let pid = Unix.create_process
+    program [| program; arg1; arg2 |]
+    Unix.stdin writeme Unix.stderr in
+  Unix.close writeme;
+  let in_channel = Unix.in_channel_of_descr readme in
+  let lines = ref [] in
+  begin
+    try
+      while true do
+        lines := input_line in_channel :: !lines
+      done
+    with End_of_file -> ()
+  end;
+  Unix.close readme;
+  List.iter print_endline (List.rev !lines)
+
 (* @@PLEAC@@_16.10 *)
 
 (* pipe1 - use pipe and fork so parent can send to child *)
