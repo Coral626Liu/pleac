@@ -1325,16 +1325,175 @@ usleep(250000);
 // @@INCOMPLETE@@
 // @@INCOMPLETE@@
 
-# @@PLEAC@@_4.1
+// @@PLEAC@@_4.0
+// Nested arrays are supported, and may be easily printed using 'print_r'
+
+$nested = array('this', 'that', 'the', 'other');
+
+$nested = array('this', 'that', array('the', 'other')); print_r($nested);
+
+$tune = array('The', 'Star-Spangled', 'Banner');
+
+// @@PLEAC@@_4.1
+// PHP offers only the 'array' type which is actually an associative array, though
+// may be numerically indexed, to mimic vectors and matrices; there is no separate
+// 'list' type
+
 $a = array('quick', 'brown', 'fox');
 
-# @@PLEAC@@_4.2
-# @@INCOMPLETE@@
-# @@INCOMPLETE@@
+// ------------
 
-# @@PLEAC@@_4.3
-# @@INCOMPLETE@@
-# @@INCOMPLETE@@
+$a = escapeshellarg('Why are you teasing me?');
+
+// ------------
+
+$lines = <<<END_OF_HERE_DOC
+    The boy stood on the burning deck,
+    it was as hot as glass.
+END_OF_HERE_DOC;
+
+// ------------
+
+$bigarray = array_map('rtrim', file('mydatafile'));
+
+// ------------
+
+$banner = 'The mines of Moria';
+
+$banner = escapeshellarg('The mines of Moria');
+
+// ------------
+
+$name = 'Gandalf';
+
+$banner = "Speak {$name}, and enter!";
+
+$banner = 'Speak ' . escapeshellarg($name) . ' and welcome!';
+
+// ------------
+
+$his_host = 'www.perl.com';
+
+$host_info = `nslookup $his_host`;
+
+$cmd = 'ps ' . posix_getpid(); $perl_info = `$cmd`;
+
+$shell_info = `ps $$`;
+
+// ------------
+
+$banner = array('Costs', 'only', '$4.95');
+
+$banner = array_map('escapeshellarg', split(' ', 'Costs only $4.95'));
+
+// ------------
+
+// AFAIK PHP doesn't support non-quoted strings ala Perl's 'q', 'qq' and 'qw', so arrays
+// created from strings must use quoted strings, and make use of 'split' [or equivalent].
+// A slew of functions exist for performing string quoting, including 'escapeshellarg',
+// 'quotemeta', and 'preg_quote'
+
+$brax = split(' ', '( ) < > { } [ ]');
+
+// Do this to quote each element within '..'
+// $brax = array_map('escapeshellarg', split(' ', '( ) < > { } [ ]'));
+
+$rings = split(' ', 'Nenya Narya Vilya');
+
+$tags = split(' ', 'LI TABLE TR TD A IMG H1 P');
+
+$sample = split(' ', 'The vertical bar | looks and behaves like a pipe.');
+
+// @@PLEAC@@_4.2
+function commify_series($list)
+{
+  $n = str_word_count($list); $series = str_word_count($list, 1);
+
+  if ($n == 0) return NULL;
+  if ($n == 1) return $series[0];
+  if ($n == 2) return $series[0] . ' and ' . $series[1];
+  
+  return join(', ', array_slice($series, 0, -1)) . ', and ' . $series[$n - 1];
+}
+
+// ------------
+
+echo commify_series('red') . "\n";
+echo commify_series('red yellow') . "\n";
+echo commify_series('red yellow green') . "\n";
+
+$mylist = 'red yellow green';
+echo 'I have ' . commify_series($mylist) . " marbles.\n";
+
+// ----------------------------
+
+function commify_series($arr)
+{
+  $n = count($arr); $sepchar = ',';
+
+  foreach($arr as $str)
+  {
+    if (strpos($str, ',') === false) continue;
+    $sepchar = ';'; break; 
+  }
+
+  if ($n == 0) return NULL;
+  if ($n == 1) return $arr[0];
+  if ($n == 2) return $arr[0] . ' and ' . $arr[1];
+  
+  return join("{$sepchar} ", array_slice($arr, 0, -1)) . "{$sepchar} and " . $arr[$n - 1];
+}
+
+// ------------
+
+$lists = array(
+  array('just one thing'),
+  split(' ', 'Mutt Jeff'),
+  split(' ', 'Peter Paul Mary'),
+  array('To our parents', 'Mother Theresa', 'God'),
+  array('pastrami', 'ham and cheese', 'peanut butter and jelly', 'tuna'),
+  array('recycle tired, old phrases', 'ponder big, happy thoughts'),
+  array('recycle tired, old phrases', 'ponder big, happy thoughts', 'sleep and dream peacefully'));
+
+foreach($lists as $arr)
+{
+  echo 'The list is: ' . commify_series($arr) . ".\n";
+}
+
+// @@PLEAC@@_4.3
+// AFAICT you cannot grow / shrink an array to an arbitrary size. However, you can:
+// * Grow an array by appending an element using subscrip notation, or using
+//   either 'array_unshift' or 'array_push' to add one or more elements
+
+$arr[] = 'one';
+array_unshift($arr, 'one', 'two', 'three');
+array_push($arr, 'one', 'two', 'three');
+
+// * Shrink an array by using 'unset' to remove one or more specific elements, or
+//   either 'array_shift' or 'array_pop' to remove an element from the ends
+
+unset($arr[$idx1], $arr[$idx2], $arr[$idx3]);
+$item = array_shift($arr);
+$item = array_pop($arr);
+
+// ----------------------------
+
+function what_about_the_array()
+{
+  global $people;
+
+  echo 'The array now has ' . count($people) . " elements\n";
+  echo 'The index value of the last element is ' . (count($people) - 1) . "\n";
+  echo 'Element #3 is ' . $people[3] . "\n";
+}
+
+$people = array('Crosby', 'Stills', 'Nash', 'Young');
+what_about_the_array();
+
+array_pop($people);
+what_about_the_array();
+
+// Cannot, AFAICT, resize the array to an arbitrary size
 
 # @@PLEAC@@_4.4
 foreach ($list as $item) {
@@ -1391,6 +1550,827 @@ print_r($array);
 
 // TODO: explain the old each() and list() iteration construct.
 // foreach is new in PHP 4, and there are subtle differences.
+
+// @@PLEAC@@_4.5
+// Conventional 'read-only' access
+foreach($array as $item)
+{
+  ; // Can access, but not update, array element referred to by '$item'
+}
+
+// ----
+
+// '&' makes '$item' a reference
+foreach($array as &$item)
+{
+  ; // Update array element referred to by '$item'
+}
+
+// ------------
+
+$arraylen = count($array);
+
+for($i = 0; $i < $arraylen; $i++)
+{
+  ; // '$array' is updateable via subscript notation
+}
+
+// ----------------------------
+
+$fruits = array('Apple', 'Raspberry');
+
+foreach($fruits as &$fruit)
+{
+  echo "{$fruit} tastes good in a pie.\n";
+}
+
+$fruitlen = count($fruits);
+
+for($i = 0; $i < $fruitlen; $i++)
+{
+  echo "{$fruits[$i]} tastes good in a pie.\n";
+}
+
+// ----------------------------
+
+$rogue_cats = array('Blackie', 'Goldie', 'Silkie');
+
+// Take care to assign reference to '$rogue_cats' array via '=&'
+$namelist['felines'] =& $rogue_cats;
+
+// Take care to make '$cat' a reference via '&$' to allow updating
+foreach($namelist['felines'] as &$cat)
+{
+  $cat .= ' [meow]';
+}
+
+// Via array reference
+foreach($namelist['felines'] as $cat)
+{
+  echo "{$cat} purrs hypnotically.\n";
+}
+
+echo "---\n";
+
+// Original array
+foreach($rogue_cats as $cat)
+{
+  echo "{$cat} purrs hypnotically.\n";
+}
+
+// @@PLEAC@@_4.6
+// PHP offers the 'array_unique' function to perform this task. It works with both keyed,
+// and numerically-indexed arrays; keys / indexes are preserved; use of 'array_values' 
+// is recommended to reindex numerically-indexed arrays since there will likely be missing
+// indexes
+
+// Remove duplicate values
+$unique = array_unique($array);
+
+// Remove duplicates, and reindex [for numerically-indexed arrays only]
+$unique = array_values(array_unique($array));
+
+// or use:
+$unique = array_keys(array_flip($array));
+
+// ----------------------------
+
+// Selected Perl 'seen' examples
+foreach($list as $item)
+{
+  if (!isset($seen[$item]))
+  {
+    $seen[$item] = TRUE;
+    $unique[] = $item;
+  }
+}
+
+// ------------
+
+foreach($list as $item)
+{
+  $seen[$item] || (++$seen[$item] && ($unique[] = $item));
+}
+
+// ------------
+
+function some_func($item)
+{
+  ; // Do something with '$item'
+}
+
+foreach($list as $item)
+{
+  $seen[$item] || (++$seen[$item] && some_func($item));
+}
+
+// ----------------------------
+
+foreach(array_slice(preg_split('/\n/', `who`), 0, -1) as $user_entry)
+{
+  $user = preg_split('/\s/', $user_entry);
+  $ucnt[$user[0]]++;
+}
+
+ksort($ucnt);
+
+echo "users logged in:\n";
+
+foreach($ucnt as $user => $cnt)
+{
+  echo "\t{$user} => {$cnt}\n";
+}
+
+// @@PLEAC@@_4.7
+// PHP offers the 'array_diff' and 'array_diff_assoc' functions to perform this task. Same
+// points as made about 'array_unique' apply here also
+
+$a = array('c', 'a', 'b', 'd');
+$b = array('c', 'a', 'b', 'e');
+
+$diff = array_diff($a, $b);                 // $diff -> [3] 'd'
+$diff = array_diff($b, $a);                 // $diff -> [3] 'e'
+
+// Numerically-indexed array, reindexed
+$diff = array_values(array_diff($a, $b));   // $diff -> [0] 'd'
+$diff = array_values(array_diff($b, $a));   // $diff -> [0] 'e'
+
+// ----------------------------
+
+// 1st Perl 'seen' example only
+
+$a = array('k1' => 11, 'k2' => 12, 'k4' => 14);
+$b = array('k1' => 11, 'k2' => 12, 'k3' => 13);
+
+foreach($b as $item => $value) { $seen[$item] = 1; }
+
+// Stores key only e.g. $aonly[0] contains 'k4', same as Perl example
+foreach($a as $item => $value) { if (!$seen[$item]) $aonly[] = $item; }
+
+// Stores key and value e.g. $aonly['k4'] contains 14, same entry as in $a
+foreach($a as $item => $value) { if (!$seen[$item]) $aonly[$item] = $value; }
+
+// ----------------------------
+
+// Conventional way: $hash = array('key1' => 1, 'key2' => 2);
+
+$hash['key1'] = 1;
+$hash['key2'] = 2;
+
+$hash = array_combine(array('key1', 'key2'), array(1, 2));
+
+// ------------
+
+$seen = array_slice($b, 0);
+
+$seen = array_combine(array_keys($b), array_fill(0, count($b), 1));
+
+// @@PLEAC@@_4.8
+// PHP offers a number of array-based 'set operation' functions:
+// * union:        array_unique(array_merge(...))
+// * intersection: array_intersect and family
+// * difference:   array_diff and family
+// which may be used for this type of task. Also, if returned arrays need to be
+// reindexed, 'array_slice($array, 0)', or 'array_values($array)' are useful
+
+$a = array(1, 3, 5, 6, 7, 8);
+$b = array(2, 3, 5, 7, 9);
+
+$union = array_values(array_unique(array_merge($a, $b))); // 1, 2, 3, 5, 6, 7, 8, 9
+$isect = array_values(array_intersect($a, $b));           // 3, 5, 7
+$diff = array_values(array_diff($a, $b));                 // 1, 8
+
+// @@PLEAC@@_4.9
+// PHP offers the 'array_merge' function to perform this task. Duplicate values are retained,
+// but if arrays are numerically-indexed, resulting array is reindexed
+
+$arr1 = array('c', 'a', 'b', 'd');
+$arr2 = array('c', 'a', 'b', 'e');
+
+$new = array_merge($arr1, $arr2);     // $new -> 'c', 'a', 'b', 'd', 'c', 'a', 'b', 'd'
+
+// ----------------------------
+
+$members = array('Time', 'Flies');
+$initiates = array('An', 'Arrow');
+
+$members = array_merge($members, $initiates);
+
+// ------------
+
+$members = array('Time', 'Flies');
+$initiates = array('An', 'Arrow');
+
+// 'array_splice' is the PHP equivalent to Perl's 'splice'
+array_splice($members, 2, 0, array_merge(array('Like'), $initiates));
+echo join(' ', $members) . "\n";
+
+array_splice($members, 0, 1, array('Fruit'));
+array_splice($members, -2, 2, array('A', 'Banana'));
+echo join(' ', $members) . "\n";
+
+// @@PLEAC@@_4.10
+$reversed = array_reverse($array);
+
+// ----------------------------
+
+foreach(array_reverse($array) as $item)
+{
+  ; // ... do something with '$item' ...
+}
+
+// ------------
+
+for($i = count($array) - 1; $i >= 0; $i--)
+{
+  ; // ... do something with '$array[$i]' ...
+}
+
+// ----------------------------
+
+sort($array);
+$array = array_reverse($array);
+
+// ------------
+
+rsort($array);
+
+// @@PLEAC@@_4.11
+// Array elements can be deleted using 'unset'; removing several elements would require applying
+// 'unset' several times, probably in a loop. However, they would most likely also need to be
+// reindexed, so a better approach would be to use 'array_slice' which avoids explicit looping.
+// Where elements need to be removed, and those elements also returned, it is probably best to
+// combine both operations in a function. This is the approach taken here in implementing both
+// 'shiftN' and 'popN', and it is these functions that are used in the examples
+
+function popN(&$arr, $n)
+{
+  $ret = array_slice($arr, -($n), $n);
+  $arr = array_slice($arr, 0, count($arr) - $n);
+  return $ret;
+}
+
+function shiftN(&$arr, $n)
+{
+  $ret = array_slice($arr, 0, $n);
+  $arr = array_slice($arr, $n);
+  return $ret;
+}
+
+// ------------
+
+// Remove $n elements from the front of $array; return them in $fron
+$front = shiftN($array, $n);
+
+// Remove $n elements from the end of $array; return them in $end
+$end = popN($array, $n);
+
+// ------------
+
+$friends = array('Peter', 'Paul', 'Mary', 'Jim', 'Tim');
+
+list($this_, $that) = shiftN($friends, 2);
+
+echo "{$this_} {$that}\n";
+
+// ------------
+
+$beverages = array('Dew', 'Jolt', 'Cola', 'Sprite', 'Fresca');
+
+$pair = popN($beverages, 2);
+
+echo join(' ', $pair) . "\n";
+
+// @@PLEAC@@_4.12
+// This section illustrates various 'find first' techniques. The Perl examples all use an
+// explicit loop and condition testing [also repeated here]. This is the simplest, and
+// [potentially] most efficient approach because the search can be terminated as soon as a
+// match is found. However, it is worth mentioning a few alternatives:
+// * 'array_search' performs a 'find first' using the element value rather than a condition
+//    check, so isn't really applicable here
+// * 'array_filter', whilst using a condition check, actually performs a 'find all', though
+//   all but the first returned element can be discarded. This approach is actually less error
+//   prone than using a loop, but the disadvantage is that each element is visited: there is no
+//   means of terminating the search once a match has been found. It would be nice if this
+//   function were to have a third parameter, a Boolean flag indicating whether to traverse
+//   the whole array, or quit after first match [next version, maybe :) ?]
+
+$found = FALSE;
+
+foreach($array as $item)
+{
+  // Not found - skip to next item
+  if (!$criterion) continue;
+
+  // Found - save and leave
+  $match = $item;
+  $found = TRUE;
+  break;  
+}
+
+if ($found)
+{
+  ; // do something with $match
+}
+else
+{
+  ; // not found
+}
+
+// ------------
+
+function predicate($element)
+{
+  if (criterion) return TRUE;
+  return FALSE;
+}
+
+$match = array_slice(array_filter($array, 'predicate'), 0, 1);
+
+if ($match)
+{
+  ; // do something with $match[0]
+}
+else
+{
+  ; // $match is empty - not found
+}
+
+// ----------------------------
+
+class Employee
+{
+  public $name, $age, $ssn, $salary;
+
+  public function __construct($name, $age, $ssn, $salary, $category)
+  {
+    $this->name = $name;
+    $this->age = $age;
+    $this->ssn = $ssn;
+    $this->salary = $salary;
+    $this->category = $category;
+  }
+}
+
+// ------------
+
+$employees = array(
+  new Employee('sdf', 27, 12345, 47000, 'Engineer'),
+  new Employee('ajb', 32, 12376, 51000, 'Programmer'),
+  new Employee('dgh', 31, 12355, 45000, 'Engineer'));
+
+// ------------
+
+function array_update($arr, $lambda, $updarr)
+{
+  foreach($arr as $key) $lambda($updarr, $key);
+  return $updarr;
+}
+
+function highest_salaried_engineer(&$arr, $employee)
+{
+  static $highest_salary = 0;
+  
+  if ($employee->category == 'Engineer')
+  {
+    if ($employee->salary > $highest_salary)
+    {
+      $highest_salary = $employee->salary;
+      $arr[0] = $employee;
+    }
+  }
+}
+
+// ------------
+
+// 'array_update' custom function is modelled on 'array_reduce' except that it allows the
+// return of an array, contents and length of which are entirely dependant on what the
+// callback function does. Here, it is logically working in a 'find first' capacity
+$highest_salaried_engineer = array_update($employees, 'highest_salaried_engineer', array());
+
+echo 'Highest paid engineer is: ' . $highest_salaried_engineer[0]->name . "\n";
+
+// @@PLEAC@@_4.13
+// PHP implements 'grep' functionality [as embodied in the current section] in the 'array_filter'
+// function
+
+function predicate($element)
+{
+  if (criterion) return TRUE;
+  return FALSE;
+}
+
+$matching = array_filter($list, 'predicate');
+
+// ------------
+
+$bigs = array_filter($nums, create_function('$n', 'return $n > 1000000;'));
+
+// ------------
+
+function is_pig($user)
+{
+  $user_details = preg_split('/(\s)+/', $user);
+  // Assuming field 5 is the resource being compared
+  return $user_details[5] > 1e7;  
+}
+
+$pigs = array_filter(array_slice(preg_split('/\n/', `who -u`), 0, -1), 'is_pig');
+
+// ------------
+
+$matching = array_filter(array_slice(preg_split('/\n/', `who`), 0, -1),
+                         create_function('$user', 'return preg_match(\'/^gnat /\', $user);'));
+
+// ------------
+
+class Employee
+{
+  public $name, $age, $ssn, $salary;
+
+  public function __construct($name, $age, $ssn, $salary, $category)
+  {
+    $this->name = $name;
+    $this->age = $age;
+    $this->ssn = $ssn;
+    $this->salary = $salary;
+    $this->category = $category;
+  }
+}
+
+// ------------
+
+$employees = array(
+  new Employee('sdf', 27, 12345, 47000, 'Engineer'),
+  new Employee('ajb', 32, 12376, 51000, 'Programmer'),
+  new Employee('dgh', 31, 12355, 45000, 'Engineer'));
+
+// ------------
+
+$engineers = array_filter($employees,
+                          create_function('$employee', 'return $employee->category == "Engineer";'));
+
+// @@PLEAC@@_4.14
+// PHP offers a rich set of sorting functions. Key features:
+// * Inplace sorts; the original array, not a a copy, is sorted
+// * Separate functions exist for sorting [both ascending and descending order]:
+//   - By value, assign new keys / indices [sort, rsort]
+//   - By key   [ksort, krsort] (for non-numerically indexed arrays)
+//   - By value [asort, arsort]
+//   - As above, but using a user-defined comparator [i.e. callback function]
+//     [usort, uasort, uksort]
+//   - Natural order sort [natsort]
+// * Significantly, if sorting digit-only elements, whether strings or numbers,
+//   'natural order' [i.e. 1 before 10 before 100 (ascending)] is retained. If
+//   the elements are alphanumeric e.g. 'z1', 'z10' then 'natsort' should be
+//   used [note: beware of 'natsort' with negative numbers; prefer 'sort' or 'asort']
+
+$unsorted = array(7, 12, -13, 2, 100, 5, 1, -2, 23, 3, 6, 4);
+
+sort($unsorted);                 // -13, -2, 1, 2, 3, 4, 5, 6, 7, 12, 23, 100
+rsort($unsorted);                // 100, 23, 12, 7, 6, 5, 4, 3, 2, 1, -2, -13
+
+asort($unsorted);                // -13, -2, 1, 2, 3, 4, 5, 6, 7, 12, 23, 100
+arsort($unsorted);               // 100, 23, 12, 7, 6, 5, 4, 3, 2, 1, -2, -13
+
+natsort($unsorted);              // -2, -13, 1, 2, 3, 4, 5, 6, 7, 12, 23, 100
+
+// ------------
+
+function ascend($left, $right) { return $left > $right; }
+function descend($left, $right) { return $left < $right; }
+
+// ------------
+
+usort($unsorted, 'ascend');      // -13, -2, 1, 2, 3, 4, 5, 6, 7, 12, 23, 100
+usort($unsorted, 'descend');     // 100, 23, 12, 7, 6, 5, 4, 3, 2, 1, -2, -13
+
+uasort($unsorted, 'ascend');     // -13, -2, 1, 2, 3, 4, 5, 6, 7, 12, 23, 100
+uasort($unsorted, 'descend');    // 100, 23, 12, 7, 6, 5, 4, 3, 2, 1, -2, -13
+
+// ----------------------------
+
+function kill_process($pid)
+{
+  // Is 'killable' ?
+  if (!posix_kill($pid, 0)) return;
+
+  // Ok, so kill in two stages
+  posix_kill($pid, 15); // SIGTERM
+  sleep(1);
+  posix_kill($pid, 9);  // SIGKILL
+}
+
+function pid($pentry)
+{
+  $p = preg_split('/\s/', trim($pentry));
+  return $p[0];
+}
+
+$processes = array_map('pid', array_slice(preg_split('/\n/', `ps ax`), 1, -1));
+sort($processes);
+
+echo join(' ,', $processes) . "\n";
+
+echo 'Enter a pid to kill: ';
+if (($pid = trim(fgets(STDIN))))
+  kill_process($pid);
+
+// @@PLEAC@@_4.15
+// Tasks in this section would typically use the PHP 'usort' family of functions
+// which are used with a comparator function so as to perform custom comparisions.
+// A significant difference from the Perl examples is that these functions are
+// inplace sorters, so it is the original array that is modified. Where this must
+// be prevented a copy of the array can be made and sorted
+
+function comparator($left, $right)
+{
+  ; // Compare '$left' with '$right' returning result
+}
+
+// ------------
+
+$ordered = array_slice($unordered);
+usort($ordered, 'comparator');
+
+// ----------------------------
+
+// The Perl example looks like it is creating a hash using computed values as the key,
+// array values as the value, sorting on the computed key, then extracting the sorted
+// values and placing them back into an array
+
+function compute($value)
+{
+  ; // Return computed value utilising '$value'
+}
+
+// ------------
+
+// Original numerically-indexed array [sample data used]
+$unordered = array(5, 3, 7, 1, 4, 2, 6);
+
+// Create hash using 'compute' function to generate the keys. This example assumes that
+// each value in the '$unordered' array is used in generating the corresponding '$key'
+foreach($unordered as $value)
+{
+  $precomputed[compute($value)] = $value;
+}
+
+// Copy the hash, and sort it by key
+$ordered_precomputed = array_slice($precomputed, 0); ksort($ordered_precomputed);
+
+// Extract the values of the hash in current order placing them in a new numerically-indexed
+// array
+$ordered = array_values($ordered_precomputed);
+
+// ----------------------------
+
+// As above, except uses 'array_update' and 'accum' to help create hash
+
+function array_update($arr, $lambda, $updarr)
+{
+  foreach($arr as $key) $lambda($updarr, $key);
+  return $updarr;
+}
+
+function accum(&$arr, $value)
+{
+  $arr[compute($value)] = $value;
+}
+
+// ------------
+
+function compute($value)
+{
+  ; // Return computed value utilising '$value'
+}
+
+// ------------
+
+// Original numerically-indexed array [sample data used]
+$unordered = array(5, 3, 7, 1, 4, 2, 6);
+
+// Create hash
+$precomputed = array_update($unordered, 'accum', array());
+
+// Copy the hash, and sort it by key
+$ordered_precomputed = array_slice($precomputed, 0); ksort($ordered_precomputed);
+
+// Extract the values of the hash in current order placing them in a new numerically-indexed
+// array
+$ordered = array_values($ordered_precomputed);
+
+// ----------------------------
+
+class Employee
+{
+  public $name, $age, $ssn, $salary;
+
+  public function __construct($name, $age, $ssn, $salary)
+  {
+    $this->name = $name;
+    $this->age = $age;
+    $this->ssn = $ssn;
+    $this->salary = $salary;
+  }
+}
+
+// ------------
+
+$employees = array(
+  new Employee('sdf', 27, 12345, 47000),
+  new Employee('ajb', 32, 12376, 51000),
+  new Employee('dgh', 31, 12355, 45000));
+
+// ------------
+
+$ordered = array_slice($employees, 0);
+usort($ordered, create_function('$left, $right', 'return $left->name > $right->name;'));
+
+// ------------
+
+$sorted_employees = array_slice($employees, 0);
+usort($sorted_employees, create_function('$left, $right', 'return $left->name > $right->name;'));
+
+$bonus = array(12376 => 5000, 12345 => 6000, 12355 => 0);
+
+foreach($sorted_employees as $employee)
+{
+  echo "{$employee->name} earns \${$employee->salary}\n";
+}
+
+foreach($sorted_employees as $employee)
+{
+  if (($amount = $bonus[$employee->ssn]))
+    echo "{$employee->name} got a bonus of: \${$amount}\n";
+}
+
+// ------------
+
+$sorted = array_slice($employees, 0);
+usort($sorted, create_function('$left, $right', 'return $left->name > $right->name || $left->age != $right->age;'));
+
+// ----------------------------
+
+// PHP offers a swag of POSIX functions for obtaining user information [i.e. they all read
+// the '/etc/passwd' file for the relevant infroamtion], and it is these that should rightly
+// be used for this purpose. However, since the intent of this section is to illustrate array
+// manipulation, these functions won't be used. Instead a custom function mimicing Perl's
+// 'getpwent' function will be implemented so the code presented here can more faithfully match
+// the Perl code
+
+function get_pw_entries()
+{
+  function normal_users_only($e)
+  {
+    $entry = split(':', $e); return $entry[2] > 100 && $entry[2] < 32768;
+  }
+
+  foreach(array_filter(file('/etc/passwd'), 'normal_users_only') as $entry)
+    $users[] = split(':', trim($entry));
+
+  return $users;
+}
+
+// ------------
+
+$users = get_pw_entries();
+
+usort($users, create_function('$left, $right', 'return $left[0] > $right[0];'));
+foreach($users as $user) echo "{$user[0]}\n";
+
+// ----------------------------
+
+$names = array('sdf', 'ajb', 'dgh');
+
+$sorted = array_slice($names, 0);
+usort($sorted, create_function('$left, $right', 'return substr($left, 1, 1) > substr($right, 1, 1);'));
+
+// ------------
+
+$strings = array('bbb', 'aa', 'c');
+
+$sorted = array_slice($strings, 0);
+usort($sorted, create_function('$left, $right', 'return strlen($left) > strlen($right);'));
+
+// ----------------------------
+
+function array_update($arr, $lambda, $updarr)
+{
+  foreach($arr as $key) $lambda($updarr, $key);
+  return $updarr;
+}
+
+function accum(&$arr, $value)
+{
+  $arr[strlen($value)] = $value;
+}
+
+// ----
+
+$strings = array('bbb', 'aa', 'c');
+
+$temp = array_update($strings, 'accum', array());
+ksort($temp);
+$sorted = array_values($temp);
+
+// ----------------------------
+
+function array_update($arr, $lambda, $updarr)
+{
+  foreach($arr as $key) $lambda($updarr, $key);
+  return $updarr;
+}
+
+function accum(&$arr, $value)
+{
+  if (preg_match('/(\d+)/', $value, $matches))
+    $arr[$matches[1]] = $value;
+}
+
+// ----
+
+$fields = array('b1b2b', 'a4a', 'c9', 'ddd', 'a');
+
+$temp = array_update($fields, 'accum', array());
+ksort($temp);
+$sorted_fields = array_values($temp);
+
+// @@PLEAC@@_4.16
+array_unshift($a1, array_pop($a1));  // last -> first
+array_push($a1, array_shift($a1));   // first -> last
+
+// ----------------------------
+
+function grab_and_rotate(&$arr)
+{
+  $item = $arr[0];
+  array_push($arr, array_shift($arr));
+  return $item;
+}
+
+// ------------
+
+$processes = array(1, 2, 3, 4, 5);
+
+while (TRUE)
+{
+  $process = grab_and_rotate($processes);
+  echo "Handling process {$process}\n";
+  sleep(1);
+}
+
+// @@PLEAC@@_4.17
+// PHP offers the 'shuffle' function to perform this task
+
+$arr = array(1, 2, 3, 4, 5, 6, 7, 8, 9);
+
+shuffle($arr);
+
+echo join(' ', $arr) . "\n";
+
+// ----------------------------
+
+// Perl example equivalents
+function fisher_yates_shuffle(&$a)
+{
+  $size = count($a) - 1;
+
+  for($i = $size; $i >= 0; $i--)
+  {
+    if (($j = rand(0, $i)) != $i)
+      list($a[$i], $a[$j]) = array($a[$j], $a[$i]);
+  }
+}
+
+function naive_shuffle(&$a)
+{
+  $size = count($a);
+
+  for($i = 0; $i < $size; $i++)
+  {
+    $j = rand(0, $size - 1);
+    list($a[$i], $a[$j]) = array($a[$j], $a[$i]);
+  }
+}
+
+// ------------
+
+$arr = array(1, 2, 3, 4, 5, 6, 7, 8, 9);
+
+fisher_yates_shuffle($arr);
+echo join(' ', $arr) . "\n";
+
+naive_shuffle($arr);
+echo join(' ', $arr) . "\n";
+
+// @@PLEAC@@_4.18
+// @@INCOMPLETE@@
+// @@INCOMPLETE@@
+
+// @@PLEAC@@_4.19
+// @@INCOMPLETE@@
+// @@INCOMPLETE@@
 
 // @@PLEAC@@_5.0
 // PHP uses the term 'array' to refer to associative arrays - referred to in Perl
