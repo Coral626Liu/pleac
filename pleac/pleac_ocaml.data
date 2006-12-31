@@ -3493,6 +3493,131 @@ let () =
   Unix.close readme;
   List.iter print_endline (List.rev !lines)
 
+(* @@PLEAC@@_16.2 *)
+let status = Sys.command ("vi " ^ myfile)
+
+(*-----------------------------*)
+
+let _ = Sys.command "cmd1 args | cmd2 | cmd3 >outfile"
+let _ = Sys.command "cmd args <infile >outfile 2>errfile"
+
+(*-----------------------------*)
+
+#load "unix.cma";;
+let () =
+  match Unix.system command with
+    | Unix.WEXITED status ->
+        Printf.printf "program exited with status %d\n" status
+    | Unix.WSIGNALED signal ->
+        Printf.printf "program killed by signal %d\n" signal
+    | Unix.WSTOPPED signal ->
+        Printf.printf "program stopped by signal %d\n" signal
+
+(*-----------------------------*)
+
+#load "unix.cma";;
+let () =
+  match Unix.fork () with
+    | 0 ->
+        (* child ignores INT and does its thing *)
+        Sys.set_signal Sys.sigint Sys.Signal_ignore;
+        Unix.execv "/bin/sleep" [| "/bin/sleep"; "10" |]
+    | pid ->
+        (* parent catches INT and berates user *)
+        Sys.set_signal Sys.sigint
+          (Sys.Signal_handle
+            (fun _ -> print_endline "Tsk tsk, no process interruptus"));
+        let running = ref true in
+        while !running do
+          try (ignore (Unix.waitpid [] pid); running := false)
+          with Unix.Unix_error _ -> ()
+        done;
+        Sys.set_signal Sys.sigint Sys.Signal_default
+
+(*-----------------------------*)
+
+#load "unix.cma";;
+let shell = "/bin/tcsh"
+let () =
+  match Unix.fork () with
+    | 0 -> Unix.execv shell [| "-csh" |] (* pretend it's a login shell *)
+    | pid -> ignore (Unix.waitpid [] pid)
+
+(* @@PLEAC@@_16.3 *)
+#load "unix.cma";;
+let () = Unix.execv "/bin/sh" [| "/bin/sh"; "-c"; "archive *.data" |]
+let () = Unix.execv "archive" [| "archive"; "accounting.data" |]
+
+(* @@PLEAC@@_16.5 *)
+(* qnumcat - demo additive output filters *)
+#load "unix.cma";;
+
+let push_output_filter f =
+  let reader, writer = Unix.pipe () in
+  match Unix.fork () with
+    | 0 ->
+        Unix.close writer;
+        Unix.dup2 reader Unix.stdin;
+        Unix.close reader;
+        f ();
+        exit 0
+    | pid ->
+        Unix.close reader;
+        Unix.dup2 writer Unix.stdout;
+        Unix.close writer
+
+let head ?(lines=20) () =
+  push_output_filter
+    (fun () ->
+       let lines = ref lines in
+       try
+         while !lines > 0 do
+           print_endline (read_line ());
+           decr lines
+         done
+       with End_of_file -> ())
+
+let number () =
+  push_output_filter
+    (fun () ->
+       let line_number = ref 0 in
+       try
+         while true do
+           let line = read_line () in
+           incr line_number;
+           Printf.printf "%d: %s\n" !line_number line
+         done
+       with End_of_file -> ())
+
+let quote () =
+  push_output_filter
+    (fun () ->
+       try
+         while true do
+           let line = read_line () in
+           Printf.printf "> %s\n" line
+         done
+       with End_of_file -> ())
+
+let () =
+  head ~lines:100 ();  (* push head filter on STDOUT *)
+  number ();           (* push number filter on STDOUT *)
+  quote ();            (* push quote filter on STDOUT *)
+
+  (* act like /bin/cat *)
+  begin
+    try
+      while true do
+        print_endline (read_line ())
+      done
+    with End_of_file -> ()
+  end;
+
+  (* tell kids we're done--politely *)
+  close_out stdout;
+  ignore (Unix.waitpid [] (-1));
+  exit 0
+
 (* @@PLEAC@@_16.10 *)
 
 (* pipe1 - use pipe and fork so parent can send to child *)
