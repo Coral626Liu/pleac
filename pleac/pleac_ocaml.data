@@ -3547,6 +3547,66 @@ let () =
 let () = Unix.execv "/bin/sh" [| "/bin/sh"; "-c"; "archive *.data" |]
 let () = Unix.execvp "archive" [| "archive"; "accounting.data" |]
 
+(* @@PLEAC@@_16.4 *)
+#load "unix.cma";;
+
+(*-----------------------------*)
+
+let () =
+  let readme = Unix.open_process_in "program arguments" in
+  let rec loop line =
+    (* ... *)
+    loop (input_line readme) in
+  try loop (input_line readme) with End_of_file -> close_in readme
+
+(*-----------------------------*)
+
+let () =
+  let writeme = Unix.open_process_out "program arguments" in
+  output_string writeme "data\n";
+  close_out writeme
+
+(*-----------------------------*)
+
+let () =
+  (* child goes to sleep *)
+  let f = Unix.open_process_in "sleep 100000" in
+  (* and parent goes to lala land *)
+  close_in f;
+  ignore (Unix.wait ())
+
+(*-----------------------------*)
+
+let () =
+  let writeme = Unix.open_process_out "program args" in
+  (* program will get hello\n on STDIN *)
+  output_string writeme "hello\n";
+  (* program will get EOF on STDIN *)
+  close_out writeme
+
+(*-----------------------------*)
+
+let () =
+  let pager =
+    try Sys.getenv "PAGER" (* XXX: might not exist *)
+    with Not_found -> "/usr/bin/less" in
+  let reader, writer = Unix.pipe () in
+  match Unix.fork () with
+    | 0 ->
+        Unix.close writer;
+        Unix.dup2 reader Unix.stdin;
+        Unix.close reader;
+        Unix.execvp pager [| pager |]
+    | pid ->
+        Unix.close reader;
+        Unix.dup2 writer Unix.stdout;
+        Unix.close writer
+
+let () =
+  (* ... *)
+  close_out stdout;
+  ignore (Unix.wait ())
+
 (* @@PLEAC@@_16.5 *)
 (* qnumcat - demo additive output filters *)
 #load "unix.cma";;
