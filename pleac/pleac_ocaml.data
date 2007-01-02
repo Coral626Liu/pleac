@@ -3702,6 +3702,94 @@ let () =
   ignore (Unix.waitpid [] (-1));
   exit 0
 
+(* @@PLEAC@@_16.6 *)
+#load "unix.cma";;
+#load "str.cma";;
+
+(* Tagged filename or URL type. *)
+type filename =
+  | Uncompressed of string
+  | Compressed of string
+  | URL of string
+
+(* try/finally-like construct to ensure we dispose of resources properly. *)
+let finally handler f x =
+   let result = try f x with e -> handler (); raise e in handler (); result
+
+(* Call f with an in_channel given a tagged filename. If the filename is
+   tagged Uncompressed, open it normally. If it is tagged Compressed then
+   pipe it through gzip. If it is tagged URL, pipe it through "lynx -dump".
+   Ensure that the channel is closed and any created processes have
+   terminated before returning. As a special case, a filename of
+   Uncompressed "-" will result in stdin being passed, and no channel
+   will be closed. *)
+let with_in_channel filename f =
+  let pipe_input args f =
+    let reader, writer = Unix.pipe () in
+    let pid =
+      Unix.create_process args.(0) args Unix.stdin writer Unix.stderr in
+    Unix.close writer;
+    let in_channel = Unix.in_channel_of_descr reader in
+    finally
+      (fun () -> close_in in_channel; ignore (Unix.waitpid [] pid))
+      f in_channel in
+  match filename with
+    | Uncompressed "-" ->
+        f stdin
+    | Uncompressed filename ->
+        let in_channel = open_in filename in
+        finally
+          (fun () -> close_in in_channel)
+          f in_channel
+    | Compressed filename ->
+        pipe_input [| "gzip"; "-dc"; filename |] f
+    | URL url ->
+        pipe_input [| "lynx"; "-dump"; url |] f
+
+(* Return true if the string s starts with the given prefix. *)
+let starts_with s prefix =
+  try Str.first_chars s (String.length prefix) = prefix
+  with Invalid_argument _ -> false
+
+(* Return true if the string s ends with the given suffix. *)
+let ends_with s suffix =
+  try Str.last_chars s (String.length suffix) = suffix
+  with Invalid_argument _ -> false
+
+(* Return true if the string s contains the given substring. *)
+let contains s substring =
+  try ignore (Str.search_forward (Str.regexp_string substring) s 0); true
+  with Not_found -> false
+
+(* Tag the filename depending on its contents or extension. *)
+let tag_filename filename =
+  if contains filename "://"
+  then URL filename
+  else if List.exists (ends_with filename) [".gz"; ".Z"]
+  then Compressed filename
+  else Uncompressed filename
+
+(* Process a tagged filename. *)
+let process filename =
+  with_in_channel
+    filename
+    (fun in_channel ->
+       try
+         while true do
+           let line = input_line in_channel in
+           (* ... *)
+           ()
+         done
+       with End_of_file -> ())
+
+(* Parse the command-line arguments and process each file or URL. *)
+let () =
+  let args =
+    if Array.length Sys.argv > 1
+    then (List.tl (Array.to_list Sys.argv))
+    else ["-"] in
+  List.iter process (List.map tag_filename args)
+
 (* @@PLEAC@@_16.10 *)
 (* pipe1 - use pipe and fork so parent can send to child *)
 #load "unix.cma"
@@ -3832,6 +3920,205 @@ let () =
 let reader, writer = socketpair PF_UNIX SOCK_STREAM 0 in
 shutdown reader SHUTDOWN_SEND;      (* no more writing for reader *)
 shutdown writer SHUTDOWN_RECEIVE;   (* no more reading for writer *)
+
+(* @@PLEAC@@_16.13 *)
+% echo 'module M = Sys;;' | ocaml | grep 'val sig'
+    val sigabrt : int
+    val sigalrm : int
+    val sigfpe : int
+    val sighup : int
+    val sigill : int
+    val sigint : int
+    val sigkill : int
+    val sigpipe : int
+    val sigquit : int
+    val sigsegv : int
+    val sigterm : int
+    val sigusr1 : int
+    val sigusr2 : int
+    val sigchld : int
+    val sigcont : int
+    val sigstop : int
+    val sigtstp : int
+    val sigttin : int
+    val sigttou : int
+    val sigvtalrm : int
+    val sigprof : int
+
+% grep -A1 'val sig' sys.mli
+val sigabrt : int
+(** Abnormal termination *)
+--
+val sigalrm : int
+(** Timeout *)
+--
+val sigfpe : int
+(** Arithmetic exception *)
+--
+val sighup : int
+(** Hangup on controlling terminal *)
+--
+val sigill : int
+(** Invalid hardware instruction *)
+--
+val sigint : int
+(** Interactive interrupt (ctrl-C) *)
+--
+val sigkill : int
+(** Termination (cannot be ignored) *)
+--
+val sigpipe : int
+(** Broken pipe *)
+--
+val sigquit : int
+(** Interactive termination *)
+--
+val sigsegv : int
+(** Invalid memory reference *)
+--
+val sigterm : int
+(** Termination *)
+--
+val sigusr1 : int
+(** Application-defined signal 1 *)
+--
+val sigusr2 : int
+(** Application-defined signal 2 *)
+--
+val sigchld : int
+(** Child process terminated *)
+--
+val sigcont : int
+(** Continue *)
+--
+val sigstop : int
+(** Stop *)
+--
+val sigtstp : int
+(** Interactive stop *)
+--
+val sigttin : int
+(** Terminal read from background process *)
+--
+val sigttou : int
+(** Terminal write from background process *)
+--
+val sigvtalrm : int
+(** Timeout in virtual time *)
+--
+val sigprof : int
+(** Profiling interrupt *)
+
+(* @@PLEAC@@_16.14 *)
+#load "unix.cma";;
+let () =
+  (* send pid a signal 9 *)
+  Unix.kill pid 9;
+  (* send whole job a signal 1 *)
+  Unix.kill pgrp (-1);
+  (* send myself a SIGUSR1 *)
+  Unix.kill (Unix.getpid ()) Sys.sigusr1;
+  (* send a SIGHUP to processes in pids *)
+  List.iter (fun pid -> Unix.kill pid Sys.sighup) pids
+
+(*-----------------------------*)
+
+(* Use kill with pseudo-signal 0 to see if process is alive. *)
+let () =
+  try
+    Unix.kill minion 0;
+    Printf.printf "%d is alive!\n" minion
+  with
+    | Unix.Unix_error (Unix.EPERM, _, _) -> (* changed uid *)
+        Printf.printf "%d has escaped my control!\n" minion
+    | Unix.Unix_error (Unix.ESRCH, _, _) ->
+        Printf.printf "%d is deceased.\n" (* or zombied *) minion
+    | e ->
+        Printf.printf "Odd; I couldn't check on the status of %d: %s\n"
+          minion
+          (Printexc.to_string e)
+
+(* @@PLEAC@@_16.15 *)
+let () =
+  (* call got_sig_quit for every SIGQUIT *)
+  Sys.set_signal Sys.sigquit (Sys.Signal_handle got_sig_quit);
+  (* call got_sig_pipe for every SIGPIPE *)
+  Sys.set_signal Sys.sigpipe (Sys.Signal_handle got_sig_pipe);
+  (* increment ouch for every SIGINT *)
+  Sys.set_signal Sys.sigint (Sys.Signal_handle (fun _ -> incr ouch));
+  (* ignore the signal INT *)
+  Sys.set_signal Sys.sigint Sys.Signal_ignore;
+  (* restore default STOP signal handling *)
+  Sys.set_signal Sys.sigstop Sys.Signal_default
+
+(* @@PLEAC@@_16.16 *)
+let finally handler f x =
+  let result = try f x with e -> handler (); raise e in handler (); result
+
+(* call f with signal behavior temporarily set *)
+let local_set_signal signal behavior f =
+  let old_behavior = Sys.signal signal behavior in
+  finally (fun () -> Sys.set_signal signal old_behavior) f ()
+
+(* the signal handler *)
+let rec ding _ =
+  Sys.set_signal Sys.sigint (Sys.Signal_handle ding);
+  prerr_endline "\x07Enter your name!"
+
+(* prompt for name, overriding SIGINT *)
+let get_name () =
+  local_set_signal
+    Sys.sigint (Sys.Signal_handle ding)
+    (fun () ->
+       print_string "Kindly Stranger, please enter your name: ";
+       read_line ())
+
+(* @@PLEAC@@_16.18 *)
+let () =
+  (* ignore signal INT *)
+  Sys.set_signal Sys.sigint Sys.Signal_ignore;
+
+  (* install signal handler *)
+  let rec tsktsk signal =
+    Sys.set_signal Sys.sigint (Sys.Signal_handle tsktsk);
+    print_endline "\x07The long habit of living indisposeth us for dying." in
+  Sys.set_signal Sys.sigint (Sys.Signal_handle tsktsk)
+
+(* @@PLEAC@@_16.20 *)
+#load "unix.cma";;
+
+(* define the signals to block *)
+let sigset = [Sys.sigint; Sys.sigkill]
+
+let () =
+  (* block signals *)
+  let old_sigset = Unix.sigprocmask Unix.SIG_BLOCK sigset in
+
+  (* ... *)
+
+  (* unblock signals *)
+  (* the original recipe uses SIG_UNBLOCK, but that doesn't seem right... *)
+  ignore (Unix.sigprocmask Unix.SIG_SETMASK old_sigset)
+
+(* @@PLEAC@@_16.21 *)
+#load "unix.cma";;
+let () =
+  Sys.set_signal Sys.sigalrm
+    (Sys.Signal_handle (fun _ -> failwith "timeout"));
+
+  ignore (Unix.alarm 3600);
+  try
+    (* long-time operations here *)
+    ignore (Unix.alarm 0)
+  with
+    | Failure "timeout" ->
+        (* timed out; do what you will here *)
+        ()
+    | e ->
+        (* clear the still-pending alarm *)
+        ignore (Unix.alarm 0);
+        (* propagate unexpected exception *)
+        raise e
 
 
 (* @@PLEAC@@_17.0 *)
