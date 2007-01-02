@@ -3921,6 +3921,9 @@ let reader, writer = socketpair PF_UNIX SOCK_STREAM 0 in
 shutdown reader SHUTDOWN_SEND;      (* no more writing for reader *)
 shutdown writer SHUTDOWN_RECEIVE;   (* no more reading for writer *)
 
+(* @@PLEAC@@_16.12 *)
+(* OCaml does not currently support SysV IPC. *)
+
 (* @@PLEAC@@_16.13 *)
 % echo 'module M = Sys;;' | ocaml | grep 'val sig'
     val sigabrt : int
@@ -4073,6 +4076,28 @@ let get_name () =
        print_string "Kindly Stranger, please enter your name: ";
        read_line ())
 
+(* @@PLEAC@@_16.17 *)
+let rec got_int _ =
+  Sys.set_signal Sys.sigint (Sys.Signal_handle got_int);
+  (* but not for SIGCHLD! *)
+  (* ... *)
+  ()
+
+(*-----------------------------*)
+
+let rec got_int _ =
+  Sys.set_signal Sys.sigint Sys.Signal_default; (* or Signal_ignore *)
+  failwith "interrupted"
+
+let () =
+  Sys.set_signal Sys.sigint (Sys.Signal_handle got_int);
+  try
+    (* ... long-running code that you don't want to restart *)
+    ()
+  with Failure "interrupted" ->
+    (* deal with the signal *)
+    ()
+
 (* @@PLEAC@@_16.18 *)
 let () =
   (* ignore signal INT *)
@@ -4083,6 +4108,46 @@ let () =
     Sys.set_signal Sys.sigint (Sys.Signal_handle tsktsk);
     print_endline "\x07The long habit of living indisposeth us for dying." in
   Sys.set_signal Sys.sigint (Sys.Signal_handle tsktsk)
+
+(* @@PLEAC@@_16.19 *)
+#load "unix.cma";;
+
+let () =
+  Sys.set_signal Sys.sigchld Sys.Signal_ignore
+
+(*-----------------------------*)
+
+let rec reaper signal =
+  let pid, status = Unix.waitpid [Unix.WNOHANG] (-1) in
+  if pid > 0 then begin
+    (* ... *)
+    reaper signal
+  end;
+  (* install *after* calling waitpid *)
+  Sys.set_signal Sys.sigchld (Sys.Signal_handle reaper)
+
+let () =
+  Sys.set_signal Sys.sigchld (Sys.Signal_handle reaper)
+
+(*-----------------------------*)
+
+let rec reaper signal =
+  begin try
+    let pid, status = Unix.waitpid [Unix.WNOHANG] (-1) in begin
+      match status with
+        | Unix.WEXITED _ ->
+            Printf.printf "Process %d exited.\n" pid
+        | _ ->
+            Printf.printf "False alarm on %d.\n" pid;
+    end;
+    reaper signal
+  with Unix.Unix_error (Unix.ECHILD, _, _) ->
+    () (* No child waiting. Ignore it. *)
+  end;
+  Sys.set_signal Sys.sigchld (Sys.Signal_handle reaper)
+
+let () =
+  Sys.set_signal Sys.sigchld (Sys.Signal_handle reaper)
 
 (* @@PLEAC@@_16.20 *)
 #load "unix.cma";;
