@@ -4644,3 +4644,262 @@ function outer($arg)
 // @@INCOMPLETE@@
 // @@INCOMPLETE@@
 
+// @@PLEAC@@_16.1
+// Run a command and return its results as a string.
+$output_string = shell_exec('program args');
+
+// Same as above, using backtick operator.
+$output_string = `program args`;
+
+// Run a command and return its results as a list of strings,
+// one per line.
+$output_lines = array();
+exec('program args', $output_lines);
+
+// -----------------------------
+
+// The only way to execute a program without using the shell is to
+// use pcntl_exec(). However, there is no way to do redirection, so
+// you can't capture its output.
+
+$pid = pcntl_fork();
+if ($pid == -1) {
+    die('cannot fork');
+} elseif ($pid) {
+    pcntl_waitpid($pid, $status);
+} else {
+    // Note that pcntl_exec() automatically prepends the program name
+    // to the array of arguments; the program name cannot be spoofed.
+    pcntl_exec($program, array($arg1, $arg2));
+}
+
+// @@PLEAC@@_16.2
+// Run a simple command and retrieve its result code.
+exec("vi $myfile", $output, $result_code);
+
+// -----------------------------
+
+// Use the shell to perform redirection.
+exec('cmd1 args | cmd2 | cmd3 >outfile');
+exec('cmd args <infile >outfile 2>errfile');
+
+// -----------------------------
+
+// Run a command, handling its result code or signal.
+$pid = pcntl_fork();
+if ($pid == -1) {
+    die('cannot fork');
+} elseif ($pid) {
+    pcntl_waitpid($pid, $status);
+    if (pcntl_wifexited($status)) {
+        $status = pcntl_wexitstatus($status);
+        echo "program exited with status $status\n";
+    } elseif (pcntl_wifsignaled($status)) {
+        $signal = pcntl_wtermsig($status);
+        echo "program killed by signal $signal\n";
+    } elseif (pcntl_wifstopped($status)) {
+        $signal = pcntl_wstopsig($status);
+        echo "program stopped by signal $signal\n";
+    }
+} else {
+    pcntl_exec($program, $args);
+}
+
+// -----------------------------
+
+// Run a command while blocking interrupt signals.
+$pid = pcntl_fork();
+if ($pid == -1) {
+    die('cannot fork');
+} elseif ($pid) {
+    // parent catches INT and berates user
+    declare(ticks = 1);
+    function handle_sigint($signal) {
+        echo "Tsk tsk, no process interruptus\n";
+    }
+    pcntl_signal(SIGINT, 'handle_sigint');
+    while (!pcntl_waitpid($pid, $status, WNOHANG)) {}
+} else {
+    // child ignores INT and does its thing
+    pcntl_signal(SIGINT, SIG_IGN);
+    pcntl_exec('/bin/sleep', array('10'));
+}
+
+// -----------------------------
+
+// Since there is no direct access to execv() and friends, and
+// pcntl_exec() won't let us supply an alternate program name
+// in the argument list, there is no way to run a command with
+// a different name in the process table.
+
+// @@PLEAC@@_16.3
+// Transfer control to the shell to run another program.
+pcntl_exec('/bin/sh', array('-c', 'archive *.data'));
+// Transfer control directly to another program.
+pcntl_exec('/path/to/archive', array('accounting.data'));
+
+// @@PLEAC@@_16.4
+// Handle each line in the output of a process.
+$readme = popen('program arguments', 'r');
+while (true) {
+    $line = fgets($readme);
+    if (feof($readme)) break;
+    // ...
+}
+pclose($readme);
+
+// -----------------------------
+
+// Write to the input of a process.
+$writeme = popen('program arguments', 'w');
+fwrite($writeme, 'data');
+pclose($writeme);
+
+// -----------------------------
+
+// Wait for a process to complete.
+$f = popen('sleep 1000000', 'r');  // child goes to sleep
+pclose($f);                        // and parent goes to lala land
+
+// -----------------------------
+
+$writeme = popen('program arguments', 'w');
+fwrite($writeme, "hello\n");  // program will get hello\n on STDIN
+pclose($writeme);             // program will get EOF on STDIN
+
+// -----------------------------
+
+// Output buffering callback that sends output to the pager.
+function ob_pager($output, $mode) {
+    static $pipe;
+    if ($mode & PHP_OUTPUT_HANDLER_START) {
+        $pager = getenv('PAGER');
+        if (!$pager) $pager = '/usr/bin/less';  // XXX: might not exist
+        $pipe = popen($pager, 'w');
+    }
+    fwrite($pipe, $output);
+    if ($mode & PHP_OUTPUT_HANDLER_END) {
+        pclose($pipe);
+    }
+}
+
+// Redirect standard output to the pager.
+ob_start('ob_pager');
+
+// Do something useful that writes to standard output, then
+// close the output buffer.
+// ...
+ob_end_flush();
+
+// @@PLEAC@@_16.5
+// Output buffering: Only display a certain number of lines of output.
+class Head {
+    function Head($lines=20) {
+        $this->lines = $lines;
+    }
+
+    function filter($output, $mode) {
+        if ($this->lines > 0) {
+            $this->lines--;
+            return $output;
+        }
+    }
+}
+
+// Output buffering: Prepend line numbers to each line of output.
+class Number {
+    function Number() {
+        $this->line_number = 0;
+    }
+
+    function filter($output, $mode) {
+        $this->line_number++;
+        return $this->line_number . ': ' . $output;
+    }
+}
+
+// Output buffering: Prepend "> " to each line of output.
+class Quote {
+    function Quote() {
+    }
+
+    function filter($output, $mode) {
+        return '> ' . $output;
+    }
+}
+
+// Use arrays as callbacks to register filter methods.
+// By passing a chunk_size of 2, we get line buffering.
+ob_start(array(new Head(100), 'filter'), 2);
+ob_start(array(new Number(), 'filter'), 2);
+ob_start(array(new Quote(), 'filter'), 2);
+
+// Act like /bin/cat.
+while (true) {
+    $line = fgets(STDIN);
+    if (feof(STDIN)) break;
+    echo $line;
+}
+
+// Should match number of calls to ob_start().
+ob_end_flush();
+ob_end_flush();
+ob_end_flush();
+
+// @@PLEAC@@_16.12
+// sharetest - test shared variables across forks
+
+$SHM_KEY = ftok(__FILE__, chr(1));
+$handle = sem_get($SHM_KEY);
+$buffer = shm_attach($handle, 1024);
+
+// The original recipe has an INT signal handler here. However, it
+// causes erratic behavior with PHP, and PHP seems to do the right
+// thing without it.
+
+for ($i = 0; $i < 10; $i++) {
+    $child = pcntl_fork();
+    if ($child == -1) {
+        die('cannot fork');
+    } elseif ($child) {
+        $kids[] = $child; // in case we care about their pids
+    } else {
+        squabble();
+        exit();
+    }
+}
+
+while (true) {
+    print 'Buffer is ' . shm_get_var($buffer, 1) . "\n";
+    sleep(1);
+}
+die('Not reached');
+
+function squabble() {
+    global $handle;
+    global $buffer;
+    $i = 0;
+    $pid = getmypid();
+    while (true) {
+        if (preg_match("/^$pid\\b/", shm_get_var($buffer, 1))) continue;
+        sem_acquire($handle);
+        $i++;
+        shm_put_var($buffer, 1, "$pid $i");
+        sem_release($handle);
+    }
+}
+
+// Buffer is 14357 1
+// Buffer is 14355 3
+// Buffer is 14355 4
+// Buffer is 14354 5
+// Buffer is 14353 6
+// Buffer is 14351 8
+// Buffer is 14351 9
+// Buffer is 14350 10
+// Buffer is 14348 11
+// Buffer is 14348 12
+// Buffer is 14357 10
+// Buffer is 14357 11
+// Buffer is 14355 13
+// ...
