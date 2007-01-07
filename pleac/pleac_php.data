@@ -4741,9 +4741,9 @@ pcntl_exec('/path/to/archive', array('accounting.data'));
 // @@PLEAC@@_16.4
 // Handle each line in the output of a process.
 $readme = popen('program arguments', 'r');
-while (true) {
+while (!feof($readme)) {
     $line = fgets($readme);
-    if (feof($readme)) break;
+    if ($line === false) break;
     // ...
 }
 pclose($readme);
@@ -4799,10 +4799,19 @@ class Head {
     }
 
     function filter($output, $mode) {
-        if ($this->lines > 0) {
-            $this->lines--;
-            return $output;
+        $result = array();
+        $newline = '';
+        if (strlen($output) > 0 && $output[strlen($output) - 1] == "\n") {
+            $newline = "\n";
+            $output = substr($output, 0, -1);
         }
+        foreach (explode("\n", $output) as $i => $line) {
+            if ($this->lines > 0) {
+                $this->lines--;
+                $result[] = $line;
+            }
+        }
+        return $result ? implode("\n", $result) . $newline : '';
     }
 }
 
@@ -4813,8 +4822,17 @@ class Number {
     }
 
     function filter($output, $mode) {
-        $this->line_number++;
-        return $this->line_number . ': ' . $output;
+        $result = array();
+        $newline = '';
+        if (strlen($output) > 0 && $output[strlen($output) - 1] == "\n") {
+            $newline = "\n";
+            $output = substr($output, 0, -1);
+        }
+        foreach (explode("\n", $output) as $i => $line) {
+            $this->line_number++;
+            $result[] = $this->line_number . ': ' . $line;
+        }
+        return implode("\n", $result) . $newline;
     }
 }
 
@@ -4824,20 +4842,28 @@ class Quote {
     }
 
     function filter($output, $mode) {
-        return '> ' . $output;
+        $result = array();
+        $newline = '';
+        if (strlen($output) > 0 && $output[strlen($output) - 1] == "\n") {
+            $newline = "\n";
+            $output = substr($output, 0, -1);
+        }
+        foreach (explode("\n", $output) as $i => $line) {
+            $result[] = "> $line";
+        }
+        return implode("\n", $result) . $newline;
     }
 }
 
 // Use arrays as callbacks to register filter methods.
-// By passing a chunk_size of 2, we get line buffering.
-ob_start(array(new Head(100), 'filter'), 2);
-ob_start(array(new Number(), 'filter'), 2);
-ob_start(array(new Quote(), 'filter'), 2);
+ob_start(array(new Head(100), 'filter'));
+ob_start(array(new Number(), 'filter'));
+ob_start(array(new Quote(), 'filter'));
 
 // Act like /bin/cat.
-while (true) {
+while (!feof(STDIN)) {
     $line = fgets(STDIN);
-    if (feof(STDIN)) break;
+    if ($line === false) break;
     echo $line;
 }
 
