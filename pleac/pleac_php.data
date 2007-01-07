@@ -5315,3 +5315,157 @@ function squabble() {
     [SIG_IGN] => 1
     [SIG_DFL] => 0
     [SIG_ERR] => -1
+
+// @@PLEAC@@_16.14
+// send pid a signal 9
+posix_kill($pid, 9);
+// send whole job a signal 1
+posix_kill($pgrp, -1);
+// send myself a SIGUSR1
+posix_kill(getmypid(), SIGUSR1);
+// send a SIGHUP to processes in pids
+foreach ($pids as $pid) posix_kill($pid, SIGHUP);
+
+// -----------------------------
+
+// Use kill with pseudo-signal 0 to see if process is alive.
+if (posix_kill($minion, 0)) {
+    echo "$minion is alive!\n";
+} else {
+    echo "$minion is deceased.\n";
+}
+
+// @@PLEAC@@_16.15
+// call got_sig_quit for every SIGQUIT
+pcntl_signal(SIGQUIT, 'got_sig_quit');
+// call got_sig_pipe for every SIGPIPE
+pcntl_signal(SIGPIPE, 'got_sig_pipe');
+// increment ouch for every SIGINT
+function got_sig_int($signal) { global $ouch; $ouch++; }
+pcntl_signal(SIGINT, 'got_sig_int');
+// ignore the signal INT
+pcntl_signal(SIGINT, SIG_IGN);
+// restore default STOP signal handling
+pcntl_signal(SIGSTOP, SIG_DFL);
+
+// @@PLEAC@@_16.16
+// the signal handler
+function ding($signal) {
+    fwrite(STDERR, "\x07Enter your name!\n");
+}
+
+// prompt for name, overriding SIGINT
+function get_name() {
+    declare(ticks = 1);
+    pcntl_signal(SIGINT, 'ding');
+
+    echo "Kindly Stranger, please enter your name: ";
+    while (!@stream_select($read=array(STDIN),
+                           $write=null,
+                           $except=null,
+                           1)) {
+        // allow signals to be observed
+    }
+    $name = fgets(STDIN);
+
+    // Since pcntl_signal() doesn't return the old signal handler, the
+    // best we can do here is set it back to the default behavior.
+    pcntl_signal(SIGINT, SIG_DFL);
+
+    return $name;
+}
+
+// @@PLEAC@@_16.17
+function got_int($signal) {
+    pcntl_signal(SIGINT, 'got_int');  // but not for SIGCHLD!
+    // ...
+}
+pcntl_signal(SIGINT, 'got_int');
+
+// -----------------------------
+
+declare(ticks = 1);
+$interrupted = false;
+
+function got_int($signal) {
+    global $interrupted;
+    $interrupted = true;
+    // The third argument to pcntl_signal() determines if system calls
+    // should be restarted after a signal. It defaults to true.
+    pcntl_signal(SIGINT, 'got_int', false);  // or SIG_IGN
+}
+pcntl_signal(SIGINT, 'got_int', false);
+
+// ... long-running code that you don't want to restart
+
+if ($interrupted) {
+    // deal with the signal
+}
+
+// @@PLEAC@@_16.18
+// ignore signal INT
+pcntl_signal(SIGINT, SIG_IGN);
+
+// install signal handler
+declare(ticks = 1);
+function tsktsk($signal) {
+    fwrite(STDERR, "\x07The long habit of living indisposeth us for dying.");
+    pcntl_signal(SIGINT, 'tsktsk');
+}
+pcntl_signal(SIGINT, 'tsktsk');
+
+// @@PLEAC@@_16.19
+pcntl_signal(SIGCHLD, SIG_IGN);
+
+// -----------------------------
+
+declare(ticks = 1);
+function reaper($signal) {
+    $pid = pcntl_waitpid(-1, $status, WNOHANG);
+    if ($pid > 0) {
+        // ...
+        reaper($signal);
+    }
+    // install *after* calling waitpid
+    pcntl_signal(SIGCHLD, 'reaper');
+}
+pcntl_signal(SIGCHLD, 'reaper');
+
+// -----------------------------
+
+declare(ticks = 1);
+function reaper($signal) {
+    $pid = pcntl_waitpid(-1, $status, WNOHANG);
+    if ($pid == -1) {
+        // No child waiting. Ignore it.
+    } else {
+        if (pcntl_wifexited($signal)) {
+            echo "Process $pid exited.\n";
+        } else {
+            echo "False alarm on $pid\n";
+        }
+        reaper($signal);
+    }
+    pcntl_signal(SIGCHLD, 'reaper');
+}
+pcntl_signal(SIGCHLD, 'reaper');
+
+// @@PLEAC@@_16.20
+// PHP does not support sigprocmask().
+
+// @@PLEAC@@_16.21
+declare(ticks = 1);
+$aborted = false;
+
+function handle_alarm($signal) {
+    global $aborted;
+    $aborted = true;
+}
+pcntl_signal(SIGALRM, 'handle_alarm');
+
+pcntl_alarm(3600);
+// long-time operations here
+pcntl_alarm(0);
+if ($aborted) {
+    // timed out - do what you will here
+}
