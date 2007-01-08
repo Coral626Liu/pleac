@@ -4956,6 +4956,8 @@ if (is_resource($proc)) {
     echo "$result_code\n";
 }
 
+// -----------------------------
+
 $all = array();
 $outlines = array();
 $errlines = array();
@@ -4974,8 +4976,6 @@ print("\n");
 print("STDERR:\n");
 print_r($errlines);
 print("\n");
-
-// -----------------------------
 
 // @@PLEAC@@_16.9
 $proc = proc_open($cmd,
@@ -5210,8 +5210,53 @@ while (true) {
     sleep(1);
 }
 
-// @@INCOMPLETE@@
-// todo: fifolog
+// -----------------------------
+
+// fifolog - read and record log msgs from fifo
+
+$fifo = null;
+
+declare(ticks = 1);
+function handle_alarm($signal) {
+    global $fifo;
+    if ($fifo) fclose($fifo);   // move on to the next queued process
+}
+pcntl_signal(SIGALRM, 'handle_alarm');
+
+while (true) {
+    pcntl_alarm(0);             // turn off alarm for blocking open
+    $fifo = fopen('/tmp/log', 'r');
+    if ($fifo === false) {
+        die("can't open /tmp/log");
+    }
+    pcntl_alarm(1);             // you have 1 second to log
+
+    $service = fgets($fifo);
+    if ($service === false) continue; // interrupt or nothing logged
+    $service = rtrim($service);
+
+    $message = fgets($fifo);
+    if ($message === false) continue; // interrupt or nothing logged
+    $message = rtrim($message);
+
+    pcntl_alarm(0);             // turn off alarms for message processing
+
+    if ($service == 'http') {
+        // ignoring
+    } elseif ($service == 'login') {
+        // log to /var/log/login
+        $log = fopen('/var/log/login', 'a');
+        if ($log !== false) {
+            fwrite($log,
+                   strftime('%a, %d %b %Y %H:%M:%S %z')
+                   . " $service $message\n");
+            fclose($log);
+        } else {
+            trigger_error("Couldn't log $service $message to /var/log/login\n",
+                          E_USER_WARNING);
+        }
+    }
+}
 
 // @@PLEAC@@_16.12
 // sharetest - test shared variables across forks
