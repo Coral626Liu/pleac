@@ -19,7 +19,7 @@
  #*****************************************************************************
 
 # IMPLS must be sorted by percentage of completion
-IMPLS = perl python ruby guile rexx pike merd ocaml ada tcl haskell java pliant commonlisp cposix php c++ smalltalk forth erlang R masd nasm
+IMPLS = perl python ruby guile tcl php rexx ocaml pike merd ada haskell java cposix pliant commonlisp c++ smalltalk forth erlang R masd nasm
 
 
 DATAFILES = $(wildcard pleac_*.data)
