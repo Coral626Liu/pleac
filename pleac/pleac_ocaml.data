@@ -2849,6 +2849,204 @@ let file =
 	;;
 
 
+(* @@PLEAC@@_8.1 *)
+let () =
+  let buffer = Buffer.create 16 in
+  let rec loop () =
+    let line = input_line chan in
+    if line <> "" && line.[String.length line - 1] = '\\'
+    then (Buffer.add_string
+            buffer (String.sub line 0 (String.length line - 1));
+          loop ())
+    else Buffer.add_string buffer line;
+    let line = Buffer.contents buffer in
+    Buffer.clear buffer;
+    (* process full record in line here *)
+    loop () in
+  try loop () with End_of_file -> ()
+
+(* @@PLEAC@@_8.2 *)
+#load "unix.cma";;
+
+let () =
+  let proc = Unix.open_process_in ("wc -l < " ^ file) in
+  let count = int_of_string (input_line proc) in
+  close_in proc;
+  (* count now holds the number of lines read *)
+  ()
+
+(*-----------------------------*)
+
+let () =
+  let count = ref 0 in
+  let chan = open_in file in
+  (try
+     while true do
+       ignore (input_line chan);
+       incr count
+     done
+   with End_of_file -> close_in chan);
+  (* !count now holds the number of lines read *)
+  ()
+
+(*-----------------------------*)
+
+#load "str.cma";;
+
+let () =
+  let delim = Str.regexp "[ \n\r\t]*$" in
+  let count = ref 0 in
+  let in_para = ref false in
+  let chan = open_in file in
+  (try
+     while true do
+       if Str.string_match delim (input_line chan) 0
+       then in_para := false
+       else begin
+         if not !in_para then incr count;
+         in_para := true
+       end
+     done
+   with End_of_file -> close_in chan);
+  (* !count now holds the number of paragraphs read *)
+  ()
+
+(* @@PLEAC@@_8.3 *)
+let word_stream_of_channel channel =
+  (* Thanks to Mac Mason for figuring this out. *)
+  let buffer = (Scanf.Scanning.from_channel channel) in
+  Stream.from
+    (fun count ->
+       try
+         match Scanf.bscanf buffer " %s " (fun x -> x) with
+           | "" -> None
+           | s -> Some s
+       with End_of_file ->
+         None)
+
+(*-----------------------------*)
+
+let () =
+  Stream.iter
+    (fun chunk ->
+       (* do something with chunk *)
+       ())
+    (word_stream_of_channel stdin)
+
+(*-----------------------------*)
+
+(* Make a word frequency count *)
+let seen = Hashtbl.create 0
+let () =
+  Stream.iter
+    (fun word ->
+       Hashtbl.replace seen word
+         (try Hashtbl.find seen word + 1
+          with Not_found -> 1))
+    (word_stream_of_channel stdin)
+
+(* output hash in a descending numeric sort of its values *)
+let () =
+  let words = ref [] in
+  Hashtbl.iter (fun word _ -> words := word :: !words) seen;
+  List.iter
+    (fun word ->
+       Printf.printf "%5d %s\n" (Hashtbl.find seen word) word)
+    (List.sort
+       (fun a b -> compare (Hashtbl.find seen b) (Hashtbl.find seen a))
+       !words)
+
+(*-----------------------------*)
+
+(* Line frequency count *)
+
+let line_stream_of_channel channel =
+  Stream.from
+    (fun _ -> try Some (input_line channel) with End_of_file -> None)
+
+let seen = Hashtbl.create 0
+let () =
+  Stream.iter
+    (fun line ->
+       Hashtbl.replace seen line
+         (try Hashtbl.find seen line + 1
+          with Not_found -> 1))
+    (line_stream_of_channel stdin)
+
+let () =
+  let lines = ref [] in
+  Hashtbl.iter (fun line _ -> lines := line :: !lines) seen;
+  List.iter
+    (fun line ->
+       Printf.printf "%5d %s\n" (Hashtbl.find seen line) line)
+    (List.sort
+       (fun a b -> compare (Hashtbl.find seen b) (Hashtbl.find seen a))
+       !lines)
+
+(* @@PLEAC@@_8.4 *)
+let lines = ref []
+let () =
+  try
+    while true do
+      lines := input_line chan :: !lines
+    done
+  with End_of_file -> ()
+let () =
+  List.iter
+    (fun line ->
+       (* do something with line *)
+       ())
+    !lines
+
+(* @@PLEAC@@_8.5 *)
+#load "unix.cma";;
+
+let sometime = 1
+
+let () =
+  let chan = open_in file in
+  while Sys.file_exists file do
+    (try
+       let line = input_line chan in
+       (* ... *)
+       ()
+     with End_of_file ->
+       Unix.sleep sometime)
+  done;
+  close_in chan
+
+(* @@PLEAC@@_8.6 *)
+let () =
+  Random.self_init ();
+  let count = ref 1 in
+  let line = ref "" in
+  try
+    while true do
+      let next = input_line stdin in
+      if Random.int !count < 1 then line := next;
+      incr count
+    done
+  with End_of_file ->
+    (* !line is the random line *)
+    ()
+
+(* @@PLEAC@@_8.7 *)
+let shuffle list = List.sort (fun _ _ -> 1 - Random.int 3) list
+let () =
+  Random.self_init ();
+  let lines = ref [] in
+  (try
+     while true do
+       lines := (input_line input) :: !lines
+     done
+   with End_of_file -> ());
+  let reordered = shuffle !lines in
+  List.iter
+    (fun line ->
+       output_string output line;
+       output_char output '\n')
+    reordered
+
 
 (* @@PLEAC@@_9.0 *)
 open Unix 
