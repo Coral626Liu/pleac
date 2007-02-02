@@ -3140,7 +3140,6 @@ let () =
 
 let is_safe path =
   let info = Unix.stat path in
-
   (* owner neither superuser nor me *)
   (* the real uid can be retrieved with Unix.getuid () *)
   if (info.Unix.st_uid <> 0) && (info.Unix.st_uid <> Unix.getuid ())
@@ -3148,15 +3147,24 @@ let is_safe path =
   else
     (* check whether the group or other can write file. *)
     (* use 0o066 to detect either reading or writing *)
-    if info.Unix.st_perm land 0o022 <> 0 (* someone else can write this *)
-    then info.Unix.st_kind = Unix.S_DIR  (* non-directories aren't safe *)
-    else
-      (* but directories with the sticky bit (0o1000) are *)
-      info.Unix.st_perm land 0o1000 <> 0
+    if info.Unix.st_perm land 0o022 = 0
+    then true  (* no one else can write this *)
+    else if info.Unix.st_kind <> Unix.S_DIR
+    then false (* non-directories aren't safe *)
+    else if info.Unix.st_perm land 0o1000 <> 0
+    then true  (* but directories with the sticky bit (0o1000) are *)
+    else false
 
 (*-----------------------------*)
 
-(* @@INCOMPLETE@@ *)
+let is_verysafe path =
+  let rec loop path parent =
+    if not (is_safe path)
+    then false
+    else if path <> parent
+    then loop parent (Filename.dirname parent)
+    else true in
+  loop path (Filename.dirname path)
 
 
 (* @@PLEAC@@_9.0 *)
