@@ -2849,6 +2849,54 @@ let file =
 	;;
 
 
+(* @@PLEAC@@_8.0 *)
+(*-----------------------------*)
+let () =
+  try
+    while true do
+      let line = input_line datafile in
+      let size = String.length line in
+      Printf.printf "%d\n" size             (* output size of line *)
+    done
+  with End_of_file -> ()
+(*-----------------------------*)
+let line_stream_of_channel channel =
+  Stream.from
+    (fun _ -> try Some (input_line channel) with End_of_file -> None)
+let output_size line =
+  Printf.printf "%d\n" (String.length line) (* output size of line *)
+let () =
+  Stream.iter output_size (line_stream_of_channel datafile)
+(*-----------------------------*)
+let lines =
+  let xs = ref [] in
+  Stream.iter
+    (fun x -> xs := x :: !xs)
+    (line_stream_of_channel datafile);
+  List.rev !xs
+(*-----------------------------*)
+let slurp_channel channel =
+  let buffer_size = 4096 in
+  let buffer = Buffer.create buffer_size in
+  let string = String.create buffer_size in
+  let chars_read = ref 1 in
+  while !chars_read <> 0 do
+    chars_read := input channel string 0 buffer_size;
+    Buffer.add_string buffer (String.sub string 0 !chars_read)
+  done;
+  Buffer.contents buffer
+let slurp_file filename =
+  let channel = open_in_bin filename in
+  let result =
+    try slurp_channel channel
+    with e -> close_in channel; raise e in
+  close_in channel;
+  result
+let whole_file = slurp_file filename
+(*-----------------------------*)
+(* @@INCOMPLETE@@ *)
+(*-----------------------------*)
+
 (* @@PLEAC@@_8.1 *)
 let () =
   let buffer = Buffer.create 16 in
@@ -3033,7 +3081,7 @@ let () =
 (* @@PLEAC@@_8.7 *)
 (* assumes the fisher_yates_shuffle function from Chapter 4 *)
 let shuffle list =
-  let array = (Array.of_list list) in
+  let array = Array.of_list list in
   fisher_yates_shuffle array;
   Array.to_list array
 
@@ -3051,6 +3099,64 @@ let () =
        output_string output line;
        output_char output '\n')
     reordered
+
+(* @@PLEAC@@_8.17 *)
+#load "unix.cma";;
+
+let () =
+  try
+    let {Unix.st_dev = dev;
+         st_ino = ino;
+         st_kind = kind;
+         st_perm = perm;
+         st_nlink = nlink;
+         st_uid = uid;
+         st_gid = gid;
+         st_rdev = rdev;
+         st_size = size;
+         st_atime = atime;
+         st_mtime = mtime;
+         st_ctime = ctime} = Unix.stat filename in
+    (* ... *)
+    ()
+  with Unix.Unix_error (e, _, _) ->
+    Printf.eprintf "no %s: %s\n" filename (Unix.error_message e);
+    exit 0
+
+(*-----------------------------*)
+
+let () =
+  let info =
+    try Unix.stat filename
+    with Unix.Unix_error (e, _, _) ->
+      Printf.eprintf "no %s: %s\n" filename (Unix.error_message e);
+      exit 0 in
+  if info.Unix.st_uid = 0
+  then Printf.printf "Superuser owns %s\n" filename;
+  if info.Unix.st_atime > info.Unix.st_mtime
+  then Printf.printf "%s has been read since it was written.\n" filename
+
+(*-----------------------------*)
+
+let is_safe path =
+  let info = Unix.stat path in
+
+  (* owner neither superuser nor me *)
+  (* the real uid can be retrieved with Unix.getuid () *)
+  if (info.Unix.st_uid <> 0) && (info.Unix.st_uid <> Unix.getuid ())
+  then false
+  else
+    (* check whether the group or other can write file. *)
+    (* use 0o066 to detect either reading or writing *)
+    if info.Unix.st_perm land 0o022 <> 0 (* someone else can write this *)
+    then info.Unix.st_kind = Unix.S_DIR  (* non-directories aren't safe *)
+    else
+      (* but directories with the sticky bit (0o1000) are *)
+      info.Unix.st_perm land 0o1000 <> 0
+
+(*-----------------------------*)
+
+(* @@INCOMPLETE@@ *)
 
 
 (* @@PLEAC@@_9.0 *)
