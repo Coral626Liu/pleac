@@ -4013,7 +4013,7 @@ end
 
 (* Here is the functor itself. It takes a SerializedDbmMethod as an
    argument and returns a SerializedDbm module instance as a result.
-   It is defined mainly in terms of Dbm, with a few overrided
+   It is defined mainly in terms of Dbm, with a few overridden
    definitions where the value type is needed. *)
 module MakeSerializedDbm (Method : SerializedDbmMethod)
   : SerializedDbm with type value = Method.value =
@@ -4055,6 +4055,34 @@ let () =
              (List.map (fun s -> "\"" ^ s ^ "\"") strings)) ^ "]" in
   Printf.printf "Two Toming: %s %s\n" (show tom1) (show tom2)
 
+(* @@PLEAC@@_14.9 *)
+type data = {mutable variable1: string; mutable variable2: string}
+
+module PersistentStore =
+  MakeSerializedDbm(struct
+                      type value = data
+                      let serialize x = Marshal.to_string x []
+                      let deserialize x = Marshal.from_string x 0
+                    end)
+
+let with_persistent_data f =
+  let db =
+    PersistentStore.opendbm "data.db" [Dbm.Dbm_rdwr; Dbm.Dbm_create] 0o666 in
+  let data =
+    try PersistentStore.find db "data"
+    with Not_found -> {variable1=""; variable2=""} in
+  f data;
+  PersistentStore.replace db "data" data
+
+let () =
+  with_persistent_data
+    (fun data ->
+       begin
+         Printf.printf "variable1 = %s\nvariable2 = %s\n"
+           data.variable1 data.variable2;
+         data.variable1 <- "foo";
+         data.variable2 <- "bar";
+       end)
 
 (* @@PLEAC@@_16.1 *)
 (* Process support is mostly in the "unix" library. *)
