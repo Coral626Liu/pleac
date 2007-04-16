@@ -22,7 +22,7 @@ str6 = "It is a common practice\n\
 
 -- @@PLEAC@@_1.1
 groupNelem n = unfoldr f
-    where f "" = Nothing
+    where f [] = Nothing
           f s = Just (splitAt n s)
 
 -- split at five byte boundaries
@@ -125,7 +125,7 @@ dir = fmap (fromMaybe "/tmp") argv0
 dir' = fmap (head . (++ ["/tmp"])) getArgs
 
 -- @@PLEAC@@_1.3
--- no side effect in haskell => swap is a nosense
+-- no side effect in haskell => swap is a nonsense
 
 -- @@PLEAC@@_1.4
 import Char
@@ -649,14 +649,50 @@ t1 = (realPart c, imagPart c, conjugate c) --  16, 4, 16-4i
 d = 3 :+ 4
 t2 = sqrt d  -- 2 + i
 
+-- @@PLEAC@@_2.16
+-- "read" handles both octal and hexadecimal when prefixed with 0x or 0o
+-- here are versions adding the prefix and calling "read"
+hex s = read ("0x" ++ s) :: Integer
+oct s = read ("0o" ++ s) :: Integer
+
+-- hex "45" == 69
+-- oct "45" == 37
+-- hex "45foo" => Exception: Prelude.read: no parse
+
+-- calling explicitly readHex or readOct:
+hex = fst . head . Numeric.readHex
+oct = fst . head . Numeric.readOct
+
+
+t = do putStrLn "Gimme a number in decimal, octal, or hex: "
+       s <- getLine
+       let n = read s :: Integer
+       printf "%d %x %o\n" n n n
+
+t' = do putStrLn "Enter file permission in octal: "
+	permissions <- getLine
+	putStrLn $ "The decimal value is " ++ show (oct permissions)
+
+
+-- @@PLEAC@@_2.17
+-- (using joinString and groupNelem from appendix)
+commify = reverse . joinString "," . groupNelem 3 . reverse
+-- commify "-1740525205" == "-1,740,525,205"
+
+-- a version handling decimal numbers (using subRegexOnceWith from appendix)
+commify' = subRegexOnceWith (mkRegex "[0-9]+") commify
+-- commify' "-1740525205.000001" == "-1,740,525,205.000001"
+
 
 -- @@PLEAC@@_APPENDIX
+import List
+
 joinString :: String -> [String] -> String
 joinString s = concat . intersperse s
 
 groupNelem :: Int -> [a] -> [[a]]
 groupNelem n = unfoldr f
-    where f "" = Nothing
+    where f [] = Nothing
           f s = Just (splitAt n s)
 
 -- alike python's fileinput.input() or perl's <>
