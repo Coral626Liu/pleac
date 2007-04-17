@@ -51,7 +51,7 @@ s4 = a' ++ b
           a' = subRegex (mkRegex "is") a "at"
 -- do it another way
 import Text.Regex
-import Data.Graph.Inductive.Query.Monad
+import Data.Graph.Inductive.Query.Monad (mapFst)
 f = uncurry (++) . mapFst subst . splitAt 5
     where subst s = subRegex (mkRegex "is") s "at"
 
@@ -93,7 +93,7 @@ v1 = fromMaybe "b" $ Just "a"   -- "a"
 v2 = fromMaybe "b" $ Nothing    -- "b"
 
 -- to combine Maybe values, you can use mplus
-import Control.Monad
+import Control.Monad (mplus)
 
 v1' = (Just "a") `mplus` (Just "b") -- Just "a"
 v2' = Nothing `mplus` (Just "b")    -- Just "b"
@@ -180,7 +180,7 @@ revwords' = (unwords . reverse . splitRegex (mkRegex " ")) string
 -- yet another version using a home made version of splitRegex' which keeps the matched string
 import List
 import Text.Regex
-import Data.Graph.Inductive.Query.Monad
+import Data.Graph.Inductive.Query.Monad (mapFst)
 
 unfoldr' f b  =
   case f b of
@@ -549,7 +549,7 @@ verif = quickCheck property_roman_arabic
 
 -- @@PLEAC@@_2.7
 import Random
-import Control.Monad
+import Control.Monad (replicateM)
 
 rand :: Int -> Int -> IO Int
 rand low high = getStdRandom (randomR (low, high))
@@ -683,6 +683,81 @@ commify = reverse . joinString "," . groupNelem 3 . reverse
 commify' = subRegexOnceWith (mkRegex "[0-9]+") commify
 -- commify' "-1740525205.000001" == "-1,740,525,205.000001"
 
+
+-- @@PLEAC@@_2.18
+hours = 2
+s = "It took " ++ show hours ++ " hour" ++ if hours == 1 then "" else "s"
+
+s2 = printf fmt (hours :: Int) :: String
+    where fmt = if hours == 1 then "%d hour is enough.\n" else "%d hours are enough.\n"
+
+
+-- subRegex doesn't return wether it succeeded or not
+-- calling matchRegex first
+subRegexMaybe :: Regex -> String -> String -> Maybe String
+subRegexMaybe re s repla = do matchRegex re s -- discard the result
+                              Just (subRegex re s repla)
+
+subRegexMany :: [(String, String)] -> String -> Maybe String
+subRegexMany regexps s = msum (map try_one regexps)
+    where try_one (re, repla) = subRegexMaybe (mkRegex re) s repla
+-- note the use of msum to take the first (Just _) in the list
+-- here msum is used with type [Maybe a] -> Maybe a
+
+noun_plural s = fromMaybe (error "can't get here") (subRegexMany regexps s)
+    where regexps = [ ("ss$", "sses")
+                    , ("([psc]h)$", "\\1es")
+                    , ("z$", "zes")
+                    , ("ff$", "ffs")
+                    , ("f$", "ves")
+                    , ("ey$", "eys")
+                    , ("y$", "ies")
+                    , ("ix$", "ices")
+                    , ("([sx])$", "\\1es")
+                    , ("(.)$", "\\1s") -- note that subRegex is unsafe if the regexp matches an empty strings, cf documentation
+                    ]
+
+s = unlines $ map (\s -> "One " ++ s ++ ", two " ++ noun_plural s ++ ".") $ words test_words
+    where test_words = "fish fly ox \
+                       \species genus phylum \
+                       \cherub radius jockey \
+                       \index matrix mythos \
+                       \phenomenon formula"
+
+-- @@PLEAC@@_2.19
+#!/usr/bin/runghc
+
+import List
+import System
+import Text.Printf
+
+-- from http://haskell.org/haskellwiki/99_questions/31_to_41#Problem_36
+encode :: Eq a => [a] -> [(a, Int)]
+encode = map (\x -> (head x, length x)) . group
+
+primeFactors n = factor n primes
+  where factor n (p:ps) | p*p > n = [n]
+                        | n `mod` p /= 0 = factor n ps
+                        | otherwise = p : factor (n `div` p) (p:ps)
+        primes = 2 : filter ((==1) . length . primeFactors) [3,5..]
+
+main = getArgs >>= mapM_ do_one
+    where do_one n = printf "%-10s %s\n" n (to_string $ encode $ primeFactors $ read n)
+          to_string [(_, 1)] = "PRIME"
+          to_string l = unwords $ map (\(n,power) -> show n ++ to_string_power power) l
+          to_string_power p = if p == 1 then "" else "**" ++ show p
+
+{-
+% bigfact  8 9 96 2178
+8          2**3
+9          3**2
+96         2**5 3
+2178       2 3**2 11**2
+% bigfact 239322000000000000000000
+239322000000000000000000 2**19 3 5**18 39887
+% bigfact 25000000000000000000000000
+25000000000000000000000000 2**24 5**26
+-}
 
 -- @@PLEAC@@_APPENDIX
 import List
