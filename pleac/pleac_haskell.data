@@ -617,6 +617,8 @@ t = putStrLn $ "log10(10,000)=" ++ log10 10000
 -- @@PLEAC@@_2.14
 -- no standard matrix function in haskell library
 -- here is a simple implementation
+-- see also http://darcs.haskell.org/hugs98/demos/Matrix.hs
+--       or http://darcs.haskell.org/nofib/ghc/matrix/Matrix.hs
 
 sum_product :: Num a => [a] -> [a] -> a
 sum_product u v = sum (zipWith (*) u v)
@@ -767,11 +769,33 @@ single_level = [ "this", "that", "the", "other" ]
 nested = ("this", "that", ["the", "other"]) -- (String, String, [String])
 
 -- arrays are generally eschewed in Haskell, lists are prefered.
--- arrays are useful if you desperately need
--- * constant (O(1)) lookup => use Data.Array.IArray.Array
--- * constant (O(1)) update => use Data.Array.IO.IOArray
+-- arrays are useful if you desperately need:
 -- * huge amounts of raw data.
+-- * constant (O(1)) lookup => use Data.Array
+-- * constant (O(1)) update => use Data.Array.IO, Data.Array.ST or Data.Array.Storable
 -- see http://haskell.org/haskellwiki/Cookbook#Arrays for more
+
+-- creating an Array from a list:
+import Data.Array
+listToArray :: [a] -> Array Int a
+listToArray l = listArray (0, length l - 1) l
+
+a1 = listToArray l1
+-- => array (0,3) [(0,"Crosby"),(1,"Stills"),(2,"Nash"),(3,"Young")]
+
+-- getting back the list
+l1' = elems a1
+
+
+-- creating an IOArray from a list:
+import Data.Array.IO
+listToIOArray :: [a] -> IO (IOArray Int a)
+listToIOArray l = newListArray (0, length l - 1) l
+
+a1 = listToIOArray l1
+
+l1' = a1 >>= getElems 
+
 
 -- @@PLEAC@@_4.1
 a  = [ "quick", "brown", "fox" ]
@@ -811,6 +835,9 @@ s2 = "I have " ++ concat  array ++ " marbles" -- I have redyellowgreen marbles
 s3 = "I have " ++ unwords array ++ " marbles" -- I have red yellow green marbles
 
 -- @@PLEAC@@_4.3
+-- arrays can't be resized
+-- similar behaviour for lists explained below
+
 what_about_that_list x = unlines
     [ "The list now has " ++ show (length x) ++ " elements."
     , "The index of the last element is " ++ show (length x - 1) ++ "."
@@ -832,7 +859,7 @@ l3 = take 3 l1  -- ["Crosby", "Stills", "Nash"]
 -- grow list
 l4 = take 10001 (l1 ++ repeat "")
 -- same, but much less haskell'ish, prefer above
-l4 = l1 ++ replicate (10001 - length l1) ""
+l4' = l1 ++ replicate (10001 - length l1) ""
 
 -- writing a function that grow and shrink a list is easy:
 resize_list n default_val l = take n (l ++ repeat default_val)
