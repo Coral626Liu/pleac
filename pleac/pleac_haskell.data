@@ -865,11 +865,51 @@ l4' = l1 ++ replicate (10001 - length l1) ""
 resize_list n default_val l = take n (l ++ repeat default_val)
 
 
+
+-- @@PLEAC@@_4.4
+bad_users = filter is_valid_user all_users
+
+t = mapM_ complain bad_users
+
+t' = mapM_ do_it all_users
+    where do_it user = do usage <- get_usage user
+                          when (usage > max_quota) (complain user)
+
+-- equivalent of "env | sort"
+import System.Environment
+import List
+t = getEnvironment >>= putStr . format
+    where format = unlines . map (\(var, val) -> var ++ "=" ++ val) . sort
+
+-- display lines from "who" matching "simonpj"
+t = do Right s <- readProcess "who" [] ""
+       mapM_ putStrLn (filter ("simonpj" `isPrefixOf`) $ lines s)
+
+-- print file with words reversed:
+t = readFile "/etc/fstab" >>= putStr . reverse_words_of_each_line
+    where reverse_words_of_each_line = unlines . map (unwords . reverse . words) . lines
+
+-- modify every element
+l = map (-1 +) [1,2,3]          -- [0,1,2]
+
+-- multiply everything in a and b by seven
+l = [ ("a", [ 0.5, 3 ]), ("b", [ 0, 1 ]) ]
+l' = map (\(name, xs) -> (name, map (* 7) xs)) l
+-- => [ ("a", [ 3.5, 21 ]), ("b", [ 0, 7 ]) ]
+
+-- same using Data.Map
+import qualified Data.Map as Map
+m = Map.fromList [ ("a", [ 0.5, 3 ]), ("b", [ 0, 1 ]) ]
+m' = Map.map (map (* 7)) m 
+
+
 -- @@PLEAC@@_APPENDIX
 import List
 
 joinString :: String -> [String] -> String
 joinString s = concat . intersperse s
+
+indexOf subst s = findIndex (subst `isPrefixOf`) (tails s)
 
 groupNelem :: Int -> [a] -> [[a]]
 groupNelem n = unfoldr f
