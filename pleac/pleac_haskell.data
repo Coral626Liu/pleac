@@ -883,7 +883,7 @@ import List
 t = getEnvironment >>= putStr . format
     where format = unlines . map (\(var, val) -> var ++ "=" ++ val) . sort
 
--- display lines from "who" matching "simonpj"
+-- display lines from "who" matching "simonpj" (readProcess is in appendix)
 t = do Right s <- readProcess "who" [] ""
        mapM_ putStrLn (filter ("simonpj" `isPrefixOf`) $ lines s)
 
@@ -912,7 +912,7 @@ m' = Map.map (map (* 7)) m
 -- @@PLEAC@@_4.6
 l = nub [ 1, 1, 2, 2, 3, 3, 3, 5 ]  -- [ 1, 2, 3, 5 ]
 
--- generate a list of users logged in, removing duplicates
+-- generate a list of users logged in, removing duplicates (readProcess is in appendix)
 t = do Right s <- readProcess "who" [] ""
        let users = sort $ nub $ map (head . words) $ lines s
        putStrLn ("users logged in: " ++ unwords users)
@@ -1017,7 +1017,7 @@ s = name engineer ++ " is engineer"
 -- @@PLEAC@@_4.13
 bigs = filter (> 1000000) nums
 
--- display lines from "who" matching "simonpj"
+-- display lines from "who" matching "simonpj" (readProcess is in appendix)
 t = do Right s <- readProcess "who" [] ""
        mapM_ putStrLn (filter ("simonpj" `isPrefixOf`) $ lines s)
 
@@ -1099,6 +1099,34 @@ randomPermute xs  =
        return $ e : ab
 
 l = randomPermute [1..5]        -- example of result: [2,3,5,1,4]
+
+
+-- @@PLEAC@@_4.18
+-- using groupNelem from appendix
+make_columns :: Int -> [String] -> [String]
+make_columns screen_width mylist = 
+    map concat $ transpose $ groupNelem rows $ map pad_it mylist
+        where maxlen = maximum(map length mylist) + 1 -- 1 needed to make extra space
+              cols = max 1 (screen_width `div` maxlen)
+              rows = 1 + (length mylist `div` cols)
+              pad_it s = take maxlen (s ++ repeat ' ')
+
+-- using external program "resize -u" to get terminal size (readProcess is in appendix)
+getTerminalSize :: IO (Maybe (Int, Int))
+getTerminalSize =
+    do Right s <- readProcess "resize" ["-u"] ""
+       let vars = parse_shell_vars s
+       return $ do x <- lookup "COLUMNS" vars
+                   y <- lookup "LINES" vars
+                   return (read x, read y)
+    where parse_shell_vars = catMaybes . map break_it . lines
+          break_it s = case break (== '=') s of
+                         (_, "") -> Nothing
+                         (var, _:val) -> Just (var, if last val == ';' then init val else val)
+
+main = do size <- getTerminalSize
+          let width = maybe 80 fst size
+          interact (unlines . make_columns width . words)
 
 
 -- @@PLEAC@@_APPENDIX
