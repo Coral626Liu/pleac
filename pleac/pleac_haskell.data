@@ -1067,6 +1067,8 @@ sort_by_2nd_char  = sortByKey (!! 1) names -- ["Za","Bbbbbbb","Azzz"]
 sort_by_last_char = sortByKey last names   -- ["Za","Bbbbbbb","Azzz"]
 sort_by_length    = sortByKey length names -- ["Za","Azzz","Bbbbbbb"]
 
+--
+import Text.Regex
 m = readFile "/etc/passwd" >>= (putStr . unlines . sortByKey key . lines)
     where key line = case splitRegex (mkRegex ":") line of
                        (name : _ : uid : gid : _) ->
@@ -1074,12 +1076,29 @@ m = readFile "/etc/passwd" >>= (putStr . unlines . sortByKey key . lines)
 
 
 -- @@PLEAC@@_4.16
+import System.Posix (sleep)
+
 -- circular lists are easily defined using infinite list
 circular = [1,2,3,4,5] ++ circular
 
 m = mapM_ do_it (take 10 circular)
     where do_it n = do putStrLn ("Handling process " ++ show n)
 		       sleep 1
+
+
+-- @@PLEAC@@_4.17
+rand :: Int -> Int -> IO Int
+rand low high = getStdRandom (randomR (low, high))
+
+randomPermute :: [a] -> IO [a]
+randomPermute []  = return []
+randomPermute xs  = 
+    do n <- rand 0 (length xs - 1)
+       let (a, e : b) = splitAt n xs -- taking n-th element and putting it first
+       ab <- randomPermute (a ++ b)
+       return $ e : ab
+
+l = randomPermute [1..5]        -- example of result: [2,3,5,1,4]
 
 
 -- @@PLEAC@@_APPENDIX
