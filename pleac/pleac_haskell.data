@@ -1303,10 +1303,41 @@ s2  = map (\(food, color) -> food ++ " => " ++ color) food_color
 -- association list as explained in previous sections keeps order
 
 
+-- @@PLEAC@@_5.7
+-- one can use simple list functions
+lookupAll k = map snd . filter ((== k) . fst)
+
+color_to_foods color = map fst $ filter ((== color) . snd) food_color
+yellow_food = color_to_foods "yellow" -- ["Banana","Lemon"]
+
+-- one can precompute it:
+food_of_color = map (\color -> (color, color_to_foods color)) colors
+                where colors = nub (map snd food_color)
+-- => [("red",["Apple"]), ("yellow",["Banana","Lemon"]), ("orange",["Carrot"])]
+-- then use it
+yellow_food_ = fromMaybe [] (lookup "yellow" food_of_color)
+
+-- or one can use a full fledged data structure
+-- (need: import qualified Data.Set as Set)
+food_of_color' = foldl (\l (v, k) -> Map.alter (add_it v) k l) Map.empty food_color
+    where add_it val prev = Just (Set.insert val $ fromMaybe Set.empty prev)
+yellow_food' = food_of_color' Map.! "yellow"
+-- => Set.fromList ["Banana","Lemon"]
+
+-- for every logged-in user, display the ttys on which it is logged
+t = do Right s <- readProcess "who" [] ""
+       let l = map (parse_it . words) (lines s)
+       let users = sort $ nub $ map fst l
+       mapM_ (putStrLn . format_it l) users
+    where format_it l user = user ++ ": " ++ unwords (lookupAll user l)
+          parse_it (user : tty : _) = (user, tty)
+
+
 -- @@PLEAC@@_APPENDIX
 import List
 import qualified Data.Array as Array
 import qualified Data.Map as Map
+import qualified Data.Set as Set
 
 listToArray :: [a] -> Array Int a
 listToArray l = Array.listArray (0, length l - 1) l
