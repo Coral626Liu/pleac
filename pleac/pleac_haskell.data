@@ -51,8 +51,8 @@ s4 = a' ++ b
           a' = subRegex (mkRegex "is") a "at"
 -- do it another way
 import Text.Regex
-import Data.Graph.Inductive.Query.Monad (mapFst)
-f = uncurry (++) . mapFst subst . splitAt 5
+import qualified Control.Arrow as Arrow
+f = uncurry (++) . Arrow.first subst . splitAt 5
     where subst s = subRegex (mkRegex "is") s "at"
 
 -- unpack chars using parsec
@@ -180,11 +180,11 @@ revwords' = (unwords . reverse . splitRegex (mkRegex " ")) string
 -- yet another version using a home made version of splitRegex' which keeps the matched string
 import List
 import Text.Regex
-import Data.Graph.Inductive.Query.Monad (mapFst)
+import qualified Control.Arrow as Arrow
 
 unfoldr' f b  =
   case f b of
-   Just (a, b') -> mapFst (a :) (unfoldr' f b')
+   Just (a, b') -> Arrow.first (a :) (unfoldr' f b')
    Nothing      -> ([], b)
 
 splitRegex' re s = 
@@ -898,6 +898,9 @@ l = map (-1 +) [1,2,3]          -- [0,1,2]
 l = [ ("a", [ 0.5, 3 ]), ("b", [ 0, 1 ]) ]
 l' = map (\(name, xs) -> (name, map (* 7) xs)) l
 -- => [ ("a", [ 3.5, 21 ]), ("b", [ 0, 7 ]) ]
+-- same using Arrow.second
+l_' = map (Arrow.second $ map (* 7)) l
+-- for a more cryptic version, replace Arrow.second with fmap
 
 -- same using Data.Map
 import qualified Data.Map as Map
@@ -1041,6 +1044,8 @@ l3 = sortBy (comparing (read :: String -> Int)) ["100", "3", "20"] -- ["3", "20"
 -- same, but may typically run faster
 sortByKey f = map snd . sortBy (comparing fst) . map (\x -> (f x, x))
 l3' = sortByKey (read :: String -> Int) ["100", "3", "20"]
+
+-- more cryptic: replace (\x -> (f x, x)) with (f Arrow.&&& id)
 
 
 -- @@PLEAC@@_4.15
@@ -1337,7 +1342,7 @@ t = do Right s <- readProcess "who" [] ""
 -- @@PLEAC@@_5.8
 surname = [ ("Mickey", "Mantle"), ("Babe", "Ruth") ];
 first_name = map swap surname
-    where swap (a,b) = (b,a)
+swap (a,b) = (b,a)
 
 Just name = lookup "Mantle" first_name -- "Mickey"
 
@@ -1431,6 +1436,7 @@ import List
 import qualified Data.Array as Array
 import qualified Data.Map as Map
 import qualified Data.Set as Set
+import qualified Control.Arrow as Arrow
 
 listToArray :: [a] -> Array Int a
 listToArray l = Array.listArray (0, length l - 1) l
