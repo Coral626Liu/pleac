@@ -1323,6 +1323,14 @@ food_of_color = map (\color -> (color, color_to_foods color)) colors
 -- then use it
 yellow_food_ = fromMaybe [] (lookup "yellow" food_of_color)
 
+-- another way to pre-compute
+assocListGroupByKey :: Ord a => [(a,b)] -> [(a,[b])]
+assocListGroupByKey = map factorize . groupBy same_key . sortBy (comparing fst)
+    where factorize l@((user, _) : _) = (user, map snd l)          
+          same_key (a,_) (b,_) = a == b
+-- you can write: factorize = fst . head Arrow.&&& map snd
+food_of_color = assocListGroupByKey food_color
+
 -- or one can use a full fledged data structure
 -- (need: import qualified Data.Set as Set)
 food_of_color' = foldl (\l (v, k) -> Map.alter (add_it v) k l) Map.empty food_color
@@ -1332,10 +1340,9 @@ yellow_food' = food_of_color' Map.! "yellow"
 
 -- for every logged-in user, display the ttys on which it is logged
 t = do Right s <- readProcess "who" [] ""
-       let l = map (parse_it . words) (lines s)
-       let users = sort $ nub $ map fst l
-       mapM_ (putStrLn . format_it l) users
-    where format_it l user = user ++ ": " ++ unwords (lookupAll user l)
+       let l = assocListGroupByKey $ map (parse_it . words) (lines s)
+       mapM_ (putStrLn . format_it) l
+    where format_it l (user, ttys) = user ++ ": " ++ unwords ttys
           parse_it (user : tty : _) = (user, tty)
 
 
@@ -1429,6 +1436,55 @@ encode = map (\x -> (head x, length x)) . group
 
 s = encode $ sort "Apple Banana Lemon"
 -- => [(' ',2),('A',1),('B',1),('L',1),('a',3),('e',2),('l',1),('m',1),('n',3),('o',1),('p',2)]
+
+
+-- @@PLEAC@@_5.15
+father = [ ("Cain",      "Adam")
+	 , ("Abel",      "Adam")
+	 , ("Seth",      "Adam")
+	 , ("Enoch",     "Cain")
+	 , ("Irad",      "Enoch")
+	 , ("Mehujael",  "Irad")
+	 , ("Methusael", "Mehujael")
+	 , ("Lamech",    "Methusael")
+	 , ("Jabal",     "Lamech")
+	 , ("Jubal",     "Lamech")
+	 , ("Tubalcain", "Lamech")
+	 , ("Enos",      "Seth")
+	 ]
+
+upline person = person : parents
+    where parents = unfoldr (\name -> fmap (\x -> (x,x)) $ lookup name father) person
+-- you can replace (\x -> (x,x)) with (join (,))   ("join" is from Control.Monad)
+
+from_Irad = upline "Irad"       -- ["Irad","Enoch","Cain","Adam"]
+
+ifNull default_ [] = default_
+ifNull _ l = l
+
+downline person = person ++ " begat " ++ (ifNull "Nobody" $ joinString ", " $ children)
+    where children = map fst $ filter ((== person) . snd) father
+
+to_Tubalcain = downline "Tubalcain" -- Tubalcain begat Nobody
+to_Adam      = downline "Adam"      -- Adam begat Cain, Abel, Seth
+
+
+-- the perl example is doing something quite weird,
+-- include_free is the list of files which are not included by other files,
+-- but that do include a file.
+dir = "/usr/include"
+include_free =
+    do files <- getDirectoryContents dir
+       let h_files = filter (isSuffixOf ".h") files
+       file2includes <- mapM get_includes h_files
+       -- getting the files that do include something:
+       let files_ = map fst $ filter (not . null . snd) file2includes
+       -- removing files included by other files:
+       return $ files_ \\ (concatMap snd file2includes)
+    where get_includes h_file = fmap (with_content h_file) (readFile $ dir ++ "/" ++ h_file)
+          with_content h_file content = (h_file, content_to_includes content)
+          content_to_includes = catMaybes . map (fmap head . matchRegex regex) . lines
+          regex = mkRegex "^[[:space:]]*#[[:space:]]*include[[:space:]]*<([^>]+)>"
 
 
 -- @@PLEAC@@_APPENDIX
