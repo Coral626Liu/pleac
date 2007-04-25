@@ -10,6 +10,22 @@
 
 
 // @@PLEAC@@_1.0
+// NOTE: Whilst it is perfectly valid to use Standard C Library, or GNU
+// C Library, routines in C++ programs, the code examples here will, as
+// far as possible, avoid doing so, instead using C++-specific functionality
+// and idioms. In general:
+// * I/O will be iostream-based [i.e. no 'scanf', 'printf', 'fgets' etc]
+// * Container / iterator idioms based on the Standard Template Library [STL]
+//   will replace the built-in array / raw pointer idioms typically used in C
+// * Boost Library functionality utilised wherever possible [the reason for
+//   this is that much of this functionality is likely to appear in the next
+//   C++ standard]
+// * Error detection/handling will generally be exception-based [this is done
+//   to keep examples simple. Exception use is optional in C++, and is not as
+//   pervasive as it is in other languages like Java or C#]
+// C-based solution(s) to problem(s) will be found in the corresponding section
+// of PLEAC-C/Posix/GNU.
+ 
 // In C++, one can use the builtin 'char *' type or the 'string' type
 // to represent strings.  In this section, we will work with the C++
 // library 'string' class.
@@ -518,6 +534,22 @@ boost::regex ex("^\\s+");
 var = boost::regex_merge(var, ex, "");
 
 // @@PLEAC@@_10.0
+// NOTE: Whilst it is perfectly valid to use Standard C Library, or GNU
+// C Library, routines in C++ programs, the code examples here will, as
+// far as possible, avoid doing so, instead using C++-specific functionality
+// and idioms. In general:
+// * I/O will be iostream-based [i.e. no 'scanf', 'printf', 'fgets' etc]
+// * Container / iterator idioms based on the Standard Template Library [STL]
+//   will replace the built-in array / raw pointer idioms typically used in C
+// * Boost Library functionality utilised wherever possible [the reason for
+//   this is that much of this functionality is likely to appear in the next
+//   C++ standard]
+// * Error detection/handling will generally be exception-based [this is done
+//   to keep examples simple. Exception use is optional in C++, and is not as
+//   pervasive as it is in other languages like Java or C#]
+// C-based solution(s) to problem(s) will be found in the corresponding section
+// of PLEAC-C/Posix/GNU.
+
 #include <iostream>
 
 // 'greeted' defined outside of any namespace, class or function, so is part of the
@@ -543,9 +575,6 @@ int main()
 
   int greetings = howManyGreetings();
 
-  // I/O performed here via the Iostream library. All the C language I/O routines e.g. 'printf',
-  // 'scanf', 'fputs', 'fgets' etc, are still available since the Standard C Library is a subset
-  // of the Standard C++ Library, but their use is not generally recommended
   std::cout << "bye there!, there have been "
             << greetings
             << " greetings so far"
@@ -805,16 +834,21 @@ void somefunc()
 #include <sstream>
 #include <string>
 
+class bad_conversion {};
+
 template<typename T> T fromString(const std::string& s)
 {
   std::istringstream iss(s);
-  T t; iss >> t; return t;
+  T t; iss >> t;
+  if (!iss) throw bad_conversion();
+  return t;
 }
 
 template<typename T> std::string toString(const T& t)
 {
   std::ostringstream oss;
   oss << t << std::ends;
+  if (!oss) throw bad_conversion();
   return std::string(oss.str());
 }
 
@@ -840,7 +874,16 @@ void check_x(int x);
 int main(int argc, char* argv[])
 {
   name.assign(argv[1]);
-  age = fromString<int>(argv[2]);
+
+  try
+  {  
+    age = fromString<int>(argv[2]);
+  }
+
+  catch (const bad_conversion& e)
+  {
+    ; // ... handle conversion error ...
+  }
 
   check_x(age);
 }
