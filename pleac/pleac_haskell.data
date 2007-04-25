@@ -1487,6 +1487,103 @@ include_free =
           regex = mkRegex "^[[:space:]]*#[[:space:]]*include[[:space:]]*<([^>]+)>"
 
 
+-- @@PLEAC@@_5.16
+import qualified Data.Tree as Tree
+dirname_basename file = (if dir == "" then "." else (reverse $ tail dir), reverse base)
+    where (base, dir) = break (== '/') $ reverse file
+
+dirname = fst . dirname_basename
+basename = snd . dirname_basename
+
+duProcessFakedInput = 
+    "11732   groovysoap/lib\n\
+    \68      groovysoap/src/main/groovy/net/soap\n\
+    \71      groovysoap/src/main/groovy/net\n\
+    \74      groovysoap/src/main/groovy\n\
+    \77      groovysoap/src/main\n\
+    \9       groovysoap/src/examples\n\
+    \8       groovysoap/src/examples/groovy\n\
+    \102     groovysoap/src/test\n\
+    \202     groovysoap/src\n\
+    \11966   groovysoap\n"
+
+sortByKeyRev f = map snd . sortBy (flip $ comparing fst) . map (\x -> (f x, x))
+
+dirs_tree :: Tree.Tree (String, Int)
+dirs_tree = Tree.unfoldTree get_info (last dir2size)
+    where get_info (dir, size) = 
+              let subdirs = filter ((== dir) . dirname . fst) dir2size in
+              ((dir, size), 
+               if null subdirs then [] else 
+                   sortByKeyRev snd $ subdirs ++ [ (dir ++ "/.", size - sum (map snd subdirs)) ])
+          dir2size = map ((\(size:dir:_) -> (dir, read size)) . words) $ lines duProcessFakedInput
+
+t = putStr $ Tree.drawTree$ fmap (\(f,s)-> show s ++ " " ++ basename f) dirs_tree
+-- using Tree.drawTree, the result is not as expected, but it's quite nice:
+--
+-- 11966 groovysoap
+-- |
+-- +- 11732 lib
+-- |
+-- +- 202 src
+-- |  |
+-- |  +- 102 test
+-- |  |
+-- |  +- 77 main
+-- |  |  |
+-- |  |  +- 74 groovy
+-- |  |  |  |
+-- |  |  |  +- 71 net
+-- |  |  |  |  |
+-- |  |  |  |  +- 68 soap
+-- |  |  |  |  |
+-- |  |  |  |  `- 3 .
+-- |  |  |  |
+-- |  |  |  `- 3 .
+-- |  |  |
+-- |  |  `- 3 .
+-- |  |
+-- |  +- 14 .
+-- |  |
+-- |  `- 9 examples
+-- |     |
+-- |     +- 8 groovy
+-- |     |
+-- |     `- 1 .
+-- |
+-- `- 32 .
+
+-- now the exact same solution 
+mydraw :: Tree.Tree (String, Int) -> String
+mydraw tree = unlines $ drawSubTrees [tree]
+  where drawSubTrees [] = []
+	drawSubTrees l@(Tree.Node (_,size_max) _ : _) =
+            let format = "%" ++ show (length $ show size_max) ++ "s %s" in
+            let draw_one (Tree.Node (name, size) sub) =
+                    let name' = basename name in
+                    printf format (show size) name' :
+                           map (\s -> printf format "|" (map (\_ -> ' ') name') ++ s) (drawSubTrees sub) in
+            concatMap draw_one l
+
+t2 = putStr $ mydraw dirs_tree
+
+--11966 groovysoap
+--    |           11732 lib
+--    |             202 src
+--    |               |    102 test
+--    |               |     77 main
+--    |               |      |     74 groovy
+--    |               |      |      |       71 net
+--    |               |      |      |        |    68 soap
+--    |               |      |      |        |     3 .
+--    |               |      |      |        3 .
+--    |               |      |      3 .
+--    |               |     14 .
+--    |               |      9 examples
+--    |               |      |         8 groovy
+--    |               |      |         1 .
+--    |              32 .
+
 -- @@PLEAC@@_APPENDIX
 import List
 import qualified Data.Array as Array
@@ -1530,6 +1627,12 @@ subRegexOnceWith re new s =
 
 rand :: Int -> Int -> IO Int
 rand low high = getStdRandom (randomR (low, high))
+
+dirname_basename file = (if dir == "" then "." else (reverse $ tail dir), reverse base)
+    where (base, dir) = break (== '/') $ reverse file
+
+dirname = fst . dirname_basename
+basename = snd . dirname_basename
 
 
 -- from http://www.cse.unsw.edu.au/~dons/code/newpopen
