@@ -426,8 +426,15 @@ errors = filter (\(code,name) -> code /= soundex name)
 	    , ("L300", "Ladd")
 	    ]
 
-msoundex = do putStr "Lookup user: "
-	      user <- getLine
+
+-- one need to flush between putStr and getLine,
+--   it would not be needed if we had printer a newline
+-- the other solution is to disable buffering with hSetBuffering
+putStr_getLine s = do putStr s
+                      hFlush stdout
+                      getLine
+
+msoundex = do user <- putStr_getLine "Lookup user: "
               matching <- fmap (filter $ matches user) getAllUserEntries
               mapM_ (putStrLn . format_user) matching
     where 
@@ -665,14 +672,18 @@ oct s = read ("0o" ++ s) :: Integer
 hex = fst . head . Numeric.readHex
 oct = fst . head . Numeric.readOct
 
+-- one need to flush between putStr and getLine,
+--   it would not be needed if we had printer a newline
+-- the other solution is to disable buffering with hSetBuffering
+putStr_getLine s = do putStr s
+                      hFlush stdout
+                      getLine
 
-t = do putStrLn "Gimme a number in decimal, octal, or hex: "
-       s <- getLine
+t = do s <- putStr_getLine "Gimme a number in decimal, octal, or hex: "
        let n = read s :: Integer
        printf "%d %x %o\n" n n n
 
-t' = do putStrLn "Enter file permission in octal: "
-	permissions <- getLine
+t' = do permissions <- putStr_getLine "Enter file permission in octal: "
 	putStrLn $ "The decimal value is " ++ show (oct permissions)
 
 
