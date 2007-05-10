@@ -3990,6 +3990,650 @@ let sortedMailByHash fn =
 List.iter (fun m -> print_endline m) (sortedMailByHash "mbox");;
 
 
+(* @@PLEAC@@_11.0 *)
+(* Create a reference to an integer *)
+let aref = ref 0
+
+let () =
+  (* Assign to aref's contents *)
+  aref := 3;
+
+  (* Print the value that the reference "aref" refers to *)
+  Printf.printf "%d\n" !aref;
+
+  (* Since references are just records with a single field, "contents",
+     the following operations have the same effect as above *)
+  aref.contents <- 3;
+  Printf.printf "%d\n" aref.contents;
+
+  (* Fast increment and decrement operations are available for int refs *)
+  incr aref; Printf.printf "after incr: %d\n" !aref;
+  decr aref; Printf.printf "after decr: %d\n" !aref
+
+(* Create a type for "person" records *)
+type person = { name : string;
+                address : string;
+                birthday : int;
+              }
+
+let () =
+  (* Create a "person" record *)
+  let nat = { name     = "Leonhard Euler";
+              address  = "1729 Ramunjan Lane\nMathword, PI 31416";
+              birthday = 0x5bb5580;
+            } in
+
+  (* Display the person's name and address *)
+  Printf.printf "\nname: %s\naddress: %s\n" nat.name nat.address;
+
+  (* Same as above, using pattern-matching *)
+  let {name=n; address=a} = nat in
+  Printf.printf "\nname: %s\naddress: %s\n" n a
+
+(* @@PLEAC@@_11.1 *)
+(* The following two sections use lists instead of arrays since
+   list refs can be enlarged and copied easily. Also, arrays are
+   mutable in OCaml, whereas lists are immutable. *)
+
+(* Create a reference to a list *)
+let lref      = ref list
+let anon_list = ref [9; 7; 5; 3; 1]
+let anon_copy = ref !anon_list
+
+let () =
+  (* Add an item to the list *)
+  anon_list := 11 :: !anon_list;
+
+  (* Get the number of items from the list ref *)
+  let num_items = List.length !anon_list in
+
+  (* Print original data *)
+  print_endline (String.concat ", "
+                   (List.map (fun i -> string_of_int i) !anon_list));
+
+  (* Sort it *)
+  anon_list := List.sort compare !anon_list;
+
+  (* Print sorted data *)
+  print_endline (String.concat ", "
+                   (List.map (fun i -> string_of_int i) !anon_list));
+
+(* @@PLEAC@@_11.2 *)
+(* Create a hash that maps strings to string lists *)
+let (hash : (string, string list) Hashtbl.t) = Hashtbl.create 0
+
+(* Define a function to add a string to the string list associated
+   with a key in the hash creating the string list if necessary *)
+let add hash key value =
+  Hashtbl.replace hash key
+    (try value :: Hashtbl.find hash key
+     with Not_found -> [value])
+
+let () =
+  (* Populate the hash with some data *)
+  add hash "fruit" "apple";
+  add hash "fruit" "banana";
+  add hash "wine" "merlot";
+  add hash "cheese" "cheddar";
+  add hash "cheese" "brie";
+  add hash "cheese" "havarti";
+
+  (* Iterate and print out the hash's contents *)
+  Hashtbl.iter
+    (fun key values ->
+       Printf.printf "%s: %s\n" key
+         (String.concat ", " values))
+    hash
+
+(* Hashtbl is somewhat unusual in that it allows multiple values for
+   a given key. By using Hashtbl.add instead of Hashtbl.replace, and
+   using strings as values instead of string lists, we can save some
+   memory *)
+let (hash : (string, string) Hashtbl.t) = Hashtbl.create 0
+let () =
+  Hashtbl.add hash "foo" "bar";
+  Hashtbl.add hash "foo" "baz";
+  Hashtbl.add hash "goo" "arc";
+  Hashtbl.iter (Printf.printf "%s => %s\n") hash
+
+(* @@PLEAC@@_11.3 *)
+(* Hashtbls are mutable, so creating a reference to a hash is usually
+   not necessary; it creates an *additional* level of indirection. *)
+let href = ref hash
+let anon_hash = ref (Hashtbl.create 0)
+let () =
+  (* Have some fun with locally-defined operators *)
+  let ( => ) = Hashtbl.replace !anon_hash in
+  ( "key1" => "value1"; "key2" => "value2" )
+let anon_hash_copy = ref (Hashtbl.copy !href)
+
+(* @@PLEAC@@_11.4 *)
+(* Create a reference to a function *)
+let fref = ref func
+let fref = ref (fun () -> (* ... *) ())
+
+(* Call the referent function *)
+let () = !fref ()
+
+(* Create a reference to an association list with function values. *)
+let commands = ref []
+let () =
+  let ( => ) name func = commands := (name, func) :: !commands in
+  (
+    "happy" => joy;
+    "sad"   => sullen;
+    "done"  => (fun () -> print_endline "See ya!"; exit 0);
+    "mad"   => angry;
+  )
+
+let () =
+  while true do
+    print_string "How are you? ";
+    let string = read_line () in
+    try
+      let command = List.assoc string !commands in
+      command ()
+    with Not_found ->
+      Printf.printf "No such command: %s\n" string
+  done
+
+(* Use closures to generate functions that count. *)
+
+let counter_maker () =
+  let start = ref 0 in
+  fun () ->                             (* this is a closure *)
+    let result = !start in              (* lexical from enclosing scope *)
+    incr start; result
+
+let counter1 = counter_maker ()
+let counter2 = counter_maker ()
+
+let () =
+  for i = 0 to 4 do
+    Printf.printf "%d\n" (counter1 ())
+  done;
+  Printf.printf "%d %d\n" (counter1 ()) (counter2 ())
+  (*
+    0
+    1
+    2
+    3
+    4
+    5 0
+  *)
+
+(* Use closures to generate functions that keep track of time.
+   Note that this example does not need references, since
+   since functions are just ordinary values in OCaml. *)
+
+#load "unix.cma";;
+
+let timestamp () =
+  let start_time = Unix.time () in
+  fun () -> int_of_float (Unix.time () -. start_time)
+
+let () =
+  let early = timestamp () in
+  Unix.sleep 20;
+  let later = timestamp () in
+  Unix.sleep 10;
+  Printf.printf "It's been %d seconds since early.\n" (early ());
+  Printf.printf "It's been %d seconds since later.\n" (later ());
+  (*
+    It's been 30 seconds since early.
+    It's been 10 seconds since later.
+  *)
+
+(* @@PLEAC@@_11.5 *)
+(* Environments are immutable in OCaml; there is no way to get a
+   reference to a value. If you need a mutable cell, use "ref" as
+   described in the introduction. If you need to refer to values
+   by name strings, use a Hashtbl.t or similar data structure. *)
+
+(* @@PLEAC@@_11.6 *)
+(* Create a couple of integer references *)
+let a = ref 0
+let b = ref 0
+
+(* Create an array of the references *)
+let array_of_refs = [| a; b |]
+
+let () =
+  (* Set the value of an element *)
+  array_of_refs.(1) := 12;              (* b := 12 *)
+
+  (* Note that this is *not* the same as array mutation! If we were to do:
+       array_of_refs.(1) <- ref 12
+     (or drop the refs altogether) then we would no longer be aliasing "b".
+  *)
+
+  (* Get the value of an element *)
+  Printf.printf "%d %d\n" !(array_of_refs.(1)) !b
+
+let () =
+  let (a, b, c, d) = (ref 1, ref 2, ref 3, ref 4) in (* initialize *)
+  let array = [| a; b; c; d |] in                    (* refs to each value *)
+
+  array.(2) := !(array.(2)) + 9;        (* !c is now 12 *)
+
+  let tmp = array.(Array.length array - 1) in
+  tmp := !tmp * 5;                      (* !d is now 20 *)
+
+(* @@PLEAC@@_11.7 *)
+(* Since record field names must be unique to their enclosing module,
+   define a module to encapsulate the fields of the record type that
+   will contain the "methods". *)
+module Counter = struct
+  type t = { next  : unit -> int;
+             prev  : unit -> int;
+             last  : unit -> int;
+             get   : unit -> int;
+             set   : int  -> unit;
+             bump  : int  -> unit;
+             reset : unit -> int }
+
+  let make count =
+    let start = count in
+    let count = ref start in
+    let prev () = decr count; !count in
+    { next  = (fun () -> incr count; !count);
+      prev  = prev; last = prev;
+      get   = (fun () -> !count);
+      set   = (fun count' -> count := count');
+      bump  = (fun count' -> count := !count + count');
+      reset = (fun () -> count := start; !count)
+    }
+end
+
+(* Create and use a couple of counters. *)
+let () =
+  let c1 = Counter.make 20 in
+  let c2 = Counter.make 77 in
+
+  Printf.printf "next c1: %d\n" (c1.Counter.next ()); (* 21 *)
+  Printf.printf "next c2: %d\n" (c2.Counter.next ()); (* 78 *)
+  Printf.printf "next c1: %d\n" (c1.Counter.next ()); (* 22 *)
+  Printf.printf "last c1: %d\n" (c1.Counter.prev ()); (* 21 *)
+  Printf.printf "old  c2: %d\n" (c2.Counter.reset ()) (* 77 *)
+
+(* Same as above, but using a "local open" to temporarily expose
+   the record fields for convenience. *)
+let () =
+  let c1 = Counter.make 20 in
+  let c2 = Counter.make 77 in
+  let module Local = struct
+    open Counter
+    let () =
+      Printf.printf "next c1: %d\n" (c1.next ()); (* 21 *)
+      Printf.printf "next c2: %d\n" (c2.next ()); (* 78 *)
+      Printf.printf "next c1: %d\n" (c1.next ()); (* 22 *)
+      Printf.printf "last c1: %d\n" (c1.prev ()); (* 21 *)
+      Printf.printf "old  c2: %d\n" (c2.reset ()) (* 77 *)
+  end in ()
+
+(* @@PLEAC@@_11.8 *)
+(* There is no need to use references just to have a function that
+   calls a method. Either write a lambda: *)
+
+let mref = fun x y z -> obj#meth x y z
+
+(* Or, just refer to the method directly: *)
+
+let mref = obj#meth
+
+(* Later... *)
+
+let () = mref "args" "go" "here"
+
+(* @@PLEAC@@_11.9 *)
+#load "str.cma";;
+
+type record = { name : string;
+                empno : int;
+                mutable title : string;
+                mutable age : int;
+                mutable salary : float;
+                mutable pals : string list;
+              }
+
+let record = { name = "Jason";
+               empno = 132;
+               title = "deputy peon";
+               age = 23;
+               salary = 37000.00;
+               pals = [ "Norbert"; "Rhys"; "Phineas" ]
+             }
+
+let () =
+  Printf.printf "I am %s, and my pals are %s.\n"
+    record.name
+    (String.concat ", " record.pals)
+
+let byname = Hashtbl.create 0
+
+let () =
+  (* store record *)
+  Hashtbl.replace byname record.name record;
+
+  (* later on, look up by name *)
+  begin
+    try
+      let rp = Hashtbl.find byname "Aron" in
+      Printf.printf "Aron is employee %d\n" rp.empno
+    with Not_found ->
+      (* raised if missing *)
+      ()
+  end;
+
+  (* give jason a new pal *)
+  let jason = Hashtbl.find byname "Jason" in
+  jason.pals <- "Theodore" :: jason.pals;
+  Printf.printf "Jason now has %d pals\n" (List.length jason.pals);
+
+  Hashtbl.iter
+    (fun name record ->
+       Printf.printf "%s is employee number %d\n" name record.empno)
+    byname
+
+let employees = Hashtbl.create 0
+
+let () =
+  (* store record *)
+  Hashtbl.replace employees record.empno record;
+
+  (* lookup by id *)
+  begin
+    try
+      let rp = Hashtbl.find employees 132 in
+      Printf.printf "employee number 132 is %s\n" rp.name
+    with Not_found ->
+      ()
+  end;
+
+  let jason = Hashtbl.find byname "Jason" in
+  jason.salary <- jason.salary *. 1.035
+
+(* Return true if the string s contains the given substring. *)
+let contains s substring =
+  try ignore (Str.search_forward (Str.regexp_string substring) s 0); true
+  with Not_found -> false
+
+let () =
+  (* A filter function for hash tables, written as a fold. *)
+  let grep f hash =
+    Hashtbl.fold
+      (fun key value result ->
+         if f value then value :: result else result)
+      hash [] in
+
+  (* Select records matching criteria. *)
+  let peons =
+    grep (fun employee -> contains employee.title "peon") employees in
+  let tsevens =
+    grep (fun employee -> employee.age = 27) employees in
+
+  (* Go through all records. *)
+  let records = Hashtbl.fold (fun _ v a -> v :: a) employees [] in
+  List.iter
+    (fun rp ->
+       Printf.printf "%s is age %d.\n" rp.name rp.age)
+    (List.sort (fun r1 r2 -> compare r1.age r2.age) records)
+
+(* Create an array of lists of records by age. *)
+let byage = Array.create 150 []
+let () =
+  Hashtbl.iter
+    (fun _ employee ->
+       byage.(employee.age) <- employee :: byage.(employee.age))
+    employees
+
+(* Print all employees by age. *)
+let () =
+  Array.iteri
+    (fun age emps ->
+       match emps with
+         | [] -> ()
+         | _ ->
+             Printf.printf "Age %d: " age;
+             List.iter (fun emp -> Printf.printf "%s " emp.name) emps;
+             print_newline ())
+    byage
+
+(* Similar approach using List.map and String.concat. *)
+let () =
+  Array.iteri
+    (fun age emps ->
+       match emps with
+         | [] -> ()
+         | _ ->
+             Printf.printf "Age %d: %s\n" age
+               (String.concat ", " (List.map (fun r -> r.name) emps)))
+    byage
+
+(* @@PLEAC@@_11.10 *)
+#load "str.cma";;
+
+(* Define a list reference to contain our data. *)
+let (list_of_records : (string, string) Hashtbl.t list ref) = ref []
+
+(* Read records from standard input. *)
+let () =
+  let regexp = Str.regexp "\\([^:]+\\):[ \t]*\\(.*\\)" in
+  let record = ref (Hashtbl.create 0) in
+  begin
+    try
+      while true do
+        let line = read_line () in
+        if Str.string_match regexp line 0
+        then
+          let field = Str.matched_group 1 line in
+          let value = Str.matched_group 2 line in
+          Hashtbl.replace !record field value
+        else
+          (list_of_records := !record :: !list_of_records;
+           record := Hashtbl.create 0)
+      done
+    with End_of_file ->
+      if Hashtbl.length !record > 0
+      then list_of_records := !record :: !list_of_records
+  end
+
+(* Write records to standard output. *)
+let () =
+  List.iter
+    (fun record ->
+       Hashtbl.iter
+         (fun field value -> Printf.printf "%s: %s\n" field value)
+         record;
+       print_newline ())
+    !list_of_records
+
+(* @@PLEAC@@_11.11 *)
+(* If you are in the OCaml toplevel, simply enter an expression to
+   view its type and value. *)
+# let reference = ref ( [ "foo", "bar" ],
+                        3,
+                        fun () -> print_endline "hello, world" );;
+val reference : ((string * string) list * int * (unit -> unit)) ref =
+  {contents = ([("foo", "bar")], 3, <fun>)}
+
+(* From within your own programs, use the Std.print and Std.dump
+   functions from the Extlib library, available at
+   http://ocaml-lib.sourceforge.net/ *)
+# Std.print reference;;
+(([("foo", "bar")], 3, <closure>))
+- : unit = ()
+# Std.dump reference;;
+- : string = "(([(\"foo\", \"bar\")], 3, <closure>))"
+
+(* @@PLEAC@@_11.12 *)
+(* Immutable data structures such as int, char, float, tuple, list, Set,
+   and Map can be copied by assignment. *)
+let v2 = v1
+let r2 = ref !r1
+
+(* Objects can be shallow-copied using Oo.copy. *)
+let o2 = Oo.copy o1
+
+(* Several built-in types include copy functions. *)
+let a2 = Array.copy a1
+let h2 = Hashtbl.copy h1
+let s2 = String.copy s1
+
+(* Any data structure can be deep-copied by running it through Marshal,
+   though this is not very efficient. *)
+let (copy : 'a -> 'a) =
+  fun value ->
+    Marshal.from_string
+      (Marshal.to_string value [Marshal.Closures])
+      0
+
+(* @@PLEAC@@_11.13 *)
+let () =
+  (* Store a data structure to disk. *)
+  let out_channel = open_out_bin "filename" in
+  Marshal.to_channel out_channel data [];
+  close_out out_channel;
+
+  (* Load a data structure from disk. *)
+  let in_channel = open_in_bin "filename" in
+  let data = Marshal.from_channel in_channel in
+  (* ... *)
+  ();;
+
+#load "unix.cma";;
+let () =
+  (* Store a data structure to disk, with exclusive locking. *)
+  let out_channel = open_out_bin "filename" in
+  Unix.lockf (Unix.descr_of_out_channel out_channel) Unix.F_LOCK 0;
+  Marshal.to_channel out_channel data [];
+  close_out out_channel;
+
+  (* Load a data structure from disk, with shared locking. *)
+  let in_channel = open_in_bin "filename" in
+  Unix.lockf (Unix.descr_of_in_channel in_channel) Unix.F_RLOCK 0;
+  let data = Marshal.from_channel in_channel in
+  (* ... *)
+  ()
+
+(* @@PLEAC@@_11.14 *)
+(* See recipes 14.8 and 14.9 for examples of (mostly) transparent
+   persistence using DBM and Marshal in a type-safe manner. *)
+
+(* @@PLEAC@@_11.15 *)
+(* bintree - binary tree demo program *)
+
+type 'a tree = { value : 'a;
+                 left  : 'a tree option;
+                 right : 'a tree option }
+
+let rec string_of_tree tree =
+  Printf.sprintf "{ value = %d; left = %s; right = %s }"
+    tree.value
+    (match tree.left with
+       | None -> "None"
+       | Some tree -> Printf.sprintf "Some ( %s )" (string_of_tree tree))
+    (match tree.right with
+       | None -> "None"
+       | Some tree -> Printf.sprintf "Some ( %s )" (string_of_tree tree))
+
+(* insert given value into proper point of
+   provided tree.  If no tree provided,
+   fill one in for our caller. *)
+let rec insert tree value =
+  match tree with
+    | None -> {value=value; left=None; right=None}
+    | Some tree ->
+        if tree.value > value
+        then { value = tree.value;
+               left  = Some (insert tree.left value);
+               right = tree.right }
+        else if tree.value < value
+        then { value = tree.value;
+               left  = tree.left;
+               right = Some (insert tree.right value) }
+        else tree
+
+(* recurse on left child,
+   then show current value,
+   then recurse on right child. *)
+let rec in_order tree =
+  match tree with
+    | None -> ()
+    | Some tree ->
+        in_order tree.left;
+        print_int tree.value;
+        print_string " ";
+        in_order tree.right
+
+(* show current value,
+   then recurse on left child,
+   then recurse on right child. *)
+let rec pre_order tree =
+  match tree with
+    | None -> ()
+    | Some tree ->
+        print_int tree.value;
+        print_string " ";
+        pre_order tree.left;
+        pre_order tree.right
+
+(* recurse on left child,
+   then recurse on right child,
+   then show current value. *)
+let rec post_order tree =
+  match tree with
+    | None -> ()
+    | Some tree ->
+        post_order tree.left;
+        post_order tree.right;
+        print_int tree.value;
+        print_string " "
+
+let rec search tree value =
+  match tree with
+    | Some tree ->
+        if tree.value = value
+        then Some tree
+        else search (if value < tree.value then tree.left else tree.right) value
+    | None -> None
+
+(* reference to the root of the tree *)
+let root = ref None
+
+(* first generate 20 random inserts *)
+let () =
+  Random.self_init ();
+  for n = 0 to 19 do
+    root := Some (insert !root (Random.int 1000))
+  done
+
+(* now dump out the tree all three ways *)
+let () =
+  print_string "Pre order: "; pre_order !root; print_newline ();
+  print_string "In order: "; in_order !root; print_newline ();
+  print_string "Post order: "; post_order !root; print_newline ()
+
+(* prompt until EOF *)
+let () =
+  try
+    while true do
+      let line = read_line () in
+      let num = int_of_string line in
+      let found = search !root num in
+      match found with
+        | Some tree ->
+            Printf.printf "Found %d at %s, %d\n"
+              num
+              (string_of_tree tree)
+              tree.value
+        | None ->
+            Printf.printf "No %d in the tree\n" num
+    done
+  with End_of_file ->
+    ()
+
+
 (* @@PLEAC@@_14.0 *)
 (* OCaml's standard library includes bindings to the NDBM database.
    Bindings to other database systems can be found on the web. *)
