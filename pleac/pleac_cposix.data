@@ -98,207 +98,1442 @@ fclose(fp);
 
 //------------------------------------------------------------------
 
-
-
 // @@PLEAC@@_3.0
-//------------------------------------------------------------------
-#include <stdio.h>
-#include <time.h> // time_t, struct tm, localtime()
-#include <stdlib.h>
-#include <limits.h> // SSIZE_MAX
+// NOTE: In order to keep the size / verbosity of code examples to a minimum, library function
+// calls will generally not include error checking and handling. Example:
+//
+//     p = malloc(...);                if ((p = malloc(...)) == NULL)
+//                                     {
+//                                       ... handle error ...
+//                                     }
+//
+// However, any necessary, application-specific error-related code, will still be used. Code
+// examples will endeavour, wherever possible, to make use of:
+//
+// * C99 Features e.g. variable-length arrays, non-const aggregate initialisers
+// * GNU Extensions e.g. nested functions, statement expressions
+//
+// The aim of doing so is to reduce redundancy [i.e. copious examples of older / standard C
+// already exist] as well as enhance the information value of each PLEAC example.
+//
+// Another item worthy of note is the use of writeable 'static local storage' in many custom
+// functions. Whilst a commonly-used technique that makes functions self-contained, and easier
+// to use [which is precisely why it is used here], it is not viable in multi-threaded code;
+// examples need to be suitably modified to work in such code. The section, 'Printing a Date',
+// in Chapter 3: Dates and Times, discusses this issue, and provides illustrative examples.
+//
+// The GNU C Library provides extensive, if somewhat low-level, date / time functionality. The
+// relevant section of the manual may be found at:
+//
+//     http://www.gnu.org/software/libc/manual/html_mono/libc.html#Date%20and%20Time
+//
+// Outline of some of the more important concepts:
+//
+// * Calendar time represented in three forms:
+//   - Simple time [a.k.a. Epoch Seconds, seconds since Jan 1, 1970]; represented by the
+//    'time_t' type [generally implemented as a 32 bit integer]
+//   - Broken-down time; represented by 'struct tm', having a field for each time component
+//   - Formatted string; certain string formats are printable and parseable as valid calendar
+//     times
+//
+// * Date manipulations are ordinarily performed using broken-down time form, and are converted
+//   to / from this form as the need arises:
+//   - Input
+//     + simple -> broken-down: 'localtime' / 'gmtime'
+//     + string -> broken-down: 'strptime' / 'getdate'
+//   - Arithmetic
+//     + broken-down -> simple: 'mktime'
+//   - Output
+//     + broken-down -> string: 'strftime', 'asctime'
+//   
+//   The above list shows that a date / time value might be either be read in as a string [then
+//   parsed, and converted], or converted from a simple-time value [e.g. the 'time' and
+//   'gettimeofday' routines return the current date / time as a simple-time value]. Date
+//   arithmetic can, of course, be performed using the component fields of a broken-time value,
+//   but would, more commonly, be first converted to a simple-time value [via 'mktime'], the
+//   relevant operations performed, and converted back. Date / time output is ordinarily in
+//   string form, the conversion most likely performed using 'strftime' routine, but use of the
+//   'printf' family is also possible
+//
+// * Despite a few exceptions, the date / time library routines are well standardised [just
+//   include the <time.h> header], so are available across platforms. The widely-implemented,
+//   though *NIX-specific, routines include:
+//   - 'gettimeofday', essentially a higher resolution [microseconds, possibly nanoseconds]
+//      version of 'time'
+//   - 'strptime' and 'getdate', both routines similar in functionlity to 'sscanf' but using
+//     format specifications specialised for date / time handling
+//
+// Implementations of general purpose date routines [which are generally used in several
+// sections] appear here. Protoypes appear in each section in which they are used. To
+// successfully compile examples ensure the relevant code from this section is copied into
+// the example source file.
 
-...
+struct tm mk_tm(int year, int month, int day, int hour, int minute, int second)
+{
+  struct tm tmv =
+  {
+    .tm_hour = hour, .tm_min = minute, .tm_sec = second,
+    .tm_year = year - 1900, .tm_mon = month - 1, .tm_mday = day,
+    .tm_isdst = -1
+  };
 
-time_t timeval;
-struct tm * tmval;
+  mktime(&tmv);
 
-timeval = time(NULL);
+  return tmv;
+}
 
-if((tmval = localtime(&timeval)) == NULL)
-  fprintf(stderr, "local time not available\n");
-else
-  /* using tm fields : not recommended */
-  printf("Today is day %02d of the current year\n",
-  tmval->tm_yday);
-/* using strftime */
-// we first check the return of strftime to allocate a buffer of the correct size
-  lg = strftime(NULL, SSIZE_MAX, "%j", tmval);
-  if( lg > 0 ){
-    buffer = malloc( lg + 1 );
-    if( buffer == NULL ){          perror("malloc");
-      exit(1);
-    }
-    strftime(buffer, lg + 1, "%j", tmval );
-    fprintf( stdout, "Today is day %s of the current year\n", buffer );
-    free( buffer );
+struct tm mk_tm_unfilled(void)
+{
+  // -1 value used to indicate 'unfilled' since zero is a legitimate value in some fields
+  return ((struct tm) { -1, -1, -1, -1, -1, -1, -1, -1, -1 });
+}
+
+struct tm mk_tm_zero(void)
+{
+  return ((struct tm) { 0, 0, 0, 0, 0, 0, -1, -1, -1 });
+}
+
+void show_tm(const struct tm* tmvptr)
+{
+  int year = tmvptr->tm_year > -1 ? tmvptr->tm_year + 1900 : tmvptr->tm_year;
+  int month = tmvptr->tm_mon > -1 ? tmvptr->tm_mon + 1 : tmvptr->tm_mon;
+
+  printf("Y/M/D H:M:S -> %04d/%02d/%02d %02d:%02d:%02d\n",
+    year, month, tmvptr->tm_mday,
+    tmvptr->tm_hour, tmvptr->tm_min, tmvptr->tm_sec);
+
+  printf("DOW: %02d\nDOY: %02d\nDaylight Saving: %02d\n",
+    tmvptr->tm_wday, tmvptr->tm_yday, tmvptr->tm_isdst);
+
+  fflush(stdout);
+}
+
+// Note: Equivalent of 'timegm' function implemented on *NIX platforms [code may be 'unpacked'
+// for compilers not supporting nested functions] using the more portable technique of changing,
+// temporarily, the TZ value
+time_t mktime_utc(struct tm* tmvptr)
+{
+  const char NUL = '\0'; char tzold[32] = {NUL}, tznew[32] = {NUL};
+
+  void save_tz(void)
+  {
+    char* tz = getenv("TZ"); if (tz != NULL) strcpy(tzold, tz);
   }
 
-...
+  void restore_tz(void)
+  {
+    char* tz = (tzold[0] != NUL) ? strcat(strcpy(tznew, "TZ="), tzold) : "TZ";
+    putenv(tz);
+  }
 
+  save_tz();
+  putenv("TZ=UTC");
+  time_t utc = mktime(tmvptr);
+  restore_tz();
+
+  return utc;
+}
+
+// ----
+
+// The following helper functions are loosely based on the implementations found in the
+// corresponding section(s) of PLEAC-PHP. The 'mk_date_interval' function is notable for
+// several reasons:
+// * Heavy use of pointer manipulation to search and tokenise string contents; illustrative
+//   of a faster, more lightweight, though considerably more complex, approach to this task
+//   when compared with use of library functions like 'strtok', 'strstr' and 'strchr'
+// * Comprehensive example of both variable-argument handling, and of sensible nested function
+//   use
+// * The 'parse_entry' nested function illustrates an approach that can be used for mimicing
+//   named function parameters
+// * Use of a delimited string as a lookup table in the 'getvalue' nested function is mainly
+//   illustrative. Better performance can be obtained by other means; if still opting for a
+//   string-based lookup table approach, a 'perfect hash'-based technique would be ideal,
+//   though would require much more code to implement 
+//
+// This function, together with 'to_epoch' and 'from_epoch', make use of string parameters
+// to represent a keyword. In C this approach wouldn't ordinarily be used because such
+// information can most often be encode in integer form e.g. integer constants or enumerations,
+// and the processing of integers is dramatically faster and far more efficient than string
+// operations such as linear searching and comparision. However, the reason for adopting this
+// string-based approach is to mimic the beahviour of the PLEAC-PHP implementations, as well
+// as illustrate various C techniques such as pointer manipulation and variable argument
+// handling.
+// 
+// As an aside, error checking is minimal in most of these functions, and could certainly be
+// improved.
+
+time_t mk_date_interval(const char* arg1, ...)
+{
+  static const char EQ = '=', COMMA = ',', NUL = '\0';
+  static char buffer[16]; 
+
+  // ----
+
+  char* parse_entry(const char* entry, int* value)
+  {
+    char* p = (char*) entry; // Assumes: "key=value" form
+
+    // Extract, and convert 'value'
+    while (*p++ != EQ) if (*p == NUL) return NULL; 
+    *value = atoi(p);
+
+    // Extract 'key', copy to buffer for return
+    p = buffer;
+    while (*entry != EQ) *p++ = *entry++;
+    *p = NUL;
+
+    return buffer;
+  }
+
+  // ----
+
+  int getvalue(const char* key)
+  {
+    // Lookup table implemented as a delimited string
+    static const char* const TBL = "sec=1,min=60,hou=3600,day=86400,wee=604800";
+
+    // Perform table lookup [via linear search (slow) of string]
+    char* p = (char*) strcasestr(TBL, key);
+    if (!p) return 0;
+
+    // Extract table value. Since table is in delimited string form, use pointer
+    // manipulation to mark start and end locations of required substring [value for key].
+    // Since locations are in a string constant, NUL-termination cannot be performed
+    // in-place, so substring is copied to a buffer for subsequent processing
+    while (*p++ != EQ) ; 
+    char* q = p;
+    while (*q != NUL) if (*q == COMMA) break; else ++q; 
+    memcpy(buffer, p, q - p);
+    *(buffer + (q - p)) = NUL;
+
+    return atoi(buffer);
+  }
+
+  // ----
+
+  int interval = 0, value; const char* key;
+
+  // Extract values from 1st argument
+  if (!(key = parse_entry(arg1, &value))) return 0;
+  interval += value * getvalue(key);
+
+  // Setup for variable argument handling, and extract values from each of these
+  const char* arg; va_list ap;
+
+  va_start(ap, arg1);
+
+  while ((arg = va_arg(ap, const char*)) != NULL)
+  {
+    if (!(key = parse_entry(arg, &value))) return 0;
+    interval += value * getvalue(key);
+  }
+
+  va_end(ap);
+
+  return interval;
+}  
+
+time_t to_epoch(const char* intvltype, double multiple)
+{
+  return (time_t) floor(multiple * get_date_interval_value(intvltype));
+}
+
+double from_epoch(const char* intvltype, time_t tv)
+{
+  double interval = get_date_interval_value(intvltype);
+  return (interval > 0.0) ? tv / interval : 0.0;
+}
+
+double get_date_interval_value(const char* intvltype)
+{
+  double interval = 0.0;
+
+  // What, no lookup table ;) ?
+  switch (*intvltype)
+  {
+    case 'd' : interval = strncasecmp(intvltype, "day", 3) == 0 ? 86400.0 : 0.0; break;
+    case 'h' : interval = strncasecmp(intvltype, "hou", 3) == 0 ? 3600.0 : 0.0; break;
+    case 'm' : interval = strncasecmp(intvltype, "min", 3) == 0 ? 60.0 : 0.0; break;
+    case 's' : interval = strncasecmp(intvltype, "sec", 3) == 0 ? 1.0 : 0.0; break;
+    case 'w' : interval = strncasecmp(intvltype, "wee", 3) == 0 ? 604800.0 : 0.0; break;
+  }
+
+  return interval;
+}
+
+// ----
+
+int doy(int year, int month, int day)
+{
+  const int BASE = -1; // Zero base [i.e. 1st day is zero] assumed
+  static const int cumdays[] = { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 };
+
+  if (month < 1 || month > 12) return -1;
+  return BASE + cumdays[month - 1] + day + (is_leap_year(year) && month > 2 ? 1 : 0);
+}
+
+const char* dayname(int day)
+{
+  static const char* dnams[] = { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
+  if (day < 0 || day > 6) return NULL;
+  return dnams[day];
+}
+
+// ----
+
+bool is_parseable_date(const char* date, const char* fmt, struct tm* tmvptr)
+{
+  static char datebuf[128];
+
+  // Date / time string is parsed according to format specification; if it fails it can
+  // be assumed a format or type error occurred
+  if (strptime(date, fmt, tmvptr) != 0)
+  {
+    datebuf[0] = '\1';
+    // Attempt to generate a date / time string using the previously created broken-time
+    // value; if it succeeds it can be assumed the broken-down value is sound, but further
+    // validation is needed to ensure the value is truly 'valid'
+    return !(strftime(datebuf, sizeof(datebuf), fmt, tmvptr) == 0 && datebuf[0] != '\0');
+  }
+
+  return false;   
+}
+
+bool is_leap_year(int year)
+{
+  return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+}
+
+bool is_valid_hms(int hour, int minute, int second)
+{
+  // Purely arbitrary choice; allows 24:00:00, but may be omitted
+  if (hour == 24 && minute == 0 && second == 0)
+    return true;
+
+  if (hour > -1 && hour < 24)
+    if (minute > -1 && minute < 60)
+      if (second > -1 && second < 60)
+        return true;
+
+  return false;
+}
+
+bool is_valid_ymd(int year, int month, int day)
+{
+  static const int mtbl[] = { -1, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+
+  // Purely arbitrary choice; may be modified or omitted
+  if (year < 1970 || year > 2038) return false;
+
+  if (month > 0 && month < 13 && day > 0 && day <= mtbl[month]) return true;
+  if (day == 29 && month == 2 && is_leap_year(year)) return true;
+
+  return false;
+}
+
+bool is_valid_tm(struct tm* tmvptr)
+{
+  return
+    is_valid_hms(tmvptr->tm_hour, tmvptr->tm_min, tmvptr->tm_sec) &&
+    is_valid_ymd(tmvptr->tm_year + 1900, tmvptr->tm_mon + 1, tmvptr->tm_mday) &&
+    mktime(tmvptr) != -1;
+}
+
+// ----
+
+const char* mk_fmt_date(const char* fmt, const struct tm* tmvptr)
+{
+  static char datebuf[64];
+  return (strftime(datebuf, sizeof(datebuf), fmt, tmvptr) == 0) ? NULL : datebuf;
+}
+
+// ----
+
+double hms_to_frac(int hour, int min, int sec)
+{
+  return (hour * 3600 + min * 60 + sec) / 86400.;
+}
+
+void frac_to_hms(double frac, int* hour, int* min, int* sec)
+{
+  int seconds = floor(frac * 86400.);
+
+  *hour = seconds / 3600;
+  *min = (seconds - *hour * 3600) / 60;
+  *sec = (seconds - (*hour * 3600 + *min * 60));
+}
 
 // @@PLEAC@@_3.1
-//------------------------------------------------------------------
-#include <stdio.h>
-#include <time.h> // time_t, struct tm, localtime()
+// The current date may be obtained by two means:
+// * 'time' library function call; this is the standard, cross-platform approach, which
+//   returns a value in Epoch Seconds [elapsed seconds since Jan 1, 1970] 
+// * 'gettimeofday' library function; *NIX-specific approach which is similar to 'time'
+//   function, but also allows values retrieveable to microsecond resolution
+//
+// Once an epoch second value is so obtained it is usual to convert it to a broken-down time
+// representation for subsequent manipulation, particularly conversion to string form for 
+// output. If however, date arithmetic is to be performed, it is more common to see it done
+// directly in epoch second form 
 
-...
+#include <time.h>
 
-time_t timeval;
-struct tm * tmval;
+int main(void)
+{
+  // Current time: epoch seconds
+  time_t curtime = time(NULL);
 
-timeval = time(NULL);
-
-if((tmval = localtime(&timeval)) == NULL)
-  fprintf(stderr, "local time not available\n");
-else
-  printf("The current date is %04d %02d %02d\n",
-	 tmval->tm_year + 1900,
-	 tmval->tm_mon + 1,
-	 tmval->tm_mday); 
-    
-...
-
-
-//------------------------------------------------------------------
-#include <stdio.h>
-#include <sys/time.h> // gettimeofday(), struct timeval, struct timezone
-#include <time.h> // ctime()
-
-...
-  
-time_t timer;
-struct timeval timev;
-
-// time()-like
-gettimeofday(&timev, NULL);
-timer = timev.tv_sec;
-
-// ctime() is equivalent to asctime(localtime(date))
-printf("today is %s\n", ctime(&timer));
-// today is Fri Jun 10 22:09:46 2005
-  
-...
-
-//------------------------------------------------------------------
-#include <stdio.h>
-#include <time.h> // time_t, struct tm, localtime() strftime()
-#include <stdlib.h>
-#include <limits.h> // SSIZE_MAX
-
-...
-
-time_t timeval;
-struct tm * tmval;
-int lg;
-char * buffer;
-
-timeval = time(NULL);
-
-if((tmval = localtime(&timeval)) == NULL)
-  fprintf(stderr, "local time not available\n");
-else{
-   // we first check the return of strftime to allocate a buffer of the correct size
-  lg = strftime(NULL, SSIZE_MAX, "%Y-%m-%d", tmval );
-  if( lg > 0 ){
-    buffer = malloc( lg + 1 );
-    if( buffer == NULL ){      
-      perror("malloc");
-      exit(1);
-    }
-    strftime(buffer, lg + 1, "%Y-%m-%d", tmval );
-    fprintf( stdout, "The courant date is %s\n", buffer );
-    free( buffer );
-  }
+  // Current time: broken-down time
+  struct tm* locptr = localtime(&curtime);
 }
 
-...
+// ------------
 
+#include <time.h>
+#include <sys/time.h>
+
+int main(void)
+{
+  // Current time: epoch seconds
+  time_t curtime = ({ struct timeval timev; gettimeofday(&timev, NULL); timev.tv_sec; });
+
+  // Current time: broken-down time
+  struct tm* locptr = localtime(&curtime);
+}
+
+// ----------------------------
+
+#include <stdio.h>
+#include <time.h>
+
+int main(void)
+{
+  time_t curtime = time(NULL);
+
+  // Print standard format date string generated from a simple-time value
+  printf("today is %s", ctime(&curtime)); fflush(stdout);
+
+  struct tm* locptr = localtime(&curtime);
+  
+  // Print standard format date string generated from a broken-time value
+  printf("today is %s", asctime(locptr)); fflush(stdout);
+
+  // Use 'strftime' and date format specification to generate date string
+  char datebuf[32];
+  strftime(datebuf, sizeof(datebuf), "%Y-%m-%d", locptr);
+
+  printf("today is %s\n", datebuf); fflush(stdout);  
+
+  // Extract broken-down time components, and format string using 'printf'
+  printf("today is %04d-%02d-%02d\n",
+    locptr->tm_year + 1900,
+    locptr->tm_mon + 1,
+    locptr->tm_mday);
+  fflush(stdout);  
+}
+
+// @@PLEAC@@_3.2
+// The 'mktime' library function fulfils this role by converting a broken-down time value to
+// the required epoch seconds. By default the generated value is local time based; a custom
+// function is provided for UTC-based time
+
+#include <time.h>
+#include <stdlib.h>
+#include <string.h>
+
+struct tm mk_tm(int year, int month, int day, int hour, int minute, int second);
+time_t mktime_utc(struct tm* tmvptr);
+
+// ----
+
+int main(void)
+{
+  // Create a broken-down time value from arbitrary component values [Y,M,D,H,M,S]
+  struct tm tmv = mk_tm(2007, 5, 2, 0, 0, 0);
+  
+  // Convert a broken-down time value to epoch seconds [local time assumed]
+  time_t epoch_seconds_local = mktime(&tmv);
+
+  // Convert a broken-down time value to epoch seconds [UTC time]
+  time_t epoch_seconds_utc = mktime_utc(&tmv);
+}
 
 // @@PLEAC@@_3.3
-//------------------------------------------------------------------
-#include <stdio.h>
-#include <stdlib.h>
+// Two library functions fulfil this role:
+// * 'localtime', generates a local time-based value
+// * 'gmtime', as above, except generated value is UTC-based
+
 #include <time.h>
-
-...
-
-struct tm * tmval;
-time_t timeval;
-
-timeval = time(NULL);
-if((tmval = localtime(&timeval)) == NULL)
-  fprintf(stderr, "local time not available\n");
-else
-  printf("localtime is %s\n", asctime(tmval));
-  ...
-
-//------------------------------------------------------------------
 #include <stdio.h>
-#include <stdlib.h>
-#include <time.h> ...
-  struct tm * tmval;
-time_t timeval;
 
-timeval = time(NULL);
-if((tmval = gmtime(&timeval)) == NULL)
-  fprintf(stderr, "UTC time not available\n");
-else
-  printf("gmtime is %s\n", asctime(tmval));
-  ...
+int main(void)
+{
+  // Current time: epoch seconds
+  time_t curtime = time(NULL);
 
-//------------------------------------------------------------------
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
+  // Current time: broken-down time [local time-based]
+  struct tm* locptr = localtime(&curtime);
 
-...
+  // Current time: broken-down time [UTC-based]
+  struct tm* utcptr = gmtime(&curtime);
 
-struct tm * tmval;
-time_t timeval;
+  printf("Dateline: %02d:%02d:%02d-%04d/%02d/%02d\n",
+    locptr->tm_hour, locptr->tm_min, locptr->tm_sec,
+    locptr->tm_year + 1900, locptr->tm_mon + 1, locptr->tm_mday);
 
-timeval = time(NULL);
-if((tmval = localtime(&timeval)) == NULL)
-  fprintf(stderr, "local time not available\n");
-else
-  fprintf( stdout, "Dateline: %02d:%02d:%02d-%04d/%02d/%02d\n",
-	 tmval->tm_hour,
-	 tmval->tm_min,
-	 tmval->tm_sec,
-	 tmval->tm_year + 1900,
-	 tmval->tm_mon + 1,
-	 tmval->tm_mday); ...
+  struct tm loct = *locptr;
 
-//------------------------------------------------------------------
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
-#include <limits.h>
+  printf("Dateline: %02d:%02d:%02d-%04d/%02d/%02d\n",
+    loct.tm_hour, loct.tm_min, loct.tm_sec,
+    loct.tm_year + 1900, loct.tm_mon + 1, loct.tm_mday);
 
-...
-struct tm * tmval;
-time_t timeval;
-int lg;
-char * buffer;
-
-timeval = time(NULL);
-if((tmval = localtime(&timeval)) == NULL)
-  fprintf(stderr, "local time not available\n");
-else {
-  // we first check the return of strftime to allocate a buffer of the correct size
-  lg = strftime(NULL, SSIZE_MAX, "%H:%M:%S-%Y/%m/%d", tmval );
-  if( lg > 0 ){
-    buffer = malloc( lg + 1 );
-    if( buffer == NULL ){     perror("malloc");
-      exit(1);
-    }
-    strftime(buffer, lg + 1, "%H:%M:%S-%Y/%m/%d", tmval );
-    fprintf( stdout, "Dateline: %s\n", buffer );
-    free( buffer );
-  }
+  fflush(stdout);
 }
 
-...
+// @@PLEAC@@_3.4
+// This task entails the conversion of all dates to be so treated to epoch seconds, which can
+// then be arithmetically manipulated. A number of helper functions are included:
+// * 'to_epoch', 'from_epoch'; convert a time interval e.g. day, week etc to / from epoch second
+//   intervals
+// * 'mk_date_interval', creates an epoch second interval from a set of disparate time intervals
+// * 'frac_to_hms' and 'hms_to_frac' convert fractional days to / from H:M:S values
+//
+// In general, arithmetic manipulation of 'time_t' values is safe, but on platforms where it
+// may not be implemented as an 'int' or related type, the 'difftime' library function should
+// used
 
+#include <stdio.h>
+#include <stdarg.h>
+#include <string.h>
+#include <math.h>
+#include <time.h>
+
+time_t mk_date_interval(const char* arg1, ...);
+double get_date_interval_value(const char* intvltype);
+
+time_t to_epoch(const char* intvltype, double multiple);
+double from_epoch(const char* intvltype, time_t tv);
+
+const char* mk_fmt_date(const char* fmt, const struct tm* tmvptr);
+struct tm mk_tm(int year, int month, int day, int hour, int minute, int second);
+
+// ----
+
+int main(void)
+{
+  time_t now, difference; 
+
+  time_t when = now + difference;     // 'difference' epoch seconds in the future
+  time_t then = now - difference;     // 'difference' epoch seconds in the past
+
+  // ------------
+
+  now = time(NULL);
+
+  time_t diff1 = to_epoch("day", 2),
+         diff2 = to_epoch("week", 2);
+
+  printf("Today is:                  %s", ctime(&now));
+  printf("Two days in the future is: %s", ({ time_t tv = now + diff1; ctime(&tv); }));
+  printf("Two weeks in the past is:  %s", ({ time_t tv = now - diff2; ctime(&tv); }));
+  printf("\n"); fflush(stdout);
+
+  printf("Today is:                  %s\n", mk_fmt_date("%Y-%m-%d", localtime(&now)));
+  printf("Two days in the future is: %s\n",
+    ({ time_t tv = now + diff1; mk_fmt_date("%Y-%m-%d", localtime(&tv)); }));
+  printf("Two weeks in the past is:  %s\n",
+    ({ time_t tv = now - diff2; mk_fmt_date("%Y-%m-%d", localtime(&tv)); }));
+  printf("\n"); fflush(stdout);
+
+  // ------------
+
+  time_t birthtime = 96176750;                  // 18/Jan/1973, 3:45:50 am
+
+  time_t interval = 5 +                         // 5 seconds
+                    17 * 60 +                   // 17 minutes
+                    2  * 60 * 60 +              // 2 hours
+                    55 * 60 * 60 * 24;          // and 55 days
+
+  then = birthtime + interval;
+
+  // Then is Wed Mar 14 06:02:55 1973
+  printf("Then is %s", ctime(&then)); fflush(stdout);
+
+  // ------------
+
+  birthtime = ({ struct tm tmv = mk_tm(1973, 1, 18, 3, 45, 50); mktime(&tmv); });
+
+  interval = mk_date_interval("day=55", "hou=2", "min=17", "sec=5", NULL);
+
+  then = birthtime + interval;
+
+  printf("To be precise: %s\n", mk_fmt_date("%H:%M:%S, %Y-%m-%d", localtime(&then)));
+  fflush(stdout);
+}
+
+// @@PLEAC@@_3.5
+// Refer to explanation in previous section
+
+#include <stdio.h>
+#include <string.h>
+#include <math.h>
+#include <time.h>
+
+double get_date_interval_value(const char* intvltype);
+
+time_t to_epoch(const char* intvltype, double multiple);
+double from_epoch(const char* intvltype, time_t tv);
+
+double hms_to_frac(int hour, int min, int sec);
+void frac_to_hms(double frac, int* hour, int* min, int* sec);
+
+struct tm mk_tm(int year, int month, int day, int hour, int minute, int second);
+
+// ----
+
+int main(void)
+{
+  time_t recent, earlier; 
+
+  time_t seconds = recent - earlier;  // 'seconds' is epoch seconds interval
+
+  // ------------
+
+  struct tm tmv1 = mk_tm(1982, 4, 12, 12, 0, 0),
+            tmv2 = mk_tm(1981, 4, 12, 6, 0, 0);
+
+  time_t interval = mktime(&tmv1) - mktime(&tmv2);
+
+  double days = from_epoch("day", interval);
+
+  printf("An interval of %d epoch seconds is %.3f days\n", interval, days);
+
+  // ------------
+
+  time_t bree = 361535725;            // 16 Jun 1981, 4:35:25 [actually: 20:35:25]
+  time_t nat = 96201950;              // 18 Jan 1973, 3:45:50 [actually: 21:45:50]
+
+  time_t difference = bree - nat;     // Or do: difference = difftime(bree, nat);
+
+  printf("There were %d seconds between Nat and Bree\n", difference); fflush(stdout);
+
+  // ----
+
+  // Or do following to ensure correctly adjusted intervals are generated:
+  bree = ({ struct tm tmv = mk_tm(1981, 6, 16, 20, 35, 25); mktime(&tmv); });
+  nat = ({ struct tm tmv = mk_tm(1973, 1, 18, 21, 45, 50); mktime(&tmv); });
+
+  difference = bree - nat;
+
+  printf("There were %d seconds between Nat and Bree\n", difference); fflush(stdout);
+
+  // ------------
+
+  printf("There were %.3f seconds between Nat and Bree\n", from_epoch("sec", difference));
+  printf("There were %.3f minutes between Nat and Bree\n", from_epoch("min", difference));
+  printf("There were %.3f hours between Nat and Bree\n", from_epoch("hour", difference));
+  printf("There were %.3f days between Nat and Bree\n", from_epoch("day", difference));
+  printf("There were %.3f weeks between Nat and Bree\n", from_epoch("week", difference));
+  fflush(stdout);
+
+  // ------------
+
+  double frac = ({ double days = from_epoch("day", difference); days - floor(days); });
+  int hour, min, sec;
+
+  frac_to_hms(frac, &hour, &min, &sec);
+
+  printf("Bree came %d days, %d:%d:%d after Nat\n",
+    (int) from_epoch("day", difference),
+    hour, min, sec);
+  fflush(stdout);
+}
+
+// @@PLEAC@@_3.6
+// These are obtainable by generating a broken-down time value, and either:
+// * Computing the required item using data from the relevant 'tm_' fields
+// * Calling the 'strftime' library function with the broken-down time value, and 
+//   appropriate format specification. Examples use 'mk_fmt_date' which makes use of
+//   'strftime'
+// It should be noted that each item may have several possible values, so care is needed
+// in interpreting results
+
+#include <stdbool.h>
+#include <time.h>
+#include <stdio.h>
+
+const char* mk_fmt_date(const char* fmt, const struct tm* tmvptr);
+
+struct tm mk_tm(int year, int month, int day, int hour, int minute, int second);
+bool is_leap_year(int year);
+
+int doy(int year, int month, int day);
+const char* dayname(int day);
+
+// ----
+
+int main(void)
+{
+  // Current time in broken-down time form
+  struct tm* locptr = ({ time_t curtime = time(NULL); localtime(&curtime); });
+
+  int day_of_week, day_of_year, week_of_year;
+
+  day_of_week = atoi(mk_fmt_date("%w", locptr));   // 1st DOW: sun=0 -> sat=6
+
+  day_of_week = atoi(mk_fmt_date("%u", locptr));   // 1st DOW: mon=1 -> sun=7
+  day_of_week = locptr->tm_wday;                   // "   "    "       
+
+  day_of_year = atoi(mk_fmt_date("%j", locptr));   // 1 -> 366
+  day_of_year = locptr->tm_yday;                   // 0 -> 365
+  day_of_year = doy(2007, 5, 12);                  // " -> "
+
+  week_of_year = atoi(mk_fmt_date("%U", locptr));  // 0 -> 53; sun 1st day of week 1;
+                                                   //          preceding days week 0
+  week_of_year = atoi(mk_fmt_date("%V", locptr));  // 1 -> 53; ISO
+  week_of_year = atoi(mk_fmt_date("%W", locptr));  // 0 -> 53; mon 1st day of week 1;
+                                                   //          preceding days week 0
+
+  // ------------
+
+  int year = 1981, month = 6, day = 16;
+
+  struct tm tmv = mk_tm(year, month, day, 0, 0, 0);
+
+  printf("%d/%d/%d was a %s in week %s\n",
+    month, day, year, dayname(tmv.tm_wday), mk_fmt_date("%V", &tmv));
+}
+
+// @@PLEAC@@_3.7
+// Parsing date / time values from strings generally sees:
+// * Use of the 'strptime' / 'getdate' functions on *NIX platforms
+// * Use of 'sscanf'
+// * Custom routines [e.g. strtok'-based, regex-based, raw pointer manipulations]
+//
+// to extract date / time components and create broken-down time values from them. The first
+// approach is probably the simplest, but is not possible on all platforms. It is also
+// interesting that it includes only minimal validation capability, that is, while format and
+// type violations are readily detected [e.g. supplying either 2007-12-12, or aaaa/bb/cc, when
+// something like 2007/12/12 is expected], date validity is only minimally checked [e.g.
+// invalid day-month combinations are allowed, as are unrepresentable years (like 1111)], so
+// must be manually implemented. A small set of validation and helper functions is implemented
+// below.
+//
+// Note: 'getdate' is a high-level function built using top of 'strptime'. It will not be
+// discussed here, so refer to GNU C Library documentation for details.
+
+// 1. 'strptime' Example [conventional use of 'strptime']
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+int main(void)
+{
+  const char* date = "1998-06-03";
+
+  const char* FMT = "%Y-%m-%d";
+
+  if (strptime(date, FMT, &tmv) == 0)
+  {
+    fputs("Date parse error ...\n", stderr);
+    return EXIT_FAILURE;
+  }
+
+  struct tm tmv = { 0, 0, 0, 0, 0, 0, -1, -1, -1 };
+
+  time_t epoch_seconds = mktime(&tmv);
+}
+
+// ------------
+
+// 2. 'sscanf' Example [conventional use of 'sscanf']
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+int main(void)
+{
+  const char* date = "1998-06-03";
+
+  const char* FMT = "%04d-%02d-%02d";
+
+  int year, month, day;
+  int result = sscanf(date, FMT, &year, &month, &day);
+
+  if (result == 0 || result == EOF) 
+  {
+    fputs("Date parse error ...\n", stderr);
+    return EXIT_FAILURE;
+  }
+
+  struct tm tmv = { 0, 0, 0, day, month - 1, year - 1900, -1, -1, -1 };
+
+  time_t epoch_seconds = mktime(&tmv);
+}
+
+// ------------
+
+// 3. 'strtok' Example [hardcoded, minimal error checking, assumes date string will not be used
+//    elsewhere, hence may have its contents altered] 
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+#include <string.h>
+
+int main(void)
+{
+  char date[] = "1998-06-03";
+
+  const char* SEP = "-";
+  int ymd[3]; int i = 0;
+
+  char* p = strtok(date, SEP);
+
+  while (p)
+  {
+    if (i > 2) 
+    {
+      fputs("Date parse error ...\n", stderr);
+      return EXIT_FAILURE;
+    }
+
+    ymd[i++] = atoi(p);
+
+    p = strtok(NULL, SEP);
+  }
+
+  struct tm tmv = { 0, 0, 0, ymd[2], ymd[1] - 1, ymd[0] - 1900, -1, -1, -1 };
+
+  time_t epoch_seconds = mktime(&tmv);
+}
+
+// ------------
+
+// 4. Regex Example [hardcoded, minimal error checking. Assumes date string will not be used
+//    elsewhere, hence may have its contents altered] 
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+#include <regex.h>
+
+int main(void)
+{
+  char date[] = "1998-06-03";
+
+  // Setup regex pattern, and compile; bail out if problem detected
+  const char* PATTERN = "([[:digit:]]{4})-([[:digit:]]{1,2})-([[:digit:]]{1,2})";
+  regex_t rx;
+
+  if (regcomp(&rx, PATTERN, REG_EXTENDED) != 0)
+  {
+    fputs("Date parse error [regex compilation failure] ...\n", stderr);
+    return EXIT_FAILURE;
+  }
+
+  // Hardcoded for 3 [subexpreesion] matches. Match buffer needs to be one larger to
+  // accomodate whole-expression match]
+  const size_t nmatch = 4;
+  regmatch_t match[nmatch];
+
+  // Perform regex match
+  int match_result = regexec(&rx, date, nmatch, match, 0);
+
+  // Regex resources no longer required [only match buffer results required], so free them
+  regfree(&rx);
+
+  // In the current case, a mismatch indicates an ill-formatted date string was supplied,
+  // so bail out 
+  if (match_result != 0)
+  {
+    fputs("Date parse error [regex mismatch] ...\n", stderr);
+    return EXIT_FAILURE;
+  }
+
+  // NUL-terminate subexpression match areas for easy extraction
+  const char NUL = '\0';
+
+  date[match[1].rm_eo] = NUL;
+  date[match[2].rm_eo] = NUL;
+  date[match[3].rm_eo] = NUL;
+
+  // Convert each subexpression match to required value
+  int year = atoi((char*) date + match[1].rm_so);
+  int month = atoi((char*) date + match[2].rm_so);
+  int day = atoi((char*) date + match[3].rm_so);
+
+  struct tm tmv = { 0, 0, 0, day, month - 1, year - 1900, -1, -1, -1 };
+
+  time_t epoch_seconds = mktime(&tmv);
+}
+
+// ------------
+
+// 5. Raw Pointer Example [hardcoded, no error checking, assumes date string is in the
+//    correct format, and that it will not be used elsewhere, hence may have its contents
+//    altered] 
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+int main(void)
+{
+  char date[] = "1998-06-03";
+
+  const char NUL = '\0', SEP = '-';
+  char *p = date, *q = date;
+
+  int year, month, day;
+
+  // Traverse date buffer, NUL-terminating each required substring in turn for easy conversion
+  while (*p++ != SEP) ; *p = NUL; year = atoi(q); q = ++p;
+  while (*p++ != SEP) ; *p = NUL; month = atoi(q); q = ++p;
+  while (*p++ != NUL) ; day = atoi(q);
+
+  struct tm tmv = { 0, 0, 0, day, month - 1, year - 1900, -1, -1, -1 };
+
+  time_t epoch_seconds = mktime(&tmv);
+}
+
+// ----------------------------
+
+#include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
+#include <time.h>
+
+struct tm mk_tm(int year, int month, int day, int hour, int minute, int second);
+struct tm mk_tm_unfilled(void);
+struct tm mk_tm_zero(void);
+void show_tm(const struct tm* tmvptr);
+
+bool is_parseable_date(const char* date, const char* fmt, struct tm* tmvptr);
+
+bool is_leap_year(int year);
+bool is_valid_hms(int hour, int minute, int second);
+bool is_valid_ymd(int year, int month, int day);
+bool is_valid_tm(struct tm* tmvptr);
+
+// ----
+
+int main(void)
+{
+  // Format specification
+  const char* FMT = "%Y/%m/%d";
+
+  // Initialise 'struct tm' object
+  struct tm tmv = mk_tm_zero();
+
+  // Use a generously-sized input buffer
+  char datebuf[128];
+
+  do
+  {
+    // Prompt and get a date string from the user 
+    fputs("Enter a date in YYYY/MM/DD form: ", stdout); fflush(stdout);
+    fgets(datebuf, sizeof(datebuf), stdin);
+
+    // Two stage validation:
+    // * Check that input at least matches 'date' form / structure
+    // * Ensure generated date / time components comprise a 'sensible' value
+    if (is_parseable_date(datebuf, FMT, &tmv) && is_valid_tm(&tmv))
+      break;
+
+    // Oops !
+    fputs("Bad date string - try again\n\n", stdout); fflush(stdout);
+
+  } while (true);
+
+  // Let's look at the generated date / time components
+  show_tm(&tmv);
+}
+
+// @@PLEAC@@_3.8
+// Printing a date usually sees a broken-down time object either supplied or generated, then
+// date components extracted and formatted. This may be accomplished:
+// * Manually; extracting broken-down time components and formatting via a 'printf' family
+//   function
+// * Via 'strftime' library function, a 'printf'-like function that uses a host of date / time
+//   specific format specifications
+//
+// 'ctime' and 'asctime' library functions are available where only a default string
+// representation is needed.
+//
+// In the final part of this section is a self-contained example illustarting, and discussing
+// in detail, several implementations of a custom function, 'mk_fmt_date', which makes use of
+// 'strftime' to generate a formatted date string
+
+#include <stdio.h>
+#include <time.h>
+
+int main(void)
+{
+  time_t curtime = time(NULL);
+
+  // 'ctime' accepts a 'time_t' pointer, and creates a date string in the form:
+  //     "Fri May  4 10:38:03 2007\n"
+  printf("%s", ctime(&curtime)); fflush(stdout);
+}
+
+// ------------
+
+#include <stdio.h>
+#include <time.h>
+
+int main(void)
+{
+  struct tm* curtmptr = ({ time_t curtime = time(NULL); localtime(&curtime); });
+
+  // 'asctime' accepts a 'struct tm' pointer and creates a date string in the form:
+  // "Fri May  4 10:38:03 2007\n"
+  printf("%s", asctime(curtmptr)); fflush(stdout);
+}
+
+// ------------
+
+#include <stdio.h>
+#include <time.h>
+
+struct tm mk_tm(int year, int month, int day, int hour, int minute, int second);
+
+// ----
+
+int main(void)
+{
+  struct tm* curtmptr = ({ time_t curtime = time(NULL); localtime(&curtime); });
+  const char* fmt = "%Y/%m/%d"; // format: YYYY/MM/DD
+
+  // 'strftime' accepts a 'struct tm' pointer and creates a date string in the form specified
+  // by a format string, one which is similar to that used by the 'printf' function family,
+  // but specialised for date / time formatting. Example below assumes the generated string
+  // will fit within a 32 byte buffer. It is possible to determine the actual buffer size
+  // needed to accomodate the generated string by making an initial call to 'strftime', as
+  // follows:
+  //
+  //    #include <limits.h>
+  //    ...
+  //    int DATESIZE = strftime(NULL, _POSIX_SSIZE_MAX, fmt, curtmptr);
+  //    ...
+  //    char datebuf[DATESIZE + 1];
+  //    ...
+  //    strftime(datebuf, DATESIZE + 1, fmt, curtmptr);
+  //
+  char datebuf[32];
+
+  strftime(datebuf, sizeof(datebuf), fmt, curtmptr);
+  printf("%s\n", datebuf); fflush(stdout);
+
+  // As above, except that a custom helper function is used to create a 'struct tm' object
+  struct tm curtm = mk_tm(2007, 5, 4, 0, 0, 0);
+
+  strftime(datebuf, sizeof(datebuf), fmt, &curtm);
+  printf("%s\n", datebuf); fflush(stdout);
+
+  // As above, except that 'printf' is used to perform date string formatting
+  printf("%04d/%02d/%02d\n", curtmptr->tm_year + 1900, curtmptr->tm_mon + 1, curtmptr->tm_mday);
+  fflush(stdout);
+}
+
+// ----------------------------
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+const char* mk_fmt_date(const char* fmt, const struct tm* tmvptr);
+const char* mk_fmt_date_r(const char* fmt, const struct tm* tmvptr, char* datebuf, size_t bufsize);
+const char* mk_fmt_date_a(const char* fmt, const struct tm* tmvptr);
+
+// ----
+
+int main(void)
+{
+  struct tm* locptr = ({ time_t curtime = time(NULL); localtime(&curtime); });
+
+  // 1. Return pointer to static local storage
+  printf("%s\n", mk_fmt_date("%Y/%m/%d", locptr)); fflush(stdout);
+
+  // 2. Return pointer to supplied buffer
+  const size_t BUFSIZE = 32; char buffer[BUFSIZE];
+  printf("%s\n", mk_fmt_date_r("%Y/%m/%d", locptr, buffer, BUFSIZE)); fflush(stdout);
+
+  // 3. Return dynamically allocated memory pointer
+
+  // a) Typical use where pointer is captured, used, and finally freed
+  const char* bptr = mk_fmt_date_a("%Y/%m/%d", locptr);
+  printf("%s\n", bptr); fflush(stdout);
+  free(bptr); bptr = NULL;
+
+  // b) Or, for a slightly more compact solution, use the comma operator
+  const char* bptrf;
+  free(((bptrf = mk_fmt_date_a("%Y/%m/%d", locptr)), printf("%s\n", bptrf), fflush(stdout), bptrf));
+  bptrf = NULL;
+
+  // c) Or, for the most compact solution, use a statement expression
+  ({ const char* bptr = mk_fmt_date_a("%Y/%m/%d", locptr); printf("%s\n", bptr); fflush(stdout); free(bptr); });
+}
+
+// ----
+
+const char* mk_fmt_date(const char* fmt, const struct tm* tmvptr)
+{
+  // Use of static local storage makes the function self-contained, and keeps the interface
+  // uncluttered; an approach adopted, incidentally, in many of the string-handling library
+  // functions. However, since each invocation of the function updates the same buffer, it is
+  // possible, for example, to inadvertantly use a value generated by a call of this function
+  // in another thread, which is why the use of static local storage is not considered 'thread
+  // safe' [even use of 'buffer locking' code cannot prevent this type of problem] 
+  static char datebuf[64];
+  return (strftime(datebuf, sizeof(datebuf), fmt, tmvptr) == 0) ? NULL : datebuf;
+}
+
+const char* mk_fmt_date_r(const char* fmt, const struct tm* tmvptr, char* datebuf, size_t bufsize)
+{
+  // The canonical C approach: supply the function a buffer, and associated buffer size
+  // information, and return the buffer's address. This approach clutters the function interface,
+  // as well as making function calls more 'noisy' since storage for the call needs to be 
+  // supplied / allocated, and size information obtained. Its advantage, though, is that thread
+  // safety is assured since each call of the function updates a different memory area
+  return (strftime(datebuf, bufsize, fmt, tmvptr) == 0) ? NULL : datebuf;
+}
+
+const char* mk_fmt_date_a(const char* fmt, const struct tm* tmvptr)
+{
+  // Read-only static local storage is, by definition, thread safe
+  static const size_t MAXBUFSIZE = 256;
+
+  // Function interface is again uncluttered when using dynamic memory, and the function is 
+  // also thread safe. However, the function is no longer self-contained in that the returned
+  // buffer address *must* be captured [usually by assignment to a variable], and the allocated
+  // memory later explicitly deallocated
+  size_t bufsize = strftime(NULL, MAXBUFSIZE, fmt, tmvptr) + 1;
+  char* datebuf = (bufsize == 0) ? NULL : (char*) malloc(bufsize);
+  return (datebuf != NULL && (strftime(datebuf, bufsize, fmt, tmvptr) > 0)) ? datebuf : NULL;
+}
+
+// @@PLEAC@@_3.9
+// On single-tasking platforms it can be assumed that elapsed time [i.e. the length of an interval
+// between two calendar times] equals processor time [i.e the total amount of time a process has
+// used the CPU]. Not so on multi-tasking platforms where a process relinquishes the CPU [e.g.
+// the scheduler gives the CPU to another process, process blocks waiting for I/O, or voluntarily
+// 'goes to sleep']. It is therefore important to be mindful of the difference, and care taken
+// to use / measure the appropriate one.
+//
+// Elapsed time can portably be measured by performing simple arithmetic using 'time_t' values
+// obtained via the 'time' function. However, the resolution is quite low, being second-based.
+// Higher resolution timing is possible via platform-specific functionality; in the case of
+// *NIX / GNU platforms, the 'gettimeofday' function together with the 'timeval' structure,
+// allows for microsecond-level resolution.
+//
+// Should there be a need to measure processor time, the - portable - 'clock_t' type with 'clock'
+// function is available, while on *NIX / GNU platforms there is 'struct tms' together with
+// the 'times' function.
+
+#include <stdio.h>
+#include <time.h>
+
+int main(void)
+{
+  time_t start = time(NULL);
+
+  // ... do work here ...
+
+  time_t finish = time(NULL);
+
+  printf("Elapsed time %.9f seconds\n", difftime(finish, start)); fflush(stdout);
+}
+
+// ------------
+
+#include <stdio.h>
+#include <sys/time.h>
+
+int main(void)
+{
+  struct timeval start, finish;
+
+  gettimeofday(&start, NULL);
+
+  // ... do work here ...
+
+  gettimeofday(&finish, NULL);  
+
+  double elapsed = finish.tv_sec - start.tv_sec + (finish.tv_usec - start.tv_usec) / 1.e6;
+
+  printf("Elapsed time %.9f seconds\n", elapsed); fflush(stdout);
+}
+
+// ------------
+
+#include <stdio.h>
+#include <time.h>
+
+int main(void)
+{
+  clock_t start = clock();
+
+  // ... do work here ...
+
+  clock_t finish = clock();
+
+  double proctime = ((double) (finish - start)) / CLOCKS_PER_SEC;
+
+  printf("Processor time %.9f seconds\n", proctime); fflush(stdout);
+}
+
+// ------------
+
+#include <stdio.h>
+#include <unistd.h>
+#include <time.h>
+#include <sys/times.h>
+
+int main(void)
+{
+  const long CLOCK_TICKS = sysconf(_SC_CLK_TCK);
+
+  struct tms st_cpu, en_cpu;
+
+  clock_t st_time = times(&st_cpu);
+
+  // ... do work here ...
+
+  clock_t en_time = times(&en_cpu);
+
+  printf("Processor Time (seconds):\n\tReal Time: %.9f, User Time %.9f, System Time %.9f\n",
+    difftime(en_time, st_time) / CLOCK_TICKS,
+    difftime(en_cpu.tms_utime, st_cpu.tms_utime) / CLOCK_TICKS,
+    difftime(en_cpu.tms_stime, st_cpu.tms_stime) / CLOCK_TICKS);
+  fflush(stdout);
+}
+
+// ----------------------------
+
+#include <stdio.h>
+#include <sys/time.h>
+
+int main(void)
+{
+  struct timeval start, finish;
+
+  // Start timing 
+  gettimeofday(&start, NULL);
+
+  // ... do work here ...
+  printf("Type in some text, press ENTER when done: "); fflush(stdout);
+
+  char line[80];
+  fgets(line, sizeof(line), stdin);
+
+  // End timing 
+  gettimeofday(&finish, NULL);  
+
+  // Compute and print elapsed [not processor] time
+  double elapsed = finish.tv_sec - start.tv_sec + (finish.tv_usec - start.tv_usec) / 1.e6;
+  printf("You took %.9f seconds\n", elapsed); fflush(stdout);
+}
+
+// ------------
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <sys/time.h>
+
+void sort(double array[], int size);
+
+// ----
+
+int main(void)
+{
+  struct timeval start, finish;
+  double elapsed = 0.0;
+
+  const int SIZE = 500, NUMBER = 100;
+  double array[SIZE];
+
+  srand(time(NULL));
+
+  for (int i = 0; i < NUMBER; ++i)
+  {
+    for (int j = 0; j < SIZE; ++j) array[j] = rand();
+
+    gettimeofday(&start, NULL);
+
+    sort(array, SIZE);
+
+    gettimeofday(&finish, NULL);  
+    elapsed = elapsed + (finish.tv_sec - start.tv_sec + (finish.tv_usec - start.tv_usec) / 1.e6);
+  }
+
+  // Compute and print average elapsed [not processor] time
+  printf("On average, sorting %d random numbers took %.9f seconds\n", SIZE, elapsed / NUMBER);
+  fflush(stdout);
+}
+
+// ----
+
+void sort(double array[], int size)
+{
+  int cmp(const void* lp, const void* rp)
+  {
+    const double* lpv = (const double*) lp;
+    const double* rpv = (const double*) rp;
+    return (*lpv > *rpv) - (*lpv < *rpv);
+  }
+
+  qsort(array, size, sizeof(array[0]), cmp);
+}
+
+// @@PLEAC@@_3.10
+// Pausing a process for a designated time period may be accomplished several ways. Only one
+// approach is portable across platforms, but is a 'busy waiting'-based approach which, while
+// it allows for sub-second pause periods, has the disadvantage of wasting CPU cycles for the
+// entire pause period.
+
+#include <time.h>
+
+void busywait(double seconds);
+
+// ----
+
+int main(void)
+{
+  busywait(0.25);
+}
+
+// ----
+
+void busywait(double seconds)
+{
+  double elapsed;
+  clock_t start = clock();
+
+  do { elapsed = ((double) (clock() - start)) / CLOCKS_PER_SEC; } while (elapsed < seconds);
+}
+
+// ----------------------------
+
+// Approaches where a process is 'put to sleep' i.e. suspended, with its share of the CPU
+// allocated to other processes, are inherently platform-specific. Under *NIX / GNU, several
+// library functions may be used:
+// * Combination of either 'alarm' or 'setitimer', and 'pause', together with appropriate
+//   signal trapping and handling to avoid problems like potential race conditions. Note:
+//   code below is a simplistic, purely illustrative example, and does not do this [need to
+//   use 'sigprocmask', 'sigaction' et al]
+// * Either 'sleep' [second-resolution] or 'nanosleep' [up to nanosecond-resolution if
+//   supported by the platform]; will terminate before pause period if process receives a
+//   signal
+// * Either 'select', or 'poll', to implement microsecond-resolution pause not interrupted by
+//   signal
+
+#include <signal.h>
+#include <unistd.h>
+
+void alarmSec(long sec);
+
+// ----
+
+int main(void)
+{
+  // Low-resolution: sleep time specified in seconds
+  alarmSec(1);
+}
+
+// ----
+
+void alarmSec(long sec)
+{
+  static void sig_alrm(int signo) {}
+
+  if (signal(SIGALRM, sig_alrm) == SIG_ERR) return;
+  alarm(sec);
+  pause();
+  alarm(0);
+}
+
+// ------------
+
+#include <unistd.h>
+#include <sys/time.h>
+
+void sleepSec(long sec);
+void sleepMicroSec(long usec);
+void sleepNanoSec(long nsec);
+
+// ----
+
+int main(void)
+{
+  // Low-resolution: sleep time specified in seconds
+  sleepSec(1);
+  sleep(1);
+
+  // High-resolution: sleep time specified in microseconds
+  sleepMicroSec(250000);
+
+  // Very high resolution. However, actual resolution is hardware / platform
+  // dependant, and will be rounded up to level actually supported
+  sleepNanoSec(250000);
+}
+
+// ----
+
+void sleepSec(long sec)
+{
+  nanosleep(&((const struct timespec) { sec, 0 }), NULL);
+}
+
+void sleepMicroSec(long usec)
+{
+  nanosleep(&((const struct timespec) { usec / 1000000L, usec % 1000000L * 1000000L }), NULL);
+}
+
+void sleepNanoSec(long nsec)
+{
+  nanosleep(&((const struct timespec) { 0, nsec }), NULL);
+}
+
+// ------------
+
+#include <unistd.h>
+#include <sys/time.h>
+
+void sleepAbsSec(long sec);
+void sleepAbsMicroSec(long usec);
+
+// ----
+
+int main(void)
+{
+  // Low-resolution: sleep time specified in seconds
+  sleepAbsSec(1);
+
+  // High-resolution: sleep time specified in microseconds
+  sleepAbsMicroSec(250000);
+}
+
+// ----
+     
+void sleepAbsSec(long sec)
+{
+  select(0, NULL, NULL, NULL, &((struct timeval) { sec, 0 }));
+}
+
+void sleepAbsMicroSec(long usec)
+{
+  select(0, NULL, NULL, NULL, &((struct timeval) { usec / 1000000L, usec % 1000000L }));
+}
+
+// @@PLEAC@@_3.11
+// @@INCOMPLETE@@
+// @@INCOMPLETE@@
 
 // @@PLEAC@@_5.0
 //------------------------------------------------------------------
