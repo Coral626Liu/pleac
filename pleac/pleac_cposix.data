@@ -873,6 +873,29 @@ char * extension(const char * path){
 // ext is .a
 
 // @@PLEAC@@_10.0
+// NOTE: In order to keep the size / verbosity of code examples to a minimum, library function
+// calls will generally not include error checking and handling. Example:
+//
+//     p = malloc(...);                if ((p = malloc(...)) == NULL)
+//                                     {
+//                                       ... handle error ...
+//                                     }
+//
+// However, any necessary, application-specific error-related code, will still be used. Code
+// examples will endeavour, wherever possible, to make use of:
+//
+// * C99 Features e.g. variable-length arrays, non-const aggregate initialisers
+// * GNU Extensions e.g. nested functions, statement expressions
+//
+// The aim of doing so is to reduce redundancy [i.e. copious examples of older / standard C
+// already exist] as well as enhance the information value of each PLEAC example.
+//
+// Another item worthy of note is the use of writeable 'static local storage' in many custom
+// functions. Whilst a commonly-used technique that makes functions self-contained, and easier
+// to use [which is precisely why it is used here], it is not viable in multi-threaded code;
+// examples need to be suitably modified to work in such code. The section, 'Printing a Date',
+// in Chapter 3: Dates and Times, discusses this issue, and provides illustrative examples.
+
 #include <stdio.h>
 
 // Declaring the variable as 'static' ensures it has 'file scope', that is:
@@ -1365,14 +1388,207 @@ void* mysub(void* arg)
 // @@PLEAC@@_10.7
 // Standard C offers no support for named / keyword parameters. It is of course possible to
 // mimic such functionality in several ways:
+// * Adopt a convention of passing arguments as hash table entries, or as list nodes, as
+//   an array of entries
 // * Bury key=value pairs in a string, and pass string as single argument
-// * Adopt a convention of passing arguments as hash table entries, or as list nodes
-// * Use variable argument functions with structs of key / value pairs
+// * Use variable argument functions with structs of key / value pairs [or, as a variation
+//   on the second suggestion, key=value strings]
+//
 // In all cases argument unpacking must be performed within the function body, so the 
 // approach can hardly be called transparent. Additionally, a fair amount of code would be
-// needed to build a usable, flexible and robust facility, and such facilities *are*
-// available as third party libraries
-// @@INCOMPLETE@@
+// needed to build a usable, flexible and robust facility. Examples of each approach are
+// shown. 
+
+// 1. Array of struct named_parm_t [For simplicity, 'value' is assumed to be a 'char*', 
+//    but could instead use a 'type tagging' approach [i.e. a field identifying type of
+//    data being stored, and either a void* or a union, for storing the various types]
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+struct named_parm_t
+{
+  char* key;
+  char* value;
+};
+
+void named_parms_as_array_of_struct(const struct named_parm_t parms[], size_t num_parms);
+
+// ----
+
+int main(void)
+{
+  // a=1, b=2, c=cat
+  named_parms_as_array_of_struct((struct named_parm_t[]){{"a", "1"}, {"b", "2"}, {"c", "cat"}}, 3);
+
+  // b=12 [a and c have default values]
+  named_parms_as_array_of_struct((struct named_parm_t[]){{"b", "12"}}, 1);
+}
+
+// ----
+
+void named_parms_as_array_of_struct(const struct named_parm_t parms[], size_t num_parms)
+{
+  // Ensure local variables are initialised to sensible default values
+  int a = 0, b = 0; const char* c = "default";
+
+  // Extract named parameter values, and assign to corresponding local variable(s)
+  for (int i = 0; i < num_parms; ++i)
+  {
+    if (strcmp(parms[i].key, "a") == 0) { a = atoi(parms[i].value); continue; }
+    if (strcmp(parms[i].key, "b") == 0) { b = atoi(parms[i].value); continue; }
+    if (strcmp(parms[i].key, "c") == 0) c = parms[i].value;
+  }
+
+  printf("Value of a is %d, b is %d, and c is %s\n", a, b, c); fflush(stdout);
+}
+
+// ------------
+
+// 2. Delimited string of key=value substrings
+
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+void named_parms_as_string(const char* parms);
+
+// ----
+
+int main(void)
+{
+  // "a=1,b=2,c=cat"
+  named_parms_as_string("a=1,b=2,c=cat");
+
+  // "b=12" [a and c have default values]
+  named_parms_as_string("b=2");
+}
+
+// ----
+
+void named_parms_as_string(const char* parms)
+{
+  const char COMMA = ',', EQ = '=', NUL = '\0';
+
+  bool parse_entry(char* entry, const char sep, const char** key, const char** value)
+  {
+    char *p = entry, *q;
+    return ((q = strchr(p, EQ)) != NULL) ? ({ *key = p; *q = NUL; *value = ++q; true; }) : false;
+  }
+
+  // Ensure local variables are initialised to sensible default values
+  int a = 0, b = 0; const char* c = "default";
+
+  // Parse string of key=value entries ...
+  char entry[64]; const char *key, *value; const char *p = parms, *q;
+
+  while (p != NULL)
+  {
+    if ((q = strchr(p, COMMA)) == NULL) q = strchr(p, NUL);
+
+    memcpy(entry, p, q - p); *(entry + (q - p)) = NUL;
+
+    // Parse each entry, assign to corresponding variable
+    if (parse_entry(entry, EQ, &key, &value))
+    {
+      if (strcmp(key, "a") == 0) a = atoi(value);
+      else if (strcmp(key, "b") == 0) b = atoi(value);
+      else if (strcmp(key, "c") == 0) c = value;
+    }
+
+    p = (*q) ? ++q : NULL;
+  }
+
+  printf("Value of a is %d, b is %d, and c is %s\n", a, b, c); fflush(stdout);
+}
+
+// ----------------------------
+
+// 3. Variable arguments of key=value strings
+//
+//    The example from Perl Cookbook is implemented using this approach . Note that the code
+//    here does not perform exactly the same task as the original. Instead, emphasis is placed
+//    on illustrating string parsing and argument handling techniques
+
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdarg.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include <string.h>
+
+void the_func(const char* arg1, ...);
+
+// ----
+
+int main(void)
+{
+  the_func("increment=20s", "start=+5m", "finish=+30m", NULL);
+
+  the_func("start=+5m", "finish=+30m", NULL);
+
+  the_func("finish=+30m", NULL);
+
+  the_func("start=+5m", "increment=15s", NULL);
+}
+
+// ----
+
+void the_func(const char* arg1, ...)
+{
+  const char COMMA = ',', EQ = '=', NUL = '\0';
+
+  bool parse_entry(char* entry, const char sep, const char** key, const char** value)
+  {
+    char *p = entry, *q;
+    return ((q = strchr(p, EQ)) != NULL) ? ({ *key = p; *q = NUL; *value = ++q; true; }) : false;
+  }
+
+  int inc_secs(char* inc_tok)
+  {
+    char* lp = strchr(inc_tok, NUL) - 1; char inc_mul = tolower(*lp); *lp = NUL;
+    if (inc_mul == 's') return atoi(inc_tok);
+    if (inc_mul == 'm') return atoi(inc_tok) * 60;
+    return 0;
+  }
+
+  // Ensure local variables are initialised to sensible default values
+  int finish = 0, start = 0; char increment[32] = "10s";
+
+  // Storage for parsing ...
+  char entry[64]; const char *key, *value;
+
+  // Extract values from 1st argument
+  if (parse_entry(strcpy(entry, arg1), EQ, &key, &value))
+  {
+    if (strcmp(key, "start") == 0) start = inc_secs(value);
+    else if (strcmp(key, "finish") == 0) finish = inc_secs(value);
+    else if (strcmp(key, "increment") == 0) strcpy(increment, value);
+  }
+
+  // Setup for variable argument handling, and extract values from each of these
+  const char* arg; va_list ap;
+
+  va_start(ap, arg1);
+
+  while ((arg = va_arg(ap, const char*)) != NULL)
+  {
+    // Parse each entry, assign to corresponding variable
+    if (parse_entry(strcpy(entry, arg), EQ, &key, &value))
+    {
+      if (strcmp(key, "start") == 0) start = inc_secs(value);
+      else if (strcmp(key, "finish") == 0) finish = inc_secs(value);
+      else if (strcmp(key, "increment") == 0) strcpy(increment, value);
+    }
+  }
+
+  va_end(ap);
+
+  printf("start -> %d : finish -> %d : increment -> %s\n", start, finish, increment);
+  fflush(stdout);
+}
 
 // @@PLEAC@@_10.8
 // It's generally only interpreted languages, or those supporting some sort of pattern
