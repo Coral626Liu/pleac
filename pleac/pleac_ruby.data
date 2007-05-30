@@ -3348,16 +3348,56 @@ File.readlines(file, '').each { |paragraph|
 #-----------------------------
 
 
-# @@PLEAC@@_8.6
+# @@PLEAC@@_8.5
+# This shows both reading the growing file and a fall back (exit) when the file is deleted.
+file = File.open('growing.txt') # Open the file, default mode is reading.
+while File.exists?(file.path) # Check if the file exists, exit if not.
+    puts file.gets while !file.eof? # Print file contents until the end-of-file is reached.
+    sleep(1) # Wait 1 second, so the file might grow in the meantime.
+    # No need to seek  - eof will be reset automatically if the file grows.
+end
 
-$/ = "%\n";
-srand;
+# Another option - reopen the file if current position is greater then the length of the file.
+filename = 'growing.txt'
+file = File.open(filename)
+while File.exists?(file.path)
+    if File.size(filename) < file.pos
+        puts "File truncated -  reopening."
+        file = File.open(filename)
+    end
+    puts file.gets while !file.eof?
+    sleep(1)
+end
+
+
+# @@PLEAC@@_8.6
+$/ = "%\n"
+srand
 
 File.open('/usr/share/fortune/humorists').each do |line|
     adage = line if rand($.) < 1
 end
 
-puts adage;
+puts adage
+
+
+# @@PLEAC@@_8.7
+# Helper function from chapter 4.17: Randomizing an Array
+def fisher_yates_shuffle(a)
+    (a.size-1).downto(1) { |i|
+        j = rand(i+1)
+        a[i], a[j] = a[j], a[i] if i != j
+    }
+end
+
+# Open the file, default mode is reading. Read all lines into an array.
+lines = File.open('to_randomize.txt').collect
+
+# Shuffle them.
+fisher_yates_shuffle(lines)
+
+# Print the shuffled lines.
+puts lines 
 
 
 # @@PLEAC@@_8.10
