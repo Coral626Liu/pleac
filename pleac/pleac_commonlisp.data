@@ -135,15 +135,14 @@ double quotation mark.
 ;;-----------------------------
 ;; Exchange the first and last letters in a string
 (setq *string* "make a hat")
-(let ((end (1- (length *string*)))
-       (tmp (char *string* 0)))
-   (setf (char *string* 0) (char *string* end)
-         (char *string* end) tmp))
+(rotatef (char *string* 0) (char *string* (1- (length *string*))))
+(princ *string*)
 ;; take a ham
 
 ; edit a substring
-(setq string (concatenate 'string (substring string 0 offset) newstring
-(substring string (+ offset count))))
+(setq string (concatenate 'string 
+                          (substring string 0 offset) newstring
+                          (substring string (+ offset count))))
 (setq string (concatenate 'string (substring string 0 offset) newtail))
 
 
@@ -157,7 +156,7 @@ double quotation mark.
 ;; use b if b is defined, otherwise c
 (setq a (if (boundp 'b) b c))
 ;;-----------------------------
-(setq foo (if bar bar "DEFAULT VALUE"))
+(setq foo (or bar "DEFAULT VALUE"))
 ;;-----------------------------
 (setq dir (or (pop ARGV) "/tmp"))
 ;;-----------------------------
@@ -170,42 +169,41 @@ double quotation mark.
 (incf (gethash (or shell "/bin/sh") count 0))
 ;;-----------------------------
 (setq user (or (posix-getenv "USER")
-			   (posix-getenv "LOGNAME")
-			   "Unknown uid"))
+               (posix-getenv "LOGNAME")
+               "Unknown uid"))
 ;;-----------------------------
 (setq starting-point (or starting-point "Greenwich"))
 ;;-----------------------------
 (unless a
   (setq a (copy-seq b)))   ; copy only if empty
-(setq a (if b b c))        ; assign b if nonempty, else c
+(setq a (or b c))        ; assign b if nonempty, else c
 
 
 ; @@PLEAC@@_1.3
 ;;--------------------------------------------------
 (psetq VAR1 VAR2 VAR2 VAR1)
 (multiple-value-setq (VAR1 VAR2) (values VAR2 VAR1))
+(rotatef VAR1 VAR2)
 ;;--------------------------------------------------
 (setq a "alpha")
 (setq b "omega")
-(psetq a b b a) ;; the first shall be last -- and versa vice
+(rotatef a b) ;; the first shall be last -- and versa vice
 ;;--------------------------------------------------
 (destructuring-bind (alpha beta production)
      '(January March August)
    ;; move beta       to alpha,
    ;; move production to beta,
    ;; move alpha      to production
-   (psetq alpha beta
-          beta production
-          production alpha))
+  (rotatef alpha beta production))
 
 
 ; @@PLEAC@@_1.4
 ;;--------------------------------------------------
 (setq num (char-code char))
-(setq char (code-char ord))
+(setq char (code-char num))
 ;;--------------------------------------------------
 (setq char (format nil "~c" (code-char num)))
-(format t "Number ~d is character ~c\n" num (code-char num))
+(format t "Number ~d is character ~c~%" num (code-char num))
 ;--> Number 101 is character e
 ;;--------------------------------------------------
 (setq ASCII (map 'list #'char-code string))
@@ -214,11 +212,11 @@ double quotation mark.
 (setq ascii-value (char-code (char "e" 0)))    ; now 101
 (setq character (code-char 101))               ; now #\e
 ;;--------------------------------------------------
-(format t "Number ~d is character ~c\n" 101 (code-char 101))
+(format t "Number ~d is character ~c~%" 101 (code-char 101))
 ;;--------------------------------------------------
 (setq ascii-character-numbers (map 'list #'char-code "sample"))
-(format t "~a~%" ascii-character-numbers)
-;--> (115 97 109 112 108 101)
+(format t "~{~a~^ ~}" ascii-character-numbers)
+;--> 115 97 109 112 108 101
 
 (setq word (map 'string #'code-char ascii-character-numbers))
 (setq word (map 'string #'code-char '(115 97 109 112 108 101)))
@@ -465,29 +463,121 @@ the management
     (error "Couldn't send mail")))
 ;;--------------------------------------------------
 
+; @@PLEAC@@_1.11
+;;--------------------------------------------------
+;;; all in one
+(setf var (cl-ppcre:regex-replace-all 
+           (cl-ppcre:create-scanner "^\\s+" :multi-line-mode t)
+"your text
+goes here
+" ""))
+
+;;; or with two steps
+(setf var "your text
+goes here
+")
+(setf var (cl-ppcre:regex-replace-all 
+           (cl-ppcre:create-scanner "^\\s+" :multi-line-mode t)
+           var
+           ""))
+;;--------------------------------------------------
+(setf var (cl-ppcre:regex-replace-all 
+           (cl-ppcre:create-scanner "^\\s+" :multi-line-mode t)
+"    The five varieties of camelids
+    are the familiar camel, his friends
+    the llama and the alpaca, and the
+    rather less well-known guanaco
+    and vicuña.
+" ""))
+;;--------------------------------------------------
+(defun fix (string)
+  (cl-ppcre:regex-replace-all
+   (cl-ppcre:create-scanner "^\\s+" :multi-line-mode t)
+   string
+   ""))
+
+(fix "    My stuff goes here
+")
+;;--------------------------------------------------
+(setf quote 
+      (cl-ppcre:regex-replace-all
+       (cl-ppcre:create-scanner "\\s+--")
+       (cl-ppcre:regex-replace-all 
+        (cl-ppcre:create-scanner "^\\s+" :multi-line-mode t)
+"        ...we will have peace, when you and all your works have
+        perished--and the works of your dark master to whom you would
+        deliver us. You are a liar, Saruman, and a corrupter of mens
+        hearts.  --Theoden in /usr/src/perl/taint.c
+"
+       "")
+       "
+--"))
+;;--------------------------------------------------
+(when *remember-the-main*
+  (setf perl-main-C (dequote
+"        @@@ int
+         @@@ runops() {
+         @@@     SAVEI32(runlevel);
+         @@@     runlevel++;
+         @@@     while ( op = (*op->op_ppaddr)() ) ;
+         @@@     TAINT_NOT;
+         @@@     return 0;
+         @@@ }
+"
+  ;; add more code here if you want
+   )))
+;;--------------------------------------------------
+(setf poem (dequote
+"       Now far ahead the Road has gone,
+          And I must follow, if I can,
+       Pursuing it with eager feet,
+          Until it joins some larger way
+       Where many paths and errands meet.
+          And whither then? I cannot say.
+                --Bilbo in /usr/src/perl/pp_ctl.c
+"))
+
+(format t "Here's your poem:~%~%~a~%" poem)
+;;--------------------------------------------------
+(defun dequote (string)
+  ;; Can't get multiple values returned thru the OR, hence the use of
+  ;; DESTRUCTURING-BIND instead of MULTIPLE-VALUE-BIND
+  (destructuring-bind (white leader) ; common whitespace and common leading string
+      (or (cl-ppcre:register-groups-bind ($1 $2)
+              ("^\\s*(?:([^\\w\\s]+)(\\s*).*\\n)(?:\\s*\\1\\2?.*\\n)+$" string)
+            (list $2 (cl-ppcre:quote-meta-chars $1)))
+          (list (cl-ppcre:scan-to-strings "^(\\s+)" string) ""))
+    (cl-ppcre:regex-replace-all
+     (cl-ppcre:create-scanner (format nil "^\\s*?~a(?:~a)?" leader white) :multi-line-mode t)
+     string
+     "")))
+;;--------------------------------------------------
+
+
+  
 
 ; @@PLEAC@@_2.1
 ;;; Strings and numbers are separate data types in CL. These tests
 ;;; check whether a string represents a number
 (unless (every #'digit-char-p string)
-  (format t "string has nondigits"))
+  (format *error-output* "string has nondigits"))
 (unless (cl-ppcre:scan "^\\d+$" string) ; rejects -3
-  (format t "not a natural number"))
+  (format *error-output* "not a natural number"))
 (unless (cl-ppcre:scan "^-?\\d+$" string) ; rejects +3
-  (format t "not an integer"))
+  (format *error-output* "not an integer"))
 (unless (cl-ppcre:scan "^[+-]?\\d+$" string)
-  (format t "not an integer"))
+  (format *error-output* "not an integer"))
 (unless (cl-ppcre:scan "^-?(?:\\d+(?:\\.\\d*)?|\\.\\d+)$" string)
-  (format t "not an integer"))
+  (format *error-output* "not an integer"))
 (unless (cl-ppcre:scan "^([+-]?)(?=\\d|\\.\\d)\\d*(\\.\\d*)?([Ee]([+-]?\\d+))?$"
                        string)
-  (format t "not a C float"))
+  (format *error-output* "not a C float"))
 
 
 ; @@PLEAC@@_2.2
 (defun equal-to-accuracy (number1 number2 dp)
-  "Return TRUE if NUMBER1 and NUMBER2 are equal to DP number of
-  decimal places."
+  "Return non-nil if NUMBER1 and NUMBER2 are equal to DP number of
+decimal places."
   (let* ((difference (abs (- number1 number2)))
          (delta (expt 10 (- dp))))
     (< difference delta)))
@@ -495,6 +585,9 @@ the management
 (let* ((wage 536)                       ; $5.36/hour
        (week (* 40 wage)))
   (format t "One week's wage is: $~,2F~%" (/ week 100)))
+;;--------------------------------------------------
+
+; @@PLEAC@@_2.3
 ;;--------------------------------------------------
 (let* ((a 0.255)
        (b (/ (fround a 0.01) 100)))
@@ -516,7 +609,7 @@ the management
 (setq bin (format nil "~2R" dec))
 
 ; binary to decimal
-(setq dec (formant nil "~10R" bin))
+(setq dec (format nil "~10R" bin))
 
 
 ; @@PLEAC@@_2.6
@@ -524,23 +617,26 @@ the management
 (setq roman (format nil "~@R" arabic))
 
 ;roman to arabic
-(defun romanchar (x) (cond ((or (eq x #\m) (eq x #\M)) 1000)
-			   ((or (eq x #\d) (eq x #\D)) 500)
-			   ((or (eq x #\c) (eq x #\C)) 100)
-			   ((or (eq x #\l) (eq x #\L)) 50)
-			   ((or (eq x #\x) (eq x #\X)) 10)
-		           ((or (eq x #\v) (eq x #\V)) 5)
-			   ((or (eq x #\i) (eq x #\I)) 1)
-			   (t 0)))
+(defun romanchar->num (x) 
+  (case (char-downcase x)
+    (#\m 1000)
+    (#\d 500)
+    (#\c 100)
+    (#\l 50)
+    (#\x 10)
+    (#\v 5)
+    (#\i 1)
+    (t 0)))
 
-(defun roman2arabic (x) (let ((y (coerce x 'list))) 
-				(if (eq 1 (length y)) 
-				    (romanchar (car y)) 
-				    (if (< (romanchar (car y)) (romanchar (cadr y)))
-				 		(- (roman2arabic (rest y)) (romanchar (car y)))
-						(+ (romanchar (car y)) (roman2arabic (rest y)))))))
+(defun arabic (string)
+  (let ((digits (map 'list #'romanchar->num string)))
+    (reduce #'+ (mapcar #'(lambda (digit next-digit)
+                            (if (< digit next-digit) 
+                                (- digit) 
+                                digit))
+                        digits
+                        (append (rest digits) '(0))))))
 
-(setq arabic (roman2arabic roman))
 
 
 ; @@PLEAC@@_2.7
@@ -782,6 +878,86 @@ the management
 
 (defun nth-permutation (n length)
   (pattern-permutation (nth-pattern n length)))
+
+; @@PLEAC@@_5.0
+
+(setf age (make-hash-table :test 'equal))
+
+(setf (gethash "Nat" age) 24
+      (gethash "Jules" age) 25
+      (gethash "Josh" age) 17)
+;;--------------------------------------------------
+
+(mapcar #'(lambda (l)
+            (setf (gethash (car l) age) (cdr l)))
+        '(("Nat" . 24)
+          ("Jules" . 25)
+          ("Josh" . 17)))
+;;--------------------------------------------------
+(setf food-color (make-hash-table :test 'equal))
+
+(mapcar #'(lambda (l)
+            (setf (gethash (car l) food-color) (cdr l)))
+        '(("Apple" . "red")
+          ("Banana" . "yellow")
+          ("Lemon" . "yellow")
+          ("Carrot" . "orange")))
+
+;;--------------------------------------------------
+
+(mapcar #'(lambda (l)
+            (setf (gethash (car l) food-color) (cdr l)))
+        '((Apple . "red")
+          (Banana . "yellow")
+          (Lemon . "yellow")
+          (Carrot . "orange")))
+;;--------------------------------------------------
+
+
+; @@PLEAC@@_5.1
+;;--------------------------------------------------
+(setf (gethash $KEY $HASH) $VALUE)
+;;--------------------------------------------------
+
+(setf (gethash "Raspberry" food-color) "pink")
+
+(format t "Known foods:~%~{~a~%~}"
+        (loop for f being the hash-keys food-color
+           collect f))
+
+; @@PLEAC@@_5.2
+;;--------------------------------------------------
+;; does %HASH have a value for $KEY ?
+(if (nth-value 1 (gethash key hash))
+    'it-exists
+    'it-does-not)
+;;--------------------------------------------------
+# food-color per the introduction
+(dolist (name '("Banana" "Martini"))
+  (format t "~a is a ~a.~%"
+          name
+          (if (nth-value 1 (gethash name food-color))
+              "food" "drink")))
+;;--------------------------------------------------
+(setf age (make-hash-table :test 'equal))
+(setf (gethash "Toddler" age) 3)
+(setf (gethash "Unborn" age) 0)
+(setf (gethash "Phantasm" age) nil)
+(dolist (thing '("Toddler" "Unborn" "Phantasm" "Relic"))
+  (format t "~a: " thing)
+  (multiple-value-bind (defined exists)
+      (gethash thing age)
+      (when exists
+        (format t "Exists ")
+        (when defined 
+          (format t "Defined ")
+          ;; 0 is not false in CL, so must explicitly mimic Perl here
+          (unless (zerop defined)
+            (format t "True ")))))
+  (format t "~%"))
+
+; @@PLEAC@@_5.3
+;;--------------------------------------------------
 
 
 ; @@PLEAC@@_8.2
