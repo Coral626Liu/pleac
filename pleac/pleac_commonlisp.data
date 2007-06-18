@@ -57,21 +57,21 @@ double quotation mark.
 
 ; edit a substring
 (setq string (concatenate 'string (subseq string 0 offset) newstring
-(subseq string (+ offset count))))
+                          (subseq string (+ offset count))))
 (setq string (concatenate 'string (subseq string 0 offset) newtail))
 
 ;;-----------------------------
 ; get a 5-byte string, skip 3, then grab 2 8-byte strings, then the
 ; rest
 (setq leading (subseq data 5)
-       s1 (subseq data 8 8)
-       s2 (subseq data 16 8)
-       trailing (subseq data 24))
+      s1 (subseq data 8 8)
+      s2 (subseq data 16 8)
+      trailing (subseq data 24))
 
 ; split at five byte boundries
 (let ((length (length string)))
-   (loop for idx from 0 upto length by 5
-      collect (subseq string idx (min length (+ idx 5)))))
+  (loop for idx from 0 upto length by 5
+     collect (subseq string idx (min length (+ idx 5)))))
 
 ; chop string into individual characters
 (loop for idx from 0 upto (1- (length string))
@@ -138,6 +138,7 @@ double quotation mark.
 (rotatef (char *string* 0) (char *string* (1- (length *string*))))
 (princ *string*)
 ;; take a ham
+;;-----------------------------
 
 ; edit a substring
 (setq string (concatenate 'string 
@@ -158,6 +159,9 @@ double quotation mark.
 ;;-----------------------------
 (setq foo (or bar "DEFAULT VALUE"))
 ;;-----------------------------
+#+sbcl 
+(defparameter ARGV (copy-seq (cdr *posix-argv*)) "Arguments from shell, Perl style")
+
 (setq dir (or (pop ARGV) "/tmp"))
 ;;-----------------------------
 (setq dir (or (nth 0 ARGV) "/tmp"))
@@ -166,17 +170,23 @@ double quotation mark.
 ;;-----------------------------
 (setq dir (if (plusp (length ARGV)) (nth 0 ARGV) "/tmp"))
 ;;-----------------------------
+(setf count (make-hash-table))
 (incf (gethash (or shell "/bin/sh") count 0))
 ;;-----------------------------
 (setq user (or (posix-getenv "USER")
                (posix-getenv "LOGNAME")
+               #+sbcl
+               (let ((uid (sb-posix:getuid)))
+                 (or (sb-posix:passwd-name (sb-posix:getpwuid uid))
+                     (format nil "Unknown uid number ~a" uid)))
+               #-sbcl
                "Unknown uid"))
 ;;-----------------------------
 (setq starting-point (or starting-point "Greenwich"))
 ;;-----------------------------
 (unless a
-  (setq a (copy-seq b)))   ; copy only if empty
-(setq a (or b c))        ; assign b if nonempty, else c
+  (setq a (copy-seq b)))                ; copy only if empty
+(setq a (or b c))                       ; assign b if nonempty, else c
 
 
 ; @@PLEAC@@_1.3
@@ -224,11 +234,11 @@ double quotation mark.
 ;--> sample
 ;;--------------------------------------------------
 (let* ((hal "HAL")
-        (ibm (map 'string
-                  (lambda (char)
-                    (code-char (1+ (char-code char))))
-                  hal)))
-   (format t "~a~%" ibm))
+       (ibm (map 'string
+                 (lambda (char)
+                   (code-char (1+ (char-code char))))
+                 hal)))
+  (format t "~a~%" ibm))
 ;;--------------------------------------------------
 
 
@@ -247,12 +257,14 @@ double quotation mark.
 (let ((string "an apple a day")
       (seen (make-hash-table)))
   (loop for char across string do
-        (incf (gethash char seen 0)))
-  (let* ((chars (loop for char being each hash-key of seen
-                      collect char))
-         (chars (sort (coerce chars 'string) #'>
-                      :key (lambda (char) (gethash char seen)))))
-    (format t "unique chars are: ~A~%" chars)))
+       (incf (gethash char seen 0)))
+  (let ((chars (loop for char being each hash-key of seen
+                   collect char)))
+    (format t "unique chars are: ~A~%" 
+            (coerce 
+             (sort chars #'>
+                   :key (lambda (char) (gethash char seen)))
+             'string))))
 ;;--------------------------------------------------
 (let ((string "an apple a day"))
   (format t "sum is ~D~%"
@@ -295,18 +307,29 @@ string))))
                       (cl-ppcre:split "(\\s+)" string :with-registers-p t)))
 ;;--------------------------------------------------
 (defun palindrome-p (word)
-  (string-equal word (reverse word)))
+  (string= word (reverse word)))
 (palindrome-p "reviver")
 ; T
 ;;--------------------------------------------------
 (with-open-file (inf "/usr/share/dict/words")
   (loop for word = (read-line inf nil nil)
         while word
-        when (and (string-equal word (reverse word)) (> (length word) 5))
+        when (and (string= word (reverse word)) 
+                  (> (length word) 5))
         do (format t "~a~%" word)))
-; redder
-; reviver
-; rotator
+;; deedeed
+;; degged
+;; hallah
+;; kakkak
+;; murdrum
+;; redder
+;; repaper
+;; retter
+;; reviver
+;; rotator
+;; sooloos
+;; tebbet
+;; terret
 ;;--------------------------------------------------
 
 
@@ -357,8 +380,7 @@ reg-starts reg-ends)
       cols 80)
 (setq text "I am $rows high and $cols long")
 (flet ((global-deref (match var-name)
-         (write-to-string (symbol-value (intern (string-upcase
-var-name))))))
+         (write-to-string (symbol-value (intern (string-upcase var-name))))))
   (setq text (cl-ppcre:regex-replace-all "\\$(\\w+)" text
                                          #'global-deref
                                          :simple-calls t)))
@@ -427,8 +449,8 @@ var-name))))))
 ;;--------------------------------------------------
 (setq answer (concatenate 'string var1 (func) var2))
 ;;--------------------------------------------------
-(setq answer (format nil "STRING ~{~A~} MORE STRING", list-expr))
-(setq answer (format nil "STRING ~A MORE STRING", atomic-expr))
+(setq answer (format nil "STRING ~{~A~} MORE STRING" list-expr))
+(setq answer (format nil "STRING ~A MORE STRING" atomic-expr))
 ;;--------------------------------------------------
 (setq phrase (format nil "I have ~D guanacos." (1+ n)))
 ;;--------------------------------------------------
@@ -628,6 +650,11 @@ decimal places."
     (#\i 1)
     (t 0)))
 
+(defun isroman (string)
+  (every #'(lambda (c)
+             (plusp (romanchar->num c)))
+         string))
+
 (defun arabic (string)
   (let ((digits (map 'list #'romanchar->num string)))
     (reduce #'+ (mapcar #'(lambda (digit next-digit)
@@ -637,9 +664,16 @@ decimal places."
                         digits
                         (append (rest digits) '(0))))))
 
-
+(when (isroman roman) (setf arabic (arabic roman)))
+;;-----------------------------
+(setf roman-fifteen (format nil "~@R" 15))
+(format t "Roman for fifteen is ~A~%" roman-fifteen)
+(setf arabic-fifteen (arabic roman-fifteen))
+(format t "Converted back, ~A is ~A~%" roman-fifteen arabic-fifteen)
+;;-----------------------------
 
 ; @@PLEAC@@_2.7
+;;-----------------------------
 ;integer
 (+ (random 51) 25)
 
@@ -794,13 +828,48 @@ decimal places."
 
 ; results in: 2006-11-25
 
+;;; @@PLEAC@@_4.0
+(setf nested '("this" "that" "the" "other")
+(setf nested '("this" "that" ("the" "other")))
+;;-----------------------------
+(setf tune '("The" "Star-Spangled" "Banner"))
+
+;;; @@PLEAC@@_4.1
+(setf @a '("quick" "brown" "fox");
+;;-----------------------------
+(setf @a '("Why" "are" "you" "teasing" "me?"))
+;;-----------------------------
+(setf @lines (cl-ppcre:regex-mumble-fratz "m/^\s*(.+)/gm"
+"    The boy stood on the burning deck,
+    It was as hot as glass.
+"))
+;;-----------------------------
+;;; You don't really need the explicit call to (something like) die()
+;;; in CL.  Its behavior is essentially the same by default (it does
+;;; throw you into the debugger, but that's not a bad thing
+;;; generally).  You could, alternatively, handle this error with
+;;; HANDLER-BIND or HANLDER-CASE if you wanted to.
+(let ((bigarray '()))
+  (with-open-file (data "mydatafile")
+    (loop for line = (read-line data nil nil)
+       while line
+       do (push (string-right-trim #(#\Newline #\Return #\Space #\Tab) 
+                                   line) bigarray))))
+;;-----------------------------
+(setf banner "The Mines of Moria")
+;;-----------------------------
+(setf name "Gandalf")
+(setf banner (format nil "Speak ~a and enter!" name))
+(setf banner "Speak $name and welcome!")
+;;-----------------------------
+
 ;;; @@PLEAC@@_4.17
 (defun fisher-yates-shuffle (vector)
   "Randomly shuffle elements of VECTOR."
   (loop for i from (1- (length vector)) downto 1
-        for j = (random i)
-        unless (= i j)
-          do (rotatef (aref vector i) (aref vector j)))
+     for j = (random i)
+     unless (= i j)
+     do (rotatef (aref vector i) (aref vector j)))
   vector)
 ;;;
 (defun shuffle (vector)
