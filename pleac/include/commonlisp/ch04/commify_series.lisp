@@ -19,7 +19,7 @@
     (case (length list)
       (0 "")
       (1 (car list))
-      (2 (format nil (format nil "~{~a~^ and ~}" list)))
+      (2 (format nil "~{~a~^ and ~}" list))
       (t (concatenate 'string
                       (format nil
                               "~{~}" 
