@@ -4911,6 +4911,702 @@ your data goes here
 ;; @@INCOMPLETE@@
 ;; @@INCOMPLETE@@
 
+;; @@PLEAC@@_12.0
+; Modules searched for by name in pre-configured paths [refer documentation
+; for details]. For testing it is probably easiest to place them, and
+; all other source files, in the current directory, and specify search
+; path on command-line:
+;
+;     guile -L ./ -s testprog.scm
+;
+; Here, 'testprog.scm' [see example] and modules reside in current the
+; directory
+
+; Load modules
+(use-modules ((alpha)
+              ; Optionally specify item(s) to use
+              :select (name)
+              ; Optionally attach a 'module alias' to distinguish items
+              :renamer (symbol-prefix-proc 'alpha:)) )
+
+(use-modules ((omega)
+              :select (name)
+              :renamer (symbol-prefix-proc 'omega:)) )
+
+; Access module members
+(print
+  (string-append "Alpha is " alpha:name ", Omega is " omega:name))
+
+;; ------------
+
+; Module name and source file names match -> alpha.scm
+(define-module (alpha))
+(define-public name "first")
+
+;; ------------
+
+; Module name and source file names match -> omega.scm
+(define-module (omega))
+(define-public name "last")
+
+;; ----------------------------
+
+; Guile doesn't distinguish between compile-time and run-time as far
+; as module handling is concerned. A module is loaded when:
+
+; * A (use-modules ...) is encountered
+
+(use-modules ((...))
+
+; * A reference is made to an item in a module specified as being
+; autoloaded
+
+(define-module (...)
+               #:autoload (mod-x) (...))
+               ...
+
+; Module code loaded at this point
+(if (item-from-mod-x ...) ...)
+
+;; @@PLEAC@@_12.1
+; All bindings within a module are private to it unless specifically
+; exported, something which is accomplished via:
+;
+; * Use of (define-public ...) in place of (define ...) for each export
+;   item
+;
+
+; Module name and source file names match -> your-module.scm
+(define-module (your-module))
+
+; Module's 'interface' - set of exported / publically-accessable items
+(define-public version "1.2")
+
+(define-public (a-public-proc arg) "a-public-proc")
+(define-public (another-public-proc arg) "another-public-proc")
+
+; Module's 'implementation', its internals
+(define a-private-var "...")
+(define (a-private-proc arg) '())
+
+;
+; or via:
+;
+; * Create an export list via: (export item1 item2 ...)
+;
+
+; Module name and source file names match -> your-module.scm
+(define-module (your-module))
+
+(define version "1.2")
+
+(define (a-public-proc arg) "a-public-proc")
+(define (another-public-proc arg) "another-public-proc")
+
+; Module's 'interface' - set of exported / publically-accessable items
+(export version a-public-proc another-public-proc)
+
+; Module's 'implementation', its internals
+(define a-private-var "...")
+(define (a-private-proc arg) '())
+
+;; ----------------------------
+
+; Load module, allowing access to all exported items, and uses
+; specified prefix, 'ym:, to refer to module items
+(use-modules ((your-module)
+              :renamer (symbol-prefix-proc 'ym:)) )
+
+; Access module members
+(print ym:version)
+
+(print (ym:a-public-proc 'x))
+(print (ym:another-public-proc 'x))
+
+;; ------------
+
+; Load module, allowing access to all exported items, and uses no
+; prefix for module items - they are identified as named within the
+; module, something which may cause name-clash problems
+(use-modules (your-module))
+
+; Access module members
+(print version)
+
+(print (a-public-proc 'x))
+(print (another-public-proc 'x))
+
+;; @@PLEAC@@_12.2
+; The module-handling procedures offer some reflective capabilities,
+; including the ability to obtain a module's export list, and 
+; dynamically load / create a module. Here, a custom function is used
+; to obtain a module's export list; since success indicates said module
+; exists, it may be used to check module availability without the module
+; being loaded. Note: this approach works, but since the documentation
+; is rather sparse, I'm not sure whether this is *the* best approach to
+; this problem
+
+(define (module-available? module-name)
+  (catch #t
+    (lambda () (resolve-interface module-name) #t)
+    (lambda (key . args) #f)))
+
+;; ------------
+
+; Is module available ?
+(if (module-available? '(alpha))
+  ; Yes ? Load it for use, else report the problem
+  (use-modules ((alpha)
+                :renamer (symbol-prefix-proc 'alpha:)) )
+;else
+  (print "Module does not exist / not in load path"))
+
+...
+
+; Use module item(s) [assuming load was successful]
+(print alpha:aa)
+
+;; @@PLEAC@@_12.3
+; Guile doesn't distinguish between compile-time and run-time as far
+; as module handling is concerned. A module is loaded when:
+
+; * A (use-modules ...) is encountered
+
+(use-modules ((...))
+
+; * A reference is made to an item in a module specified as being
+; autoloaded
+
+(define-module (...)
+               #:autoload (mod-x) (...))
+               ...
+
+; Module code loaded at this point
+(if (item-from-mod-x ...) ...)
+
+;; ----------------------------
+
+(let ((num1 #f) (num2 #f))
+  (cond
+    ((and 
+      (= (length (command-line)) 3)
+      (begin (set! num1 (string->number (cadr (command-line)))) num1)
+      (begin (set! num2 (string->number (caddr (command-line)))) num2))
+
+      ; Command-line processing successful - load modules to do some
+      ; real work
+      (use-modules ((some-module)
+                    :renamer (symbol-prefix-proc 'some:)) )
+
+      (use-modules ((another-module)
+                    :renamer (symbol-prefix-proc 'another:)) )
+
+      ...)
+    (else 
+      (die
+        (string-append
+          "usage: guile -s " (car (command-line)) " num1 num2")) )))
+
+;; ----------------------------
+
+(cond
+  (opt-b
+    (use-modules ((bigmath)
+                  :renamer (symbol-prefix-proc 'bigmath:)) )
+  ...
+    ; use module
+  ...)
+  (else
+    ...
+    ; work without module
+    ...))
+
+;; @@PLEAC@@_12.4
+; Variables are private to a module unless exported
+
+; Module name and source file names match -> alpha.scm
+(define-module (alpha))
+
+; If 'define' instead of 'define-public' used, then items remain
+; private
+(define-public aa 10)
+(define-public x "azure")
+
+;; ------------
+
+; Module name and source file names match -> beta.scm
+(define-module (beta))
+
+; If 'define' instead of 'define-public' used, then items remain
+; private
+(define-public bb 20)
+(define-public x "blue")
+
+;; ----------------------------
+
+; Load modules
+(use-modules ((alpha)
+              :renamer (symbol-prefix-proc 'alpha:)) )
+
+(use-modules ((beta)
+              :renamer (symbol-prefix-proc 'beta:)) )
+
+; Access module items
+(print 
+  (string-append 
+    (number->string alpha:aa) ", "
+    (number->string beta:bb) ", "
+    alpha:x ", "
+    beta:x))
+
+;; @@PLEAC@@_12.5
+; caller's package 
+; ??? backtrace trap
+@@INCOMPLETE@@
+@@INCOMPLETE@@
+
+;; @@PLEAC@@_12.6
+; automating module cleanup
+; ??? hooks, guardians
+@@INCOMPLETE@@
+@@INCOMPLETE@@
+
+;; @@PLEAC@@_12.7
+; The directories Guile should search for modules are available in the
+; global variable, '%load-path' based on configuration data supplied 
+; at installation time. Additional search directories may be specified
+; using:
+;
+; * Command-line Option:   -L DIRNAME
+; * Environment Variable:  GUILE_LOAD_PATH
+;
+; which act to prepend search data to the %load-path variable so that
+; user modules will be processed before non-core system modules
+;
+; Following standalone code could be loaded in several ways - probably
+; easiest to place it in a file and execute via: guile -s FILENAME
+; Use 'guile --help' for more execution options
+;
+
+#!
+!#
+
+(define (print item . rest)
+  (let ((all-item (cons item rest)))
+    (for-each
+      (lambda (item) (display item) (display " "))      
+      all-item))
+  (newline))
+
+(define (for-each-idx proc list . start-idx)
+  (let loop ((i (if (null? start-idx)
+                  0
+                  (car start-idx)))
+             (list list))
+    (cond
+      ((null? list) '())
+      (else
+        (proc i (car list))
+        (loop (+ i 1) (cdr list)))) ))
+
+(for-each-idx 
+  (lambda (i item)
+    (print i item))
+  %load-path)
+
+; Output:
+;
+; 0 /usr/local/share/guile/site
+; 1 /usr/local/share/guile/1.8
+; 2 /usr/local/share/guile
+
+;; ----------------------------
+
+; To specify the location of user modules from outside the execution
+; environment use any of the earlier mentioned approaches
+
+; guile -L /projects/spectre/lib/ -s SCRIPTNAME ...
+
+; Append:
+;   set GUILE_LOAD_PATH=$GUILE_LOAD_PATH:/projects/spectre/lib/
+; or prepend:
+;   set GUILE_LOAD_PATH=/projects/spectre/lib/:$GUILE_LOAD_PATH
+; export GUILE_LOAD_PATH
+
+;; @@PLEAC@@_12.8
+; Module distribution can be:
+;
+; * Informal, consisting of nothing more than copying all
+;   relevant [.scm] files somewhere into the load path [see
+;   previous section]. This task could be performed manually,
+;   or automated using a custom installation script.
+;
+;   This approach would appear reasonable for very small one
+;   or two [.scm] file systems, or where no additional libraries
+;   [e.g. C static and dynamic libraries] are needed, but probably
+;   not suitable for larger system distribution 
+;
+; * Formal, using some published distribution means. AFAIK there
+;   are no utilities such as Perl's 'h2xs' to automate this process.
+;   However, major Guile packages appear to use the GNU Build System
+;   [i.e. autoconf, automake et al] for distribution. Since this
+;   system is well known it is recommended that a suitable tutorial
+;   be consulted. A later section will include a simple example
+;
+
+;; @@PLEAC@@_12.9
+; Guile has no equivalent to Perl's 'selfloader' facility, thus this
+; section could not be implemented
+
+;; @@PLEAC@@_12.10
+; Guile has no equivalent to Perl's 'autoloader' facility. The use
+; of the 'autoload' keyword with modules serves to ensure a module
+; is loaded [if not already in memory] if specified module items
+; are accessed. In other words, a 'load-on-demand' facility which
+; is, I believe, a somewhat different mechanism to Perl's, therefore,
+; the examples in this section could not be implemented
+;
+
+;; @@PLEAC@@_12.11
+; In Scheme, a built-in function [BIF] is no more than an object
+; encapsulating a block of code [a 'lambda'] that is bound to an
+; identifier. Since identifier bindings can be readily altered, simply
+; rebinding the identifier to a replacement lambda overrides the built-in
+; version
+
+; Show current time using built-in, 'current-time'
+(print (current-time))
+
+; Override built-in by rebinding identifier with new lambda
+(define current-time
+  (lambda () "This isn't the current time !"))
+
+; Does this show the current time ?
+(print (current-time))
+
+;; ----------------------------
+
+; However, if overriding of built-ins occurs within a module:
+;
+; * All module code will see overidden code [assuming it occurs
+;   early in the module]; this is as expected
+; * Override will only affect module users if the same identifier
+;   is exported [i.e. no module prefix is used]
+
+(define-module (override))
+
+; Override 'current-time'
+(define-public current-time
+  (lambda () "This isn't the current time !"))
+
+(define-public (return-current-time)
+  ; Uses overriden version of, 'current-time' 
+  (current-time))
+
+;; ------------
+
+; Import module using prefix
+(use-modules ((override)
+              :renamer (symbol-prefix-proc 'override:)) )
+
+; Use overidden version
+(print (override:current-time))
+
+; Top-level binding retained
+(print (current-time))
+
+;; ------------
+
+; Import module - no prefix
+(use-modules (override))
+
+; Top-level binding overidden
+(print (current-time))
+
+;; @@PLEAC@@_12.12
+; Simple custom error reporter mimicing Perl's 'die'
+(define (die msg . error-code)
+  (display (string-append msg "\n") (current-error-port))
+  (exit (if (null? error-code) 1 (car error-code))))
+
+(define (even-only num)
+  (or (= (modulo num 2) 0)
+      (die (string-append (number->string num) " is not even"))))
+
+; Ok for the following:
+(even-only 2)      ; ==> #t
+(even-only 3)      ; ==> exits with error message and return code, 1
+
+; However, the following applications:
+(even-only '$)     ; ==> wrong type arg exception thrown 
+(even-only "34")   ; ==> ditto
+
+;; ----------------------------
+
+; Built-ins use the exception handling mechanism to trap and
+; handle errors
+
+(define (even-only num)
+  ; Catch all exceptions
+  (catch #t
+    ; Execute our 'work code'
+    (lambda () (= (modulo num 2) 0))
+
+    ; Make sure our error handler doesn't, itself, fail :) !
+    (lambda (key . args)
+      (let* ((snum
+        (cond
+          ((number? num) (number->string num))
+          ((symbol? num) (symbol->string num))
+          ((string? num) (string-append "\"" num "\""))
+          (else "???") )))
+        (print (string-append snum " is not even"))
+        #f))))
+
+; Ok for all the following:
+(even-only 2)      ; ==> #t
+(even-only 3)      ; ==> #f
+(even-only '$)     ; ==> #f
+(even-only "34")   ; ==> #f
+
+;; ----------------------------
+
+; Shorter, but coarser-grained version of the above
+
+(define (false-if-exception proc)
+  (catch #t
+    proc
+    (lambda (key . args) #f)))
+
+(define (even-only num)
+  (false-if-exception
+    (lambda () (= (modulo num 2) 0)) ))
+
+; Ok for all the following:
+(even-only 2)      ; ==> #t
+(even-only 3)      ; ==> #f
+(even-only '$)     ; ==> #f
+(even-only "34")   ; ==> #f
+
+;; @@PLEAC@@_12.13
+; It is, of course, possible to dynamically generate module names
+; and procedures, and gain access to those items indirectly; this is
+; done via macros and 'eval'
+
+; Some helper procedures
+(define (load-module module-name)
+  (let ((name (string->symbol module-name))
+        (prefix (string->symbol (string-append module-name ":"))))
+    (primitive-eval
+      `(use-modules ((,name) :renamer (symbol-prefix-proc ',prefix)))) ))
+
+(define (string->procedure proc-name)
+  (primitive-eval (string->symbol proc-name)))
+
+(define (make-prefixed-proc prefix proc-name)
+  (string->procedure (string-append prefix ":" proc-name)))
+
+;; ------------
+
+; Example from earlier using 'indirect' module loading and module
+; procedure access
+
+; Load a module 'indirectly' i.e. name could be a string obtained
+; from the user at runtime
+(load-module "override")
+
+; Execute module procedure using runtime-generated names
+(print (apply (make-prefixed-proc "override" "current-time") '()))
+
+; This approach:
+
+(print (override:current-time))
+
+; cannot be used because neither the module name nor the module
+; procedure are known until runtime
+
+;; ----------------------------
+
+; Module 'main'
+(define-module (main))
+
+(define-public (log n) ...)
+
+;; ------------
+
+; Module name
+(define module-name "main")
+
+; Load the module
+(load-module module-name)
+
+; Conveneience procedure - alias for module procedure
+(define log-proc (make-prefixed-proc module-name "log"))
+
+; Apply module procedure ...
+(let loop ((i 2))
+  (cond
+    ((= i 1000) '())
+    (else
+      (print (apply log-proc (list i)))
+      (loop (+ i 1))) ))  
+
+;; ----------------------------
+
+; Bind module items to top-level identifiers
+(define blue colours:blue)
+(define main-blue colours:azure)
+
+;; @@PLEAC@@_12.14
+; This section appears to illustrate access to shared library code
+; from Perl. Guile offers several methods of doing the same, including:
+;
+; * The 'dynamic-link', 'dynamic-unlink', 'dynamic-call', and
+;   'dynamic-call-with-args' primitives which, together, provide
+;   a simple [if crude] means of accessing functions in shared
+;   libraries ['.so' files]
+;
+; * The 'libffi' facility, a cross-language facility for accessing 
+;   'foreign' [i.e. non-Scheme] functions. A Guile implementation is
+;   available, though it does need some fine-tuning when installing
+;   [see: http://www.mail-archive.com/guile-devel@gnu.org/msg00951.html
+;   for more details]
+;
+; * Creating and installing new Guile compiled C primitives. This
+;   process boils down to:
+;
+;   - Writing C worker function(s) to perform whatever is required
+;   - Writing C wrapper function(s) for the workers i.e. glue code
+;     that packs / unpacks and conerts arguments and return values
+;   - Compiling using: #include <libguile.h>, and placing code into a
+;     shared library ['.so']
+;   - Loading shared library in Guile via the 'load-extension' primitive
+;
+
+; !!! dynamic-link example goes here
+@@INCOMPLETE@@
+
+;; ----------------------------
+
+; !!! libffi example goes here
+; ./configure --disable-deprecated --disable-discouraged 
+@@INCOMPLETE@@
+
+;; ----------------------------
+
+; !!! libguile.h example goes here
+@@INCOMPLETE@@
+
+;; @@PLEAC@@_12.15
+; !!!
+; This section appears to illustrate how a Perl module, in particular,
+; one using C code, is built, ready for distribution. The Guile example
+; will use the GNU Build system ...
+@@INCOMPLETE@@
+@@INCOMPLETE@@
+
+;; @@PLEAC@@_12.16
+; Possibly the simplest means of documenting Guile code,
+; aside, of course, from manually inserting commentary, is
+; via the use of "docstrings" in procedure definitions:
+
+    (define (sample-proc)
+    "This procedure does this, that, and the other ..."
+      ... procedure code ...)
+
+; With the code loaded, the docstring for a procedure may be
+; accessed via:
+
+    (procedure-documentation sample-proc)
+
+; Several packages for documenting Scheme / Guile code are
+; available, and which may be roughly catergorised as:
+;
+; * Producing HTML-based documention [ala JavaDoc]
+;   http://www.cs.auc.dk/~normark/schemedoc/
+;
+; * Generating TexInfo source for subsequent processing
+;   http://swissnet.ai.mit.edu/~jaffer/Docupage/schmooz.html
+;
+; Both varieties rely on processing specially-formatted comment
+; blocks, or other commen-embedded tags
+;
+
+;; @@PLEAC@@_12.17
+; The Guile website hosts a libraries / projects page:
+;
+; http://www.gnu.org/software/guile/gnu-guile-projects.html#Libraries
+;
+; General installation procedure [assumes *NIX-based system and
+; superuser privelages]:
+;
+; 1. Click on a link, follow download instructions
+; 2. tar -zxvf newlibrary-x.y.z.tar.gz
+; 3. cd newlibrary-x.y.z
+; 4. ./configure
+; 5. make
+; 6. make check
+; 7. make install
+;
+; A simple, Guile source-only library would simply see source files
+; copied to the default Guile modules directory, and any relevant
+; documentation installed, whilst a more complex library would also
+; see native code libraries built and installed
+;
+; Notes:
+;
+; * Libraries may be available in other forms e.g. RPM's, Debian
+;   packages, Window's installers or .zips - follow relevant
+;   instructions
+;
+; * A simple, Guile source-only library may be manually copied
+;   into the default modules directory or placed into an arbitrary
+;   directory and location information passed to the interpreter
+;   via environment variables or command-line. For example, for a
+;   quick look one could copy relevant module .scm files into
+;   the current directory and load them via:
+;
+;       guile -L ./ -s tester.scm
+;
+
+;; @@PLEAC@@_12.18
+; The format of a Guile module really is quite simple; it is a
+; source file:
+;
+; * Containing a 'define-module' definition which serves to
+;   name the module [the name would match the source file
+;   basename (if a single name is used), or the last name
+;   in a name list (preceding names are subdirectory names)]
+;
+; * A list of bindings to be exported, either via individual
+;   'define-public' definitions, or via an 'export' list
+;
+; Documentation is optional [but useful :)], as is any runtime
+; accessable data such as version number or author name, or any
+; special routines such as a module cleanup routine [just
+; 'define-public' whatever variable or procedure you want, and
+; adopt a convention for its use]
+; 
+
+; module.scm
+(define-module (module))
+
+; ---
+
+; Module implementation
+(define private-variable "...")
+
+(define (private-procedure arg1 arg2)
+  ...)
+
+; ---
+
+; Module interface
+(define-public exported-variable "...")
+
+(define-public (exported-procedure arg1 arg2)
+  ...)
+
 ;; @@PLEAC@@_13.0
 ;; Guile OOP is in the (oop goops) module (based on CLOS).  All
 ;; following sections assume you have (oop goops loaded).
