@@ -3248,6 +3248,1153 @@ exit 0
 cmd = "sleep" ; seconds = 3
 address SYSTEM cmd seconds with OUTPUT STREAM 'NUL:' ERROR STREAM 'NUL:'
 
+/* @@PLEAC@@_4.0 */
+/* ------------------------------------------------------------------ */
+/* REXX is perhaps an unusual language in that it does not implement  */
+/* either C-style structures or C-style arrays. Instead, it implements*/
+/* what are called 'compound variables' which, under the covers, are a*/
+/* form of associative array [or 'hash', to use the Perl treminology].*/
+/* Compound variable usage will be further discussed in Chapter 5 in  */
+/* the context of Perl 'hashes'.                                      */
+/*                                                                    */
+/* Compound variable usage aside, array-like functionality may be had */
+/* via:                                                               */
+/*                                                                    */
+/* * Third party libraries ['rxHash' library illustrated here] which  */
+/*   merely involves manipulating array-like objects using relevant   */
+/*   library subroutines. Any mention of 'arrays' in this chapter is  */
+/*   to be understood as referring to entities created using this     */
+/*   library, and it should be appreciated that such code is not truly*/
+/*   portable, but specific to platforms on which this library is     */
+/*   available [currently UNIX / Linux, Win32, OS/2]                  */
+/*                                                                    */
+/* * Delimited strings; a character (usually a SPACE) delimits a set  */
+/*   of character sequences, each of which may be considered to be a  */
+/*   'word' or 'element'. BIF's such as WORD, WORDS, and DELWORD allow*/
+/*   delimited strings to model sets, records, and both single and    */
+/*   multi-dimension arrays. Whilst very useful, they suffer from two */
+/*   problems:                                                        */
+/*                                                                    */
+/*   - Immutable, so any modification sees a copy made [read: poor    */
+/*     performance when compared to in-place modification]            */
+/*                                                                    */
+/*   - Cannot be [easily] nested, so do not have quite the utility of */
+/*     true lists like those found in functional languages            */    
+/*                                                                    */
+/* In order to improve the readability of examples, and to avoid the  */
+/* presence of too much redundant code, a number of custom helper     */
+/* subroutines / functions will be used. Most of these routines are   */
+/* functionally similar to Perl or Python counterparts such as 'split'*/
+/* and 'join', while others are similar to Scheme routines such as    */
+/* 'foreach', 'map', and 'reduce'. Code and documentation for these   */
+/* will be found in the Appendix; listed here for easy reference:     */ 
+/*                                                                    */
+/* * Constructors / Finaliser                                         */
+/*   - array = makeArray(var1, var2, ...)                             */
+/*   - array = makeArrayRange(start, end, increment)                  */
+/*   - dropArray(array1, array2, ...)                                 */
+/*                                                                    */
+/* * Array Manipulation                                               */
+/*   - array = ajoin(array1, array2, ...)                             */
+/*                                                                    */
+/* * Perl / Python Hybrids                                            */
+/*   - array = split(string, delimiter)                               */
+/*   - array = chop(string, length)                                   */
+/*   - string = join(array, delimiter)                                */
+/*                                                                    */
+/* * Functional Hybrids                                               */
+/*   - forupdate(array, procname, procargs, ...)                      */
+/*   - foreach(array, procname, procargs, ...)                        */
+/*   - reduction = reduce(array, reduction, procname, procargs, ...)  */
+/*   - array = map(array, procname, procargs, ...)                    */
+/*                                                                    */
+/* In addition, the 'rxHash' library will be used to implement other  */
+/* useful data structure-handling routines, including:                */
+/*                                                                    */
+/* * ...                                                              */
+/*                                                                    */
+/* REXX purists will certainly criticise the approach taken as one    */
+/* that is:                                                           */
+/*                                                                    */
+/* * Non-portable, particularly to 'large-system' environments        */ 
+/* * Inefficient, particularly any use of the INTERPRET instruction   */
+/* * Non-REXX idiomatic, by trying to mimic Python or Scheme idioms   */
+/*                                                                    */
+/* However, I simply wish to counter by saying that this approach:    */
+/*                                                                    */
+/* * Helps REXX examples more closely resemble the Perl-originals     */
+/* * Non-compound variable 'arrays' are not REXX-idiomatic anyway, so */
+/*   it shouldn't be a concern [compound variable use will be covered */
+/*   in the chapter on hashes]                                        */
+/* * Showcases the versatility of the REXX language                   */
+/*                                                                    */
+/* Third-party library directions:                                    */
+/*                                                                    */
+/* Use of 'rxHash' assumes the following prologue / epilogue:         */
+/*                                                                    */
+/*   call rxFuncAdd 'arrLoadFuncs', 'rxhash', 'arrLoadFuncs'          */
+/*   call arrLoadFuncs                                                */
+/*   ...                                                              */
+/*   call arrDropFuncs                                                */
+/*                                                                    */
+/* whilst use of 'rexxUtil' requires:                                 */
+/*                                                                    */
+/*   call rxFuncAdd 'sysLoadFuncs', 'rexxutil', 'sysLoadFuncs'        */
+/*   call sysLoadFuncs                                                */
+/*   ...                                                              */
+/*   call sysDropFuncs                                                */
+/*                                                                    */
+/* A final thing worth mentioning is the reason for using 'rxHash' to */
+/* implement numerically-indexed arrays [which need to have elements  */
+/* 'shuffled' when middle element insertions and deletions are made]  */
+/* rather than other data structures like lists. The reason was so ma-*/
+/* ximum utility could be maintained:                                 */
+/*                                                                    */
+/* * Only numeric arrays can easily be converted to compound variables*/
+/*   [and vice versa] by library functions                            */
+/* * Only numeric arrays can easily be sorted, both by a supplied lib-*/
+/*   rary function [thus providing fast sorting] and in general, w/o  */
+/*   the need for copying elememts                                    */
+/* * Only numeric arrays are traversable via DO ... END; otherwise the*/
+/*   'arrStemDoOver' has to be used, and it neither iterates in order */
+/*   nor does it allow the number of elements to be discerned         */
+/* ------------------------------------------------------------------ */
+
+/* Load general-purpose functions from external library */
+call rxFuncAdd 'sysLoadFuncs', 'rexxUtil', 'sysLoadFuncs'
+call sysLoadFuncs
+
+/* Load array functions from external library */
+call rxFuncAdd 'arrLoadFuncs', 'rxHash', 'arrLoadFuncs'
+call arrLoadFuncs
+
+/* ----------------------------- */
+
+nested = makeArray("this", "that", "the", "other") ; call arrDrop nested
+
+/* ----------- */
+
+/*
+   NESTED arrays are possible, though somewhat awkward to use because
+   references to any 'contained' arrays must be explicitly created
+   and explicitly destroyed [though they can be inlined if the 'containing'
+   array will be freed using the 'dropArray' routine]. The situation is
+   analogous to managing C pointers [in fact, that *is* what is being
+   done, albeit indirectly :)]
+*/
+
+/* Construct inner array, store reference, add it as outer array element */
+lvl_1 = makeArray("the", "other") ; nested = makeArray("this", "that", lvl_1)
+
+/* Take care to destroy inner array reference before destroying container */
+call arrDrop lvl_1 ; call arrDrop nested
+
+/* ----------- */
+
+/*
+   Alternative to above, but *must* free with 'dropArray'; preferable
+   to use latter anyway since it accepts multiple arguments except on
+   large arrays, or those containing deeply-nested arrays
+*/
+
+nested = makeArray("this", "that", makeArray("the", "other"))
+
+call dropArray nested
+
+/* ----------------------------- */
+
+tune = makeArray("The", "Star-spangled", "Banner") ; call dropArray tune
+
+/* @@PLEAC@@_4.1 */
+/* ------------------------------------------------------------------ */
+/* Array management entails:                                          */
+/*                                                                    */
+/* * Creating an array, and saving its 'handle'                       */
+/* * Using the handle for subsequent access, and updates              */
+/* * Explicitly destroying the array via the handle; failure to do    */
+/*   this will see memory leakages occur                              */
+/*                                                                    */
+/* Really no different to managing pointers in a language like C. Of  */
+/* course since it is a library facility rather than an language elem-*/
+/* ent, it is less convenient [i.e. no inlining of array creation cal-*/
+/* -ls, no 'array literals' etc] to use.                              */
+/* ------------------------------------------------------------------ */
+
+a = makeArray("quick", "brown", "fox") ; call dropArray a
+
+/* ----------------------------- */
+
+a = split("Why are you teasing me?") ; call dropArray a
+
+/* ----------------------------- */
+
+lines = makeArray()
+
+signal HEREDOC /*
+The boy stood on the burning deck,
+It was as hot as glass.
+*/
+
+HEREDOC:
+  do i = SIGL + 1
+    line = SOURCELINE(i)
+    if line = "*/" then ; leave
+    call asplice lines, -1, "IA", line
+  end
+
+call dropArray lines
+
+/* ----------------------------- */
+
+bigarray = makeArray()
+
+parse value LINEIN("mydatafile.txt") with line
+do while line <> NULL
+  call asplice bigarry, -1, "IA", line
+  parse value LINEIN("mydatafile.txt") with line
+end
+
+call dropArray bigarray
+
+/* ----------------------------- */
+
+banner = "The Mines of Moria"
+banner = 'The Mines of Moria'
+
+/* ----------------------------- */
+
+name = "Gandalf"
+banner = "Speak," name || ", and enter."
+
+/* ----------------------------- */
+
+his_host = "www.perl.com"
+
+host_info = nslookup(his_host)
+
+/* ----------- */
+
+nslookup : procedure expose (globals)
+  cmd = "nslookup" ARG(1) ; out = NULL
+  address SYSTEM cmd with OUTPUT STEM cmdout.
+  do i = 1 for cmdout.0 ; out = out NEWLINE cmdout.i ; end
+  return STRIP(out)
+
+/* ----------------------------- */
+
+banner = makeArray("Costs", "only", "$4.95") ; call dropArray banner
+banner = split("Costs only $4.95") ; call dropArray banner
+
+/* ----------------------------- */
+
+brax = split('"' "'" "( ) < > { } [ ]", SPACE)
+rings = split("'They're" '"Nenya Narya Vilya"' || "'", SPACE)
+tags = split("LI TABLE TR TD A IMG H1 P", SPACE)
+
+call dropArray brax, rings, tags
+
+banner = "The '\' is often used in regular expressions."
+
+/* ----------------------------- */
+
+/*
+   For unicode support see 'rexxUtil' library's 'sysToUnicode' and
+   'sysFromUnicode' functions
+*/
+
+/* @@PLEAC@@_4.2 */
+say commify_series(NULL)
+say commify_series("red")
+say commify_series("red yellow")
+say commify_series("red yellow green")
+
+mylist = "red yellow green"
+say "I have" commify_series(mylist) "marbles."
+
+exit 0
+
+/* ----------- */
+
+commify_series : procedure expose (globals)
+  if ARG() > 1 then ; return NULL
+
+  list = ARG(1) ; n = WORDS(list) 
+
+  select
+    when n == 0 then ; return NULL
+    when n == 1 then ; return WORD(list, 1)
+    when n == 2 then ; return WORD(list, 1) "and" WORD(list, 2)
+    otherwise
+      series = WORD(list, 1)  
+      do i = 2 to n - 1 ; series = series || "," WORD(list, i) ; end
+      return STRIP(series) || ", and" WORD(list, n)
+  end
+
+/* ----------------------------- */
+
+/*
+   Implementation uses nested arrays
+*/
+
+data = makeArray(,
+  makeArray("just one thing"),,
+  split("Mutt Jeff"),,
+  split("Peter Paul Mary"),,
+  makeArray("To our parents", "Mother Theresa", "God"),,
+  makeArray("pastrami", "ham and cheese", "peanut butter and jelly", "tuna"),,
+  makeArray("recycle tired, old phrases", "ponder big, happy thoughts"),,
+  makeArray("recycle tired, old phrases", "ponder big, happy thoughts",,
+            "sleep and dream peacefully"))
+
+call foreach data, "print_list"
+
+call dropArray data
+
+exit 0
+
+/* ----------- */
+
+print_list : procedure expose (globals)
+  say "The list is:" commify_series(ARG(1)) || "."
+  return
+
+/* -- */
+
+commify_series : procedure expose (globals)
+  if ARG() > 1 then ; return NULL
+
+  /* handle array */
+  if isArray(ARG(1)) then do
+    current = ARG(1) ; n = getArray(current, 0) 
+
+    select
+      when n == 0 then ; return NULL
+      when n == 1 then ; return getArray(current, 1)
+      when n == 2 then ; return getArray(current, 1) "and" getArray(current, 2)
+      otherwise
+        series = getArray(current, 1)  
+        do i = 2 to n - 1
+          current_word = getArray(current, i)
+          if POS(",", current_word) > 0 then ; sepchar = ";" ; else ; sepchar = ","
+          series = series || sepchar current_word
+        end
+        return STRIP(series) || sepchar "and" getArray(current, n)
+    end
+
+  end ; else do
+    /* handle multi-word string */
+    list = ARG(1) ; n = WORDS(list) 
+
+    select
+      when n == 0 then ; return NULL
+      when n == 1 then ; return WORD(list, 1)
+      when n == 2 then ; return WORD(list, 1) "and" WORD(list, 2)
+      otherwise
+        series = WORD(list, 1)  
+        do i = 2 to n - 1
+          current_word = WORD(list, i)
+          if POS(",", current_word) > 0 then ; sepchar = ";" ; else ; sepchar = ","
+          series = series || sepchar current_word
+        end
+        return STRIP(series) || sepchar "and" WORD(list, n)
+    end
+  end
+
+/* @@PLEAC@@_4.3 */
+/* ------------------------------------------------------------------ */
+/* Arrays, as implemented in the REXXToolkit functions [see Appendix] */
+/* using the 'rexxUtil' library, cannot be grown / shrunk to specified*/
+/* sizes as most of the examples in this section require. Their size  */
+/* does, however, dynamically alter as elements are added / removed   */
+/* via applications of the 'asplice' function.                        */
+/* ------------------------------------------------------------------ */
+
+people = split("Crosby Stills Nash Young", SPACE)
+
+call what_about_that_array people
+
+/*
+   Output:
+   The list has 4 elements.
+   The index of the last element is 4.
+   Element #4 is Young.
+
+   Note: REXX convention is for 1-based numerically-indexed arrays
+*/
+
+/* ----------- */
+
+call asplice people, -1, 'D' 1
+call what_about_that_array people
+
+/*
+   Output:
+   The list has 3 elements.
+   The index of the last element is 3.
+   Element #4 is .
+
+   Note: An invalid array element returns the empty-string, "" / NULL
+*/
+
+/* ----------------------------- */
+
+/* Growing / shrinking arrays to specified sizes is inapplicable */
+
+/* ----------------------------- */
+
+call dropArray people
+
+exit 0
+
+/* ----------- */
+
+what_about_that_array : procedure expose (globals)
+  arr = ARG(1)
+  say "The list has" arrGet(arr, 0) "elements."
+  say "The index of the last element is" arrGet(arr, 0) || "."
+  say "Element #4 is" arrGet(arr, 4) || "."
+  return
+
+/* @@PLEAC@@_4.4 */
+/* ------------------------------------------------------------------ */
+/* The canonical means of iterating in REXX is via the DO ... END con-*/
+/* trol structure. To traverse an array [quickly]:                    */
+/*                                                                    */
+/*   do i = 1 for arrGet(oldarr, 0)                                   */
+/*     call arrSet newarr, i, arrGet(oldarr, i)                       */
+/*   end                                                              */
+/*                                                                    */
+/* or more safely:                                                    */
+/*                                                                    */
+/*   do i = 1 for getArrayLength(oldarr)                              */
+/*     call setArray newarr, i, getArray(oldarr, i)                   */
+/*   end                                                              */
+/*                                                                    */
+/* For convenience this functionality is packaged in the REXXToolkit's*/
+/* 'foreach' and 'forupdate' functions. The former is modelled after  */
+/* the 'foreach' routine that is found in many functional and scripti-*/
+/* ng languages in which each element of a data structure is visited  */
+/* and a specified function is invoked. 'forupdate' is a variant that */
+/* updates each visited element.                                      */
+/*                                                                    */
+/* Of course if maximum performance is required, say, when working on */
+/* very large arrays which may be traversed multiple times, an inline */
+/* DO ... END structure that uses the array-access primitives like    */
+/* 'arrGet' and 'arrSet', should be used.                             */  
+/*                                                                    */
+/* It is also worth noting that Perl seems to make little distinction */
+/* between arrays and lists. In REXX, however, a language that doesn't*/
+/* implement a 'list' data structure, it is common to see strings of  */
+/* space-separated words used as lists, and use made of the PARSE ins-*/
+/* truction to 'traverse the list' much as one might use CAR and CDR  */
+/* in LISP or Scheme to do the same. Example:                         */
+/*                                                                    */
+/*   list = "one two three"                                           */
+/*   do while list <> NULL                                            */
+/*     parse var list token list                                      */
+/*       ... do something with 'token' ...                            */
+/*   end                                                              */
+/* ------------------------------------------------------------------ */
+
+mylist = makeArray(1, 2, 3, 4, 5) ; procname = "print"
+
+call foreach mylist, procname
+
+call dropArray mylist
+
+exit 0
+
+/* ----------- */
+
+print : procedure expose (globals)
+  say ARG(1) ; return
+
+/* ----------------------------- */
+
+bad_users = makeArray("Tom", "Dick", "Harry")
+
+call foreach bad_users, "complain"
+
+call dropArray bad_users
+
+exit 0
+
+/* ----------- */
+
+complain : procedure expose (globals)
+  say "You are a *** very bad *** user," ARG(1) ; return
+
+/* ----------------------------- */
+
+/* Extract environment data into a compound variable, and sort */
+address SYSTEM "set" with OUTPUT STEM environ.
+call sysStemSort 'environ.'
+
+/* Array from compound variable; print with 'foreach' and helper */
+arr = arrFromStem('environ.')
+call foreach arr, "showEnvironInfo"
+
+call dropArray arr ; drop environ.
+
+/*
+   A more idiomatic REXX approach would be to access the compound
+   variable directly, so avoiding array conversion and access
+   overhead:
+
+   do i = 1 for environ.0
+     parse value environ.i with key "=" val
+     say key "=" val
+   end
+*/
+
+exit 0
+
+/* ----------- */
+
+showEnvironInfo : procedure expose (globals)
+  parse value ARG(1) with key "=" val
+  say key "=" val ; return
+
+/* ----------------------------- */
+
+all_users = split(get_all_users(), SPACE) ; MAX_QUOTA = get_max_quota()
+
+call foreach all_users, "complain_if_overquota", MAX_QUOTA
+
+call dropArray all_users
+
+exit 0
+
+/* ----------- */
+
+complain_if_overquota : procedure expose (globals)
+  user = ARG(1) ; MAX_QUOTA = ARG(2)
+  if get_usage(user) > MAX_QUOTA then
+    say "You are a *** very bad *** user," ARG(1)
+  return
+
+/* Dummy routines - used for illustration only */
+
+get_max_quota : procedure expose (globals)
+  return 100
+
+get_all_users : procedure expose (globals)
+  return "u1 u2 u3" 
+
+get_usage : procedure expose (globals)
+  quotas = "u1 99 u2 101 u3 102"
+  return WORD(quotas, WORDPOS(ARG(1), quotas) + 1)
+
+/* ----------------------------- */
+
+/* Extract list of system users */
+address SYSTEM "who|cut -d' ' -f1|uniq" with OUTPUT STEM users.
+
+arr = arrFromStem('users.')
+
+/*
+   Iterate over array using 'arrDoOver'. Not strictly needed
+   for numerically-indexed arrays, but quite handy for for
+   non-numeric-indexed arrays
+*/
+
+userIdx = arrDoOver(arr)
+do while userIdx \= NULL
+  user = arrGet(arr, userIdx)
+  if user == "tchrist" then do ; say user ; leave ; end
+  userIdx = arrDoOver(arr)
+end
+
+call dropArray arr ; drop users.
+
+/* ----------------------------- */
+
+/*
+   REXXToolkit function, 'areadfile', may be used to read file contents
+   into an array; each element may be a line, word [optionally delimited],
+   character, or specified number of characters
+*/
+
+arr = areadfile("lines.txt", 'W')
+
+call foreach arr, "rev_and_print"
+
+call dropArray arr
+
+exit 0
+
+/* ----------- */
+
+rev_and_print : procedure expose (globals)
+  say REVERSE(ARG(1)) ; return
+
+/* ----------------------------- */
+
+arr = makeArray(1, 2, 3, 4, 5)
+
+call foreach arr, "print"
+
+call dropArray arr
+
+exit 0
+
+/* ----------- */
+
+print : procedure expose (globals)
+  say "i =" ARG(1) ; return
+
+/* ----------------------------- */
+
+/*
+   REXXToolkit function, 'forupdate', is a mutating version of,
+   'foreach' [it updates array elements], thus complements the
+   latter quite well. There is also a 'map' function which is
+   similar except that it returns a new array leaving the source
+   array untouched
+*/
+
+arr = makeArray(1, 2, 3)
+
+call forupdate arr, "incr", -1
+
+call dropArray arr
+
+exit 0
+
+/* ----------- */
+
+incr : procedure expose (globals)
+  return ARG(1) + ARG(2)
+
+/* ----------------------------- */
+
+a = makeArray(0.5, 3) ; b = makeArray(0.5, 3)
+
+call forupdate_seq a, b, "mul", 7
+
+call dropArray a, b
+
+exit 0
+
+/* ----------- */
+
+mul : procedure expose (globals)
+  return ARG(1) * ARG(2)
+
+/* ----------------------------- */
+
+/*
+   'foreach' and 'forupdate' only work with arrays - to also use
+   these functions with simple variables [scalars] and compound
+   variable [hashes], first convert the items to arrays ...
+*/
+
+scalar = 1 ; hash.0 = 3 ; hash.1 = 3 ; hash.2 = 6 ; hash.3 = 7
+
+a = makeArray(scalar) ; b = makeArray(...) ; c = arrFromStem('hash.')
+
+call forupdate_seq a, b, c, "do_trim"
+
+call dropArray a, b, c
+
+exit 0
+
+/* ----------- */
+
+do_trim : procedure expose (globals)
+  return STRIP(ARG(1))
+
+/* @@PLEAC@@_4.5 */
+/* ------------------------------------------------------------------ */
+/* The REXXToolkit array functions are all passed one or more array   */
+/* references. Consequently the examples in this section illustrate   */
+/* functionality that has already been showcased in the previous sect-*/
+/* ion. Therefore, only one example will be implemented.              */ 
+/* ------------------------------------------------------------------ */
+
+fruits = makeArray("Apple", "Blackberry")
+
+/* Pointless to do this in REXX */
+fruit_ref = fruits
+
+call foreach fruit_ref, "print"
+
+call dropArray fruit_ref
+
+exit 0
+
+/* ----------- */
+
+print : procedure expose (globals)
+  say ARG(1) "tastes good in a pie." ; return
+
+/* @@PLEAC@@_4.6 */
+/* ------------------------------------------------------------------ */
+/* The simplest way of removing duplicates is to use a data structure */
+/* that does so: a set is the usual candidate [illustarted below]. In */
+/* the absence of such a facility, more verbose approaches are needed,*/
+/* and, in the tradition of the Perl Cookbook, here are some of them !*/
+/* Also illustrated are the REXXToolkit's set and hash table routines */
+/* ------------------------------------------------------------------ */
+
+/*
+   The following code is modelled on the first example, making use of
+   a hash table to weed out duplicates and allow values to be loaded
+   from one array to another
+*/
+
+list = split(" ... ", SPACE) ; uniq = makeArray() ; seen = makeHash()
+
+call foreach list, "uniq_if_not_seen", uniq, seen
+
+/* ... do something with 'uniq' ... */
+
+call dropArray list, uniq, seen
+
+exit 0
+
+/* ----------- */
+
+uniq_if_not_seen : procedure expose (globals)
+  key = ARG(1) ; uniq = ARG(2) ; seen = ARG(3)
+  if hashExist(seen, key) then ; return
+  call hashPut seen, key, TRUE ; call asplice uniq, -1, "IA", key
+  return
+
+/* ----------------------------- */
+
+/*
+   A, rather contrived, variation of the above making use of
+   string parsing and a hash table  
+*/
+
+list = " ... " ; seen = makeHash() ; uniq = makeArray()
+
+do while list <> NULL
+  parse var list key list ; call hashPut seen, key, TRUE
+end
+
+uniqp = hashToPairs(seen)
+
+do while uniqp <> NULL
+  parse var uniqp key ":" value uniqp ; call asplice uniq, -1, "IA", key
+end
+
+/* ... do something with 'uniq' ... */
+
+call dropArray uniq, seen
+
+exit 0
+
+/* ----------------------------- */
+
+/*
+   A much simpler alternative to all the above is to create a set, then 
+   extract an array from that set
+*/
+
+set = setFromStr(" ... ") ; uniq = arrFromSet(set)
+
+/* ... do something with 'uniq' ... */
+
+call dropArray uniq, set
+
+exit 0
+
+/* ----------------------------- */
+
+/*
+   Duplicates removed through type conversion:
+   - user list obtained as a compound variable [i.e. stem]
+   - convert stem to array, then array to set [removes duplicates]
+   - convert set to string for parsing, printing etc
+*/
+
+address SYSTEM "who|cut -d' ' -f1" with OUTPUT STEM ustem.
+uarr = arrFromStem('ustem.') ; uset = setFromArr(uarr) ; users = strFromSet(uset)
+
+/* Print user list as a single line */
+say "users logged in:" users
+
+/*
+   Free all intermediate data structures [stems and strings are
+   native] so no explicit freeing required
+*/
+call dropArray uarr, uset
+
+exit 0
+
+/* @@PLEAC@@_4.7 */
+/* ------------------------------------------------------------------ */
+/* Most of the examples in this section are, at core, set difference  */
+/* operations, so can be easily and compactly solved if set type or   */
+/* set operation routines are available. Otherwise it involves rather */
+/* labourious multiple hash table lookup and traversal, an approach   */
+/* taken by most of the Perl examples.                                */
+/* ------------------------------------------------------------------ */
+
+/* Assume, 'a_arr' and 'b_arr' exist, and will not be freed here */
+
+seen = makeHash()
+
+call foreach a_arr, "add_if_not_seen", seen
+call foreach b_arr, "drop_if_seen", seen
+
+a_only = hashKeys(seen)
+
+/* ... do something with 'a_only' ... */
+
+call dropArray a_only, seen
+
+exit 0
+
+/* ----------- */
+
+add_if_not_seen : procedure expose (globals)
+  key = ARG(1) ; seen = ARG(2)
+  if hashExist(seen, key) then ; return
+  call hashPut seen, key, TRUE ; return
+
+/* ----------- */
+
+drop_if_seen : procedure expose (globals)
+  key = ARG(1) ; seen = ARG(2)
+  call hashDrop seen, key ; return
+
+/* ----------------------------- */
+
+/* 
+   The simplest way is by using the REXXToolkit's 'setd' routine to
+   perform a 'set difference' operation
+*/
+
+/* Assume, 'a_arr' and 'b_arr' exist, and will not be freed here */
+
+/* Convert arrays to sets, removing any duplicates in the process */
+a_set = setFromArr(a_arr) ; b_set = setFromArr(b_arr)
+
+/* Create a new set of items in 'a_set', but not in 'b_set' */
+a_only = setd(a_set, b_set)
+
+/* ... do something with 'a_only' ... */
+
+/* Free intermediate data structures */
+call dropArray a_set, b_set, a_only
+
+exit 0
+
+/* ----------------------------- */
+
+/*
+   Hash table usage examples ?
+*/
+
+/* Create empty hash table, add a couple of items */
+hash = makeHash()
+
+call hashPut hash, "key1", 1 ; call hashPut hash, "key2", 2 
+
+call dropArray hash
+
+/* ----------- */
+
+/*
+   Multiple values can be added when converting from a
+   string of key:value pairs
+*/
+hash = hashFromPairs("key1:value key2:value...")
+
+/* ----------- */
+
+/* Empty hash table by freeing it and creating another */
+call dropArray hash ; hash = makeHash()
+
+/* @@PLEAC@@_4.8 */
+/* ------------------------------------------------------------------ */
+/* REXXToolkit implements several set manipulation routines which make*/
+/* all manner of set operations quite straightforward. The examples   */
+/* follow the Perl lead, though this isn't the implementation route   */
+/* that would ordinarily be taken. Note: this section uses the array  */
+/* manipulation routines [getArray, setArray, getArrayLength] as an   */
+/* alternative to the 'foreach' and 'forupdate' routines.             */
+/* ------------------------------------------------------------------ */
+
+/*
+   Preferred approach: REXXToolkit set routines   
+*/
+
+a = makeSet(1, 3, 5, 6, 7, 8) ; b = makeSet(2, 3, 5, 7, 9)
+
+union = setu(a, b) ; isect = seti(a, b) ; diff = setd(a, b)
+
+call dropArray a, b, union, isect, diff
+
+/* ----------------------------- */
+
+a_arr = makeArray(1, 3, 5, 6, 7, 8) ; b_arr = makeArray(2, 3, 5, 7, 9)
+
+union_hash = makeHash() ; isect_hash = makeHash() ; diff_hash = makeHash()
+
+/* ----------- */
+
+do i = 1 to getArrayLength(a_rr)
+  call hashPut union_hash, getArray(a_arr, i), TRUE
+end
+
+do i = 1 to getArrayLength(b_rr)
+  if hashExist(union_hash, getArray(b_arr, i)) then
+    call hashPut isect_hash, getArray(b_arr, i), TRUE
+  call hashPut union_hash, getArray(a_arr, i), TRUE
+end
+
+union_arr = hashKeys(union_hash) ; isect_arr = hashKeys(isect_hash)
+
+call dropArray union_arr, isect_arr
+
+/* ----------- */
+
+call foreach_seq a_arr, b_arr, "isect_if_not_union", union_hash, isect_hash
+
+union_arr = hashKeys(union_hash) ; isect_arr = hashKeys(isect_hash)
+
+call dropArray union_arr, isect_arr
+
+exit 0
+
+/* -- */
+
+isect_if_not_union : procedure expose (globals)
+  key = ARG(1) ; union = ARG(2) ; isect = ARG(3)
+  if hashGet(union, key) \= TRUE then ; call hashPut isect, key, TRUE
+  call hashPut union, key, TRUE ; return
+
+/* ----------- */
+
+count_hash = makeHash()
+
+call foreach_seq a_arr, b_arr, "count_keys", count_hash
+
+call dropArray union_arr, isect_arr, diff_arr
+
+union_arr = makeArray() ; isect_arr = makeArray() ; diff_arr = makeArray()
+
+count_keys = hashKeys(count_hash) 
+
+call foreach count_keys, "select_count_members",,
+             count_hash, union_arr, isect_arr, diff_arr
+
+call dropArray count_hash, count_keys
+
+exit 0
+
+/* -- */
+
+count_keys : procedure expose (globals)
+  key = ARG(1) ; count = ARG(2)
+  if \hashExist(count, key) then do
+    call hashPut count, key, 1 ; return
+  end
+  call hashPut count, key, (hashGet(count, key) + 1)
+  return
+
+/* -- */
+
+select_count_members : procedure expose (globals)
+  key = ARG(1) ; count_hash = ARG(2) ; union_arr = ARG(3) ; isect_arr = ARG(4)
+  diff_arr = ARG(5)
+  call asplice union_arr, -1, "IA", key
+  if hashGet(count, key) == 2 then ; call asplice isect_arr, -1, "IA", key
+  else ; call asplice diff_arr, -1, "IA", key
+  return
+
+/* ----------- */
+
+call dropArray a_arr, b_arr, union_arr, isect_arr, union_hash, isect_hash, diff_hash
+
+/* ----------------------------- */
+
+/* @@PLEAC@@_4.9 */
+/*
+   Use REXXToolkit function, 'ajoin' [see Appendix]. It may be used to
+   concatenate two or more arrays; by default it modifies the first
+   specified array, but may be used to create a new array
+*/
+
+arr1 = makeArray(...) ; arr2 = makeArray(...)
+
+/* New array from concatenation of 'arr1' and 'arr2' */
+arr3 = ajoin(arr1, arr2, 'C')
+
+call dropArray arr1, arr2, arr3
+
+/* ----------- */
+
+arr1 = makeArray(...) ; arr2 = makeArray(...)
+
+/* 'arr1' modified */
+call ajoin arr1, arr2
+
+call dropArray arr1, arr2
+
+/* ----------------------------- */
+
+members = makeArray("Time", "Flies") ; initiates = makeArray("An", "Arrow")
+
+/* 'members' modified: ("Time", "Flies", "An", "Arrow") */
+call ajoin members, initiates
+
+/* ----------- */
+
+/*
+  Use REXXToolkit function, 'asplice', to alter array contents
+  [see Appendix]; a handy alternative to explicitly using array
+  indexes e.g.
+
+    call asplice members, -2, 'R', "A", "Banana"
+
+  or:
+
+    /* Fast, but crashes if 'members' is not an array */
+    call arrSet members, (arrGet(members, 0) - 1), "A"
+    call arrSet members, (arrGet(members, 0)), "Banana"
+
+  or:
+
+    /* Slower, but safer, than previous example */
+    call setArray members, (getArrayLength(members) - 1), "A"
+    call setArray members, (getArrayLength(members)), "Banana"
+*/
+
+call asplice members, 2, 'IA', "Like", initiates
+printArray members
+
+call asplice members, 1, 'R', "Fruit"
+call asplice members, -2, 'R', "A", "Banana"
+printArray members
+
+/*
+   was: ("Time", "Flies", "An", "Arrow")
+   now: ("Fruit", "Flies", "Like", "A", "Banana")
+*/
+
+/* ----------- */
+
+call dropArray members, initiates
+
+/* @@PLEAC@@_4.10 */
+arr = makeArray(4, 7, 2, 8, 3, 1) ; alen = arrGet(arr, 0)
+
+i = 1 ; j = alen
+
+do until i > j
+  t = arrGet(arr, j)
+  call arrSet arr, j, arrGet(arr, i) ; call arrSet arr, i, t
+  i = i + 1 ; j = j - 1
+end
+
+call dropArray arr
+
+/* ----------------------------- */
+
+arr = makeArray(4, 7, 2, 8, 3, 1)
+
+/* Use REXXToolkit function, 'areverse' [see Appendix] */
+
+/* Reverse a copy of the array */
+cpy = areverse(arr, 'C')
+
+/* In-place reverse array */
+call areverse arr
+
+call dropArray arr, cpy
+
+
+/* @@PLEAC@@_4.16 */
+/*
+   Example modelled directly on Perl code
+*/
+
+processes = makeArray(1, 2, 3, 4, 5)
+
+do forever
+  process = grab_and_rotate(processes)
+  say "Handling process" process
+  call sysSleep 1
+end
+
+call dropArray processes
+
+/* ----------- */
+
+grab_and_rotate : procedure expose (globals)
+  arr = ARG(1)
+  call asplice arr, -1, 'IA', getArray(arr, 1)
+  call asplice arr, 1, 'D' 1
+  return getArray(arr, 1)
+
+/* ----------------------------- */
+
+/*
+   Example utilising the REXX 'string as list' idiom
+*/
+
+processes = "1 2 3 4 5"
+
+do forever
+  process = WORD(processes, 1)
+  processes = grab_and_rotate(processes)
+  say "Handling process" process
+  call sysSleep 1
+end
+
+/* ----------- */
+
+grab_and_rotate : procedure expose (globals)
+  list = ARG(1) ; return DELWORD(list, 1, 1) WORD(list, 1)
+
+/* @@PLEAC@@_4.17 */
+alen = ... ; arr = makeArrayRange(1, alen, 1)
+
+/* Fischer-Yates Shuffle */
+do i = alen to 1 by -1
+  j = RANDOM(1, i) ; if i == j then ; iterate
+  tmp = arrGet(arr, i) ; call arrSet arr, i, arrGet(arr, j)
+  call arrSet arr, j, tmp
+end
+
+/* ----------- */
+
+/* Naive Shuffle */
+do alen
+  p1 = RANDOM(1, alen) ; p2 = RANDOM(1, alen)
+  do while p2 == p1 ; p2 = RANDOM(1, alen) ; end
+  tmp = arrGet(arr, p1) ; call arrSet arr, p1, arrGet(arr, p2)
+  call arrSet arr, p2, tmp
+end
+
+call dropArray arr
+
+/* ----------------------------- */
+
+alen = ... ; arr = makeArrayRange(1, alen, 1)
+
+/* Use REXXToolkit function, 'ashuffle' [see Appendix] */
+
+/* Shuffle a copy of the array */
+cpy = ashuffle(arr, 'C')
+
+/* In-place shuffle array */
+call ashuffle arr
+
+call dropArray arr, cpy
+
+/* @@PLEAC@@_4.18 */
+@@INCOMPLETE@@
+@@INCOMPLETE@@
+
+/* @@PLEAC@@_4.19 */
+@@INCOMPLETE@@
+@@INCOMPLETE@@
 
 /* @@PLEAC@@_5.0 */
 /* ------------------------------------------------------------------ */
@@ -4170,7 +5317,6 @@ end
 @@INCOMPLETE@@
 @@INCOMPLETE@@
 
-
 /* @@PLEAC@@_7.0 */
 /* ------------------------------------------------------------------ */
 /* REXX sports, as an ANSI Standard feature, a highly simplified file */
@@ -4299,7 +5445,6 @@ call LINEOUT filename, "You have 60 seconds to reach minimum safe",
                        "distance ..."
 
 /* @@PLEAC@@_7.1 */
-
 call STREAM path, 'C', 'READ'  /* open file "path" for reading only */
 call OPEN alias, path, 'READ'
 
@@ -7938,4 +9083,548 @@ require : procedure expose (globals)
   end
 
   return FALSE
+
+/* @@PLEAC@@_17.0 */
+/* ------------------------------------------------------------------ */
+/* REXX socket support is via third-party library. The one utilised   */
+/* in this chapter is the RxSock Library [see Appendix for details],  */
+/* an implementation which, because it is so widely available, and on */
+/* so many different platforms, can be taken as being the standard    */
+/* [albeit a 'defacto' one] approach to socket handling. Its use      */
+/* [on most platforms] assumes the following prologue code is used:   */
+/*                                                                    */
+/*     call rxFuncAdd 'sockLoadFuncs', 'rxSock', 'SockLoadFuncs'      */
+/*     call sockLoadFuncs                                             */
+/*                                                                    */
+/* and the following epilogue code [usually at program's end]:        */
+/*                                                                    */
+/*     call sockDropFuncs                                             */
+/*                                                                    */
+/* Please note that the name of the library may be case-sensitive in  */
+/* some environments e.g. in *NIX / Linux environments the name may   */
+/* need to be changed to, 'rxsock' to match part of the file name,    */
+/* 'librxsock.so'. Other RxSock library issues are discussed below.   */
+/*                                                                    */
+/* Like similar libraries in other languages, the RxSock library is   */
+/* basically a set of routines that map to the TCP/IP Socket API [i.e */
+/* they are 'wrappers' around  C functions] that is available on prob-*/
+/* ably every Internet-connected computer. Using this library will be */
+/* quite straightforward for those already familiar with this API. For*/
+/* others it should be no more difficult than learning file handling  */
+/* and related techniques. The following tutorials may be of use:     */
+/*                                                                    */
+/* * http://www.frostbytes.com/~jimf/papers/sockets/winsock.html      */
+/* * http://wi.wu-wien.ac.at/rgf/rexx/tmp/socktut.pdf                 */
+/*                                                                    */
+/* The RxSock library is notable for being easy to use partly because */
+/* there are fewer data conversion issues with which to contend. For  */
+/* example an issue needing handling in even high-level languages like*/
+/* Perl and Python is the conversion of a host address in a 'packed'  */
+/* format [i.e. 32 bit binary value] to / from human-readable string. */
+/* In REXX both hostnames and IP addresses are represented in string  */
+/* form [from the programmer's perspective], thus eliminating one area*/
+/* of potential difficulty.                                           */
+/*                                                                    */
+/* RxSock library issues:                                             */
+/*                                                                    */
+/* * Behavioural and syntax variations among implementations:         */
+/*   - Not all socket options universally applicable                  */
+/*   - Not all socket routines work on all platforms                  */
+/*   - Protocal inconsistancies such as UDP working well in one imple-*/
+/*     mentation but not on another                                   */
+/*   - Routine name/parameter differences                             */
+/*                                                                    */
+/* * Minimal and/or inconsistent raw socket support. Whilst "SOCK_RAW"*/
+/*   type sockets may be specified in 'sockSocket' calls, not all     */
+/*   implementations create such sockets; some simply return an error */
+/*   value in place of a socket. Also, there is no support for either */
+/*   IPPROTO_RAW or IPPROTO_ICMP protocols, thus, effectively, there  */
+/*   really is *no* raw socket support                                */
+/*                                                                    */
+/* * Error handling differs between implementations. Some update the  */
+/*   'errNo' variable, whilst others implement a 'sockErrNo' variable;*/
+/*   safest to rely on checking for negative return value as an error */
+/*   indicator                                                        */
+/*                                                                    */
+/* It is probably safe to say that the RxSock library is suitable for */
+/* conventional socket programming [i.e. projects involving either TCP*/
+/* or UDP transports]. If anything more specialist is required either */
+/* the library needs to be modified [possible: source code supplied], */
+/* or access to suitable wrapper functions or another external library*/
+/* be made available.                                                 */
+/*                                                                    */
+/* Some comments on forking ...                                       */
+/*                                                                    */
+/* Finally, it is possible to use the General Call Interface [GCI] to */
+/* directly access socket-related functions [e.g. 'gethostname']; it  */
+/* is safest to avoid this practice because it can see the avoidance  */
+/* of sometimes vital initialisation steps. For example, in the Win32 */
+/* environment, the 'WSAStartup' function needs to be called prior to */
+/* using any socket-related functions, and, for proper cleanup, the   */
+/* corresponding 'WSACleanup' function should be called. Such steps   */
+/* are performed as part of 'rxSock' external library housekeeping,   */
+/* so best use those routines for such functionality.                 */
+/* ------------------------------------------------------------------ */
+
+/* Load general-purpose functions from external library */
+call rxFuncAdd 'sysLoadFuncs', 'rexxUtil', 'sysLoadFuncs'
+call sysLoadFuncs
+
+/* Load rxSock functions from external library */
+call rxFuncAdd 'sockLoadFuncs', 'rxSock', 'SockLoadFuncs'
+call sockLoadFuncs
+
+/* ----------------------------- */
+
+/*
+   RxSock library does not use 'packed' IP addresses, so the custom
+   subroutines, 'inet_aton', and 'inet_ntoa', whilst having been
+   implemented [to illustrate byte <=> string conversion in REXX],
+   are not actually required for socket-based communication
+*/
+
+/* Convert human readable form to 32 bit value */
+packed_ip = inet_aton("208.201.239.36")
+
+drop host. ; call sockGetHostByName "www.oreilly.com", 'host.!'
+packed_ip = inet_aton(host.!ADDR)
+
+/* ----------------------------- */
+
+/* Convert 32 bit value to ip address */
+ip_address = inet_ntoa(packed_ip)
+
+/* ----------------------------- */
+
+/* Create socket object */
+family = 'AF_INET' ; type = 'SOCK_STREAM'
+protocol = 'IPPROTO_TCP' /* or '0' for default */
+
+socketobj = sockSocket(family, type, protocol)
+
+/* ----------- */
+
+/* Extract local-side details of this socket */ 
+drop host. ; call sockGetSockName socketobj, 'host.!'
+
+/*
+   host.!ADDR => 0.0.0.0 unless connected
+   host.!PORT => 0 unless connected
+*/
+
+/* ----------------------------- */
+
+/*
+   Helper functions
+*/
+
+die : procedure expose (globals)
+  call LINEOUT , ARG(1) ; exit ARG(2) ; return NULL
+
+/* ----------- */
+
+isValidIP : procedure expose (globals)
+  ip = ARG(1) ; lastType = DATATYPE(SUBSTR(ip, LASTPOS(".", ip) + 1))
+  if ip == NULL | COUNTSTR(".", ip) \= 3 | lastType \= 'NUM' then
+    return FALSE
+  do while ip <> NULL
+    parse var ip octet "." ip
+    if DATATYPE(octet) \= 'NUM' then ; return FALSE
+    if octet < 0 | octet > 255 then ; return FALSE
+  end
+  return TRUE
+
+/* ----------- */
+
+inet_aton : procedure expose (globals)
+  ip = ARG(1) ; packed = NULL
+  do while ip <> NULL
+    parse var ip octet "." ip
+    packed = packed || D2X(octet, 2)
+  end
+  return X2C(packed)
+
+/* ----------- */
+
+inet_ntoa : procedure expose (globals)
+  packed = C2X(ARG(1)) ; parse var packed octet +2 packed
+  ip = X2D(octet)
+  do while packed <> NULL
+    parse var packed octet +2 packed
+    ip = ip || "." || X2D(octet)
+  end
+  return ip
+
+/* @@PLEAC@@_17.1 */
+/*
+   Establishing a simple, TCP-based client connection to a host
+*/
+
+/* Create socket */
+peer = sockSocket('AF_INET', 'SOCK_STREAM', '0')
+
+if peer < 0 then
+  call die "Couldn't create socket :" socksock_errno(), 1
+
+/* Set up for peer connection */
+drop peer.
+peer.!FAMILY = 'AF_INET'
+peer.!ADDR = "192.168.1.1"  /* Target ipaddr */
+peer.!PORT = 13             /* Target port */
+
+/* Make the connection */
+if sockConnect(peer, 'peer.!') < 0 then
+  call die "Couldn't connect socket to" peer.!ADDR || ":" || peer.!PORT, ":" socksock_errno(), 1
+
+/* Do something with the socket ... */
+if sockSend(peer, "Why don't you call anymore?" || NEWLINE) < 0 then
+  call die "Error sending data on socket :" socksock_errno(), 1
+
+MAX_BYTES = 256
+
+if sockRecv(peer, 'answer', MAX_BYTES) < 0 then
+  call die "Error receiving data from socket :" socksock_errno(), 1
+
+/* Terminate when done - close socket, releasing all its resources */
+if sockClose(peer) < 0 then
+  call die "Error closing socket :" socksock_errno(), 1
+
+/* ----------------------------- */
+
+/*
+   Additional Perl examples either redundant because with RxSock:
+   * It is not possible to specify host information as part of the socket creation call
+   * There is only one set of procedures for setting up and handling connections
+*/
+
+/* ----------------------------- */
+
+/* Set up for listening on specified port */
+drop assoc.
+assoc.!FAMILY = 'AF_INET'
+assoc.!ADDR = 'INADDR_ANY'   /* Use first defined [local] ipaddr */
+assoc.!PORT = 23             /* Port on which to listen */
+
+/* Bind to socket */
+if sockBind(socket, 'assoc.!') < 0 then
+  call die "Error binding to socket :" socksock_errno(), 1
+
+/* ----------- */
+
+drop assoc. ; call sockGetHostByName "www.oreilly.com", 'assoc.!'
+
+/* Bind to socket */
+if sockBind(socket, 'assoc.!') < 0 then
+  call die "Error binding to socket :" socksock_errno(), 1
+
+/* @@PLEAC@@_17.2 */
+/*
+   Implementing a simple, TCP-based server
+
+   The Perl examples are consolidated into the following, single code,
+   example because, while Perl offers multiple socket libraries and
+   options, REXX uses 'rxSock', a set of wrapper functions, whose use
+   varies little except for argument-passing differences 
+*/
+
+/* Service will be available on port 1996 */
+port = 1996
+
+/* Create socket */
+server = sockSocket('AF_INET', 'SOCK_STREAM', '0')
+
+if server < 0 then
+  call die "Couldn't create server socket :" socksock_errno(), 1
+
+/* Allow socket reuse */
+if sockSetSockOpt(server, 'SOL_SOCKET', 'SO_REUSEADDR', 1) < 0 then
+  call die "Couldn't set options on server socket :" socksock_errno(), 1
+
+/* Set up for server connection */
+drop server.
+server.!FAMILY = 'AF_INET'
+server.!ADDR = 'INADDR_ANY'   /* Use first defined [local] ipaddr */
+server.!PORT = port           /* Port on which to listen */
+
+/* Need to bind socket to port, then commence listening on that port */
+if sockBind(server, 'server.') < 0 then
+  call die "Couldn't bind server socket to port :" socksock_errno(), 1
+
+/* Queue up 1 connection only */
+if sockListen(server, 1) < 0 then
+  call die "Couldn't commence listening on server socket :" socksock_errno(), 1
+
+MAX_BYTES = 256
+
+/* Poll for client connections */
+do forever
+  /* Block until a connection comes in */
+  client = sockAccept(server)
+
+  if client < 0 then
+    call die "Error accepting client connection :" sockErrNo, 1
+  
+  /* Service client ... */
+
+  if sockRecv(client, 'buffer', MAX_BYTES) < 0 then
+    call die "Error receiving data from client socket :" socksock_errno(), 1
+
+  say "|" buffer "|"
+
+  if sockSend(client, "..." || NEWLINE) < 0 then
+    call die "Error responding on client socket :" socksock_errno(), 1
+
+  if sockShutDown(client) < 0 then
+    call die "Error shutting down client socket :" socksock_errno(), 1
+
+  if sockClose(client) < 0 then
+    call die "Error closing client socket :" socksock_errno(), 1
+
+  leave
+
+  /* ... */
+end
+
+/* Terminate when done - shutdown, close the socket, and release all its resources */
+if sockShutDown(server) < 0 then
+  call die "Error shutting down server socket :" socksock_errno(), 1
+
+if sockClose(server) < 0 then
+  call die "Error closing server socket :" socksock_errno(), 1
+
+/* @@PLEAC@@_17.3 */
+/* ------------------------------------------------------------------ */
+/* Once a socket is created, and a TCP-based connection established,  */
+/* it may be used for *bidirectional* communication, that is, for both*/
+/* writing to, and reading data from, a host.                         */
+/*                                                                    */
+/* Perl allows the use of 'file descriptor semantics' for this task in*/
+/* addition to specialised subroutines / methods. This is not the case*/
+/* in REXX where the following 'rxSock' library routines must be used:*/
+/*                                                                    */
+/* * Reading: sockRecv, sockRecvFrom [datagrams]                      */
+/* * Writing: sockSend, sockSendTo [datagrams]                        */
+/*                                                                    */
+
+/* ------------------------------------------------------------------ */
+
+/*
+   No REXX equivalent to Perl 'file descriptor semantics':
+
+       print $SERVER "What is your name?\n";
+       chomp ($response = <SERVER>);
+*/
+
+/* ----------------------------- */
+
+/*
+   Examples assume same names / values from previous two examples:
+
+   peer    --> client-side socket connected to server; peer reads and
+               writes to server using this socket 
+   server  --> server-side socket; waits for clients to call, then
+               creates a client socket for each new client
+   client  --> server-side socket representing connection from peer;
+               server reads and writes to peer using this socket
+*/
+
+/* ----------------------------- */
+
+data_to_send = "..."
+
+call sockSend peer, data_to_send || NEWLINE
+
+if sockErrNo \= 0 then
+  call die "Error sending data on socket :" sockErrNo, 1
+
+/* ----------- */
+
+data_read_buffer = NULL ; MAX_BYTES = 256
+
+call sockRecv peer, 'data_read_buffer', MAX_BYTES
+
+if sockErrNo \= 0 then
+  call die "Error receiving data from socket :" sockErrNo, 1
+
+/* ----------------------------- */
+
+/*
+  'select' [using 'sockSelect'] example
+  ---
+  's1', 's2', and 's3' are previously-created sockets. The compound
+  variable contains the sockets for which 'readable' status is to be
+  determined
+*/
+reads.0 = 3 ; reads.1 = s1 ; reads.2 = s2 ; reads.3 = s3
+
+/* 5 second timeout [omit argument to have 'sockSelect' block] */
+timeout = 5
+
+/* Issue call; success sees 'count' > 0, 'reads.' updated */
+count = sockSelect('reads.',,, timeout)
+
+/* Check 'select' status */
+select
+  when count == -1 then
+    /* Same as checking for 'sockErrNo' \= 0 */
+    call die "Error in 'sockSelect' call :" sockErrNo, 1
+
+  when count == 0 then
+    /* ... handle timeout ...*/
+    say "'sockSelect' timeout"
+
+  when count > 0 then
+    /*
+       Successful status update:
+
+       reads.0       --> Number of 'readable' sockets 
+       reads.1 ... N --> Set of sockets that are 'readable' [input
+                         values have been overwritten]
+    */
+
+    /* ... handle success ...*/
+
+end
+
+/* ----------------------------- */
+
+/* Enable TCP_NODELAY on socket */
+call sockSetSockOpt server, 'SOL_SOCKET', 'TCP_NODELAY', 1
+
+if sockErrNo \= 0 then
+  call die "Couldn't disable Nagle's algorithm :" sockErrNo, 1
+
+/* ----------- */
+
+/* Disable TCP_NODELAY on socket */
+call sockSetSockOpt server, 'SOL_SOCKET', 'TCP_NODELAY', 2
+
+if sockErrNo \= 0 then
+  call die "Couldn't enable Nagle's algorithm :" sockErrNo, 1
+
+/* @@PLEAC@@_17.6 */
+/* ------------------------------------------------------------------ */
+/* 'rxSock' library supports Internet Domain sockets [AF_INET]; there */
+/* is no support for UNIX Domain Sockets [AF_UNIX].                   */
+/*                                                                    */
+/* It is, however, possible [*NIX-only] to use GCI to access C library*/
+/* functions like 'socketpair' to handle such entities, an approach   */
+/* that will not be shown here. See section 6.9 of UNIX Network Progr-*/
+/* amming by W. R. Stevens for an in-depth treatment of this topic.   */
+/* ------------------------------------------------------------------ */
+
+/* *** Translation skipped *** */
+
+/* @@PLEAC@@_17.7 */
+/* ------------------------------------------------------------------ */
+/* This task relies on the 'getpeername' functionality commonly found */
+/* in socket libraries. Rather than tap into this directly via GCI, an*/
+/* intermediary in the form of an external library wrapper function is*/
+/* more commonly used.                                                */
+/* ------------------------------------------------------------------ */
+
+/*
+   RxSock library does not use 'packed' IP addresses, so the custom
+   subroutines, 'inet_aton', and 'inet_ntoa', whilst having been
+   implemented [to illustrate byte <=> string conversion in REXX],
+   are not actually required for socket-based communication
+*/
+
+/* Default socket: blocking, 'AF_INET', 'SOCK_STREAM' */
+socket = sockSocket()
+
+if sockErrNo \= 0 then
+  call die "Couldn't create socket :" sockErrNo, 1
+
+/* Retrieve peer [i.e. remote side] information from socket */
+drop host. ; call sockGetPeerName socket, 'host.!'
+if sockErrNo \= 0 then
+  call die "Couldn't identify other end :" sockErrNo, 1
+
+iaddr = host.!ADDR ; port = host.!PORT
+
+/* ----------------------------- */
+
+drop host. ; call sockGetHostByAddr iaddr, 'host.!'
+if sockErrNo \= 0 then
+  call die "Couldn't identify other end :" sockErrNo, 1
+
+claimed_hostname = host.!NAME
+
+drop host. ; call sockGetHostByName claimed_hostname, 'host.!'
+if sockErrNo \= 0 then
+  call die "Couldn't look up" claimed_hostname ":" sockErrNo, 1
+
+if iaddr \== host.!ADDR then
+  call die "Mismatch between" claimed_hostname "and" iaddr ":" sockErrNo, 1
+
+/* @@PLEAC@@_17.8 */
+/* ------------------------------------------------------------------ */
+/* This task relies on the 'gethostname' functionality commonly found */
+/* in socket libraries. Rather than tap into this directly via GCI, an*/
+/* intermediary, be it a system command or wrapper functions, is more */
+/* commonly used.                                                     */
+/* ------------------------------------------------------------------ */
+
+/* Execute system command, 'hostname', placing output in 'hostname.1' */
+address SYSTEM "hostname" with OUTPUT STEM hostname.
+
+/* ----------------------------- */
+
+/* Call the non-ANSI [*NIX-only] 'UNAME' BIF extracting all data */
+parse value UNAME() with kernel, hostname, release, version, hardware
+
+/* Alternatively, call 'UNAME' for a specified field */
+hostname = UNAME('N')
+
+/* ----------------------------- */
+
+hostname = "sparx.net"
+
+drop host. ; call sockGetHostByName hostname, 'host.!'
+if sockErrNo \= 0 then
+  call die "Couldn't resolve" hostname ":" sockErrNo, 1
+
+iaddr = host.!ADDR
+
+drop host. ; call sockGetHostByAddr iaddr, 'host.!'
+if sockErrNo \= 0 then
+  call die "Couldn't re-resolve" hostname ":" sockErrNo, 1
+
+/* 'host.!NAME' should now be the same value as: 'hostname' */
+
+/* @@PLEAC@@_17.9 */
+/* ------------------------------------------------------------------ */
+/* Two caveats when using 'sockShutdown':                             */
+/*                                                                    */
+/* * Non-blocking call, so a delay may be needed after calling it     */
+/* * A call to 'sockClose' is still required at some point to release */
+/*   socket resources [it does not replace this function]             */
+/* ------------------------------------------------------------------ */
+
+call sockShutdown socket, 0             /* Stopped reading data */
+call sockShutdown socket, 1             /* Stopped writing data */
+call sockShutdown socket, 2             /* Stopped using this socket */
+
+/* ----------------------------- */
+
+call sockShutdown socket, 0
+
+if sockErrNo \= 0 then
+  call die "Couldn't effect socket shutdown :" sockErrNo, 1
+else
+  say "I have stopped reading"
+
+/* ----------------------------- */
+
+/* Send some data */
+buffer = "my request"||NEWLINE
+call sockSend SERVER, buffer
+
+/* Send eof; no more writing */
+call sockShutdown SERVER, 1                  
+
+/* Can, however, still read */ 
+call sockRecv SERVER, 'answer', MAX_BYTES
+
 
