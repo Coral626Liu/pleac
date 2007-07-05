@@ -14,6 +14,11 @@
 
 ;;;; @@PLEAC@@_APPENDIX
 
+(defmacro chomp (string)
+  "Similar to Perl's chomp(), although it returns the new value of
+STRING rather than the number of characters removed."
+  `(setf ,string (string-right-trim #(#\Newline #\Return) ,string)))
+
 ;;;; @@SKIP@@ Common Lisp code makes use of the following for
 ;;;; @@SKIP@@ package/loading: 
 ;;;; @@SKIP@@  (require :PACKAGENAME)
@@ -27,6 +32,7 @@
 
 ;;;; @@SKIP@@ Packages / libraries used include:
 ;;;; @@SKIP@@  http://www.cliki.net/cl-ppcre
+;;;; @@SKIP@@  http://www.cliki.net/cl-interpol
 ;;;; @@SKIP@@  http://www.cliki.net/date-calc
 ;;;; @@SKIP@@  http://www.cliki.net/asdf
 ;;;; @@SKIP@@  http://cybertiggyr.com/gene/pdl/
@@ -324,12 +330,48 @@ double quotation mark.
 (setf sum (loop for char across string
              sum (char-code char)))
 ;;;-----------------------------
+;; In CL it makes more sense to call this function from the REPL than
+;; it does to put it into a separate script.  E.g.,
+;;  > (sum "/tmp/xyz")
+(defun sum (&rest files)
+  (let ((sum 0))
+    (dolist (filename files)
+      (with-open-file (file filename :element-type 'unsigned-byte)
+        (do ((b (read-byte file nil :eof)
+                (read-byte file nil :eof)))
+            ((eql b :eof))
+          (incf sum b))))
+    (let ((r (+ (mod sum (expt 2 16))
+                (truncate (/ (mod sum (expt 2 32))
+                             (expt 2 16))))))
+      (+ (mod r (expt 2 16))
+         (truncate (/ r (expt 2 16)))))))
+;;;-----------------------------
+;;CL-USER> (sum "/mach.sym")
+;;24298
+;;;-----------------------------
+;;%cksum -o 2 /mach.sym
+;;24298 1203 /mach.sym
+;;;-----------------------------
+(defun slowcat (number-or-filename &rest more-files)
+  "The first argument can be a number of seconds to sleep between
+characters, otherwise it should be a file name."
+  (let ((delay (if (numberp number-or-filename) number-or-filename 1))
+        (files (if (numberp number-or-filename) more-files (cons number-or-filename more-files))))
+    (dolist (filename files)
+      (with-open-file (file filename)
+        (do ((c (read-char file nil :eof)
+                (read-char file nil :eof)))
+            ((eql c :eof))
+          (format t "~C" c)
+          (finish-output)
+          (sleep (* delay 0.005)))))))
 
 ;;; @@PLEAC@@_1.6
-;;-----------------------------
+;;;-----------------------------
 (setq revbytes (reverse string))
-
-(setq revwords (format nil "~{~a~^ ~}"
+;;;-----------------------------
+(setq revwords (format nil "~{~A~^ ~}"
                        (reverse (cl-ppcre:split " " string))))
 (setq revwords (reverse
                 (do* ((stringstream (make-string-input-stream string))
@@ -338,27 +380,29 @@ double quotation mark.
                             (read stringstream nil 'eos)))
                      ((equal next 'eos)
                       (reverse result)))))
-;;-----------------------------
-(setq gnirts (reverse string))  ; reverse letters in string
-(setq sdrow (reverse words))    ; reverse elements in words
-(setq confused (reverse (apply #'concatenate 'string words)))
-;;-----------------------------
+;;;-----------------------------
+(setq gnirts (reverse string))          ; reverse letters in string
+
+(setq sdrow (reverse words))            ; reverse elements in words
+
+(setq confused (reverse (apply #'concatenate 'string words))) ; reverse letters in join("", @words)
+;;;-----------------------------
 (setq string "Yoda said, \"can you see this?\"")
 (setq allwords (cl-ppcre:split " " string))
-(setq revwords (format nil "~{~a~^ ~}" (reverse allwords)))
-(format t "~a~%" revwords)
+(setq revwords (format nil "~{~A~^ ~}" (reverse allwords)))
+(format t "~A~%" revwords)
 ;this?" see you "can said, Yoda
-;;-----------------------------
-(setq revwords (format nil "~{~a~^ ~}" (reverse (cl-ppcre:split " " string))))
-;;-----------------------------
+;;;-----------------------------
+(setq revwords (format nil "~{~A~^ ~}" (reverse (cl-ppcre:split " " string))))
+;;;-----------------------------
 (setq revwords (apply #'concatenate 'string
                       (cl-ppcre:split "(\\s+)" string :with-registers-p t)))
-;;-----------------------------
+;;;-----------------------------
 (defun palindrome-p (word)
   (string= word (reverse word)))
 (palindrome-p "reviver")
-; T
-;;-----------------------------
+;; T
+;;;-----------------------------
 (with-open-file (inf "/usr/share/dict/words")
   (loop for word = (read-line inf nil nil)
         while word
@@ -378,135 +422,140 @@ double quotation mark.
 ;; sooloos
 ;; tebbet
 ;; terret
-;;-----------------------------
+;;;-----------------------------
 
+;;; @@PLEAC@@_1.7
+;;;-----------------------------
 
-; @@PLEAC@@_1.7
-;;-----------------------------
+;;;-----------------------------
 (defun tab-expand (string &optional (tabstop 8))
-  (flet ((needed-spaces (target-string start end match-start match-end
-reg-starts reg-ends)
+  (flet ((needed-spaces (target-string start end match-start match-end reg-starts reg-ends)
            (declare (ignore target-string start end reg-starts reg-ends))
            (make-string (- (* (- match-end match-start) tabstop)
                            (mod match-start tabstop))
                         :initial-element #\Space)))
     (cl-ppcre:regex-replace-all "\\t+" string #'needed-spaces)))
 
-;;-----------------------------
 (defun tab-unexpand (string &optional (tabstop 8))
-  (flet ((needed-tabs (target-string start end match-start match-end
-reg-starts reg-ends)
+  (flet ((needed-tabs (target-string start end match-start match-end reg-starts reg-ends)
            (declare (ignore target-string start end reg-starts reg-ends))
            (let ((match-length (- match-end match-start)))
              (concatenate 'string
-                        (make-string (floor match-length tabstop)
-                                     :initial-element #\Tab)
-                        (make-string (mod match-length tabstop)
-                                     :initial-element #\Space)))))
+                          (make-string (floor match-length tabstop)
+                                       :initial-element #\Tab)
+                          (make-string (mod match-length tabstop)
+                                       :initial-element #\Space)))))
     (cl-ppcre:regex-replace-all "  +" string #'needed-tabs)))
-;;-----------------------------
+;;;-----------------------------
 (loop for line = (read-line *standard-input* nil nil)
       while line do
       (format t "~a~%" (tab-expand line)))
-;;-----------------------------
+;;;-----------------------------
 (loop for line = (read-line *standard-input* nil nil)
       while line do
       (format t "~a~%" (tab-unexpand line)))
-;;-----------------------------
+;;;-----------------------------
 
+;;; @@PLEAC@@_1.8
+;;;-----------------------------
 
-; @@PLEAC@@_1.8
-;;-----------------------------
-(setq text "You owe $debt to me")
-;;-----------------------------
-(flet ((global-deref (match var-name)
-         (write-to-string (symbol-value (intern var-name)))))
-  (setq text (cl-ppcre:regex-replace-all "\\$(\\w+)" text #'global-deref
-                                         :simple-calls t)))
-;;-----------------------------
-(setq rows 24
-      cols 80)
+(setf text "You owe $debt to me")
+;;;-----------------------------
+(defun global-deref (match var-name)
+  "Helper function to simulate Perl's string interpolation in
+regexps."
+  (write-to-string (symbol-value (intern (string-upcase var-name)))))
+
+(setf text (cl-ppcre:regex-replace-all "\\$(\\w+)" text #'global-deref
+                                       :simple-calls t))
+;;;-----------------------------
+(setq rows 24 cols 80)
 (setq text "I am $rows high and $cols long")
-(flet ((global-deref (match var-name)
-         (write-to-string (symbol-value (intern (string-upcase var-name))))))
-  (setq text (cl-ppcre:regex-replace-all "\\$(\\w+)" text
-                                         #'global-deref
-                                         :simple-calls t)))
-(format t "~a~%" text)
-; I am 24 high and 80 long
-;;-----------------------------
-(setq text "I am 17 years old")
-(setq text (cl-ppcre:regex-replace-all "(\\d+)" text
+(setq text (cl-ppcre:regex-replace-all "\\$(\\w+)" text
+                                       #'global-deref
+                                       :simple-calls t))
+(format t "~A~%" text)
+;; I am 24 high and 80 long
+;;;-----------------------------
+(setf text "I am 17 years old")
+(setf text (cl-ppcre:regex-replace-all "(\\d+)" text
                                        (lambda (match num-str)
                                          (declare (ignore match))
                                          (write-to-string
                                           (* 2 (parse-integer num-str))))
                                        :simple-calls t))
-;;-----------------------------
+;;;-----------------------------
 (* 2 17)
-;;-----------------------------
+;;;-----------------------------
 ;; expand variables in text, but put an error message in
 ;; if the variable isn't defined
 (flet ((deref-with-err (match word)
          (declare (ignore match))
          (let ((word-sym (intern (string-upcase word))))
-         (if (boundp word-sym)
-             (write-to-string (symbol-value word-sym))
-             (format nil "[NO VARIABLE: $~a]" word-sym)))))
-  (setq text (cl-ppcre:regex-replace-all "\\$(\\w+)" text
+           (if (boundp word-sym)
+               (write-to-string (symbol-value word-sym))
+               (format nil "[NO VARIABLE: $~a]" word-sym)))))
+  (setf text (cl-ppcre:regex-replace-all "\\$(\\w+)" text
                                          #'deref-with-err
                                          :simple-calls t)))
-;;-----------------------------
+;;;-----------------------------
 
 
-; @@PLEAC@@_1.9
-;;-----------------------------
-(setq big (string-upcase little))
-(setq little (string-downcase big))
-;;-----------------------------
-(setq big (string-upcase little :end 1)
-(setq little (string-downcase BIG :end 1))
-;;-----------------------------
-(setq beast "dromedary")
+;;; @@PLEAC@@_1.9
+;;;-----------------------------
+(setf big (string-upcase little))       ; "bo peep" -> "BO PEEP"
+(setf little (string-downcase big))     ; "JOHN"    -> "john"
+;; Reminder: the following depends on CL-INTERPOL.
+(setf big #?"\U$(little)")              ; "bo peep" -> "BO PEEP"
+(setf little #?"\L$(big)")              ; "JOHN" -> "john"
+;;;-----------------------------
+(setf big (string-upcase little :end 1)    ; "bo"      -> "Bo"
+(setf little (string-downcase BIG :end 1)) ; "BoPeep"    -> "boPeep"
+(setf big #?"\u$(little)")                 ; "bo"      -> "Bo"
+(setf little #?"\l$(big)")                 ; "BoPeep"    -> "boPeep"
+;;;-----------------------------
+(setf beast "dromedary")
 ;; Capitalize various parts of beast
-(setq capit (string-upcase beast :end 1))      ; Dromedary
-(setq capall (string-upcase beast))            ; DROMEDARY
-(setq caprest (string-upcase beast :start 1))  ; dROMEDARY
-;;-----------------------------
+(setf capit (string-upcase beast :end 1))      ; Dromedary
+(setf capit #?"\u\L$(beast)")                  ; (same)
+(setf capall (string-upcase beast))            ; DROMEDARY
+(setf capall #?"\U$(beast)")                   ; (same)
+(setf caprest (string-downcase (string-upcase beast) :end 1)) ; dROMEDARY
+(setf caprest #?"\l\U$(beast)")                               ; (same)
+;;;-----------------------------
 ;; capitalize each word's first character, downcase the rest
-(setq text "thIS is a loNG liNE")
-(princ (string-capitalize text))
-; This Is A Long Line
-;;-----------------------------
+(setf text "thIS is a loNG liNE")
+(format t "~A~%" (string-capitalize text))
+;; This Is A Long Line
+;;;-----------------------------
 ;; string= is case-sensitive, string-equal is case-insensitive
 (when (string-equal a b)
   (format t "a and b are the same~%"))
-;;-----------------------------
-;; It's considered bad form to perform bitwise operations
-;; on character types, and breaks unicode-aware lisps.  Trust
-;; the compiler to optimize.
+;;;----------------------------- 
+;; It's considered bad form to perform bitwise operations on character
+;; types, and breaks unicode-aware lisps.  Trust the compiler to
+;; optimize.
 (defun randcase (char)
   (if (< (random 100) 20)
       (char-upcase char)
       (char-downcase char)))
-(map 'string #'randcase string)
-;;-----------------------------
+;;;-----------------------------
 
-
-; @@PLEAC@@_1.10
-;;-----------------------------
-(setq answer (concatenate 'string var1 (func) var2))
-;;-----------------------------
-(setq answer (format nil "STRING ~{~A~} MORE STRING" list-expr))
-(setq answer (format nil "STRING ~A MORE STRING" atomic-expr))
-;;-----------------------------
-(setq phrase (format nil "I have ~D guanacos." (1+ n)))
-;;-----------------------------
+;;; @@PLEAC@@_1.10
+;;;-----------------------------
+(setf answer (concatenate 'string var1 (func) var2))
+;;;-----------------------------
+(setf answer (format nil "STRING ~{~A~} MORE STRING" list-expr))
+(setf answer (format nil "STRING ~A MORE STRING" atomic-expr))
+;;;-----------------------------
+(setf phrase (format nil "I have ~D guanacos." (1+ n)))
+(setf phrase #?"I have ${(1+ n)} guanacos.") ; uses CL-INTERPOL
+;;;-----------------------------
 (format t "I have ~D guanacos.~%" (1+ n))
-;;-----------------------------
+;;;-----------------------------
 (some-func (format nil "What you want is ~{~A~} items"
                    (cl-ppcre:split ":" rec)))
-;;-----------------------------
+;;;-----------------------------
 (let ((text (format nil "~
 To: ~A
 From: Your Bank
@@ -531,49 +580,49 @@ the management
                     (+ 500 (random 100)))))
   (unless (send-mail text target)
     (error "Couldn't send mail")))
-;;-----------------------------
+;;;-----------------------------
 
-; @@PLEAC@@_1.11
-;;-----------------------------
-;;; all in one
+;;; @@PLEAC@@_1.11
+;;;-----------------------------
+;; all in one
 (setf var (cl-ppcre:regex-replace-all
-           (cl-ppcre:create-scanner "^\\s+" :multi-line-mode t)
+           (cl-ppcre:create-scanner #?r"^\s+" :multi-line-mode t)
 "your text
 goes here
 " ""))
 
-;;; or with two steps
+;; or with two steps
 (setf var "your text
 goes here
 ")
 (setf var (cl-ppcre:regex-replace-all 
-           (cl-ppcre:create-scanner "^\\s+" :multi-line-mode t)
+           (cl-ppcre:create-scanner #?r"^\s+" :multi-line-mode t)
            var
            ""))
 ;;-----------------------------
 (setf var (cl-ppcre:regex-replace-all 
-           (cl-ppcre:create-scanner "^\\s+" :multi-line-mode t)
+           (cl-ppcre:create-scanner #?r"^\s+" :multi-line-mode t)
 "    The five varieties of camelids
     are the familiar camel, his friends
     the llama and the alpaca, and the
     rather less well-known guanaco
     and vicuña.
 " ""))
-;;-----------------------------
+;;;-----------------------------
 (defun fix (string)
   (cl-ppcre:regex-replace-all
-   (cl-ppcre:create-scanner "^\\s+" :multi-line-mode t)
+   (cl-ppcre:create-scanner #?r"^\s+" :multi-line-mode t)
    string
    ""))
 
-(fix "    My stuff goes here
+(format t "~A~%" (fix "    My stuff goes here
 ")
-;;-----------------------------
+;;;-----------------------------
 (setf quote 
       (cl-ppcre:regex-replace-all
-       (cl-ppcre:create-scanner "\\s+--")
+       (cl-ppcre:create-scanner #?r"\s+--")
        (cl-ppcre:regex-replace-all 
-        (cl-ppcre:create-scanner "^\\s+" :multi-line-mode t)
+        (cl-ppcre:create-scanner #?r"^\s+" :multi-line-mode t)
 "        ...we will have peace, when you and all your works have
         perished--and the works of your dark master to whom you would
         deliver us. You are a liar, Saruman, and a corrupter of mens
@@ -596,7 +645,7 @@ goes here
 "
   ;; add more code here if you want
    )))
-;;-----------------------------
+;;;-----------------------------
 (setf poem (dequote
 "       Now far ahead the Road has gone,
           And I must follow, if I can,
@@ -607,26 +656,82 @@ goes here
                 --Bilbo in /usr/src/perl/pp_ctl.c
 "))
 
-(format t "Here's your poem:~%~%~a~%" poem)
-;;-----------------------------
+(format t "Here's your poem:~%~%~A~%" poem)
+;;;-----------------------------
 (defun dequote (string)
   ;; Can't get multiple values returned thru the OR, hence the use of
   ;; DESTRUCTURING-BIND instead of MULTIPLE-VALUE-BIND
   (destructuring-bind (white leader) ; common whitespace and common leading string
       (or (cl-ppcre:register-groups-bind ($1 $2)
-              ("^\\s*(?:([^\\w\\s]+)(\\s*).*\\n)(?:\\s*\\1\\2?.*\\n)+$" string)
+              (#?r/^\s*(?:([^\w\s]+)(\s*).*\n)(?:\s*\1\2?.*\n)+$/ string)
             (list $2 (cl-ppcre:quote-meta-chars $1)))
-          (list (cl-ppcre:scan-to-strings "^(\\s+)" string) ""))
+          (list (cl-ppcre:scan-to-strings #?r"^(\s+)" string) ""))
     (cl-ppcre:regex-replace-all
-     (cl-ppcre:create-scanner (format nil "^\\s*?~a(?:~a)?" leader white) :multi-line-mode t)
+     (cl-ppcre:create-scanner (format nil #?r"^\s*?~a(?:~a)?" leader white) :multi-line-mode t)
      string
      "")))
-;;-----------------------------
+;;;-----------------------------
 
+;;; @@PLEAC@@_1.13
+;; backslash
+(setf var (cl-ppcre:regex-replace-all "([CHARLIST])" var "\\\1"))
 
-  
+;; double
+(setf var (cl-ppcre:regex-replace-all "([CHARLIST])" var "\\1\\1"))
+;;;-----------------------------
+(setf string (cl-ppcre:regex-replace-all "%" string "%%"))
+;;;-----------------------------
+(setf string "Mom said, \"Don't do that.\"")
+(setf string (cl-ppcre:regex-replace-all "(['\"])" string #?r"\\\1"))
+;;;-----------------------------
+(setf string "Mom said, \"Don't do that.\"")
+(setf string (cl-ppcre:regex-replace-all "(['\"])" string #?r"\1\1"))
+;;;-----------------------------
+(setf string (cl-ppcre:regex-replace-all #?r"([^A-Z])" string #?r"\\\1"))
+;;;-----------------------------
+(setf string #?r"this \Qis a test!\E")
+(setf string "this is\\ a\\ test\\!")
+(setf string (concatenate 'string "this " (cl-ppcre:quote-meta-chars "is a test!")))
+;;;-----------------------------
 
-; @@PLEAC@@_2.1
+;;; @@PLEAC@@_1.14
+;;;-----------------------------
+(setf string (cl-ppcre:regex-replace #?r/^\s+/ string "")) 
+(setf string (cl-ppcre:regex-replace #?r/\s+$/ string ""))
+;;;-----------------------------
+
+;;; The closest thing to Perl's wantarray is CL's ability to return
+;;; multiple values from a function.  Unless the caller uses
+;;; MULTIPLE-VALUE-BIND (or, this case MULTIPLE-VALUE-LIST), they will
+;;; only "see" the first value.  Note also that, normally, you'd use
+;;; CL's built-in STRING-TRIM function for this.
+(defun trim (&rest strings)
+  (values-list 
+   (loop for string in strings
+      collect (cl-ppcre:regex-replace #?r/^\s+/ 
+                                      (cl-ppcre:regex-replace #?r/\s+$/ string "")
+                                      ""))))
+
+(setf string (trim string))
+(setf many (multiple-value-list (apply 'trim many)))
+;;;-----------------------------
+;; print what's typed, but surrounded by >< symbols
+(loop
+   (let ((line (read-line)))
+     (chomp line)
+     (format t #?">$(line)<~%")))
+;;;-----------------------------
+
+;;; @@PLEAC@@_2.1
+;;;-----------------------------
+(if (every #'digit-char-p string)
+    (progn
+      ;; is a number
+      )
+    (progn
+      ;; is not
+      ))
+;;;-----------------------------
 ;;; Strings and numbers are separate data types in CL. These tests
 ;;; check whether a string represents a number
 (unless (every #'digit-char-p string)
@@ -642,27 +747,44 @@ goes here
 (unless (cl-ppcre:scan "^([+-]?)(?=\\d|\\.\\d)\\d*(\\.\\d*)?([Ee]([+-]?\\d+))?$"
                        string)
   (format *error-output* "not a C float"))
+;;;-----------------------------
+(defun getnum (string)
+  (setf string (cl-ppcre:regex-replace #?"^\s+" string ""))
+  (setf string (cl-ppcre:regex-replace #?"\s+$" string ""))
+  (with-input-from-string (is string)
+    (let ((num (read is nil nil nil)))
+      (when (numberp num) num))))
+
+(defun is-numeric (string)
+  (not (null (getnum string))))
+;;;-----------------------------
 
 
-; @@PLEAC@@_2.2
+;;; @@PLEAC@@_2.2
+;;;-----------------------------
 (defun equal-to-accuracy (number1 number2 dp)
   "Return non-nil if NUMBER1 and NUMBER2 are equal to DP number of
 decimal places."
   (let* ((difference (abs (- number1 number2)))
          (delta (expt 10 (- dp))))
     (< difference delta)))
-;;-----------------------------
+;;;-----------------------------
 (let* ((wage 536)                       ; $5.36/hour
-       (week (* 40 wage)))
+       (week (* 40 wage)))              ; $214.40
   (format t "One week's wage is: $~,2F~%" (/ week 100)))
-;;-----------------------------
+;;One week's wage is: $214.40
+;;;-----------------------------
 
-; @@PLEAC@@_2.3
-;;-----------------------------
+;;; @@PLEAC@@_2.3
+;;;-----------------------------
+(setf rounded (format nil "~FORMATF" unrounded))
+;;;-----------------------------
 (let* ((a 0.255)
        (b (/ (fround a 0.01) 100)))
   (format t "Unrounded: ~F~%Rounded: ~,2F~%" a b))
-;;-----------------------------
+;;Unrounded: 0.255
+;;Rounded: 0.26
+;;;-----------------------------
 (progn
   (format t "~&number~Tint~Tfloor~Tceil~%")
   (let ((as '(3.3 3.5 3.7 -3.3)))
@@ -672,19 +794,45 @@ decimal places."
               (ftruncate a)
               (ffloor a)
               (fceiling a)))))
+;;number int floor ceil
+;; 3.3  3.0  3.0  4.0
+;; 3.5  3.0  3.0  4.0
+;; 3.7  3.0  3.0  4.0
+;;-3.3 -3.0 -4.0 -3.0
+;;;-----------------------------
 
+;;; @@PLEAC@@_2.4
+;;;-----------------------------
+(defun dec2bin (dec)
+  (format nil "~2R" dec))
+;;;-----------------------------
+(defun bin2dec (bin)
+  "BIN is a string containing only #\1 and #\0 characters.  Returns
+its integer equivalent."
+  (read (make-string-input-stream (concatenate 'string "#b" bin)) 
+        t nil nil))
+;;;-----------------------------
+(setf num (bin2dec "0110110"))          ; $num is 54
+(setf binstr (dec2bin 54))              ; binstr is "110110"
+;;;-----------------------------
 
-; @@PLEAC@@_2.4
-; decimal to binary
-(setq bin (format nil "~2R" dec))
+;;; @PLEAC@@_2.5
+;;;-----------------------------
+(loop for i from x upto y
+     do ; something
+)
 
-; binary to decimal
-(setq dec (format nil "~10R" bin))
+(do ((i x (1+ i)))
+    ((> i y))
+  ; do something here
+  )
+;;;-----------------------------
+;;; @@INCOMPLETE@@
 
 
 ; @@PLEAC@@_2.6
 ;arabic to roman
-(setq roman (format nil "~@R" arabic))
+(setf roman (format nil "~@R" arabic))
 
 ;roman to arabic
 (defun romanchar->num (x) 
@@ -746,14 +894,14 @@ decimal places."
 ; tangent
 (tan theta)
 
-(setq y (acos 3.7))
+(setf y (acos 3.7))
 
 
 ; @@PLEAC@@_2.13
 ; natural log
-(setq log_e (log value))
+(setf log_e (log value))
 
-(setq log_base_whatever (log value base))
+(setf log_base_whatever (log value base))
 
 
 ; @@PLEAC@@_2.14
@@ -929,7 +1077,7 @@ decimal places."
 ;;I have 3 marbles.
 ;;I have redyellowgreen marbles.
 ;;-----------------------------
-;; @@INCLUDE@@ include/commonlisp/ch04/commify_series
+;; @@INCLUDE@@ include/commonlisp/ch04/commify_series.lisp
 ;;-----------------------------
 
 ;;; @@PLEAC@@_4.4
@@ -1123,7 +1271,7 @@ decimal places."
   (loop for i from length downto 1
         for (new-n elem) = (multiple-value-list (truncate n i))
         collect elem
-        do (setq n new-n)))
+        do (setf n new-n)))
 
 (defun pattern-permutation (pattern)
   (loop with source = (cons nil
@@ -1290,7 +1438,7 @@ decimal places."
 (defun test-trees ()
   (let ((tree nil))
     (dotimes (i 20)
-      (setq tree (tree-insert tree (random 1000))))
+      (setf tree (tree-insert tree (random 1000))))
     (format t "~&Pre order: ") (print-tree-in-preorder tree)
     (format t "~&In order:  ") (print-tree-in-order tree)
     (format t "~&Postorder: ") (print-tree-in-postorder tree)
