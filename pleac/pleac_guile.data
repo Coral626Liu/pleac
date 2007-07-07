@@ -222,7 +222,11 @@ terminated by a closing double quote")
         (write-line word)))))
 
 ;; A little too verbose on the command line
-;; guile --use-srfi=13 -c '(with-input-from-file "/usr/share/dict/words" (lambda () (do ((word (read-line) (read-line))) ((eof-object? word)) (if (and (> (string-length word) 5) (string=? word (string-reverse word))) (write-line word)))))'
+;; guile --use-srfi=13 -c
+;; '(with-input-from-file "/usr/share/dict/words"
+;; (lambda () (do ((word (read-line) (read-line))) ((eof-object? word))
+;; (if (and (> (string-length word) 5) (string=? word (string-reverse word)))
+;; (write-line word)))))'
 
 ;; @@PLEAC@@_1.7
 ;; Use regexp-substitute/global
@@ -329,7 +333,8 @@ terminated by a closing double quote")
                                                   (regexp-quote leader))
                                    regexp/newline))
                      (else
-                      (let ((pos (or (string-prefix-length leader (car lst)) 0)))
+                      (let ((pos (or (string-prefix-length leader (car lst))
+                                      0)))
                         (loop (substring leader 0 pos) (cdr lst))))))))
     (regexp-substitute/global #f rx str 'pre 'post)))
 
@@ -402,7 +407,8 @@ mobile electrons!")
             (loop (match:end m))))
         (reverse result)))))
 
-(define line "XYZZY,\"\",\"O'Reilly, Inc\",\"Wall, Larry\",\"a \\\"glug\\\" bit,\",5,\"Error, Core Dumped\"")
+(define line "XYZZY,\"\",\"O'Reilly, Inc\",\"Wall,
+             Larry\",\"a \\\"glug\\\" bit,\",5,\"Error, Core Dumped\"")
 
 (do ((i 0 (1+ i))
      (fields (parse-csv line) (cdr fields)))
@@ -1226,7 +1232,8 @@ turnkey         => turn-key")
 ;; The list is: To our parents, Mother Theresa, and God.
 ;; The list is: pastrami, ham and cheese, peanut butter and jelly, and tuna.
 ;; The list is: recycle tired, old phrases and ponder big, happy thoughts.
-;; The list is: recycle tired, old phrases, ponder big, happy thoughts, and sleep and dream peacefully.
+;; The list is: recycle tired, old phrases, ponder big, happy thoughts, and
+;; sleep and dream peacefully.
 
 ;; @@PLEAC@@_4.3
 ;;-----------------------------
@@ -1385,7 +1392,8 @@ turnkey         => turn-key")
             (cond
               ((= idx end) '())
               (else
-                (vector-set! vec idx (apply proc (list (vector-ref vec idx))))
+                (vector-set! vec idx
+                  (apply proc (list (vector-ref vec idx))))
                 (loop (+ idx 1)))) )))
       all-vec)))
 
@@ -1489,35 +1497,41 @@ turnkey         => turn-key")
 ; of each cell, thus there is no way to perform updates
 (array-for-each
   (lambda (item)
-    ... do some non-array-mutating task with 'item'...)
+    ;; ... do some non-array-mutating task with 'item'...
+    '())
   *array*)
 
 ;; ------------
 
-; For mutating operations, use one of the mutating 'array-map-...' routines
-; or the custom, 'vector-map-in-order!'
+; For mutating operations, use one of the mutating 'array-map-...'
+; routines or the custom, 'vector-map-in-order!'
 (vector-map-in-order!
   (lambda (item)
-    ... do some array-mutating task with 'item'...)
+    ;; ... do some array-mutating task with 'item'...
+    '())
   *array*)
 
 ;; ------------
 
-; Alternatively, use 'do' to iterate over the array and directly update 
+; Alternatively, use 'do' to iterate over the array and directly
+; update 
 (let ((vector-length (vector-length *array*)))
   (do ((i 0 (+ i 1)))
       ((= i vector-length))
-    ... do some array-mutating task with current array element ...))
+    ;; ... do some array-mutating task with current element ...
+    '()))
 
 ;; ------------
 
-; Alternatively, use a 'named let' to iterate over array and directly update 
+; Alternatively, use a 'named let' to iterate over array and
+; directly update 
 (let ((vector-length (vector-length *array*)))
   (let loop ((i 0))
     (cond
       ((= i vector-length) '())
       (else
-        ... do some array-mutating task with current array element ...
+        ;; ... do some array-mutating task with current element ...
+        '()
         (loop (+ i 1)))) ))
 
 ;; ----------------------------
@@ -1563,8 +1577,8 @@ turnkey         => turn-key")
 ;; @@PLEAC@@_4.6
 (use-modules (srfi srfi-1))
 
-; Simplest [read: least code] means of removing duplicates is to use 
-; SRFI-1's 'delete-duplicates' routine
+; Simplest [read: least code] means of removing duplicates is to
+; use SRFI-1's 'delete-duplicates' routine
 
 (define *non-uniq-num-list* '(1 2 3 1 2 3))
 (define *uniq* (delete-duplicates *my-non-uniq-num-list*)
@@ -1573,28 +1587,33 @@ turnkey         => turn-key")
 
 (use-modules (srfi srfi-1))
 
-; Another simple alternative is to use SRFI-1's 'lset-union' routine. In
-; general, the 'lset-...' routines:
+; Another simple alternative is to use SRFI-1's 'lset-union' routine.
+; In general, the 'lset-...' routines:
 ; - convenient, but not fast; probably best avoided for 'large' sets
-; - operate on standard lists, so simple matter of type-converting arrays and such
+; - operate on standard lists, so simple matter of type-converting
+;   arrays and such
 ; - care needs to be taken in choosing the needed equality function
 
 (define *non-uniq-string-list* '("abc" "def" "ghi" "abc" "def" "ghi"))
-(define *uniq* (lset-union string=? *non-uniq-string-list* *non-uniq-string-list*))
+(define *uniq*
+  (lset-union string=? *non-uniq-string-list* *non-uniq-string-list*))
 
 ;; ----
 
 (define *non-uniq-sym-list* '('a 'b 'c 'a 'b 'c))
-(define *uniq* (lset-union equal? *my-non-uniq-sym-list* *my-non-uniq-sym-list*))
+(define *uniq*
+  (lset-union equal? *my-non-uniq-sym-list* *my-non-uniq-sym-list*))
 
 ;; ----
 
 (define *non-uniq-num-list* '(1 2 3 1 2 3))
-(define *uniq* (lset-union = *my-non-uniq-num-list* *my-non-uniq-num-list*))
+(define *uniq*
+  (lset-union = *my-non-uniq-num-list* *my-non-uniq-num-list*))
 
 ;; ----------------------------
 
-;; Perl Cookbook-based examples - illustrative only, *not* recommended approaches
+;; Perl Cookbook-based examples - illustrative only, *not*
+;; recommended approaches
 
 (use-modules (srfi srfi-1))
 
@@ -1645,8 +1664,8 @@ turnkey         => turn-key")
 
 ;; @@PLEAC@@_4.7
 ; All problems in this section involve, at core, set difference
-; operations. Thus, the most compact and straightforward approach is
-; to utilise SRFI-1's 'lset-difference' routine
+; operations. Thus, the most compact and straightforward approach
+; is to utilise SRFI-1's 'lset-difference' routine
 
 (use-modules (srfi srfi-1))
 
@@ -1661,7 +1680,8 @@ turnkey         => turn-key")
 
 ;; ----------------------------
 
-;; Perl Cookbook-based example - illustrative only, *not* recommended approaches
+;; Perl Cookbook-based example - illustrative only, *not*
+;; recommended approaches
 
 (use-modules (srfi srfi-1))
 
@@ -1696,7 +1716,8 @@ turnkey         => turn-key")
 
 ;; ----------------------------
 
-;; Perl Cookbook-based example - illustrative only, *not* recommended approaches
+;; Perl Cookbook-based example - illustrative only, *not*
+;; recommended approaches
 
 (use-modules (srfi srfi-1))
 
@@ -1839,8 +1860,9 @@ turnkey         => turn-key")
               (vector-set! new-vec new-vec-idx (vector-ref vec vec-idx))
               (loop (+ vec-idx 1) (+ new-vec-idx 1)) ))) )) ))
 
-; This routine would probably benefit from having 'cmd' implemented as a keyword
-; argument. However, 'cmd' implemented as a positional to keep example simple
+; This routine would probably benefit from having 'cmd' implemented as
+; a keyword argument. However, 'cmd' implemented as a positional to keep
+; example simple
 (define (vector-insert vec pos cmd item . rest)
   (let* ((all-item-vec (list->array 1 (cons item rest)))
          (all-item-vec-len (vector-length all-item-vec))
@@ -1895,7 +1917,8 @@ turnkey         => turn-key")
 
 (do ((i (- (vector-length *array*) 1) (- i 1)))
     ((< i 0))
-  ... do something with *array* ...)
+  ;; ... do something with *array* ...
+  '())
 
 ;; ----------------------------
 
@@ -2372,18 +2395,21 @@ turnkey         => turn-key")
 ;; the functions operating on them are similar named, and offer the same
 ;; interface. Examples:
 ;;
-;; * Retrieve an item: (assoc-ref hash key) (hash-ref hash key)
-;; * Update an item:   (assoc-set! hash key value) (hash-set! hash key value) 
+;; * Retrieve an item: (assoc-ref hash key)
+;;                     (hash-ref hash key)
+;;
+;; * Update an item:   (assoc-set! hash key value)
+;;                     (hash-set! hash key value) 
 ;;
 ;; Hash tables would tend to be used where performance was critical e.g.
-;; near constant-time lookups, or where entry updates are frequent, whilst
-;; association lists would be used where table-level traversals and 
-;; manipulations require maximum flexibility
+;; near constant-time lookups, or where entry updates are frequent,
+;; whilst association lists would be used where table-level traversals
+;; and manipulations require maximum flexibility
 ;;
-;; Many of the sections include examples using both association lists and
-;; hash tables. However, where only one of these is shown, implementing
-;; the other is usually a trivial exercise. Finally, any helper functions
-;; will be included in the Appendix
+;; Many of the sections include examples using both association lists
+;; and hash tables. However, where only one of these is shown,
+;; implementing the other is usually a trivial exercise. Finally, any
+;; helper functions will be included in the Appendix
 ;; ---------------------------------------------------------------------
 
 ; Association lists
@@ -2487,15 +2513,19 @@ turnkey         => turn-key")
 ;; @@PLEAC@@_5.2
 ; 'assoc' returns the pair, (key . value)
 (if (assoc key hash)
-  ... found ...
+  ;; ... found ...
+  '()
 ;else
-  ... not found ...
+  ;; ... not found ...
+  '()
 
 ; 'assoc-ref' returns the value only
 (if (assoc-ref hash key)
-  ... found ...
+  ;; ... found ...
+  '()
 ;else
-  ... not found ...
+  ;; ... not found ...
+  '()
 
 ;; ------------
 
@@ -2514,15 +2544,19 @@ turnkey         => turn-key")
 
 ; 'hash-get-handle' returns the pair, (key . value)
 (if (hash-get-handle hash key)
-  ... found ...
+  ;; ... found ...
+  '()
 ;else
-  ... not found ...
+  ;; ... not found ...
+  '()
 
 ; 'hash-ref' returns the value only
 (if (hash-ref hash key)
-  ... found ...
+  ;; ... found ...
+  '()
 ;else
-  ... not found ...
+  ;; ... not found ...
+  '()
 
 ;; ------------
 
@@ -2639,7 +2673,8 @@ turnkey         => turn-key")
   (lambda (pair)
     (let ((key (car pair))
           (value (cdr pair)))
-      ... do something with key / value ...))
+      ;; ... do something with key / value ...
+      '()))
   hash)
 
 ;; ----------------------------
@@ -2647,7 +2682,8 @@ turnkey         => turn-key")
 ; A 'for-each'-like function is available for hash table traversal
 (hash-for-each
   (lambda (key value)
-    ... do something with key / value ...)
+    ;; ... do something with key / value ...
+    '())
   hash)
 
 ; If the hash table is directly implemented as a vector, then it is
@@ -2709,7 +2745,8 @@ turnkey         => turn-key")
 
 (for-each
   (lambda (person)
-    (print (symbol->string person) ":" (number->string (assoc-ref *from* person))))
+    (print (symbol->string person) ":"
+           (number->string (assoc-ref *from* person))))
   (sort
     (fold-right
       (lambda (pair accum) (cons (car pair) accum))
@@ -3166,7 +3203,8 @@ turnkey         => turn-key")
           (if (not new-key-found)
             (set! new-assoc (acons new-key (list old-key) new-assoc)) 
           ;else
-            (set! new-assoc (assoc-set! new-assoc new-key (cons old-key new-key-found))) )))
+            (set! new-assoc (assoc-set! new-assoc new-key
+                            (cons old-key new-key-found))) )))
       assoc)
   new-assoc))
 
@@ -3313,7 +3351,7 @@ turnkey         => turn-key")
   (call-with-output-file name
     (lambda (port)
       ;; ... output to port
-      )))
+      '())))
 
 ;; better to test and be sure you have exclusive access to the file
 ;; (temp file name will be available as (port-filename port))
@@ -3351,21 +3389,21 @@ your data goes here
  DATA
  (lambda (port)
    ;; ... process input from port
-   ))
+   '()))
 
 ;; or
 
 (with-input-from-string DATA
   (lambda ()
     ;; ... stdin now comes from DATA
-    ))
+    '()))
 
 ;; @@PLEAC@@_7.7
 ;; to process lines of current-input-port:
 (do ((line (read-line) (read-line)))
     ((eof-object? line))
   ;; ... do something with line
-  )
+  '())
 
 ;; a general filter template:
 
@@ -4124,9 +4162,12 @@ your data goes here
  (cdr args))
 
 ;; command-line examples:
-;; rename '(lambda (x) (regexp-substitute/global #f "\\.orig\$" x (quote pre)))' *.orig
+;; rename '(lambda (x) (regexp-substitute/global
+                        #f "\\.orig\$" x (quote pre)))' *.orig
 ;; rename string-downcase *
-;; rename '(lambda (x) (if (string-match "^Make" x) x (string-downcase x)))' *
+;; rename '(lambda (x) (if (string-match "^Make" x)
+                           x
+                           (string-downcase x)))' *
 ;; rename '(lambda (x) (string-append x ".bad"))' *.pl
 ;; rename '(lambda (x) (format #t "~a: ") (read-line))' *
 
@@ -4204,9 +4245,12 @@ your data goes here
 (define (hypotenuse side1 . other-sides)
   (let ((all-sides (cons side1 other-sides)))
     (for-each
-      (lambda (side) ...)
+      (lambda (side) 
+        ;; ...
+        '())
       all-sides)
-  ...))
+  ;; ...
+  '()))
 
 ;; ----
 
@@ -4263,13 +4307,13 @@ your data goes here
 ; procedures have direct access to those same variables
 
 (define (some-func parm1 parm2 parm3)
-  ... paramaters visible here ...
+  ;; ... paramaters visible here ...
 
-  (let ((var1 ...) (var2 ...) (var3 ...) ...)
-    ... parameters also visible here, but variables, 'var1' etc
-        only visible within this block ...
+  (let ((var1 1) (var2 2) (var3 3))
+    ;; ... parameters also visible here, but variables, 'var1' etc
+    ;;     only visible within this block ...
   )
-  ... paramaters also visible here, but still within procedure body ...
+  ;; ... paramaters also visible here, but still within procedure body ...
 )
 
 ;; ------------
@@ -4286,7 +4330,8 @@ your data goes here
 (let ((name (caar (command-line)))
       (age (cadr (command-line)))
       (start (fetch-time)))
-   ... variables only visible here ...
+   ;; ... variables only visible here ...
+   '()
 )
 
 ;; ------------
@@ -4300,7 +4345,8 @@ your data goes here
 (define c (fetch-time))
 
 (define (run-check)
-  ... do something with 'a', 'b', and 'c' ...
+  ;; ... do something with 'a', 'b', and 'c' ...
+  '()
 )
 
 (define (check-x x y)
@@ -4308,7 +4354,7 @@ your data goes here
     (print "got" x)))
 
 ; Calling 'check-x'; 'run-check' has access to 'a', 'b', and 'c'
-(check-x ...)
+(check-x 1 2)
 
 ;; ----
 
@@ -4320,9 +4366,10 @@ your data goes here
 (let ((a (car *pair*))
       (b (cdr *pair*))
       (c (fetch-time)))
-   ...
-   (check-x ...)  
-   ...
+   ;; ...
+   (check-x 1 2)  
+   ;; ...
+   '()
 )
 
 ;; ----
@@ -4335,15 +4382,18 @@ your data goes here
        (c (fetch-time))
 
        (run-check
-         (lambda () ... do something with 'a', 'b', and 'c' ...))
+         (lambda () 
+           ;; ... do something with 'a', 'b', and 'c' ...
+           '()))
 
        (check-x
          (lambda (x y)
            (if (run-check)
              (print "got" x)))) )
-   ...
-   (check-x ...)  
-   ...
+   ;; ...
+   (check-x 1 2)  
+   ;; ...
+   '()
 )
 
 ;; @@PLEAC@@_10.3
@@ -4354,8 +4404,11 @@ your data goes here
 ; ... or within a 'let' binding
 (let* ((variable 1)
        (mysub
-         (lambda () ... accessing 'variable' ...)))
-  ... do stuff ...
+         (lambda () 
+           ;; ... accessing 'variable' ...
+         '())))
+  ;; ... do stuff ...
+  '()
 )
 
 ; However, since Scheme allows syntactic extensions via 'macros' [of
@@ -4368,7 +4421,8 @@ your data goes here
 
 ; Initialisation values for 'a' and 'b' not specified
 (bind-values ((a) b (c (+ *global* 5)))
-  ... do stuff ...
+  ;; ... do stuff ...
+  '()
 )
 
 ; In Scheme many things are possible, but not all those things are
@@ -4382,7 +4436,8 @@ your data goes here
        (prev-counter
          (lambda () (set! counter (- counter 1)) counter)))
 
-  ... do stuff with 'next-counter' and 'prev-counter' ...
+  ;; ... do stuff with 'next-counter' and 'prev-counter' ...
+  '()
 )
 
 ;; ----
@@ -4494,14 +4549,14 @@ your data goes here
 
 ;; ----
 
-  ...
+  ;; ...
 
   (if (and (vector? a1) (vector? a2))
     (print (add-vector-pair a1 a2))
   ;else
     (print "usage: add-vector-pair a1 a2"))
 
-  ...
+  ;; ...
 
 ;; @@PLEAC@@_10.6
 ; AFAIK there is no Scheme equivalent to Perl's 'return context' where
@@ -4547,7 +4602,8 @@ your data goes here
   (print start))
 
 (the-func)
-(the-func #:increment (cons 20 's) #:start (cons 5 'm) #:finish (cons 30 'm))
+(the-func
+  #:increment (cons 20 's) #:start (cons 5 'm) #:finish (cons 30 'm))
 (the-func #:start (cons 5 'm) #:finish (cons 30 'm))
 (the-func #:finish (cons 30 'm))
 (the-func #:start (cons 5 'm) #:increment (cons 20 's))
@@ -4588,7 +4644,8 @@ your data goes here
        (a (car return-list))
        (b (cadr return-list)))
 
-  ... do something with 'a' and 'b' ...)
+  ;; ... do something with 'a' and 'b' ...
+  '())
 
 ;; ----------------------------
 
@@ -4661,8 +4718,9 @@ your data goes here
 (if (not (look-for-something))
   (print "Item could not be found ...")
 ;else
-  ; do something with item ...
-  ...
+  ;; do something with item ...
+  ;; ...
+  '()
 
 ;; ------------
 
@@ -4673,7 +4731,9 @@ your data goes here
 
 ;; ------------
 
-(define (ioctl) ... #f)
+(define (ioctl) 
+  ;; ...
+  #f)
 
 (or (ioctl) (begin (print "can't ioctl") (exit 1)))
 
@@ -4956,17 +5016,22 @@ your data goes here
 
 ; * A (use-modules ...) is encountered
 
-(use-modules ((...))
+(use-modules ((omega))
 
 ; * A reference is made to an item in a module specified as being
 ; autoloaded
 
-(define-module (...)
-               #:autoload (mod-x) (...))
-               ...
+(define-module (new-module)
+               #:autoload (mod-x) (mod-y))
+               ;; ...
 
 ; Module code loaded at this point
-(if (item-from-mod-x ...) ...)
+(if (item-from-mod-x item)
+  ;; ...
+  #t
+  ; else
+  ;; ...
+  #f)
 
 ;; @@PLEAC@@_12.1
 ; All bindings within a module are private to it unless specifically
@@ -5061,7 +5126,7 @@ your data goes here
 ;else
   (print "Module does not exist / not in load path"))
 
-...
+;; ...
 
 ; Use module item(s) [assuming load was successful]
 (print alpha:aa)
@@ -5072,17 +5137,17 @@ your data goes here
 
 ; * A (use-modules ...) is encountered
 
-(use-modules ((...))
+; (use-modules ((...))
 
 ; * A reference is made to an item in a module specified as being
 ; autoloaded
 
-(define-module (...)
-               #:autoload (mod-x) (...))
-               ...
+; (define-module (...)
+;               #:autoload (mod-x) (...))
+;               ...
 
 ; Module code loaded at this point
-(if (item-from-mod-x ...) ...)
+; (if (item-from-mod-x ...) ...)
 
 ;; ----------------------------
 
@@ -5113,13 +5178,13 @@ your data goes here
   (opt-b
     (use-modules ((bigmath)
                   :renamer (symbol-prefix-proc 'bigmath:)) )
-  ...
+  ;; ...
     ; use module
-  ...)
+  ;; ...)
   (else
-    ...
+    ;; ...
     ; work without module
-    ...))
+    ;; ...))
 
 ;; @@PLEAC@@_12.4
 ; Variables are private to a module unless exported
@@ -5271,8 +5336,8 @@ your data goes here
 ; In Scheme, a built-in function [BIF] is no more than an object
 ; encapsulating a block of code [a 'lambda'] that is bound to an
 ; identifier. Since identifier bindings can be readily altered, simply
-; rebinding the identifier to a replacement lambda overrides the built-in
-; version
+; rebinding the identifier to a replacement lambda overrides the
+; built-in version
 
 ; Show current time using built-in, 'current-time'
 (print (current-time))
@@ -5459,7 +5524,8 @@ your data goes here
 
 ;; @@PLEAC@@_12.14
 ; This section appears to illustrate access to shared library code
-; from Perl. Guile offers several methods of doing the same, including:
+; from Perl. Guile offers several methods of doing the same,
+; including:
 ;
 ; * The 'dynamic-link', 'dynamic-unlink', 'dynamic-call', and
 ;   'dynamic-call-with-args' primitives which, together, provide
@@ -5597,7 +5663,8 @@ your data goes here
 (define private-variable "...")
 
 (define (private-procedure arg1 arg2)
-  ...)
+  ;; ...
+  '())
 
 ; ---
 
@@ -5605,7 +5672,8 @@ your data goes here
 (define-public exported-variable "...")
 
 (define-public (exported-procedure arg1 arg2)
-  ...)
+  ;; ...
+  '())
 
 ;; @@PLEAC@@_13.0
 ;; Guile OOP is in the (oop goops) module (based on CLOS).  All
