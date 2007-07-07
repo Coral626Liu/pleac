@@ -160,10 +160,10 @@ v = SUBSTR(string, offset, count, padchar)     /* "valueXXXX" */
 
 /* ----------------------------- */
 
-offset = 2 ; count = 2 ; padchar = '*' ; newstring = "Z"
+offset = 2 ; count = 2 ; padchar = '*' ; newstr = "Z"
 
-v = INSERT(newstring, string, offset, count, padchar)  /* "a Z*value" */
-v = OVERLAY(newstring, string, offset, count, padchar) /* "aZ*alue" */
+v = INSERT(newstr, string, offset, count, padchar)  /* "a Z*value" */
+v = OVERLAY(newstr, string, offset, count, padchar) /* "aZ*alue" */
 
 /* ----------------------------- */
 
@@ -200,19 +200,19 @@ say string
 string = CHANGEWORD("is", string, "wasn't")
 
 /* Replace last 12 characters : This wasn't wondrous */
-newstring = "ondrous" ; slen = LENGTH(string) ; nlen = LENGTH(newstring)
+newstr = "ondrous" ; slen = LENGTH(string) ; nlen = LENGTH(newstr)
 
 /* 1 - slow */
-string = OVERLAY(newstring, string, slen - 11)
-string = DELSTR(string, LASTPOS(newstring, string) + nlen) 
+string = OVERLAY(newstr, string, slen - 11)
+string = DELSTR(string, LASTPOS(newstr, string) + nlen) 
 
 /* 2 - faster */
-string = LEFT(string, slen - 12)||newstring
+string = LEFT(string, slen - 12) || newstr
 
 /* 3 - fastest */
 sparse = slen - 12
 parse var string string +(sparse)
-string = string||newstring
+string = string || newstr
 
 /* delete first character : his wasn't wondrous */
 parse var string =2 string
@@ -1301,7 +1301,8 @@ log_base : procedure expose (globals)
 /* ------------------------------------------------------------------ */
 
 /* Global Constants */
-FALSE = 0 ; TRUE = 1 ; NULL = "" ; NEWLINE = "0A"X ; SPACE = ' ' ; NaN = "NaN"
+FALSE = 0 ; TRUE = 1 ; NULL = "" ; NEWLINE = "0A"X ; SPACE = ' '
+NaN = "NaN"
 
 /* Matrix-specific global constants */
 MTAG = "<M>" ; MHSEP = "|" ; MRAWSEP = "; " ; MRSEP = ";"
@@ -1444,7 +1445,8 @@ makeVector : procedure expose (globals) (matdefs)
   /*
      s | n1 [, n2, ...]
      ---
-     Returns a vector created by parsing, 's', or assembling, 'n1', 'n2' ...
+     Returns a vector created by parsing, 's', or assembling, 'n1',
+     'n2' ...
      ---
      v = makeVector("1 2 3;")
      v = makeVector(1, 2, 3)
@@ -1461,16 +1463,19 @@ makeMatrix : procedure expose (globals) (matdefs)
   /*
      s | v1 [, v2, ...]
      ---
-     Returns a matrix created by parsing, 's', or assembling, 'v1', 'v2' ...
+     Returns a matrix created by parsing, 's', or assembling, 'v1',
+     'v2' ...
      ---
      m = makeMatrix("1 2 3;4 5 6;7 8 9;")
      m = makeMatrix(makeVector(1, 2, 3))
-     m = makeMatrix(makeVector(1, 2, 3), makeVector(4, 5, 6), makeVector(7, 8, 9))
+     m = makeMatrix(makeVector(1, 2, 3), makeVector(4, 5, 6),,
+         makeVector(7, 8, 9))
   */
   argc = ARG() ; if argc == 0 then ; return NaN
   if argc == 1 then do
     m = ARG(1) ; if isVector(m) then ; return m
-    rows = COUNTSTR(MRSEP, m) ; cols = WORDS(SUBSTR(m, 1, POS(MRSEP, m) - 1))
+    rows = COUNTSTR(MRSEP, m)
+    cols = WORDS(SUBSTR(m, 1, POS(MRSEP, m) - 1))
     rv = NULL ; do i = 1 for rows
       parse var m row (MRSEP) m ; rv = rv || row || MRSEP
     end
@@ -1533,7 +1538,8 @@ makeDiagonal : procedure expose (globals) (matdefs)
     when chksum == rows & ONE_ONLY then ; type = MTYPE_IDENTITY
     otherwise ; type = MTYPE_REGULAR
   end
-  return MTAG || rows cols type || MHSEP || STRIP(CHANGESTR(MRAWSEP, rv, MRSEP))
+  return MTAG || rows cols type || MHSEP ||,
+         STRIP(CHANGESTR(MRAWSEP, rv, MRSEP))
 
 /* -- */
 
@@ -1758,7 +1764,8 @@ madd : procedure expose (globals) (matdefs)
     parse var m2 (MTAG) m2rows m2cols . (MHSEP) m2data
     if m1rows <> m2rows | m1cols <> m2cols then ; return rv
     rv = NULL ; do while m1data <> NULL
-      parse var m1data m1row (MRSEP) m1data ; parse var m2data m2row (MRSEP) m2data
+      parse var m1data m1row (MRSEP) m1data
+      parse var m2data m2row (MRSEP) m2data
       do while m1row <> NULL
         parse var m1row m1item m1row ; parse var m2row m2item m2row
         rv = rv (m1item + m2item)
@@ -1793,7 +1800,8 @@ msub : procedure expose (globals) (matdefs)
     parse var m2 (MTAG) m2rows m2cols . (MHSEP) m2data
     if m1rows <> m2rows | m1cols <> m2cols then ; return rv
     rv = NULL ; do while m1data <> NULL
-      parse var m1data m1row (MRSEP) m1data ; parse var m2data m2row (MRSEP) m2data
+      parse var m1data m1row (MRSEP) m1data
+      parse var m2data m2row (MRSEP) m2data
       do while m1row <> NULL
         parse var m1row m1item m1row ; parse var m2row m2item m2row
         rv = rv (m1item - m2item)
@@ -2095,8 +2103,8 @@ mtranspose : procedure expose (globals) (matdefs)
   /*
      m
      ---
-     Returns matrix consisting of the transpose of 'm' [i.e. corresponding
-     row / column positions swapped]
+     Returns matrix consisting of the transpose of 'm' [i.e.
+     corresponding row / column positions swapped]
      ---
      transpose = mtranspose(m)
   */
@@ -2283,7 +2291,8 @@ makeComplex : procedure
   return "<C> " ARG(1) " " ARG(2)
 
 makeFromPolar : procedure
-  r = ARG(1) ; a = ARG(2) ; return makeComplex(r * Cos(a), r * Sin(a))
+  r = ARG(1) ; a = ARG(2)
+  return makeComplex(r * Cos(a), r * Sin(a))
 
 real : procedure
   parse value ARG(1) with "<C>" real . ; return real
@@ -2292,10 +2301,12 @@ imag : procedure
   parse value ARG(1) with "<C>" . imag . ; return imag
 
 magnitude : procedure
-  parse value ARG(1) with "<C>" real imag . ; return Sqrt(real * real + imag * imag)
+  parse value ARG(1) with "<C>" real imag .
+  return Sqrt(real * real + imag * imag)
 
 angle : procedure
-  parse value ARG(1) with "<C>" real imag . ; return ATan(imag, real)
+  parse value ARG(1) with "<C>" real imag .
+  return ATan(imag, real)
 
 isNaN : procedure
   return ARG(1) == "NaN"
@@ -2317,7 +2328,8 @@ asPolar : procedure
   else ; do
     parse var z "<C>" real imag .
     dec = 3 ; if ARG(2, E) then ; dec = ARG(2)
-    return "(" || FORMAT(magnitude(z),, dec) || "," FORMAT(angle(z),, dec) || ")"
+    return "(" || FORMAT(magnitude(z),, dec) || ",",
+           FORMAT(angle(z),, dec) || ")"
   end 
 
 /* ----------- */
@@ -2337,13 +2349,15 @@ csub : procedure
 cmul : procedure
   z1 = ARG(1) ; z2 = ARG(2)
   if \isComplex(z1) | \isComplex(z1) then ; return "NaN"
-  mz1 = magnitude(z1) ; mz2 = magnitude(z2) ; az1 = angle(z1) ; az2 = angle(z2)
+  mz1 = magnitude(z1) ; mz2 = magnitude(z2) ; az1 = angle(z1)
+  az2 = angle(z2)
   return makeComplex((mz1 * mz2), (az1 + az2))
 
 cdiv : procedure
   z1 = ARG(1) ; z2 = ARG(2)
   if \isComplex(z1) | \isComplex(z1) then ; return "NaN"
-  mz1 = magnitude(z1) ; mz2 = magnitude(z2) ; az1 = angle(z1) ; az2 = angle(z2)
+  mz1 = magnitude(z1) ; mz2 = magnitude(z2) ; az1 = angle(z1)
+  az2 = angle(z2)
   return makeComplex((mz1 / mz2), (az1 - az2))
 
 csqrt : procedure
@@ -2463,11 +2477,15 @@ commify_ : procedure expose (globals)
 
 duration = 1
 say "It took" duration pluralise(duration, "hour")
-say duration pluralise(duration, "hour") pluralise(duration, "", "is", "are") "enough"
+say duration pluralise(duration, "hour"),
+    pluralise(duration, "", "is", "are"),
+    "enough"
 
 duration = 5
 say "It took" duration pluralise(duration, "hour")
-say duration pluralise(duration, "hour") pluralise(duration, "", "is", "are") "enough"
+say duration pluralise(duration, "hour"),
+    pluralise(duration, "", "is", "are"),
+   "enough"
 
 exit 0
 
@@ -2525,7 +2543,6 @@ plural : procedure
   end
 
   return plural
-
 
 /* @@PLEAC@@_3.0 */
 /* ------------------------------------------------------------------ */
@@ -3377,16 +3394,17 @@ nested = makeArray("this", "that", "the", "other") ; call arrDrop nested
 /*
    NESTED arrays are possible, though somewhat awkward to use because
    references to any 'contained' arrays must be explicitly created
-   and explicitly destroyed [though they can be inlined if the 'containing'
-   array will be freed using the 'dropArray' routine]. The situation is
-   analogous to managing C pointers [in fact, that *is* what is being
-   done, albeit indirectly :)]
+   and explicitly destroyed [though they can be inlined if the
+   'containing' array will be freed using the 'dropArray' routine].
+   The situation is analogous to managing C pointers [in fact, that
+   *is* what is being done, albeit indirectly :)]
 */
 
-/* Construct inner array, store reference, add it as outer array element */
-lvl_1 = makeArray("the", "other") ; nested = makeArray("this", "that", lvl_1)
+/* Make inner array, store reference, add it as outer array element */
+lvl_1 = makeArray("the", "other")
+nested = makeArray("this", "that", lvl_1)
 
-/* Take care to destroy inner array reference before destroying container */
+/* Take care to destroy inner array reference before container itself */
 call arrDrop lvl_1 ; call arrDrop nested
 
 /* ----------- */
@@ -3541,9 +3559,12 @@ data = makeArray(,
   split("Mutt Jeff"),,
   split("Peter Paul Mary"),,
   makeArray("To our parents", "Mother Theresa", "God"),,
-  makeArray("pastrami", "ham and cheese", "peanut butter and jelly", "tuna"),,
-  makeArray("recycle tired, old phrases", "ponder big, happy thoughts"),,
-  makeArray("recycle tired, old phrases", "ponder big, happy thoughts",,
+  makeArray("pastrami", "ham and cheese",,
+            "peanut butter and jelly", "tuna"),,
+  makeArray("recycle tired, old phrases",,
+            "ponder big, happy thoughts"),,
+  makeArray("recycle tired, old phrases",,
+            "ponder big, happy thoughts",,
             "sleep and dream peacefully"))
 
 call foreach data, "print_list"
@@ -3570,12 +3591,16 @@ commify_series : procedure expose (globals)
     select
       when n == 0 then ; return NULL
       when n == 1 then ; return getArray(current, 1)
-      when n == 2 then ; return getArray(current, 1) "and" getArray(current, 2)
+      when n == 2 then ; return getArray(current, 1) "and",
+                         getArray(current, 2)
       otherwise
         series = getArray(current, 1)  
         do i = 2 to n - 1
           current_word = getArray(current, i)
-          if POS(",", current_word) > 0 then ; sepchar = ";" ; else ; sepchar = ","
+          if POS(",", current_word) > 0 then
+            sepchar = ";"
+          else
+            sepchar = ","
           series = series || sepchar current_word
         end
         return STRIP(series) || sepchar "and" getArray(current, n)
@@ -3593,7 +3618,10 @@ commify_series : procedure expose (globals)
         series = WORD(list, 1)  
         do i = 2 to n - 1
           current_word = WORD(list, i)
-          if POS(",", current_word) > 0 then ; sepchar = ";" ; else ; sepchar = ","
+          if POS(",", current_word) > 0 then
+            sepchar = ";"
+          else
+            sepchar = ","
           series = series || sepchar current_word
         end
         return STRIP(series) || sepchar "and" WORD(list, n)
@@ -3757,7 +3785,8 @@ showEnvironInfo : procedure expose (globals)
 
 /* ----------------------------- */
 
-all_users = split(get_all_users(), SPACE) ; MAX_QUOTA = get_max_quota()
+all_users = split(get_all_users(), SPACE)
+MAX_QUOTA = get_max_quota()
 
 call foreach all_users, "complain_if_overquota", MAX_QUOTA
 
@@ -3811,8 +3840,8 @@ call dropArray arr ; drop users.
 
 /*
    REXXToolkit function, 'areadfile', may be used to read file contents
-   into an array; each element may be a line, word [optionally delimited],
-   character, or specified number of characters
+   into an array; each element may be a line, word [optionally
+   delimited], character, or specified number of characters
 */
 
 arr = areadfile("lines.txt", 'W')
@@ -4011,7 +4040,8 @@ exit 0
 */
 
 address SYSTEM "who|cut -d' ' -f1" with OUTPUT STEM ustem.
-uarr = arrFromStem('ustem.') ; uset = setFromArr(uarr) ; users = strFromSet(uset)
+uarr = arrFromStem('ustem.') ; uset = setFromArr(uarr)
+users = strFromSet(uset)
 
 /* Print user list as a single line */
 say "users logged in:" users
@@ -4133,7 +4163,8 @@ call dropArray a, b, union, isect, diff
 
 a_arr = makeArray(1, 3, 5, 6, 7, 8) ; b_arr = makeArray(2, 3, 5, 7, 9)
 
-union_hash = makeHash() ; isect_hash = makeHash() ; diff_hash = makeHash()
+union_hash = makeHash() ; isect_hash = makeHash()
+diff_hash = makeHash()
 
 /* ----------- */
 
@@ -4153,7 +4184,8 @@ call dropArray union_arr, isect_arr
 
 /* ----------- */
 
-call foreach_seq a_arr, b_arr, "isect_if_not_union", union_hash, isect_hash
+call foreach_seq a_arr, b_arr, "isect_if_not_union", union_hash,,
+                 isect_hash
 
 union_arr = hashKeys(union_hash) ; isect_arr = hashKeys(isect_hash)
 
@@ -4176,7 +4208,8 @@ call foreach_seq a_arr, b_arr, "count_keys", count_hash
 
 call dropArray union_arr, isect_arr, diff_arr
 
-union_arr = makeArray() ; isect_arr = makeArray() ; diff_arr = makeArray()
+union_arr = makeArray() ; isect_arr = makeArray()
+diff_arr = makeArray()
 
 count_keys = hashKeys(count_hash) 
 
@@ -4200,16 +4233,19 @@ count_keys : procedure expose (globals)
 /* -- */
 
 select_count_members : procedure expose (globals)
-  key = ARG(1) ; count_hash = ARG(2) ; union_arr = ARG(3) ; isect_arr = ARG(4)
-  diff_arr = ARG(5)
+  key = ARG(1) ; count_hash = ARG(2) ; union_arr = ARG(3)
+  isect_arr = ARG(4) ; diff_arr = ARG(5)
   call asplice union_arr, -1, "IA", key
-  if hashGet(count, key) == 2 then ; call asplice isect_arr, -1, "IA", key
-  else ; call asplice diff_arr, -1, "IA", key
+  if hashGet(count, key) == 2 then
+    call asplice isect_arr, -1, "IA", key
+  else
+    call asplice diff_arr, -1, "IA", key
   return
 
 /* ----------- */
 
-call dropArray a_arr, b_arr, union_arr, isect_arr, union_hash, isect_hash, diff_hash
+call dropArray a_arr, b_arr, union_arr, isect_arr, union_hash,,
+               isect_hash, diff_hash
 
 /* ----------------------------- */
 
@@ -4238,7 +4274,8 @@ call dropArray arr1, arr2
 
 /* ----------------------------- */
 
-members = makeArray("Time", "Flies") ; initiates = makeArray("An", "Arrow")
+members = makeArray("Time", "Flies")
+initiates = makeArray("An", "Arrow")
 
 /* 'members' modified: ("Time", "Flies", "An", "Arrow") */
 call ajoin members, initiates
@@ -4837,7 +4874,8 @@ exit 0
 /* ----------------------------- */
 
 insertWord : procedure
-  V = ARG(1) ; S = STRIP(ARG(2)) ; R = WORDS(S) ; if R < 1 then ; return V
+  V = ARG(1) ; S = STRIP(ARG(2)) ; R = WORDS(S)
+  if R < 1 then ; return V
   L = 1
 
   do while L <= R
@@ -5234,15 +5272,23 @@ end
 /* is possible.                                                       */
 /* ------------------------------------------------------------------ */
 
-key = "Cain" ; father.key = "Adam" ; key = "Abel" ; father.key = "Adam"
-key = "Seth" ; father.key = "Adam" ; key = "Enoch" ; father.key = "Cain"
-key = "Irad" ; father.key = "Enoch" ; key = "Mehujael" ; father.key = "Irad"
-key = "Methusael" ; father.key = "Mehujael" ; key = "Lamech" ; father.key =
-"Methusael"
-key = "Jabal" ; father.key = "Lamech" ; key = "Jubal" ; father.key =
-"Lamech"
-key = "Tubalcain" ; father.key = "Lamech" ; key = "Enos" ; father.key =
-"Seth"
+key = "Cain" ; father.key = "Adam"
+key = "Abel" ; father.key = "Adam"
+
+key = "Seth" ; father.key = "Adam"
+key = "Enoch" ; father.key = "Cain"
+
+key = "Irad" ; father.key = "Enoch"
+key = "Mehujael" ; father.key = "Irad"
+
+key = "Methusael" ; father.key = "Mehujael"
+key = "Lamech" ; father.key = "Methusael"
+
+key = "Jabal" ; father.key = "Lamech"
+key = "Jubal" ; father.key = "Lamech"
+
+key = "Tubalcain" ; father.key = "Lamech"
+key = "Enos" ; father.key = "Seth"
 
 /* ----------- */
 
@@ -5355,8 +5401,9 @@ if STREAM(filename, 'C', "OPEN READ") == "READY:" then do
 end
 
 /*
-   Alternative: implicit OPEN, CLOSE; 'null' check - terminates on either
-   EOF or 'empty' line [use 'LINES(...) == 0' check to verify EOF]
+   Alternative: implicit OPEN, CLOSE; 'null' check - terminates on
+   either EOF or 'empty' line [use 'LINES(...) == 0' check to verify
+   EOF]
 */
 
 line = LINEIN(filename)
@@ -5383,9 +5430,9 @@ end
 /* ----------------------------- */
 
 /*
-   LINEIN's default stream is "<stdin>", LINEOUT's is "<stdout>"; 'null'
-   check - terminates on either EOF or 'empty' line [use 'LINES(...) == 0'
-   check to verify EOF]
+   LINEIN's default stream is "<stdin>", LINEOUT's is "<stdout>";
+   'null' check - terminates on either EOF or 'empty' line [use 
+   'LINES(...) == 0' check to verify EOF]
 */
 
 line = LINEIN()
@@ -5455,8 +5502,8 @@ call STREAM path, 'C', 'BOTH'  /* open "path" for reading and writing */
 call OPEN alias, path, 'WRITE' /* allows both read and write */
 
 /*
-   open file "path" write only, create it if it does not exist, truncate
-   to zero length if exists
+   open file "path" write only, create it if it does not exist,
+   truncate to zero length if exists
 */
 call STREAM path, 'C', 'WRITE REPLACE'
 
@@ -5927,7 +5974,8 @@ end
 
 file = ARG(1) ; tmpnam = tmpnam()
 
-call STREAM file, 'C', 'OPEN READ' ; call STREAM tmpnam, 'C', 'OPEN WRITE'
+call STREAM file, 'C', 'OPEN READ'
+call STREAM tmpnam, 'C', 'OPEN WRITE'
 
 /* Use REXXToolkit's 'strftime' */
 today = strftime("+%Y-%m-%d", makeYMD()) ; line = LINEIN(file)
@@ -6401,7 +6449,8 @@ address path with input NORMAL output NORMAL error NORMAL
 */
 
 filename = "/usr/bin/vi"
-statflds = "%n %F %s %x %y %z" ; cmd = "stat --format '" || statflds || "'"
+statflds = "%n %F %s %x %y %z" ; cmd = "stat --format '" ||,
+            statflds || "'"
 
 address SYSTEM cmd filename with OUTPUT STEM statinfo.
 
@@ -6431,7 +6480,8 @@ end
 
        return statinfo
 
-   GCI implementations of both, 'stat' and 'utime', appear in the Appendix
+   GCI implementations of both, 'stat' and 'utime', appear in the
+   Appendix
 */
 
 filename = "/usr/bin" ; entry = UNIXstat(filename)
@@ -6484,8 +6534,8 @@ if STREAM(filename, 'C', 'QUERY SIZE') == 0 then
 /*
    Hierarchical filesystem support cannot be assumed to exist on all
    platforms [though with the widespread adoption of *NIX or *NIX-based
-   concepts on various platforms e.g. z/OS UNIX Sytem Services, Mac OSX,
-   this is not as true as in the past].
+   concepts on various platforms e.g. z/OS UNIX Sytem Services, Mac
+   OSX, this is not as true as in the past].
 
    For 'directory traversal' tasks it is common to see use made of the
    'rexxUtil' library's, 'sysFileTree', routine
@@ -6548,7 +6598,8 @@ call UNIXutime TIME('T'), mtime, file
 if ARG() < 1 then do ; say "usage: uvi filename" ; exit 1 ; end ; file =
 ARG(1)
 
-editor = VALUE("EDITOR",, SYSTEM) ; if editor == NULL then ; editor = "vi"
+editor = VALUE("EDITOR",, SYSTEM)
+if editor == NULL then ; editor = "vi"
 address SYSTEM editor file
 
 if \UNIXutime(atime, mtime, file) then do
@@ -6586,15 +6637,16 @@ end
 
 /* ----------------------------- */
 
-filelist = "f1 f2 f3 ..." ; totfiles = WORDS(filelist) ; count = totfiles
+filelist = "f1 f2 f3 ..." ; totfiles = WORDS(filelist)
+count = totfiles
 
 do while filelist <> NULL
   parse var filelist file filelist
   call sysFileDelete file ; if RESULT then ; count = count - 1
 end
 
-if count \= totfiles then ; say "Could only delete" count "of" totfiles
-"files"
+if count \= totfiles then
+  say "Could only delete" count "of" totfiles "files"
 
 /* @@PLEAC@@_9.3 */
 /*
@@ -6644,7 +6696,8 @@ dev = "NL:" ; cmd = "copy" oldfile newfile
 address SYSTEM cmd with OUTPUT STREAM dev ERROR STREAM dev
 if RC \= 1 then ; say "Error ..."
 
-/* Win32 [Return codes unreliable, so best parse output for command status]
+/* Win32 [Return codes unreliable, so best parse output for command
+   status]
 */
 dev = "NUL:" ; cmd = "copy/v/b/y" oldfile newfile
 address SYSTEM cmd with OUTPUT STEM result. ERROR STREAM dev
@@ -6654,7 +6707,8 @@ if numberCopied \= 1 then ; say "Error ..."
 /* ----------------------------- */
 
 /*
-   Copies contents of source file to newly-created / truncated target file
+   Copies contents of source file to newly-created / truncated target
+   file
 */
 
 call sysCopyObject "datafile.dat", "datafile.bak"
@@ -6666,9 +6720,9 @@ end
 /* ----------- */
 
 /*
-   Adjusts behaviour to either rename source file to target file [if they
-   reside on the same device], or creates a new target file and copies
-   contents of source file into it
+   Adjusts behaviour to either rename source file to target file [if
+   they reside on the same device], or creates a new target file and
+   copies contents of source file into it
 */
 
 call sysMoveObject "datafile.new", "datafile.dat"
@@ -6802,7 +6856,10 @@ plainFiles : procedure expose (globals)
   /* Sort stem */
   call sysStemSort 'files.', 'ascending'
 
-  /* Traverse sorted file list, and generate list of only 'regular' files */
+  /*
+     Traverse sorted file list, and generate list of only 'regular'
+     files
+  */
   do i = 1 to files.0
     if isRegularFile(files.i) then ; filelist = filelist files.i
   end
@@ -7072,16 +7129,17 @@ NAMES = "f1 f2 f3 ..."
 do while NAMES <> NULL
   parse var NAMES file NAMES ; newname = " ... "
   call sysMoveObject file, newname
-  if RESULT \= 0 then ; say "Couldn't rename" file "to" newname ":" RESULT
+  if RESULT \= 0 then
+    say "Couldn't rename" file "to" newname ":" RESULT
 end
 
 /* ----------------------------- */
 
 /*
-   Command-line utilities may easily be used for this task, but it is
-   important to consider how any output [i.e. stdout, stderr] will
-   be handled, and whether return codes are significant and whether
-   they should be checked.
+   Command-line utilities may easily be used for this task, but it
+   is important to consider how any output [i.e. stdout, stderr]
+   will be handled, and whether return codes are significant and
+   whether they should be checked.
 */
 
 /* *NIX */
@@ -7094,7 +7152,9 @@ dev = "NL:" ; cmd = "rename" oldfile newfile
 address SYSTEM cmd with OUTPUT STREAM dev ERROR STREAM dev
 if RC \= 1 then ; say "Error ..."
 
-/* Win32 [Return codes unreliable, so best parse output for command status]
+/*
+   Win32 [Return codes unreliable, so best parse output for command
+   status]
 */
 dev = "NUL:" ; cmd = "ren" oldfile newfile
 address SYSTEM cmd with OUTPUT STEM result. ERROR STREAM dev
@@ -9274,7 +9334,8 @@ peer.!PORT = 13             /* Target port */
 
 /* Make the connection */
 if sockConnect(peer, 'peer.!') < 0 then
-  call die "Couldn't connect socket to" peer.!ADDR || ":" || peer.!PORT, ":" socksock_errno(), 1
+  call die "Couldn't connect socket to" peer.!ADDR || ":" ||,
+           peer.!PORT, ":" socksock_errno(), 1
 
 /* Do something with the socket ... */
 if sockSend(peer, "Why don't you call anymore?" || NEWLINE) < 0 then
@@ -9293,8 +9354,10 @@ if sockClose(peer) < 0 then
 
 /*
    Additional Perl examples either redundant because with RxSock:
-   * It is not possible to specify host information as part of the socket creation call
-   * There is only one set of procedures for setting up and handling connections
+   * It is not possible to specify host information as part of the socket
+     creation call
+   * There is only one set of procedures for setting up and handling
+     connections
 */
 
 /* ----------------------------- */
@@ -9352,7 +9415,8 @@ if sockBind(server, 'server.') < 0 then
 
 /* Queue up 1 connection only */
 if sockListen(server, 1) < 0 then
-  call die "Couldn't commence listening on server socket :" socksock_errno(), 1
+  call die "Couldn't commence listening on server socket :",
+           socksock_errno(), 1
 
 MAX_BYTES = 256
 
@@ -9367,7 +9431,8 @@ do forever
   /* Service client ... */
 
   if sockRecv(client, 'buffer', MAX_BYTES) < 0 then
-    call die "Error receiving data from client socket :" socksock_errno(), 1
+    call die "Error receiving data from client socket :",
+             socksock_errno(), 1
 
   say "|" buffer "|"
 
@@ -9385,7 +9450,10 @@ do forever
   /* ... */
 end
 
-/* Terminate when done - shutdown, close the socket, and release all its resources */
+/*
+   Terminate when done - shutdown, close the socket, and release all
+   its resources
+*/
 if sockShutDown(server) < 0 then
   call die "Error shutting down server socket :" socksock_errno(), 1
 
@@ -9405,7 +9473,6 @@ if sockClose(server) < 0 then
 /* * Reading: sockRecv, sockRecvFrom [datagrams]                      */
 /* * Writing: sockSend, sockSendTo [datagrams]                        */
 /*                                                                    */
-
 /* ------------------------------------------------------------------ */
 
 /*
@@ -9556,7 +9623,8 @@ if sockErrNo \= 0 then
   call die "Couldn't look up" claimed_hostname ":" sockErrNo, 1
 
 if iaddr \== host.!ADDR then
-  call die "Mismatch between" claimed_hostname "and" iaddr ":" sockErrNo, 1
+  call die "Mismatch between" claimed_hostname "and" iaddr ":",
+           sockErrNo, 1
 
 /* @@PLEAC@@_17.8 */
 /* ------------------------------------------------------------------ */
