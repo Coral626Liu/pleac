@@ -749,16 +749,20 @@ goes here
   (format *error-output* "not a C float"))
 ;;;-----------------------------
 (defun getnum (string)
-  (setf string (cl-ppcre:regex-replace #?"^\s+" string ""))
-  (setf string (cl-ppcre:regex-replace #?"\s+$" string ""))
-  (with-input-from-string (is string)
+  "This function is not safe to call on untrusted input."
+  (with-input-from-string 
+      (is (cl-ppcre:regex-replace #?"\s+$" 
+                                  (cl-ppcre:regex-replace #?"^\s+" string "") ""))
     (let ((num (read is nil nil nil)))
-      (when (numberp num) num))))
+      (and
+       ;; Make sure there's no junk following the number
+       (eql (read-char is nil :eof nil) :eof)
+       (numberp num)
+       num))))
 
 (defun is-numeric (string)
   (not (null (getnum string))))
 ;;;-----------------------------
-
 
 ;;; @@PLEAC@@_2.2
 ;;;-----------------------------
@@ -819,22 +823,46 @@ its integer equivalent."
 ;;; @PLEAC@@_2.5
 ;;;-----------------------------
 (loop for i from x upto y
-     do ; something
+     do
+   ;; i is set to every integer from X to Y, inclusive
+)
+
+(loop for i from y downto x
+     do 
+   ;; i is set to every integer from Y to X, inclusive
 )
 
 (do ((i x (1+ i)))
     ((> i y))
-  ; do something here
+   ;; i is set to every integer from X to Y, inclusive
   )
+
+(loop for i from x upto y by 7
+     do
+   ;; i is set to every integer from X to Y, stepsize = 7
+)
 ;;;-----------------------------
-;;; @@INCOMPLETE@@
+(format t "Infancy is: ~{~A~^ ~}~%"
+        (loop for i from 0 to 2 collect i))
 
+(format t "Toddling is: ~{~A~^ ~}~%"
+        (loop for i from 3 to 4 collect i))
 
-; @@PLEAC@@_2.6
-;arabic to roman
-(setf roman (format nil "~@R" arabic))
+(format t "Childhood is: ~{~A~^ ~}~%"
+        (loop for i from 5 to 12 collect i))
+;;Infancy is: 0 1 2
+;;Toddling is: 3 4
+;;Childhood is: 5 6 7 8 9 10 11 12
+;;;-----------------------------
 
-;roman to arabic
+;;; @@PLEAC@@_2.6
+;;;-----------------------------
+
+;;; CL has a built in FORMAT directive (used below) to print out
+;;; numbers as roman numerals, but doesn't have a built-in mechanism
+;;; to convert back.  Here are some rough CL equivalents of Perl's
+;;; Roman package.
+
 (defun romanchar->num (x) 
   (case (char-downcase x)
     (#\m 1000)
@@ -860,26 +888,59 @@ its integer equivalent."
                         digits
                         (append (rest digits) '(0))))))
 
-(when (isroman roman) (setf arabic (arabic roman)))
-;;-----------------------------
+(setf roman (format nil "~@R" arabic))  ; convert to roman numerals
+(when (isroman roman) (setf arabic (arabic roman))) ; convert from roman numerals 
+;;;-----------------------------
 (setf roman-fifteen (format nil "~@R" 15))
 (format t "Roman for fifteen is ~A~%" roman-fifteen)
 (setf arabic-fifteen (arabic roman-fifteen))
 (format t "Converted back, ~A is ~A~%" roman-fifteen arabic-fifteen)
-;;-----------------------------
+;;Roman for fifteen is XV
+;;Converted back, XV is 15
+;;;-----------------------------
 
-; @@PLEAC@@_2.7
-;;-----------------------------
-;integer
-(+ (random 51) 25)
-
-;float
+;;; @@PLEAC@@_2.7
+;;;-----------------------------
+(setf random (+ (random (+ y (- x) 1)) x)
+;;;-----------------------------
+(setf random (+ (random 51) 25))
+(format t "~A~%" random)
+;; If you wanted to use floats...
 (+ (random 51.0) 25.0)
+;;;-----------------------------
+(setf elt (aref array (random (length array))))
+;;;-----------------------------
+(setf chars "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz012345789!@$%^&*")
+(setf password (coerce (loop repeat 8 collect (aref chars (random (length chars)))) 'string))
+;;;-----------------------------
 
+;;; @@PLEAC@@_2.8
+;;;-----------------------------
+;; CL appears not to have any equivalent of srand; you can call
+;; MAKE-RANDOM-STATE but its inner workings are not exposed.
+(setf *random-state* (make-random-state t))
+;;;-----------------------------
 
-; @@PLEAC@@_2.8
-; Question: anyone know a way to give a pre-determined seed, rather than seeding from hardware?
-(random limit (make-random-state t))
+;;; @@PLEAC@@_2.10
+;;;-----------------------------
+;; Note: (random 1.0) is the same as calling Perl's rand() with no
+;; arguments.
+(defun gaussian-rand ()
+  (do* ((u1 (1- (* 2 (random 1.0)))
+            (1- (* 2 (random 1.0))))
+        (u2 (1- (* 2 (random 1.0)))
+            (1- (* 2 (random 1.0))))
+        (w (+ (* u1 u1) (* u2 u2))
+           (+ (* u1 u1) (* u2 u2))))
+       ((< w 1.0)
+        (let* ((w2 (sqrt (/ (* -2 (log w)) w)))
+               (g2 (* u1 w2))
+               (g1 (* u2 w2)))
+          ;; No need for wantarray in CL because functions can return
+          ;; multiple values.
+          (values g1 g2)))))
+        
+
 
 
 ; @@PLEAC@@_2.11
@@ -1066,10 +1127,10 @@ its integer equivalent."
   (case (length list)
     (0 "")
     (1 (car list))
-    (2 (format nil "~{~a~^ and ~}" list))
+    (2 (format nil "~{~A~^ and ~}" list))
     (t (concatenate 'string
-                    (format nil "~{~a~^, ~}" (butlast list))
-                    (format nil " and ~a" (car (last list)))))))
+                    (format nil "~{~A~^, ~}" (butlast list))
+                    (format nil " and ~A" (car (last list)))))))
 ;;-----------------------------
 (let ((array '("red" "yellow" "green")))
   (format t "I have ~D marbles.~%" (length array))
@@ -1158,20 +1219,20 @@ its integer equivalent."
 (let ((matching '()))
   (dolist (item list)
     (when (test item) (push item matching))))
-;;-----------------------------
+;;;-----------------------------
 (setf bigs (remove-if-not #'(lambda (num) (> num 1000000)) nums))
 (setf pigs (loop for user being the hash-keys of users using (hash-value uid)
               when (> uid 1e7)
               collect user))
 
-;;-----------------------------
+;;;-----------------------------
 #+sbcl
 (remove-if-not #'(lambda (line)
                    (cl-ppcre:scan "^gnat " line))
                (cl-ppcre:split #\Newline
                                (with-output-to-string (output)
                                  (sb-ext:run-program "who" nil :search t :output output))))
-;;-----------------------------
+;;;-----------------------------
 ;;; Assumes DEFSTRUCT or DEFCLASS of EMPLOYEE with a POSITION slot.
 (setf engineers (remove "Engineer" employees :key #'employee-position :test-not 'string=))
 ;;-----------------------------
@@ -1179,7 +1240,7 @@ its integer equivalent."
                                               (and (>= (applicant-income applicant) 26000)
                                                    (<  (applicant-income applicant) 30000)))
                                           applicants))
-;;-----------------------------
+;;;-----------------------------
 
 ;;; @@PLEAC@@_4.16
 ;;;-----------------------------
