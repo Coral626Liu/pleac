@@ -7,17 +7,19 @@
 ;;;; @@SKIP@@ http://www.sbcl.org/
 
 ;;;; @@PLEAC@@_INTRO
-
 ;;;; @@SKIP@@ Newer submissions use SBCL, and make use of a number of
 ;;;; @@SKIP@@ SBCL and third-party libraries (see Appendix for
 ;;;; @@SKIP@@ details).
 
 ;;;; @@PLEAC@@_APPENDIX
 
-(defmacro chomp (string)
+(declaim (optimize (speed 0) (safety 3) (debug 3)))
+
+(defun chomp (string)
   "Similar to Perl's chomp(), although it returns the new value of
-STRING rather than the number of characters removed."
-  `(setf ,string (string-right-trim #(#\Newline #\Return) ,string)))
+STRING rather than the number of characters removed, and doesn't
+modify its argument."
+  (string-right-trim #(#\Newline #\Return) string))
 
 ;;;; @@SKIP@@ Common Lisp code makes use of the following for
 ;;;; @@SKIP@@ package/loading: 
@@ -916,9 +918,16 @@ its integer equivalent."
 
 ;;; @@PLEAC@@_2.8
 ;;;-----------------------------
-;; CL appears not to have any equivalent of srand; you can call
-;; MAKE-RANDOM-STATE but its inner workings are not exposed.
+;; CL intentionally does not have an equivalent of Perl's srand(); you
+;; can call MAKE-RANDOM-STATE but its inner workings are not exposed.
 (setf *random-state* (make-random-state t))
+;;;-----------------------------
+
+;;; @@PLEAC@@_2.9
+;;;-----------------------------
+;; In CL, RANDOM is supposed to return a truly random,
+;; uniformly-distributed value.
+(setf random (random))
 ;;;-----------------------------
 
 ;;; @@PLEAC@@_2.10
@@ -939,34 +948,83 @@ its integer equivalent."
           ;; No need for wantarray in CL because functions can return
           ;; multiple values.
           (values g1 g2)))))
-        
+;;;-----------------------------
+(defun weight-to-dist (weights)
+  "Takes a hash mapping key to weight and returns a hash mapping key
+to probability.  WEIGHTS is an alist."
+  (let ((dist (make-hash-table))
+        (total (loop for (key . ignored-value) in weights sum key)))
+    (loop for (key . weight) in weights
+         do (setf (gethash key dist) (/ weight total)))
+    dist))
 
+(defun weighted-rand (dist)
+  "Takes a hash mapping key to probability, and returns the
+corresponding element."
+  (loop
+     for rand = (random 1.0)
+     do
+     (loop for key being the hash-keys of dist using (hash-value weight)
+        do
+        (decf rand weight)
+        (when (minusp rand)
+          (return-from weighted-rand key)))))
+;;;-----------------------------
+;; gaussian_rand as above
+(let* ((mean 25)
+       (sdev 2)
+       (salary (+ (* (gaussian-rand) sdev) mean)))
+  (format t "You have been hired at $~,2F~%" salary))
+;;;-----------------------------
 
+;;; @@PLEAC@@_2.11
+;;;-----------------------------
+(defun deg2rad (degrees) 
+  (* (/ degrees 180) pi))
 
-; @@PLEAC@@_2.11
-; degrees to radians
-(defun deg2rad (degrees) (* (/ degrees 180) pi))
+(defun rad2deg (radians) 
+  (* (/ radians pi) 180))
+;;;-----------------------------
+(setf radians (deg2rad degrees))
+(setf degrees (rad2deg radians))
+;;;-----------------------------
+;; deg2rad and rad2deg defined either as above
+(defun degree-sine (degrees)
+  (let ((radians (deg2rad degrees)))
+    (sin radians)))
+;;;-----------------------------
 
-; radians to degrees
-(defun rad2deg (radians) (* (/ radians pi) 180))
-
-
-; @@PLEAC@@_2.12
-; tangent
+;;; @@PLEAC@@_2.12
+;;;-----------------------------
+;; tangent is built in to CL
 (tan theta)
-
+;;;-----------------------------
 (setf y (acos 3.7))
+;;;-----------------------------
+(setf y (tan (/ pi 2)))
+;;;-----------------------------
 
+;;; @@PLEAC@@_2.13
+;;;-----------------------------
+(setf log-e (log value))
+;;;-----------------------------
+(setf log-10 (log value 10))
+(setf log-base-whatever (log value base))
+;;;-----------------------------
+;; In CL, don't need custom log_base function as LOG already does it
+;;;-----------------------------
+(setf answer (log 10000 10))
+(format t "log10(10,000) = ~D~%" answer)
+;; log10(10,000) = 4.0
+;;;-----------------------------
+(format t "log2(1024) = ~A~%" (log 1024 2))
+;; log2(1024) = 10.0
+;;;-----------------------------
 
-; @@PLEAC@@_2.13
-; natural log
-(setf log_e (log value))
-
-(setf log_base_whatever (log value base))
-
-
-; @@PLEAC@@_2.14
-(defun multiply-matrices (m1 m2)
+;;; @@PLEAC@@_2.14
+;;;-----------------------------
+;;;-----------------------------
+(defun mmult (m1 m2)
   (check-type m1 (array * (* *)))
   (check-type m2 (array * (* *)))
   (let* ((m1-rows (array-dimension m1 0))
@@ -975,8 +1033,8 @@ its integer equivalent."
          (m2-columns (array-dimension m2 1)))
     (unless (= m1-columns m2-rows)
       (error 'simple-type-error
-             :format-control "Matrices ~S and ~S do not match."
-             :format-args (list m1 m2)))
+             :format-control "IndexError: matrices don't match: ~A != ~A"
+             :format-args (list m1-columns m2-rows)))
     (let ((result (make-array (list m1-rows m2-columns))))
       (dotimes (i m1-rows)
         (dotimes (j m2-columns)
@@ -984,13 +1042,63 @@ its integer equivalent."
                 (loop for k from 0 below m1-columns
                       summing (* (aref m1 i k) (aref m2 k j))))))
       result)))
-;;-----------------------------
-(let ((x #2a((3 2 3)
-             (5 9 8)))
-      (y #2a((4 7)
-             (9 3)
-             (8 1))))
-  (multiply-matrices x y))
+
+(defun range (n)
+  (loop for i from 0 below n collect i))
+
+;; This isn't really necessary in CL, but is here to match the Perl
+;; function.
+(defun veclen (vector)
+  (check-type vector simple-vector)
+  (array-dimension vector 0))
+
+;; This isn't really necessary in CL, but is here to match the Perl
+;; function.
+(defun matdim (matrix)
+  (values (array-dimension matrix 0)
+          (array-dimension matrix 1)))
+;;;-----------------------------
+;; Can't find an obvious equivalent to PDL (yet)
+;;;-----------------------------
+(setf x #2a((3 2 3)
+            (5 9 8))
+      y #2a((4 7)
+            (9 3)
+            (8 1)))
+
+(setf z (mmult x y))
+;;;-----------------------------
+
+;;; @@PLEAC@@_2.15
+;;;-----------------------------
+;; Complex numbers are built in to CL so there is no need to compute
+;; their product by hand.
+;;;-----------------------------
+;; c = a * b using built-in CL functionality
+(setf c (* a b))
+;;;-----------------------------
+;; Again, no need to do complex number stuff by hand.
+;;;-----------------------------
+(setf a #c(3 5))
+(setf b #c(2 -2))
+(setf c (* a b))
+(format t "c = ~D+~Di~%" (realpart c) (imagpart c))
+;; c = 16+4i
+;;;-----------------------------
+(setf c (* #c(3 5) #c(2 -2)))
+(setf d #c(3 4))
+(let ((sqrt-d (sqrt d)))
+  (format t "sqrt(3+4i) = ~D+~Di~%" (realpart sqrt-d) (imagpart sqrt-d)))
+;; sqrt(3+4i) = 2.0+1.0i
+;;;-----------------------------
+
+;;; @@PLEAC@@_2.16
+;;;-----------------------------
+(setf number (parse-integer hexadecimal :radix 16))
+(setf number (parse-integer octal :radix 8))
+;;;-----------------------------
+;; @@INCOMPLETE@@
+
 
 ; @@PLEAC@@_3.1
 ; use get-decoded-time to fetch the time
@@ -1445,6 +1553,444 @@ its integer equivalent."
         while line
         count (not missing-newline-p)))
 
+;;; @@PLEAC@@_10.0
+;;;-----------------------------
+(defparameter *greeted* 0)              ; global variable
+(defun hello ()
+  (incf *greeted*)
+  (format t "hi there!~%"))
+;;;-----------------------------
+(hello)           ; call subroutine hello with no arguments/parameters
+;;;-----------------------------
+
+;;; @@PLEAC@@_10.1
+;;;-----------------------------
+
+;; It would be very strange to do things this way in CL, but you could
+;; (to be like the Perl example).
+(defun hypotenuse (&rest args)
+  (sqrt (+ (expt (elt args 0) 2) 
+           (expt (elt args 1) 2))))
+
+(setf diag (hypotenuse 3 4)) ; DIAG is 5.0
+;;;-----------------------------
+(defun hypotenuse (side1 side2)
+  (sqrt (+ (expt side1 2) 
+           (expt side2 2))))
+;;;-----------------------------
+(format t "~D~%" (truncate (hypotenuse 3 4))) ; prints 5
+
+(let ((a '(3 4)))
+  (format t "~D~%" (truncate (apply 'hypotenuse a)))) ; prints 5
+;;;-----------------------------
+(setf both `(,@men ,@women))
+;;;-----------------------------
+(setf nums '(1.4 3.5 6.7))
+(setf ints (apply 'int-all nums))       ; NUMS unchanged
+(defun int-all (&rest retlist)
+  (loop for n in retlist collect (truncate n)))
+;;;-----------------------------
+(setf nums '(1.4 3.5 6.7))
+(trunc-em nums)                         ; NUMS now (1 3 6)
+(defun trunc-em (reals)
+  (map-into reals 'truncate reals))     ; truncate each element of arg list
+;;;-----------------------------
+
+;;; @@PLEAC@@_10.2
+;;;-----------------------------
+(defun somefunc ()
+  (let (variable              ; VARIABLE is invisible outside SOMEFUNC
+        another an-array a-hash)    ; declaring many variables at once
+    ;; ...
+    ))
+;;;-----------------------------
+(destructuring-bind (name age) *posix-argv*
+  (let ((start (fetch-time)))
+    ;; ...
+    ))
+;;;-----------------------------
+(destructuring-bind (a b) pair
+  (let ((c (fetch-time)))
+    ;; ...
+    ))
+
+(defun check-x (x)
+  (let ((y "whatever"))
+    (run-check)
+    (when condition
+      (format t "got ~A~%" x))))
+;;;-----------------------------
+(defun save-array (&rest arguments)
+  ;; There's probably a better way to do this.
+  (setf *global-array* (append *global-array* (copy-seq arguments))))
+;;;-----------------------------
+
+;;; @@PLEAC@@_10.3
+;;;-----------------------------
+(let (variable)
+  (defun mysub ()
+    ;; ... accessing VARIABLE
+    ))
+;;;-----------------------------
+(let ((variable 1))
+  (defun othersub ()
+    ;; ... accessing VARIABLE
+    ))
+;;;-----------------------------
+(let ((counter 0))
+  (defun next-counter ()
+    (incf counter)))
+;;;-----------------------------
+(let ((counter 42))
+  (defun next-counter ()
+    (incf counter))
+  (defun prev-counter ()
+    (decf counter)))
+;;;-----------------------------
+
+;;; @@PLEAC@@_10.4
+;;;-----------------------------
+;; There is no standard equivalent of Perl's caller(), in CL.
+;; Functions can get inlined (among other things), so it's not even
+;; clear what something like caller() should actually return, anyway.
+;;;-----------------------------
+
+;;; @@PLEAC@@_10.5
+;;;-----------------------------
+(array-diff array1 array2)              ; params are already references
+;;;-----------------------------
+(setf a #(1 2))
+(setf b #(5 8))
+(setf c (add-vecpair a b))
+(format t "~{~A~^ ~}~%" (map 'list 'identity c)) 
+;; 6 10
+
+;; With lists instead of vectors, or the use of the SERIES package,
+;; this function would be simpler.
+(defun add-vecpair (x y)        ; assumes both vectors the same length
+  (let ((result (make-array (length x))))
+    (map-into result '+ x y)))
+;;;-----------------------------
+;; Normally would use CHECK-TYPE or ASSERT here, but to be more like
+;; the Perl example...
+(unless (and (typep x 'vector)
+             (typep y 'vector))
+  (error "usage: add_vecpair VECTOR1 VECTOR2"))
+;;;-----------------------------
+
+;;; @@PLEAC@@_10.6
+;;;-----------------------------
+;; There is no equivalent to Perl's wantarray() in CL.  The most
+;; similar language feature is CL's ability to return multiple values,
+;; which the caller may choose to ignore.
+;;;-----------------------------
+
+;;; @@PLEAC@@_10.7
+;;;-----------------------------
+(thefunc :increment "20s" :start "+5m" :finish "+30m")
+(thefunc :start "+5m" :finish "+30m")
+(thefunc :finish "+30m")
+(thefunc :start "+5m" :increment "15s")
+;;;-----------------------------
+;; &allow-other-keys is used to emulate the Perl example's use of @_
+;; in the %args hash.
+(defun thefunc (&key (increment "10s") finish start &allow-other-keys)
+  (when (cl-ppcre:scan "m$" increment)
+    ;; ...
+    ))
+;;;-----------------------------
+
+;;; @@PLEAC@@_10.8
+;;;-----------------------------
+;; Use of gensym here is unusual, just trying to mimic the Perl (there
+;; is probably a better way to do that, too).  Also, normally you'd do
+;; MULTIPLE-VALUE-BIND.
+(multiple-value-setq (a #.(gensym) c) (func))
+;;;-----------------------------
+;; I don't know of a quicker built-in way to do exactly what the Perl
+;; is doing here.  There is NTH-VALUE but it only returns one value.
+(let ((results (multiple-value-list (func))))
+  (setf a (elt results 0)
+        c (elt results 2)))
+
+;; However you can easily define a macro that does roughly the same
+;; thing.
+(defmacro nth-values ((&rest positions) &body body)
+  (let ((results (gensym "results-")))
+    `(let ((,results (multiple-value-list ,@body)))
+       (values
+        ,@(mapcar #'(lambda (pos) `(elt ,results ,pos)) positions)))))
+
+(multiple-value-setq (a c) (nth-values (0 2) (func)))
+;;;-----------------------------
+#+sbcl
+(multiple-value-setq (dev ino dummy dummy uid)  (sb-unix:unix-stat filename))
+;;;-----------------------------
+#+sbcl
+(multiple-value-setq (dev ino #.(gensym) #.(gensym) uid)  (sb-unix:unix-stat filename))
+;;;-----------------------------
+;; Using the non-standard NTH-VALUES macro defined above.
+#+sbcl
+(multiple-value-setq (dev ino uid gid) (nth-values (0 1 4 5) (sb-unix:unix-stat filename)))
+;;;-----------------------------
+
+;;; @@PLEAC@@_10.9
+;;;-----------------------------
+(multiple-value-setq (array hash) (somefunc))
+
+(defun somefunc ()
+  (let ((array (make-array ...))
+        (hash (make-hash-table ...)))
+    ;; ...
+    (values array hash)))
+;;;-----------------------------
+(defun fn ()
+  ;; ...
+  (values a b c))                 ; assuming a, b and c are all hashes
+;;;-----------------------------
+(multiple-value-setq (h0 h1 h2) (fn))   ; unlike Perl example, not "wrong"
+(setf list-of-hashes (multiple-value-list (fn))) ; eg: (gethash "keystring" (elt list-of-hashes 2))
+(multiple-value-setq (r0 r1 r2) (fn)) ; everything's a reference, no difference from previous
+;;;-----------------------------
+
+;;; @@PLEAC@@_10.10
+;;;-----------------------------
+;; In CL everything returns a value.
+;;;-----------------------------
+(defun empty-retval ())                 ; returns nil
+;; If you want to distinguish between returning "empty" vs "undefined"
+;; then you can return return a second value indicating which.
+(defun empty-retval ()
+  (values nil nil))
+;;;-----------------------------
+(let ((a (yourfunc)))
+  (when a
+    ;; ...
+    ))
+;;;-----------------------------
+;; The following are all the same, just mirroring the Perl here.
+(let ((a (sfunc)))
+  (unless a
+    (error "sfunc failed")))
+
+(let ((a (afunc)))
+  (unless a
+    (error "afunc failed")))
+
+(let ((a (hfunc)))
+  (unless a
+    (error "hfunc failed")))
+;;;-----------------------------
+;; Note: this is for illustrating the use of OR and ERROR, there is no
+;; built-in ioctl or strerror in CL.
+(or (ioctl ...) (error "can't ioctl: ~A" strerror))
+;;;-----------------------------
+
+;;; @@PLEAC@@_10.11
+;;;-----------------------------
+(setf results (myfunc 3 5))
+;;;-----------------------------
+;; Unlike Perl, you can't call functions without using outer parens
+;; (unless you develop macros to let you do so in specific
+;; circumstances)
+(setf results (myfunc 3 5))
+;;;-----------------------------
+;;;-----------------------------
+(setf results `(,@(myfunc 3) 5))
+;;;-----------------------------
+(defun lock-sh () 1)
+(defun lock-ex () 2)
+(defun lock-un () 4)
+;;;-----------------------------
+(defun mypush (list &rest remainder)
+  ;; ...
+  )
+;;;-----------------------------
+(mypush (if (> x 10) a b) 3 5)          ; unlike Perl, not wrong
+;;;-----------------------------
+;; Params are already passed as references in CL
+;;;-----------------------------
+(defun hpush (href &rest keys-and-values)
+  (loop
+     for k in keys-and-values by #'cddr
+     for v in (cdr keys-and-values) by #'cddr
+     do (setf (gethash k href) v)))
+
+(hpush pieces "queen" 9 "rook" 5)
+;;;-----------------------------
+
+;;; @@PLEAC@@_10.12
+;;;-----------------------------
+(error "some message")                  ; raise exception
+;;;-----------------------------
+(multiple-value-bind (result condition)
+    (ignore-errors (eval (func)))
+  (when condition (warn "func raised an exception: ~A" condition)))
+;;;-----------------------------
+(multiple-value-bind (result condition)
+    (ignore-errors (eval (setf val (func))))
+  (when condition (warn "func blew up: ~A" condition)))
+;;;-----------------------------
+(multiple-value-bind (result condition)
+    (ignore-errors (eval (setf val (func))))
+  (when condition (warn "func blew up: ~A" condition)))
+;;;-----------------------------
+(multiple-value-bind (result condition)
+    (ignore-errors (eval (setf val (func))))
+  (when (and condition
+             (not (cl-ppcre:scan "Full moon" 
+                                 ;; There's probably a better way to
+                                 ;; do this.
+                                 (format nil "~A" condition))))
+    (warn "func blew up: ~A" condition)))
+;;;-----------------------------
+;; No equivalent to wantarray().
+;;;-----------------------------
+
+;;; @@PLEAC@@_10.13
+;;;-----------------------------
+(defparameter *age* 18)                 ; global variable
+(when CONDITION
+  (let ((*age* 23))
+    (func)                              ; sees temporary value of 23
+    ) ; restore old value at block exit
+;;;-----------------------------
+(setf para (get-paragraph fh))
+(defun get-paragraph (fh)
+  (chomp
+   (coerce (loop for c = (read-char fh nil :eof)
+              until (or (eq c :eof)
+                        (and (eql c #\Newline)
+                             (eql (peek-char nil fh nil #\Newline) #\Newline)))
+              collect c)
+           'string)))
+;;;-----------------------------
+(setf contents (get-motd))
+(defun get-motd ()
+  (with-open-file (motd "/etc/motd") ; will do die()-like stuff automatically
+    (coerce (loop
+               for c = (read-char motd nil :eof)
+               until (eq c :eof)
+               collect c)
+            'string)))
+;;;-----------------------------
+;;;-----------------------------
+;; Note: in the spirit of the Perl, this section should be done using
+;; LET and DECLARE SPECIAL but I couldn't get that to work.
+(defparameter *nums* '(0 1 2 3 4 5))
+
+(defun my-second ()     ; don't redefine CL's standard SECOND function
+  (format t "~{~A~^ ~}~%" *nums*))
+
+(defun my-first ()
+  (let ((*nums* (copy-list *nums*)))
+    (setf (elt *nums* 3) 3.14159)
+    (my-second)))
+
+(my-second)
+;; 0 1 2 3 4 5
+(my-first)
+;; 0 1 2 3.14159 4 5
+;;;-----------------------------
+;; No obvious equivalent to %SIG
+;;;-----------------------------
+
+;;;-----------------------------
+;;; @@INCOMPLETE@@
+
+;;; @@PLEAC@@_10.14
+;;;-----------------------------
+(fmakunbound 'grow) ; not sure this is necessary, but more like the Perl
+(setf (symbol-function 'grow) #'expand)
+(grow)                                  ; calls EXPAND
+;;;-----------------------------
+(setf one:var two:table)                ; make ONE:VAR alias for TWO:TABLE
+(setf (symbol-function 'one:big) #'two:small) ; make ONE:BIG alias for TWO:SMALL
+;;;-----------------------------
+(let ((fred #'barney))              ; temporarily alias FRED to BARNEY
+  ;; ...
+  )
+;;;-----------------------------
+(setf string (red "careful here"))
+(format t "~A" string)
+;; <FONT COLOR='red'>careful here</FONT>
+;;;-----------------------------
+(defun red (string)
+  (concatenate 'string "<FONT COLOR='red'>" string "</FONT>"))
+;;;-----------------------------
+(defmacro color-font (color)
+  `(defun ,(intern (string-upcase color)) (string)
+     (concatenate 'string "<FONT COLOR='" ,color "'>" string "</FONT>")))
+
+(color-font "red")
+(color-font "green")
+(color-font "blue")
+(color-font "purple")
+;; etc
+;;;-----------------------------
+(defmacro color-fonts (&rest colors)
+  (append '(progn)
+          (loop for color in colors
+             collect `(color-font ,color))))
+
+(color-fonts "red" "green" "blue" "yellow" "orange" "purple" "violet")
+;;;-----------------------------
+
+;;; @@PLEAC@@_10.16
+;;;-----------------------------
+(defun outer (arg)
+  (let* ((x (+ arg 35))
+         ;; You're much less likely to do this accidentally in CL, but
+         ;; I'm trying to match the spirit of the Perl example.
+         (inner (block nil
+                  (return (* x 19)))))  ; WRONG
+    (+ x (inner))))
+;;;-----------------------------
+(defun outer (arg)
+  (let ((x (+ arg 35)))
+    (flet ((inner () (* x 19)))
+      (+ x (inner)))))
+;;;-----------------------------
+
+;;; @@PLEAC@@_10.17
+;;;-----------------------------
+
+(defun bysub1 (&rest filenames)
+  (let ((sub (make-array 0 :fill-pointer 0))
+        (msgs (make-array 0 :fill-pointer 0)))
+    (dolist (filename filenames)
+      (with-open-file (file filename)
+        ;; GET-PARAGRAPH defined in section 10.13
+        (loop
+           for paragraph = (get-paragraph file)
+           until (string-equal paragraph "")
+           do (when (cl-ppcre:scan (cl-ppcre:create-scanner #?r"^From" :multi-line-mode t) 
+                                   paragraph)
+                (vector-push-extend
+                 (or
+                  (cl-ppcre:register-groups-bind (subject)
+                      ((cl-ppcre:create-scanner #?r/^Subject:\s*(?:Re:\s*)*(.*)/
+                                                :case-insensitive-mode t :multi-line-mode t)
+                       paragraph)
+                    (string-downcase subject))
+                  "")
+                 sub))
+           (vector-push-extend paragraph msgs))))
+    (let ((indices (make-array (length msgs)
+                               :initial-contents (loop
+                                                    for i below (length msgs) 
+                                                    collect i))))
+      (sort indices #'(lambda (a b)
+                        (if (and (< a (length sub)) (< b (length sub)))
+                            (string-lessp (aref sub a) (aref sub b))
+                            (< a b))))
+      (map nil #'(lambda (i)
+                   (format t "~A~%" (aref msgs i)))
+           indices))))
+
+;; bysub2 illustrates a different Perl idiom that doesn't translate too well.
+
+;;; @@INCOMPLETE@@
 
 ; @@PLEAC@@_11.15
 ;;; Binary trees example
