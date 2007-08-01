@@ -1,4 +1,5 @@
 ;;;; -*- lisp -*-
+
 ;;;; @@PLEAC@@_NAME
 ;;;; @@SKIP@@ Common Lisp
 
@@ -7,11 +8,19 @@
 ;;;; @@SKIP@@ http://www.sbcl.org/
 
 ;;;; @@PLEAC@@_INTRO
+
 ;;;; @@SKIP@@ Newer submissions use SBCL, and make use of a number of
 ;;;; @@SKIP@@ SBCL and third-party libraries (see Appendix for
 ;;;; @@SKIP@@ details).
 
+;;;; @@SKIP@@ In the code below, when the Perl code uses arrays in a
+;;;; @@SKIP@@ way that really requires it (e.g., uses random access),
+;;;; @@SKIP@@ we use CL arrays.  Otherwise we use lists which are
+;;;; @@SKIP@@ slightly more convenient.
+
 ;;;; @@PLEAC@@_APPENDIX
+
+(in-package :cl-user)
 
 (declaim (optimize (speed 0) (safety 3) (debug 3)))
 
@@ -20,6 +29,45 @@
 STRING rather than the number of characters removed, and doesn't
 modify its argument."
   (string-right-trim #(#\Newline #\Return) string))
+
+(defmacro when-let ((var value) &body body)
+  "Evaluate VALUE, and if the result is non-nil bind it to VAR
+and evaluate BODY."
+  `(let ((,var ,value))
+     (when ,var ,@body)))
+
+(defmacro perl-grep (sequence &body predicate-body)
+  "Like Perl's grep.  Predicate is a body of code that can refer to $_
+as the current element of the list."
+  `(remove-if-not #'(lambda ($_)
+                      ,@predicate-body)
+                  ,sequence))
+
+;; The following could be made more efficient by using a faster TEST
+;; function if the keys appear to be simpler.
+(defun mkhash (&rest keys/values)
+  "Utility for making new EQUAL hashes easily, similar to Perl's
+built-in funcionality."
+  (let ((newhash (make-hash-table :test 'equal ; use EQUAL so strings work as keys
+                                  :size (truncate (/ (length keys/values)
+                                                     2)))))
+    (loop
+       for key in keys/values by #'cddr
+       for value in (cdr keys/values) by #'cddr
+       do (setf (gethash key newhash) value))
+    newhash))
+
+;; See section 12.1 for an example usage of this, including how
+;; *EXPORT-TAGS* should be formatted.
+(defun import-tags (package-designator &rest tags)
+  "Helps emulate Perl's EXPORT_TAGS functionality, which has no
+equivalent in standard CL."
+  (let ((current-package *package*)
+        (*package* (find-package package-designator)))
+    (dolist (tag tags)
+      (import (cdr (assoc tag *export-tags*))
+              current-package))))
+
 
 ;;;; @@SKIP@@ Common Lisp code makes use of the following for
 ;;;; @@SKIP@@ package/loading: 
@@ -334,7 +382,7 @@ double quotation mark.
 ;;;-----------------------------
 ;; In CL it makes more sense to call this function from the REPL than
 ;; it does to put it into a separate script.  E.g.,
-;;  > (sum "/tmp/xyz")
+;;  > (sum "/tmp/xyz" "~/foo/bar.txt")
 (defun sum (&rest files)
   (let ((sum 0))
     (dolist (filename files)
@@ -1094,91 +1142,121 @@ corresponding element."
 
 ;;; @@PLEAC@@_2.16
 ;;;-----------------------------
-(setf number (parse-integer hexadecimal :radix 16))
-(setf number (parse-integer octal :radix 8))
+(defun hex (string)
+  (parse-integer string 
+                 :radix 16 
+                 :start 2))             ; PARSE-INTEGER dislikes "0x"
+
+(defun oct (string)
+  (parse-integer string :radix 8))
+
+(setf number (hex hexadecimal))
+(setf number (oct octal))
 ;;;-----------------------------
-;; @@INCOMPLETE@@
+(format t "Gimme a number in decimal, octal, or hex: ")
+(setf num (read-line))
+(when num
+  (let ((num (chomp num)))
+    (format t "~D ~:*~8R ~:*~X"
+            (cond
+              ((cl-ppcre:scan "^0x" num) (hex num))
+              ((cl-ppcre:scan "^0" num) (oct num))
+              (t (parse-integer num))))))
+;;;-----------------------------
+(format t "Enter file permission in octal: ")
+(setf permissions (read-line))
+(unless permissions (error "Exiting..."))
+(let ((permissions (chomp permissions)))
+  (format t "The decimal value is ~A~%" (oct permissions)))
+;;;-----------------------------
 
-
-; @@PLEAC@@_3.1
-; use get-decoded-time to fetch the time
+;;; @@PLEAC@@_3.1
+;;;-----------------------------
+;; use GET-DECODED-TIME to fetch the time
 (multiple-value-bind
-	(second minute hour date month year day-of-week dst-p tz)
-	(get-decoded-time) 
-	year) ;; prints out year using standard library
+      (second minute hour date month year day-of-week dst-p tz)
+    (get-decoded-time)
+  year) ; prints out year using standard library
 
-; alternatively date-calc provides overlapping functionality
-(multiple-value-bind
-	(year month day h m s)
-	(today-and-now) ; imported from date-calc
-	year)           ; date-calc approach 
+;; alternatively date-calc provides overlapping functionality
+(multiple-value-bind (year month day h m s)
+    (today-and-now)                     ; imported from date-calc
+  year)                                 ; date-calc approach 
 
-; how to print out current date as "YYYY-MM-DD" (in approved ISO 8601 fashion)
-(multiple-value-bind
-    (year month day) 
-    (today) ;imported from date-calc
-    (format t "The current date is ~A-~2,'0d-~2,'0d" year month day))
+;; how to print out current date as "YYYY-MM-DD" (in approved ISO 8601 fashion)
+(multiple-value-bind (year month day) 
+    (today)                             ;imported from date-calc
+  (format t "The current date is ~A-~2,'0d-~2,'0d" year month day))
 
-; Alternatively, you could use the format-time function from the CyberTiggyr-Time package:
+;; Alternatively, you could use the format-time function from the
+;; CyberTiggyr-Time package:
 (format-time t "%Y-%m-%d" (get-universal-time))
 
-; As you can see, format-time operates on epoch time
+;; As you can see, format-time operates on epoch time
 
-; @@PLEAC@@_3.2 
-; to encode time into universal time using date-calc
+;;; @@PLEAC@@_3.2 
+;;;-----------------------------
+;; to encode time into universal time using date-calc
 (multiple-value-bind
-	(second minute hour date month year day-of-week dst-p tz)
-	(get-decoded-time)
+      (second minute hour date month year day-of-week dst-p tz)
+    (get-decoded-time)
   (encode-universal-time second minute hour date month year))
 
-;; the last two return values for get-decoded-time correspond to daylight savings and the
-;; timezone.  Both are useful for timezone-related arithmatic.
+;; The last two return values for get-decoded-time correspond to
+;; daylight savings and the timezone.  Both are useful for
+;; timezone-related arithmetic.
 
-; @@INCOMPLETE@@
-; An example of a GMT computation with and without daylight savings is appropriate here since
-; the built-in perl functions handle this.
+;;; @@INCOMPLETE@@
+;; An example of a GMT computation with and without daylight savings
+;; is appropriate here since the built-in perl functions handle this.
 
-; @@PLEAC@@_3.3
+;;; @@PLEAC@@_3.3
+;;;-----------------------------
 (let ((time (get-universal-time))) ; get epoch seconds
   (multiple-value-bind
       (second minute hour day month year day-of-week dst-p tz)
       (decode-universal-time time) ; decode and...
     (list day month year hour minute second))) ; return
 
-; @@PLEAC@@_3.4
-; when using universal time you add or subtract seconds
-; here we add one hour
+;;; @@PLEAC@@_3.4
+;;;-----------------------------
+
+;; when using universal time you add or subtract seconds
+;; here we add one hour
 (let ((firstdate 
        (encode-universal-time 0 12 6 23 11 2006))
       (onehour (* 60 60 1)))
   (+ onehour firstdate))
 
-; or you could use date-calc function
-; here we'll add one day
+;; or you could use date-calc function
+;; here we'll add one day
 (add-delta-ymdhms 2006 11 24 18 12 0  0 0 1 0 0 0)
 
-; @@PLEAC@@_3.5
-; We'll use the epoch seconds to perform subtraction, 
-; then divide by seconds per day
+;;; @@PLEAC@@_3.5
+;;;-----------------------------
+;; We'll use the epoch seconds to perform subtraction, 
+;; then divide by seconds per day
 (let ((first (encode-universal-time 52 45 20 13 12 1901))
       (second (encode-universal-time 7 14 3 19 1 2038)))
   (float (/ (- second first) (* 60 60 24))))
 
-; method two uses delta-days from the date-calc package:
+;; method two uses delta-days from the date-calc package:
 (delta-days 1901 12 13 2038 1 19)
 
-; delta-days does not yet have the granularity of seconds, minutes or hours. 
+;; delta-days does not yet have the granularity of seconds, minutes or hours. 
 
-; @@PLEAC@@_3.6
-; The week of the year is computed as follows:
-(week-number 2006 12 1) ; week-of-year is imported from date-calc
+;;; @@PLEAC@@_3.6
+;;;-----------------------------
+;; The week of the year is computed as follows:
+(week-number 2006 12 1)      ; week-of-year is imported from date-calc
 
-; similar functions exist for day of week, day of year, etc.
+;; similar functions exist for day of week, day of year, etc.
 
-; @@PLEAC@@_3.7
+;;; @@PLEAC@@_3.7
+;;;-----------------------------
 (parse-time "2006-08-20")
 
-; parse-time can recognize many of the commonly found date formats
+;; PARSE-TIME can recognize many of the commonly found date formats
 
 ; format-time comes with several ways to format...
 (format-time t *format-time-date* (get-universal-time))
@@ -1194,16 +1272,18 @@ corresponding element."
 ; results in: 2006-11-25
 
 ;;; @@PLEAC@@_4.0
+;;;-----------------------------
 (setf nested '("this" "that" "the" "other")
 (setf nested '("this" "that" ("the" "other")))
-;;-----------------------------
+;;;-----------------------------
 (setf tune '("The" "Star-Spangled" "Banner"))
 
 ;;; @@PLEAC@@_4.1
+;;;-----------------------------
 (setf a '("quick" "brown" "fox")
-;;-----------------------------
+;;;-----------------------------
 (setf a '("Why" "are" "you" "teasing" "me?"))
-;;-----------------------------
+;;;-----------------------------
 (setf lines (cl-ppcre:regex-replace-all (cl-ppcre:create-scanner "^\\s*(.+)" :multi-line-mode t )
 "    The boy stood on the burning deck,
     It was as hot as glass.
@@ -1221,17 +1301,17 @@ corresponding element."
        while line
        do (push (string-right-trim #(#\Newline #\Return)
                                    line) bigarray))))
-;;-----------------------------
+;;;-----------------------------
 (setf banner "The Mines of Moria")
-;;-----------------------------
+;;;-----------------------------
 (setf name "Gandalf")
 (setf banner (format nil "Speak ~A and enter!" name))
 (setf banner "Speak $name and welcome!")
-;;-----------------------------
+;;;-----------------------------
 
 ;;; @@PLEAC@@_4.2
-;;-----------------------------
-(defun commify_series (list)
+;;;-----------------------------
+(defun commify-series (list)
   (case (length list)
     (0 "")
     (1 (car list))
@@ -1239,22 +1319,22 @@ corresponding element."
     (t (concatenate 'string
                     (format nil "~{~A~^, ~}" (butlast list))
                     (format nil " and ~A" (car (last list)))))))
-;;-----------------------------
+;;;-----------------------------
 (let ((array '("red" "yellow" "green")))
   (format t "I have ~D marbles.~%" (length array))
   (format t "I have ~{~a~} marbles.~%" array))
 ;;I have 3 marbles.
 ;;I have redyellowgreen marbles.
-;;-----------------------------
+;;;-----------------------------
 ;; @@INCLUDE@@ include/commonlisp/ch04/commify_series.lisp
-;;-----------------------------
+;;;-----------------------------
 
 ;;; @@PLEAC@@_4.4
-;;-----------------------------
+;;;-----------------------------
 (dolist (item list)
   ;; do something with ITEM
   )
-;;-----------------------------
+;;;-----------------------------
 (dolist (user bad-users)
   (complain user))
 ;;-----------------------------
@@ -1352,7 +1432,6 @@ corresponding element."
 
 ;;; @@PLEAC@@_4.16
 ;;;-----------------------------
-
 ;;; The following aren't efficient on long lists
 (setf circular `(,@(last circular) ,@(nbutlast circular))) ; the last shall be first
 (setf circular `(,@(cdr circular) ,(car circular))) ; and vice versa
@@ -1370,7 +1449,7 @@ corresponding element."
 ;;;-----------------------------
 
 ;;; @@PLEAC@@_4.17
-;;-----------------------------
+;;;-----------------------------
 (defun fisher-yates-shuffle (vector)
   "Randomly shuffle elements of VECTOR."
   (loop for i from (1- (length vector)) downto 1
@@ -1378,7 +1457,9 @@ corresponding element."
      unless (= i j)
      do (rotatef (aref vector i) (aref vector j)))
   vector)
-;;;
+
+(fisher-yates-shuffle vector)           ; permutes VECTOR in place
+;;;-----------------------------
 (defun shuffle (vector)
   "Return a fresh permuted copy of VECTOR."
   (let* ((n-permutations (factorial (length vector)))
@@ -1394,6 +1475,7 @@ corresponding element."
   vector)
 
 ;;; @@PLEAC@@_4.19
+;;;-----------------------------
 (defun factorial (n)
   (loop for result = 1 then (* result i)
         for i from 1 to n
@@ -1455,15 +1537,14 @@ corresponding element."
 (defun nth-permutation (n length)
   (pattern-permutation (nth-pattern n length)))
 
-; @@PLEAC@@_5.0
-
+;;; @@PLEAC@@_5.0
+;;;-----------------------------
 (setf age (make-hash-table :test 'equal))
 
 (setf (gethash "Nat" age) 24
       (gethash "Jules" age) 25
       (gethash "Josh" age) 17)
 ;;-----------------------------
-
 (mapcar #'(lambda (l)
             (setf (gethash (car l) age) (cdr l)))
         '(("Nat" . 24)
@@ -1478,22 +1559,19 @@ corresponding element."
           ("Banana" . "yellow")
           ("Lemon" . "yellow")
           ("Carrot" . "orange")))
-
-;;-----------------------------
-
+;;;-----------------------------
 (mapcar #'(lambda (l)
             (setf (gethash (car l) food-color) (cdr l)))
         '((Apple . "red")
           (Banana . "yellow")
           (Lemon . "yellow")
           (Carrot . "orange")))
-;;-----------------------------
-
+;;;-----------------------------
 
 ; @@PLEAC@@_5.1
-;;-----------------------------
+;;;-----------------------------
 (setf (gethash key hash) value)
-;;-----------------------------
+;;;-----------------------------
 
 (setf (gethash "Raspberry" food-color) "pink")
 
@@ -1501,8 +1579,8 @@ corresponding element."
         (loop for f being the hash-keys food-color
            collect f))
 
-; @@PLEAC@@_5.2
-;;-----------------------------
+;;; @@PLEAC@@_5.2
+;;;-----------------------------
 ;; does %HASH have a value for $KEY ?
 (if (nth-value 1 (gethash key hash))
     'it-exists
@@ -1514,7 +1592,7 @@ corresponding element."
           name
           (if (nth-value 1 (gethash name food-color))
               "food" "drink")))
-;;-----------------------------
+;;;-----------------------------
 (setf age (make-hash-table :test 'equal))
 (setf (gethash "Toddler" age) 3)
 (setf (gethash "Unborn" age) 0)
@@ -1861,11 +1939,17 @@ corresponding element."
 ;;;-----------------------------
 (setf para (get-paragraph fh))
 (defun get-paragraph (fh)
+  ;; Skip leading newlines.
+  (loop for peek = (peek-char nil fh nil nil)
+     while (and peek (eql peek #\Newline))
+     do (read-char fh nil nil))
   (chomp
-   (coerce (loop for c = (read-char fh nil :eof)
+   (coerce (loop 
+              for c = (read-char fh nil :eof)
               until (or (eq c :eof)
                         (and (eql c #\Newline)
-                             (eql (peek-char nil fh nil #\Newline) #\Newline)))
+                             (eql (peek-char nil fh nil #\Newline)
+                                  #\Newline)))
               collect c)
            'string)))
 ;;;-----------------------------
@@ -2014,20 +2098,8 @@ corresponding element."
 
 ;; bysub2 illustrates a Perl-specific idiom and will be skipped.
 
-;; The following could be made more efficient by using faster TEST
-;; functions if the keys appear to be simpler, for example.
-(defun mkhash (&rest keys/values)
-  "Utility for making new hashes easily, used by BYSUB3 below."
-  (let ((newhash (make-hash-table :test 'equal ; use EQUAL so strings work as keys
-                                  :size (truncate (/ (length keys/values) 
-                                                     2)))))
-    (loop 
-       for key in keys/values by #'cddr
-       for value in (cdr keys/values) by #'cddr
-       do (setf (gethash key newhash) value))
-    newhash))
-
-(defun print-hash (hashtable)
+;; MKHASH defined in appendix
+(defun print-hash-table (hashtable)
   "Useful for debugging."
   (loop
      for key being the hash-keys of hashtable using (hash-value value)
@@ -2105,6 +2177,8 @@ corresponding element."
 
 ;;; @@PLEAC@@_11.0
 ;;;-----------------------------
+;; In CL you don't need extra syntax to treat variables (symbols) as
+;; references, they already work that way.
 (format t "~A" sref) ; prints the value that the reference SREF refers to
 (setf sref 3)                           ; assigns SREF's referent
 ;;;-----------------------------
@@ -2122,7 +2196,7 @@ corresponding element."
 ;; $$pi = 4;           # runtime error
 ;;;-----------------------------
 (setf my-aref #(3 4 5)) ; new array (no "anonymous" distinction in CL)
-;; MKHASH defined above, not standard CL
+;; MKHASH defined in appendix, not standard CL
 (setf href (mkhash "How" "Now" "Brown" "Cow"))
 ;;;-----------------------------
 (makunbound 'my-aref)
@@ -2130,9 +2204,41 @@ corresponding element."
 (format t "~A" my-aref)
 ;; #(1 2 3)
 ;;;-----------------------------
-;;; @@INCOMPLETE@@
+;; Perl doesn't support true multi-dimensional arrays, instead it
+;; supports arrays of references (to other arrays).  CL supports
+;; either one, but the built-in functionality (AREF) works on true
+;; multi-dimensional arrays.  In this example we'll assume
+;; arrays-of-references to match the Perl example's semantics.
+
+;; You could go like this, but it is a lot of typing and is confusing
+;; to read.
+(setf (aref (aref (aref (aref a 4) 23) 53) 21) "fred")
+(format t "~A" (aref (aref (aref (aref a 4) 23) 53) 21))
+;; fred
+
+;; A better alternative would be a macro to be able to use the same
+;; syntax as CL's built-in AREF function.
+(defmacro perl-aref (array &rest subscripts)
+  "Allows AREF-like access to arrays-of-refrences (as opposed to true
+multidimensional arrays.)"
+  (labels ((make-arefs (array subscripts)
+             (if subscripts
+                 (make-arefs `(aref ,array ,(car subscripts)) (cdr subscripts))
+                 array)))
+    (make-arefs array subscripts)))
+
+(setf (perl-aref a 4 23 53 21) "fred")
+(format t "~A" (perl-aref a 4 23 53 21))
+;; fred
+
+;; Each of the following will print out the entire substructure.
+(format t "~A" (perl-aref a 4 23 53))
+(format t "~A" (perl-aref a 4 23))
+(format t "~A" (perl-aref a 4))
 ;;;-----------------------------
-;; MKHASH defined above
+(setf op-cit (or (cite ibid) (error "couldn't make a reference")))
+;;;-----------------------------
+;; MKHASH defined in appendix
 (setf nat (mkhash "Name" "Leonhard Euler"
                   "Address" (format nil "1729 Ramanujan Lane~%Mathworld, PI 31416")
                   "Birthday" #x5bb5580))
@@ -2230,7 +2336,7 @@ corresponding element."
 ;;; @@PLEAC@@_11.3
 ;;;-----------------------------
 (setf href hash)
-(setf anon-hash (mkhash "key1" "value1" "key2" "value2" ...)) ; MKHASH defined above
+(setf anon-hash (mkhash "key1" "value1" "key2" "value2" ...)) ; MKHASH defined in appendix
 
 ;; Couldn't find anything like this in standard CL.  Someone please
 ;; correct me if I'm wrong.
@@ -2273,7 +2379,6 @@ corresponding element."
         
 ;;; @@PLEAC@@_11.4
 ;;;-----------------------------
-
 ;; If you want to be able to call the function using the alias like
 ;; "normal" (i.e., as the first element of a form) SETF its
 ;; SYMBOL-FUNCTION:
@@ -2301,7 +2406,7 @@ corresponding element."
 (setf funcname "THEFUNC")  ; upper-case to pick up correct symbol name
 (funcall (intern funcname))
 ;;;-----------------------------
-;; MKHASH defined above
+;; MKHASH defined in appendix
 (defparameter *commands*
   (mkhash "happy" #'joy
           "sad" #'sullen
@@ -2354,6 +2459,86 @@ corresponding element."
 ;; It's been 10 seconds since later.
 ;;;-----------------------------
 
+;;; @@PLEAC@@_11.5
+;;;-----------------------------
+;; Although you can't get a reference directly to the scalar that a
+;; symbol points to (at least, not if it's a number or character), you
+;; can just refer to the symbol itself, for largely the same effect.
+(setf scalar-ref 'scalar)               ; get reference to symbol
+;;;-----------------------------
+;; Not sure what this was trying to demonstrate.
+;;undef $anon_scalar_ref;
+;;$$anon_scalar_ref = 15;
+;;;-----------------------------
+;; There's no way to do this in CL that I know of.
+;;$anon_scalar_ref = \15;
+;;;-----------------------------
+(format t "~A" (symbol-value scalar-ref)) ; dereference it
+(setf (symbol-value scalar-ref) (concatenate 'string (symbol-value scalar-ref) "string"))
+;;;-----------------------------
+;; This is a BAD idea in CL.  Symbols are relatively expensive, there
+;; is no guarantee that name collisions won't happen, possible memory
+;; leak issues, etc.
+(let ((symbol-number -1))
+  (defun new-anon-symbol ()
+    (intern (format nil "_NEWANONSYM~D" (incf symbol-number)))))
+;;;-----------------------------
+(setf sref (new-anon-symbol)
+      (symbol-value sref) 3)
+(format t "Three = ~A~%" (symbol-value sref))
+(setf my-array (vector (new-anon-symbol) (new-anon-symbol)))
+(setf (symbol-value (svref my-array 0)) 6.02e23
+      (symbol-value (svref my-array 1)) "avocado")
+(format t "ARRAY contains: ~{~A~^, ~}~%" (map 'list 'symbol-value array))
+;;;-----------------------------
+(setf var (with-output-to-string (output)
+            (sb-ext:run-program "uptime" nil :search t :output output)))
+(setf vref 'var)
+(when (cl-ppcre:scan "load" (symbol-value vref)))
+(setf (symbol-value vref) (chomp (symbol-value vref)))
+;;;-----------------------------
+;; check whether SOMEREF contains a reference to a symbol, which we're
+;; using instead of Perl's scalar references.
+(check-type someref 'symbol)            ; does the die() for us
+;;;-----------------------------
+
+;;; @@PLEAC@@_11.6
+;;;-----------------------------
+;; Note that because #() quotes its contents, A and B refer to the
+;; symbols A and B, not their values, which is the closest
+;; approximation to what the Perl is doing.
+(setf array-of-scalar-refs (vector 'a 'b))
+;;;-----------------------------
+;; #() automatically quotes its contents, so is equivalent to the
+;; previous example.
+(setf array-of-scalar-refs #(a b))
+;;;-----------------------------
+(setf (symbol-value (aref array-of-scalar-refs 1)) 12) ; B = 12
+;;;-----------------------------
+(setq a 1 b 2 c 3 d 4)                  ; initialize
+(setf my-array (vector 'a 'b 'c 'd))    ; refs to each symbol
+(setf my-array #(a b c d))              ; same thing!
+(setf my-array (loop repeat 4 collect (new-anon-symbol))) ; allocate 4 anon symbols
+
+(incf (symbol-value (aref my-array 2)) 9) ; C now 12
+
+(symbol-macrolet ((element (symbol-value (aref my-array (1- (length my-array))))))
+  (setf element (* element 5))          ; D now 20
+  (setf element (* element 5)))         ; D now 100
+
+(let ((tmp (aref my-array (1- (length my-array)))))   ; using temporary
+  (setf (symbol-value tmp) (* 5 (symbol-value tmp)))) ; D now 500
+;;;-----------------------------
+;; Note that PI is built in to CL.
+(map 'nil 
+     #'(lambda (sref)
+         "Replace with spherical volumes."
+         (symbol-macrolet ((element (symbol-value sref)))
+           (setf element (* (expt element 3)
+                            (* 4/3 pi)))))
+     my-array)
+;;;-----------------------------
+
 ;;; @@PLEAC@@_11.7
 ;;;-----------------------------
 (setf c1 (mkcounter 20)
@@ -2368,7 +2553,7 @@ corresponding element."
 (defun mkcounter (start)
   (let* ((count start)
          (bundle
-          ;; MKHASH defined above
+          ;; MKHASH defined in appendix
           (mkhash 
            "NEXT"   #'(lambda () (incf count))
            "PREV"   #'(lambda () (decf count))
@@ -2393,6 +2578,128 @@ corresponding element."
 (mref "args" "go" "here")
 ;;;-----------------------------
 (setf (symbol-funtion 'sref) #'meth)
+;;;-----------------------------
+
+;;; @@PLEAC@@_11.9
+;;;-----------------------------
+;; MKHASH defined in appendix
+(setf record (mkhash
+              :name    "Jason"
+              :empno   132
+              :title   "deputy peon"
+              :age     23
+              :salary  37000
+              :pals    '("Norbert" "Rhys" "Phineas")))
+
+(format t "I am ~A, and my pals are ~{~A~^, ~}~%"
+        (gethash :name record)
+        (gethash :pals record))
+;;;-----------------------------
+(defparameter *byname* (make-hash-table :test 'equal))
+;; store record
+(setf (gethash (gethash :name record) *byname*) record)
+
+;; later on, look up by name
+(let ((rp (gethash "Aron" *byname*)))
+  (when rp
+    (format t "Aron is employee number ~D~%" (gethash :empno rp))))
+
+;; give jason a new pal
+(push "Theodore" (gethash :pals (gethash "Jason" *byname*)))
+(format t "Jason now has ~D pals~%" (length (gethash :pals (gethash "Jason" *byname*))))
+;;;-----------------------------
+;; Go through all records
+(maphash #'(lambda (name record)
+             (format t "~A is employee number ~D~%" name (gethash :empno record)))
+         *byname*)
+;;;-----------------------------
+;; store record
+(defparameter *employees* (make-array 0 :adjustable t))
+(let ((empno (gethash :empno record)))
+  (unless (array-in-bounds-p *employees* empno)
+    ;; :INITIAL-ELEMENT used to prevent array from being extended with 0's
+    (adjust-array *employees* (1+ empno) :initial-element nil))
+  (setf (aref *employees* empno) record))
+
+;; lookup by id
+(when-let (rp (aref *employees* 132))
+  (format t "employee 132 is ~A~%" (gethash :name rp)))
+;;;-----------------------------
+;; The use of SYMBOL-MACROLET saves us from repeating a complicated
+;; expression multiple times.  Could also define a macro to make this
+;; easier.
+(symbol-macrolet ((salary (gethash :salary (gethash "Jason" *byname*))))
+  (setf salary (* salary 1.035)))
+;;;-----------------------------
+(setf peons (remove-if-not
+             #'(lambda (employee)
+                 (and employee
+                      (cl-ppcre:scan (cl-ppcre:create-scanner "peon" :case-insensitive-mode t)
+                                     (gethash :title employee))))
+             *employees*))
+
+(setf tsevens (remove-if-not 
+               #'(lambda (employee) 
+                   (and employee
+                        (= (gethash :age employee) 
+                           27)))
+               *employees*))
+;;;-----------------------------
+(defun hash-slice (hash &rest keys)
+  "Meant to emulate Perl's built-in hash slicing feature."
+  (loop for key in keys collect (gethash key hash)))
+
+(dolist (rp (sort (loop for v being the hash-values of *byname* collect v)
+                 'string-lessp
+                 :key #'(lambda (hash) (gethash :age hash))))
+  (format t "~A is employee number ~D.~%" (gethash :name rp) (gethash :age rp))
+  ;; or with a hash slice on the reference (note that we're using the
+  ;; non-standard HASH-SLICE function defined above, whereas Perl
+  ;; has a built-in to do it).
+  (apply 'format t "~A is employee number ~D.~%" (hash-slice rp :name :age)))
+;;;-----------------------------
+;; use BYAGE, an array of lists of records
+(push record (aref *byage* (gethash :age record)))
+;;;-----------------------------
+(dotimes (age (length *byage*))
+  (when-let (records (aref *byage* age))
+    (format t "Age ~D: " age)
+    (dolist (rp records)
+      (format t "~A " (gethash :name rp)))
+    (format t "~%")))
+;;;-----------------------------
+(dotimes (age (length *byage*))
+  (when-let (records (aref *byage* age))
+    (format t "Age ~D: ~{~A~^, ~}~%" age (map 'list #'(lambda (employee)
+                                                        (gethash :name employee))
+                                              (aref *byage* age)))))
+;;;-----------------------------
+
+;;; @@PLEAC@@_11.10
+;;;-----------------------------
+;; FieldName: Value
+;;;-----------------------------
+;; Using list instead of array since random access not required.
+(defparameter *list-of-records* nil)
+
+(map nil #'(lambda (record)
+             (dolist (key (sort (loop for k being the hash-keys of record collect k)
+                                'string-lessp :key 'symbol-name))
+               (format t "~A: ~A~%" key (gethash key record)))
+             (terpri))                  ; same as (format t "~%")
+     *list-of-records*)
+;;;-----------------------------
+;; GET-PARAGRAPH defined above
+(dolist (filename filenames)
+  (with-open-file (file filename)
+    (loop
+       for paragraph = (get-paragraph file)
+       until (string-equal paragraph "")
+       do
+       (let ((fields
+              (cl-ppcre:split (cl-ppcre:create-scanner "^([^:]+):\\s*" :multi-line-mode t)
+                              paragraph :with-registers-p t)))
+         (push (apply 'mkhash (cdr fields)) *list-of-records*)))))
 ;;;-----------------------------
 
 ;;; @@PLEAC@@_11.15
@@ -2466,3 +2773,96 @@ corresponding element."
              (if found
                  (format t "Found ~S at ~S~%" value found)
                  (format t "No ~S in tree~%" value)))))))
+;;;-----------------------------
+
+;;; @@PLEAC@@_12.0
+;;;-----------------------------
+(defpackage :alpha (:use :cl))
+(in-package :alpha)
+(setf name "first")
+
+(defpackage :omega (:use :cl))
+(in-package :omega)
+(setf name "last")
+
+(in-package :cl-user) ; default package, kinda like Perl's 'main' package
+(format t "Alpha is ~A, omega is ~A.~%" alpha::name omega::name)
+;; Alpha is first, omega is last.
+;;;-----------------------------
+(load "FileHandle.lisp")                ; run-time load
+(load "FileHandle.fasl")        ; explicitly load pre-compiled version
+(load "FileHandle")          ; same as previous two, will prefer .fasl
+(require :FileHandle)                   ; similar, still run-time
+
+;; Could use LOAD here instead of REQUIRE; it's the EVAL-WHEN that
+;; makes this compile-time.  Note that it's fairly unusual to do this
+;; explicitly with EVAL-WHEN.  Instead, one normally ensures that the
+;; requisite packages have already been loaded before attempting to
+;; compile a file, e.g., using a build system such as ASDF.
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (require :FileHandle))                ; compile-time
+
+;; The Cards::Poker example is no different than the above in CL.  CL
+;; has no in-built hierarchicalp package system, hence no translation
+;; of "::" into a directory separator, etc.
+;;;-----------------------------
+(defpackage :cards.poker                
+  (:use :cl)                            ; equivalent to Perl line 2
+  (:export :shuffle :*card-deck*))      ; line 4
+(in-package :cards.poker)               ; line 1
+(defparameter *card-deck* nil)          ; line 5
+(defun shuffle ())                      ; line 6
+;;;-----------------------------
+
+;;; @@PLEAC@@_12.1
+;;;-----------------------------
+(defpackage :your-module (:use :cl)
+            (:export ...))              ; one way to export
+(in-package :your-module)
+
+(defparameter *version* 1.00) ; not standard CL, but one could ascribe meaning by convention
+
+(export '(...))                         ; another way to export
+
+;; There is no built-in equivalent to EXPORT_OK.  For EXPORT_TAGS,
+;; there is nothing stopping you from defining your own lists of
+;; imports.  See IMPORT-TAGS defined in the appendix for how this
+;; would get used.
+
+(defparameter *export-tags*
+  '(:TAG1 ( ... )
+    :TAG2 ( ... )))
+
+;;;;;;;;;;;;;;;;;;;;;;;;
+;; your code goes here
+;;;;;;;;;;;;;;;;;;;;;;;;
+;;;-----------------------------
+(defpackage :my-package (:use cl)
+            (:use :your-module)) ; Import default symbols into my package.
+(defpackage :my-package (:use cl)
+            (:import-from :your-module ...)) ; Import listed symbols into my package.
+;; Or at some point in my-package do this:
+(import '(your-module:symbol1 your-module:symbol2 ...)) ; Import listed symbols into my package.
+(defpackage :my-package (:use cl)
+            (:import-from :your-module)) ; Do not import any symbols
+;;;-----------------------------
+(export '(f1 f2 my-list))
+;;;-----------------------------
+;; No equivalent to EXPORT_OK
+;;;-----------------------------
+(import '(your-module:op-func your-module:your-table your-module:f1))
+;;;-----------------------------
+;; From within the package you want to import into, do this
+;; (IMPORT-TAGS defined in appendix, not standard CL).
+(import-tags :your-module :DEFAULT)
+(import 'your-module:your-table)
+;;;-----------------------------
+(defparameter *export-tags*
+  '((:functions (f1 f2 op-func))
+    (:variables (your-list your-table))))
+;;;-----------------------------
+(import-tags :your-module :functions)
+(import 'your-module:your-table)
+;;;-----------------------------
+
+
