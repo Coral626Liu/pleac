@@ -62,12 +62,15 @@ built-in funcionality."
 (defun import-tags (package-designator &rest tags)
   "Helps emulate Perl's EXPORT_TAGS functionality, which has no
 equivalent in standard CL."
-  (let ((current-package *package*)
-        (*package* (find-package package-designator)))
+  (declare (special *export-tags*))
+  (let* ((current-package *package*)
+         (*package* (find-package package-designator))
+         ;; Otherwise we'll find the *export-tags* from the "calling"
+         ;; package.
+         (export-tags (symbol-value (find-symbol "*EXPORT-TAGS*" *package*))))
     (dolist (tag tags)
-      (import (cdr (assoc tag *export-tags*))
+      (import (cadr (assoc tag export-tags))
               current-package))))
-
 
 ;;;; @@SKIP@@ Common Lisp code makes use of the following for
 ;;;; @@SKIP@@ package/loading: 
@@ -2098,7 +2101,6 @@ corresponding element."
 
 ;; bysub2 illustrates a Perl-specific idiom and will be skipped.
 
-;; MKHASH defined in appendix
 (defun print-hash-table (hashtable)
   "Useful for debugging."
   (loop
@@ -2116,7 +2118,7 @@ corresponding element."
            (when (cl-ppcre:scan (cl-ppcre:create-scanner #?r"^From" :multi-line-mode t) 
                                 paragraph)
              (vector-push-extend
-              (mkhash
+              (mkhash                   ; MKHASH defined in appendix
                :subject (cl-ppcre:register-groups-bind (subject)
                             ((cl-ppcre:create-scanner #?r/^Subject:\s*(?:Re:\s*)*(.*)/
                                                       :case-insensitive-mode t :multi-line-mode t) paragraph)
@@ -2204,11 +2206,13 @@ corresponding element."
 (format t "~A" my-aref)
 ;; #(1 2 3)
 ;;;-----------------------------
-;; Perl doesn't support true multi-dimensional arrays, instead it
-;; supports arrays of references (to other arrays).  CL supports
-;; either one, but the built-in functionality (AREF) works on true
-;; multi-dimensional arrays.  In this example we'll assume
-;; arrays-of-references to match the Perl example's semantics.
+;; Perl doesn't support "rectangular" multi-dimensional arrays (i.e.,
+;; a continuous block of memory with all cells preallocated), instead
+;; it supports "jagged" arrays (i.e., arrays of references to other
+;; arrays).  CL supports rectangular arrays by default, but there's
+;; nothing stopping you from using jagged arrays instead, since CL
+;; arrays can contain anything.  In this example we'll assume jagged
+;; arrays, to match the Perl example's semantics.
 
 ;; You could go like this, but it is a lot of typing and is confusing
 ;; to read.
@@ -2216,8 +2220,7 @@ corresponding element."
 (format t "~A" (aref (aref (aref (aref a 4) 23) 53) 21))
 ;; fred
 
-;; A better alternative would be a macro to be able to use the same
-;; syntax as CL's built-in AREF function.
+;; An AREF-like macro to handle jagged arrays will save typing/errors.
 (defmacro perl-aref (array &rest subscripts)
   "Allows AREF-like access to arrays-of-refrences (as opposed to true
 multidimensional arrays.)"
@@ -2248,7 +2251,7 @@ multidimensional arrays.)"
 ;;;-----------------------------
 (setf my-aref array) 
 (setf anon-array #(1 3 5 7 9))
-(setf anon-copy (copy-seq array))
+(setf anon-copy (copy-seq my-array))
 (setf implicit-creation (copy-seq #(2 4 6 8 10))) ; not sure this is what the Perl means
 ;;;-----------------------------
 (vector-push-extend 11 anon-array)      ; ANON-ARRAY must have fill pointer (unlike above)
@@ -2637,6 +2640,11 @@ multidimensional arrays.)"
                       (cl-ppcre:scan (cl-ppcre:create-scanner "peon" :case-insensitive-mode t)
                                      (gethash :title employee))))
              *employees*))
+;; Or:
+(setf peons (perl-grep *employees*
+              (and $_
+                   (cl-ppcre:scan (cl-ppcre:create-scanner "peon" :case-insensitive-mode t)
+                                  (gethash :title $_)))))
 
 (setf tsevens (remove-if-not 
                #'(lambda (employee) 
@@ -2842,6 +2850,7 @@ multidimensional arrays.)"
 (defpackage :my-package (:use cl)
             (:import-from :your-module ...)) ; Import listed symbols into my package.
 ;; Or at some point in my-package do this:
+(in-package :my-package)
 (import '(your-module:symbol1 your-module:symbol2 ...)) ; Import listed symbols into my package.
 (defpackage :my-package (:use cl)
             (:import-from :your-module)) ; Do not import any symbols
