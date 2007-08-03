@@ -2874,4 +2874,119 @@ multidimensional arrays.)"
 (import 'your-module:your-table)
 ;;;-----------------------------
 
+;;; @@PLEAC@@_12.4
+;;;-----------------------------
+(defpackage :alpha (:use :cl))
+(in-package :alpha)
 
+(defparameter aa 10)
+(export 'aa)
+(defparameter x "azure")
+
+(defpackage :beta (:use :cl))
+(in-package :beta)
+
+(defparameter bb 20)
+(export 'bb)
+(defparameter x "blue")
+
+(in-package :cl-user)         ; closest thing to Perl's 'main' package
+;; Unlike the Perl example, without the explict EXPORT and IMPORT the
+;; symbols won't be visible in the CL-USER package.
+(import '(alpha:aa beta:bb))
+(format t "~A, ~A, ~A, ~A, ~A~%" aa bb (if (boundp 'x) x "") alpha::x beta::x)
+;; 10, 20, , azure, blue
+;;;-----------------------------
+;; flipper.lisp
+(defpackage :flipper
+  (:use cl cl-ppcre)
+  (:export flip-words flip-boundary))
+(in-package :flipper)
+
+(defvar *separatrix* #\Space) ; default to blank; must precede functions
+
+(defun flip-boundary (&optional separatrix)
+  (prog1 *separatrix*
+    (when separatrix
+      (setf *separatrix* separatrix))))
+
+(defun flip-words (line)
+  (let ((words (split *separatrix* line)))
+    (format nil (format nil "~~{~~A~~^~A~~}" *separatrix*) (reverse words))))
+;;;-----------------------------
+    
+;;; @@PLEAC@@_12.5
+;;;-----------------------------
+;; #. forces *PACKAGE* to be evaluated at compile-time, so that it
+;; won't pick up the dynamic value of *PACKAGE* (i.e., the package of
+;; the calling function, which may be different.)
+(setf this-pack #.*package*)
+;;;-----------------------------
+;; As long as the following does not appear at the "top level" of the
+;; file, it will contain the current package (i.e., the calling
+;; function's.)
+(setf that-pack *package*)
+;;;-----------------------------
+(format t "I am in package *package*~%")        ; WRONG!
+;; I am in package *package*
+;;;-----------------------------
+(defpackage :alpha (:use cl beta))
+(in-package :alpha)
+
+;; As (I think) the Perl example does, this presupposes that TEMP is
+;; set to an already-open stream (in BETA), e.g.:
+;;  (setf temp (open "/usr/share/dict/words"))
+(runit "(setf line (read-line temp))")
+
+(defpackage :beta 
+  (:use cl)
+  (:export runit))
+(in-package :beta)
+
+(defun runit (codestr)
+  ;; The following is not a good idea, but is intended to make this
+  ;; example work the way the Perl one does, by causing the EVAL to
+  ;; occur in the context of this package (BETA) rather than the
+  ;; caller's (ALPHA's).
+  (in-package #.(package-name *package*))
+  ;; EVAL will throw an error if there's any problems, no need to do
+  ;; it explicitly like the Perl does.
+  (eval (read-from-string codestr)))
+;;;-----------------------------
+(defpackage :beta 
+  (:use cl)
+  (:export runit))
+(in-package :beta)
+
+(defun runit (codestr)
+  ;; CL is essentially the reverse of Perl in this regard, the default
+  ;; behavior already works the right way without the need to use
+  ;; something like Perl's 'caller'.
+  (eval (read-from-string codestr)))
+;;;-----------------------------
+(defpackage :alpha (:use cl beta))
+(in-package :alpha)
+
+(runit (lambda () (setf line (read-line temp))))
+
+(defpackage :beta
+  (:use cl)
+  (:export runit))
+(in-package :beta)
+
+(defun runit (coderef)
+  (funcall coderef))
+;;;-----------------------------
+(in-package cl-user)
+
+(defparameter *fh* (open "/etc/services")) ; don't have termcap on my machine
+(multiple-value-setq (a b c) (values-list (nreadline 3 "*fh*")))
+
+(defun nreadline (count handle)
+  (unless (plusp count) (error "COUNT must be > 0"))
+  (let ((handle (symbol-value (find-symbol (string-upcase handle)))))
+    (unless (open-stream-p handle)
+      (error "need open filehandle"))
+    (loop repeat count collect (read-line handle))))
+    
+;;;-----------------------------
