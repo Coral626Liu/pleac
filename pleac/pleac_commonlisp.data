@@ -2832,11 +2832,9 @@ multidimensional arrays.)"
 
 (export '(...))                         ; another way to export
 
-;; There is no built-in equivalent to EXPORT_OK.  For EXPORT_TAGS,
-;; there is nothing stopping you from defining your own lists of
-;; imports.  See IMPORT-TAGS defined in the appendix for how this
-;; would get used.
-
+;; There is no built-in equivalent to EXPORT_OK.  EXPORT_TAGS also has
+;; no standard CL counterpart, but something similar can easily be
+;; implemented.  See IMPORT-TAGS, defined in the appendix.
 (defparameter *export-tags*
   '(:TAG1 ( ... )
     :TAG2 ( ... )))
@@ -2872,6 +2870,56 @@ multidimensional arrays.)"
 ;;;-----------------------------
 (import-tags :your-module :functions)
 (import 'your-module:your-table)
+;;;-----------------------------
+
+;;; @@PLEAC@@_12.2
+;;;-----------------------------
+
+(in-package :testpack)
+
+;; In the following example, EVAL-WHEN is like the Perl example's
+;; BEGIN.
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (multiple-value-bind (retval why-not)
+      (ignore-errors (require :mod))    ; no import
+    (when why-not
+      (warn "couldn't load :mod: ~A" why-not))))
+
+
+;; Note that there is no "use" in CL, but you can REQUIRE and then
+;; USE-PACKAGE if it was successful.
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (multiple-value-bind (retval why-not)
+      (ignore-errors (require :mod))
+    (if why-not
+      (warn "couldn't load :mod: ~A" why-not)
+      (use-package :mod))))             ; imports into current package
+;;;-----------------------------
+
+;; This code is written in order to be as much like the Perl example
+;; as possible, and likely isn't what you'd use in practice.  Normally
+;; you'd just take advantage of the existing features of, for example,
+;; ASDF.
+(eval-when (:compile-toplevel :load-toplevel :execute)
+
+  (let ((dbs '(giant.eenie giant.meanie mouse.mynie moe))
+        found)
+
+    (dolist (module dbs)
+      (multiple-value-bind (_ why-not)
+          (ignore-errors (require module))
+        (unless why-not
+          (let (import-fn)
+            (let ((*package* (find-package module)))
+              ;; The following line assumes the module defines
+              ;; MY-IMPORT (note it can't be called IMPORT b/c that
+              ;; clashes with CL's built-in IMPORT.
+              (setf import-fn (symbol-function (find-symbol "MY-IMPORT")))
+            (funcall import-fn)))
+          (setf found t)
+          (return))))
+
+    (unless found (error "None of ~{~A~^ ~} loaded" dbs))))
 ;;;-----------------------------
 
 ;;; @@PLEAC@@_12.4
