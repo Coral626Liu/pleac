@@ -62,7 +62,6 @@ built-in funcionality."
 (defun import-tags (package-designator &rest tags)
   "Helps emulate Perl's EXPORT_TAGS functionality, which has no
 equivalent in standard CL."
-  (declare (special *export-tags*))
   (let* ((current-package *package*)
          (*package* (find-package package-designator))
          ;; Otherwise we'll find the *export-tags* from the "calling"
@@ -2874,9 +2873,6 @@ multidimensional arrays.)"
 
 ;;; @@PLEAC@@_12.2
 ;;;-----------------------------
-
-(in-package :testpack)
-
 ;; In the following example, EVAL-WHEN is like the Perl example's
 ;; BEGIN.
 (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -2884,7 +2880,6 @@ multidimensional arrays.)"
       (ignore-errors (require :mod))    ; no import
     (when why-not
       (warn "couldn't load :mod: ~A" why-not))))
-
 
 ;; Note that there is no "use" in CL, but you can REQUIRE and then
 ;; USE-PACKAGE if it was successful.
@@ -2913,13 +2908,71 @@ multidimensional arrays.)"
             (let ((*package* (find-package module)))
               ;; The following line assumes the module defines
               ;; MY-IMPORT (note it can't be called IMPORT b/c that
-              ;; clashes with CL's built-in IMPORT.
+              ;; clashes with CL's built-in IMPORT).
               (setf import-fn (symbol-function (find-symbol "MY-IMPORT")))
             (funcall import-fn)))
           (setf found t)
           (return))))
 
     (unless found (error "None of ~{~A~^ ~} loaded" dbs))))
+;;;-----------------------------
+
+;;; @@PLEAC@@_12.3
+;;;-----------------------------
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (unless (and (= 3 (length *posix-argv*)) ; Perl skips past executable
+               (= 2 (length (perl-grep *posix-argv*
+                              (cl-ppcre:scan "^\\d+$" $_)))))
+    (error "usage: ~A num1 num2" (car *posix-argv*))))
+
+(require :some.module)
+(require :more.modules)
+;;;-----------------------------
+;; This would be silly since CL's numbers already are "big".
+(when opt-b (require :math.bigint)) 
+;;;-----------------------------
+;; The following is just to make the examples work.
+(defpackage :fcntl (:use cl))
+(in-package :fcntl)
+(defconstant +O-EXCL+ #x800)
+(defconstant +O-CREAT+ #x200)
+(defconstant +O-RDWR+ #x2)
+
+(export '(+O-EXCL+ +O-CREAT+ +O-RDWR+))
+(provide 'fcntl)
+
+(defpackage :my-package
+  (:use cl)
+  (:import-from :fcntl +O-EXCL+ +O-CREAT+ +O-RDWR+))
+(in-package :my-package)
+;;;-----------------------------
+(require :fcntl)
+(import '(fcntl:+O-EXCL+ fcntl:+O-CREAT+ fcntl:+O-RDWR+))
+;;;-----------------------------
+(in-package cl-user)
+(defun load-module (module)
+  (require module)
+  (import module))                      ; WRONG
+;;;-----------------------------
+(load-module :fcntl '(fcntl:+O-EXCL+ fcntl:+O-CREAT+ fcntl:+O-RDWR+))
+(defun load-module (module symbols)
+  (require module)
+  ;; No need for die because REQUIRE will do it for us.
+  (import symbols))
+;;;-----------------------------
+;; CL doesn't have anything like Perl's autouse, as far as I can tell.
+;; The following is a rough implementation of it.  Usage:
+;;   (autouse 'my-package (xyz abc))
+;; Where XYZ and ABC are functions defined within MY-PACKAGE.
+(defmacro autouse (pack symbols)
+  (list*
+   'progn
+   (loop
+      for symb in symbols
+      collect
+        `(defun ,symb (&rest args)
+           (require ',pack)
+           (apply (find-symbol ,(symbol-name symb) ',pack) args)))))
 ;;;-----------------------------
 
 ;;; @@PLEAC@@_12.4
@@ -2971,8 +3024,8 @@ multidimensional arrays.)"
 (setf this-pack #.*package*)
 ;;;-----------------------------
 ;; As long as the following does not appear at the "top level" of the
-;; file, it will contain the current package (i.e., the calling
-;; function's.)
+;; file, it will contain the current package (i.e., the "outermost"
+;; calling function's, assuming it hasn't been rebound explicitly.)
 (setf that-pack *package*)
 ;;;-----------------------------
 (format t "I am in package *package*~%")        ; WRONG!
@@ -3027,7 +3080,7 @@ multidimensional arrays.)"
 ;;;-----------------------------
 (in-package cl-user)
 
-(defparameter *fh* (open "/etc/services")) ; don't have termcap on my machine
+(defparameter *fh* (open "/etc/services")) ; don't have /etc/termcap on my machine
 (multiple-value-setq (a b c) (values-list (nreadline 3 "*fh*")))
 
 (defun nreadline (count handle)
@@ -3035,6 +3088,7 @@ multidimensional arrays.)"
   (let ((handle (symbol-value (find-symbol (string-upcase handle)))))
     (unless (open-stream-p handle)
       (error "need open filehandle"))
-    (loop repeat count collect (read-line handle))))
-    
+    (loop
+       repeat count
+       collect (read-line handle))))
 ;;;-----------------------------
