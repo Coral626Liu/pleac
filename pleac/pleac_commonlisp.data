@@ -22,6 +22,8 @@
 
 (in-package :cl-user)
 
+(use-package '(:cl-ppcre))
+
 (declaim (optimize (speed 0) (safety 3) (debug 3)))
 
 (defun chomp (string)
@@ -190,12 +192,12 @@ double quotation mark.
 ;;;-----------------------------
 ;; you can test substrings with the :start and :end keyword parameters
 ;; of CL-PPCRE:SCAN
-(when (cl-ppcre:scan "pattern" *string* :start (- (length *string*) 10))
+(when (scan "pattern" *string* :start (- (length *string*) 10))
   (format t "Pattern matches in last 10 characters~%"))
 
 ;; substitute "at" for "is", restricted to first five characters
 (concatenate 'string
-              (cl-ppcre:regex-replace "is" *string* "at"
+              (regex-replace "is" *string* "at"
                                       :start 0
                                       :end (min (length *string*) 5))
               (when (> (length *string*) 5)
@@ -349,7 +351,7 @@ double quotation mark.
 (setq array (loop for char across string
                collect (char-code char)))
 ;;;-----------------------------
-(cl-ppcre:do-matches-as-strings (match "(.)" string)
+(do-matches-as-strings (match "(.)" string)
   ;; do something with MATCH
   )
 ;;;-----------------------------
@@ -424,7 +426,7 @@ characters, otherwise it should be a file name."
 (setq revbytes (reverse string))
 ;;;-----------------------------
 (setq revwords (format nil "~{~A~^ ~}"
-                       (reverse (cl-ppcre:split " " string))))
+                       (reverse (split " " string))))
 (setq revwords (reverse
                 (do* ((stringstream (make-string-input-stream string))
                       (result nil (cons next result))
@@ -440,15 +442,15 @@ characters, otherwise it should be a file name."
 (setq confused (reverse (apply #'concatenate 'string words))) ; reverse letters in join("", @words)
 ;;;-----------------------------
 (setq string "Yoda said, \"can you see this?\"")
-(setq allwords (cl-ppcre:split " " string))
+(setq allwords (split " " string))
 (setq revwords (format nil "~{~A~^ ~}" (reverse allwords)))
 (format t "~A~%" revwords)
 ;this?" see you "can said, Yoda
 ;;;-----------------------------
-(setq revwords (format nil "~{~A~^ ~}" (reverse (cl-ppcre:split " " string))))
+(setq revwords (format nil "~{~A~^ ~}" (reverse (split " " string))))
 ;;;-----------------------------
 (setq revwords (apply #'concatenate 'string
-                      (cl-ppcre:split "(\\s+)" string :with-registers-p t)))
+                      (split "(\\s+)" string :with-registers-p t)))
 ;;;-----------------------------
 (defun palindrome-p (word)
   (string= word (reverse word)))
@@ -486,7 +488,7 @@ characters, otherwise it should be a file name."
            (make-string (- (* (- match-end match-start) tabstop)
                            (mod match-start tabstop))
                         :initial-element #\Space)))
-    (cl-ppcre:regex-replace-all "\\t+" string #'needed-spaces)))
+    (regex-replace-all "\\t+" string #'needed-spaces)))
 
 (defun tab-unexpand (string &optional (tabstop 8))
   (flet ((needed-tabs (target-string start end match-start match-end reg-starts reg-ends)
@@ -497,7 +499,7 @@ characters, otherwise it should be a file name."
                                        :initial-element #\Tab)
                           (make-string (mod match-length tabstop)
                                        :initial-element #\Space)))))
-    (cl-ppcre:regex-replace-all "  +" string #'needed-tabs)))
+    (regex-replace-all "  +" string #'needed-tabs)))
 ;;;-----------------------------
 (loop for line = (read-line *standard-input* nil nil)
       while line do
@@ -518,19 +520,19 @@ characters, otherwise it should be a file name."
 regexps."
   (write-to-string (symbol-value (intern (string-upcase var-name)))))
 
-(setf text (cl-ppcre:regex-replace-all "\\$(\\w+)" text #'global-deref
+(setf text (regex-replace-all "\\$(\\w+)" text #'global-deref
                                        :simple-calls t))
 ;;;-----------------------------
 (setq rows 24 cols 80)
 (setq text "I am $rows high and $cols long")
-(setq text (cl-ppcre:regex-replace-all "\\$(\\w+)" text
+(setq text (regex-replace-all "\\$(\\w+)" text
                                        #'global-deref
                                        :simple-calls t))
 (format t "~A~%" text)
 ;; I am 24 high and 80 long
 ;;;-----------------------------
 (setf text "I am 17 years old")
-(setf text (cl-ppcre:regex-replace-all "(\\d+)" text
+(setf text (regex-replace-all "(\\d+)" text
                                        (lambda (match num-str)
                                          (declare (ignore match))
                                          (write-to-string
@@ -547,7 +549,7 @@ regexps."
            (if (boundp word-sym)
                (write-to-string (symbol-value word-sym))
                (format nil "[NO VARIABLE: $~a]" word-sym)))))
-  (setf text (cl-ppcre:regex-replace-all "\\$(\\w+)" text
+  (setf text (regex-replace-all "\\$(\\w+)" text
                                          #'deref-with-err
                                          :simple-calls t)))
 ;;;-----------------------------
@@ -606,7 +608,7 @@ regexps."
 (format t "I have ~D guanacos.~%" (1+ n))
 ;;;-----------------------------
 (some-func (format nil "What you want is ~{~A~} items"
-                   (cl-ppcre:split ":" rec)))
+                   (split ":" rec)))
 ;;;-----------------------------
 (let ((text (format nil "~
 To: ~A
@@ -637,8 +639,8 @@ the management
 ;;; @@PLEAC@@_1.11
 ;;;-----------------------------
 ;; all in one
-(setf var (cl-ppcre:regex-replace-all
-           (cl-ppcre:create-scanner #?r"^\s+" :multi-line-mode t)
+(setf var (regex-replace-all
+           (create-scanner #?r"^\s+" :multi-line-mode t)
 "your text
 goes here
 " ""))
@@ -647,13 +649,13 @@ goes here
 (setf var "your text
 goes here
 ")
-(setf var (cl-ppcre:regex-replace-all 
-           (cl-ppcre:create-scanner #?r"^\s+" :multi-line-mode t)
+(setf var (regex-replace-all 
+           (create-scanner #?r"^\s+" :multi-line-mode t)
            var
            ""))
 ;;-----------------------------
-(setf var (cl-ppcre:regex-replace-all 
-           (cl-ppcre:create-scanner #?r"^\s+" :multi-line-mode t)
+(setf var (regex-replace-all 
+           (create-scanner #?r"^\s+" :multi-line-mode t)
 "    The five varieties of camelids
     are the familiar camel, his friends
     the llama and the alpaca, and the
@@ -662,8 +664,8 @@ goes here
 " ""))
 ;;;-----------------------------
 (defun fix (string)
-  (cl-ppcre:regex-replace-all
-   (cl-ppcre:create-scanner #?r"^\s+" :multi-line-mode t)
+  (regex-replace-all
+   (create-scanner #?r"^\s+" :multi-line-mode t)
    string
    ""))
 
@@ -671,10 +673,10 @@ goes here
 ")
 ;;;-----------------------------
 (setf quote 
-      (cl-ppcre:regex-replace-all
-       (cl-ppcre:create-scanner #?r"\s+--")
-       (cl-ppcre:regex-replace-all 
-        (cl-ppcre:create-scanner #?r"^\s+" :multi-line-mode t)
+      (regex-replace-all
+       (create-scanner #?r"\s+--")
+       (regex-replace-all 
+        (create-scanner #?r"^\s+" :multi-line-mode t)
 "        ...we will have peace, when you and all your works have
         perished--and the works of your dark master to whom you would
         deliver us. You are a liar, Saruman, and a corrupter of mens
@@ -714,42 +716,42 @@ goes here
   ;; Can't get multiple values returned thru the OR, hence the use of
   ;; DESTRUCTURING-BIND instead of MULTIPLE-VALUE-BIND
   (destructuring-bind (white leader) ; common whitespace and common leading string
-      (or (cl-ppcre:register-groups-bind ($1 $2)
+      (or (register-groups-bind ($1 $2)
               (#?r/^\s*(?:([^\w\s]+)(\s*).*\n)(?:\s*\1\2?.*\n)+$/ string)
-            (list $2 (cl-ppcre:quote-meta-chars $1)))
-          (list (cl-ppcre:scan-to-strings #?r"^(\s+)" string) ""))
-    (cl-ppcre:regex-replace-all
-     (cl-ppcre:create-scanner (format nil #?r"^\s*?~a(?:~a)?" leader white) :multi-line-mode t)
+            (list $2 (quote-meta-chars $1)))
+          (list (scan-to-strings #?r"^(\s+)" string) ""))
+    (regex-replace-all
+     (create-scanner (format nil #?r"^\s*?~a(?:~a)?" leader white) :multi-line-mode t)
      string
      "")))
 ;;;-----------------------------
 
 ;;; @@PLEAC@@_1.13
 ;; backslash
-(setf var (cl-ppcre:regex-replace-all "([CHARLIST])" var "\\\1"))
+(setf var (regex-replace-all "([CHARLIST])" var "\\\1"))
 
 ;; double
-(setf var (cl-ppcre:regex-replace-all "([CHARLIST])" var "\\1\\1"))
+(setf var (regex-replace-all "([CHARLIST])" var "\\1\\1"))
 ;;;-----------------------------
-(setf string (cl-ppcre:regex-replace-all "%" string "%%"))
-;;;-----------------------------
-(setf string "Mom said, \"Don't do that.\"")
-(setf string (cl-ppcre:regex-replace-all "(['\"])" string #?r"\\\1"))
+(setf string (regex-replace-all "%" string "%%"))
 ;;;-----------------------------
 (setf string "Mom said, \"Don't do that.\"")
-(setf string (cl-ppcre:regex-replace-all "(['\"])" string #?r"\1\1"))
+(setf string (regex-replace-all "(['\"])" string #?r"\\\1"))
 ;;;-----------------------------
-(setf string (cl-ppcre:regex-replace-all #?r"([^A-Z])" string #?r"\\\1"))
+(setf string "Mom said, \"Don't do that.\"")
+(setf string (regex-replace-all "(['\"])" string #?r"\1\1"))
+;;;-----------------------------
+(setf string (regex-replace-all #?r"([^A-Z])" string #?r"\\\1"))
 ;;;-----------------------------
 (setf string #?r"this \Qis a test!\E")
 (setf string "this is\\ a\\ test\\!")
-(setf string (concatenate 'string "this " (cl-ppcre:quote-meta-chars "is a test!")))
+(setf string (concatenate 'string "this " (quote-meta-chars "is a test!")))
 ;;;-----------------------------
 
 ;;; @@PLEAC@@_1.14
 ;;;-----------------------------
-(setf string (cl-ppcre:regex-replace #?r/^\s+/ string "")) 
-(setf string (cl-ppcre:regex-replace #?r/\s+$/ string ""))
+(setf string (regex-replace #?r/^\s+/ string "")) 
+(setf string (regex-replace #?r/\s+$/ string ""))
 ;;;-----------------------------
 
 ;;; The closest thing to Perl's wantarray is CL's ability to return
@@ -760,8 +762,8 @@ goes here
 (defun trim (&rest strings)
   (values-list 
    (loop for string in strings
-      collect (cl-ppcre:regex-replace #?r/^\s+/ 
-                                      (cl-ppcre:regex-replace #?r/\s+$/ string "")
+      collect (regex-replace #?r/^\s+/ 
+                                      (regex-replace #?r/\s+$/ string "")
                                       ""))))
 
 (setf string (trim string))
@@ -788,23 +790,23 @@ goes here
 ;;; check whether a string represents a number
 (unless (every #'digit-char-p string)
   (format *error-output* "string has nondigits"))
-(unless (cl-ppcre:scan "^\\d+$" string) ; rejects -3
+(unless (scan "^\\d+$" string) ; rejects -3
   (format *error-output* "not a natural number"))
-(unless (cl-ppcre:scan "^-?\\d+$" string) ; rejects +3
+(unless (scan "^-?\\d+$" string) ; rejects +3
   (format *error-output* "not an integer"))
-(unless (cl-ppcre:scan "^[+-]?\\d+$" string)
+(unless (scan "^[+-]?\\d+$" string)
   (format *error-output* "not an integer"))
-(unless (cl-ppcre:scan "^-?(?:\\d+(?:\\.\\d*)?|\\.\\d+)$" string)
+(unless (scan "^-?(?:\\d+(?:\\.\\d*)?|\\.\\d+)$" string)
   (format *error-output* "not an integer"))
-(unless (cl-ppcre:scan "^([+-]?)(?=\\d|\\.\\d)\\d*(\\.\\d*)?([Ee]([+-]?\\d+))?$"
+(unless (scan "^([+-]?)(?=\\d|\\.\\d)\\d*(\\.\\d*)?([Ee]([+-]?\\d+))?$"
                        string)
   (format *error-output* "not a C float"))
 ;;;-----------------------------
 (defun getnum (string)
   "This function is not safe to call on untrusted input."
   (with-input-from-string 
-      (is (cl-ppcre:regex-replace #?"\s+$" 
-                                  (cl-ppcre:regex-replace #?"^\s+" string "") ""))
+      (is (regex-replace #?"\s+$" 
+                                  (regex-replace #?"^\s+" string "") ""))
     (let ((num (read is nil nil nil)))
       (and
        ;; Make sure there's no junk following the number
@@ -1161,8 +1163,8 @@ corresponding element."
   (let ((num (chomp num)))
     (format t "~D ~:*~8R ~:*~X"
             (cond
-              ((cl-ppcre:scan "^0x" num) (hex num))
-              ((cl-ppcre:scan "^0" num) (oct num))
+              ((scan "^0x" num) (hex num))
+              ((scan "^0" num) (oct num))
               (t (parse-integer num))))))
 ;;;-----------------------------
 (format t "Enter file permission in octal: ")
@@ -1286,7 +1288,7 @@ corresponding element."
 ;;;-----------------------------
 (setf a '("Why" "are" "you" "teasing" "me?"))
 ;;;-----------------------------
-(setf lines (cl-ppcre:regex-replace-all (cl-ppcre:create-scanner "^\\s*(.+)" :multi-line-mode t )
+(setf lines (regex-replace-all (create-scanner "^\\s*(.+)" :multi-line-mode t )
 "    The boy stood on the burning deck,
     It was as hot as glass.
 " "\\1"))
@@ -1310,6 +1312,24 @@ corresponding element."
 (setf banner (format nil "Speak ~A and enter!" name))
 (setf banner "Speak $name and welcome!")
 ;;;-----------------------------
+(setf his-host "www.perl.com")
+#+sbcl
+(setf host-info (with-output-to-string (output)
+                  (sb-ext:run-program "nslookup" `(,his-host) :search t :output output)))
+;; There's no equivalent to Perl's qx
+;;;-----------------------------
+(setf banner '("Costs" "only" "$4.95"))
+(setf banner (split " " "Costs only $4.95"))
+;;;-----------------------------
+(setf brax '(#\( #\) #\< #\> #\{ #\} #\[ #\]))
+(setf rings '("Nenya" "Narya" "Vilya"))
+(setf tags '("LI" "TABLE" "TR" "TD" "A" "IMG" "H1" "P"))
+(setf sample '("The" "vertical" "bar" "(|)" "looks" "and" "behaves" "like" "a" "pipe."))
+;;;-----------------------------
+;; No equivalent in CL (would just be the same as above)
+;;;-----------------------------
+;; No equivalent in CL (would just be the same as above)
+;;;-----------------------------
 
 ;;; @@PLEAC@@_4.2
 ;;;-----------------------------
@@ -1323,12 +1343,54 @@ corresponding element."
                     (format nil " and ~A" (car (last list)))))))
 ;;;-----------------------------
 (let ((array '("red" "yellow" "green")))
-  (format t "I have ~D marbles.~%" (length array))
-  (format t "I have ~{~a~} marbles.~%" array))
-;;I have 3 marbles.
+  (format t "I have ~{~A~} marbles.~%" array)
+  (format t "I have ~{~A~^ ~} marbles.~%" array))
 ;;I have redyellowgreen marbles.
+;;I have red yellow green marbles.
 ;;;-----------------------------
 ;; @@INCLUDE@@ include/commonlisp/ch04/commify_series.lisp
+;;;-----------------------------
+
+;;; @@PLEAC@@_4.3
+;;;-----------------------------
+;; grow or shrink MY-ARRAY (assuming it was created with :ADJUSTABLE
+;; set to T)
+(adjust-array my-array (1+ new-last-element-index-number))
+;;;-----------------------------
+;; There's no auto-creation of array elements.
+;;;-----------------------------
+(defparameter *people* (make-array 4
+                                   :initial-contents '("Crosby" "Stills" "Nash" "Young")
+                                   :adjustable t))
+(defun what-about-that-array ()
+  (format t
+          "The array now has ~D elements
+The index of the last element is ~D
+Element #3 is ~A~%"
+          (length *people*)
+          (1- (length *people*))
+          (aref *people* 3)))
+(what-about-that-array)
+;;;-----------------------------
+;;The array now has 4 elements
+;;The index of the last element is 3
+;;Element #3 is Young
+;;;-----------------------------
+(adjust-array *people* (1- (length *people*)))
+(what-about-that-array)
+;;;-----------------------------
+;; Evaluating WHAT-ABOUT-THAT-ARRAY now results in an error because
+;; there is no 3rd element, and, unlike Perl, CL doesn't just return
+;; the empty string in that case.
+;;;-----------------------------
+(adjust-array *people* 10001)
+(what-about-that-array)
+;;;-----------------------------
+;;The array now has 10001 elements
+;;The index of the last element is 9999
+;;Element #3 is 0
+;;;-----------------------------
+(setf (aref *people* 10000) nil)
 ;;;-----------------------------
 
 ;;; @@PLEAC@@_4.4
@@ -1339,18 +1401,65 @@ corresponding element."
 ;;;-----------------------------
 (dolist (user bad-users)
   (complain user))
-;;-----------------------------
+;;;-----------------------------
 (dolist (var (sort (loop for x being the hash-keys of axl
                       collect x) #'<))
   (format t "~A=~A~%" var (gethash var ENV)))
-;;-----------------------------
+;;;-----------------------------
 (dolist (user all-users)
   (let ((disk-space (get-usage user)))
     (when (> disk-space +max-quota+)
       (complain user))))
-;;-----------------------------
-;;-----------------------------
-;;; @@INCOMPLETE@@
+;;;-----------------------------
+#+sbcl
+(dolist (line (split "\\n"
+                     (with-output-to-string (output)
+                       (sb-ext:run-program "who" nil :search t :output output))))
+  (when (scan "tchrist" line)
+    (format t "~A~%" line)))
+;;;-----------------------------
+(loop for line = (read-line fh nil :eof nil) ; LINE is set to the line just read
+   until (eq line :eof)
+   do 
+   (dolist (chunk (split "\\s+"         ; LINE is split on whitespace
+                                        ; then CHUNK is set to each chunk in turn
+                         (chomp line))) ; LINE has a trailing \n removed, if it had one
+     (format t "~A"                     ; CHUNK is printed
+             (reverse chunk))))         ; the characters in CHUNK are reversed
+;;;-----------------------------
+(map nil #'(lambda (item)
+             (format t "i = ~A~%" item))
+     my-array)
+;;;-----------------------------
+(setf my-array #(1 2 3))
+(map-into my-array #'(lambda (item) (decf item)) my-array)
+my-array
+;; #(0 1 2)
+
+;; multiply everything in a and b by seven
+(setf a #(.5 3) b #(0 1))
+(map-into a #'(lambda (item) (* item 7)) a)
+(map-into b #'(lambda (item) (* item 7)) b)
+(format t "~{~A~^ ~} ~{~A~^ ~}~%" (coerce a 'list) (coerce b 'list))
+;; 3.5 21 0 7
+;;;-----------------------------
+
+(defmacro perl-foreach ((&rest refs) &body body)
+  (let* ((gensyms (mapcar #'(lambda (ignore) (declare (ignore ignore)) (gensym)) refs)))
+    (list* 
+     'let
+     (mapcar #'(lambda (symb value) (list symb value)) gensyms refs)
+     (loop 
+        for ref in refs
+        and indirect-ref in gensyms
+        collect
+        `(typecase ,indirect-ref
+           (sequence (map-into ,indirect-ref
+                               #'(lambda (it)
+                                   ,@body)
+                               ,indirect-ref))
+           (t (symbol-macrolet ((it ,ref))
+                ,@body)))))))
 
 
 ;;; @@PLEAC@@_4.6
@@ -1418,8 +1527,8 @@ corresponding element."
 ;;;-----------------------------
 #+sbcl
 (remove-if-not #'(lambda (line)
-                   (cl-ppcre:scan "^gnat " line))
-               (cl-ppcre:split #\Newline
+                   (scan "^gnat " line))
+               (split #\Newline
                                (with-output-to-string (output)
                                  (sb-ext:run-program "who" nil :search t :output output))))
 ;;;-----------------------------
@@ -1511,7 +1620,7 @@ corresponding element."
       while line
       do (map-list-permutations (lambda (words)
                                   (format t "~{~A~^ ~}~%" words))
-                                (cl-ppcre:split "\\s+" line)))
+                                (split "\\s+" line)))
 
 ;;;
 (let ((memo (make-hash-table)))
@@ -1778,7 +1887,7 @@ corresponding element."
 ;; &allow-other-keys is used to emulate the Perl example's use of @_
 ;; in the %args hash.
 (defun thefunc (&key (increment "10s") finish start &allow-other-keys)
-  (when (cl-ppcre:scan "m$" increment)
+  (when (scan "m$" increment)
     ;; ...
     ))
 ;;;-----------------------------
@@ -1922,7 +2031,7 @@ corresponding element."
 (multiple-value-bind (result condition)
     (ignore-errors (eval (setf val (func))))
   (when (and condition
-             (not (cl-ppcre:scan "Full moon" 
+             (not (scan "Full moon" 
                                  ;; There's probably a better way to
                                  ;; do this.
                                  (format nil "~A" condition))))
@@ -2072,13 +2181,13 @@ corresponding element."
         (loop
            for paragraph = (get-paragraph file)
            until (string-equal paragraph "")
-           do (when (cl-ppcre:scan (cl-ppcre:create-scanner #?r"^From" :multi-line-mode t) 
-                                   paragraph)
+           do (when (scan (create-scanner #?r"^From" :multi-line-mode t) 
+                          paragraph)
                 (vector-push-extend
                  (or
-                  (cl-ppcre:register-groups-bind (subject)
-                      ((cl-ppcre:create-scanner #?r/^Subject:\s*(?:Re:\s*)*(.*)/
-                                                :case-insensitive-mode t :multi-line-mode t)
+                  (register-groups-bind (subject)
+                      ((create-scanner #?r/^Subject:\s*(?:Re:\s*)*(.*)/
+                                       :case-insensitive-mode t :multi-line-mode t)
                        paragraph)
                     (string-downcase subject))
                   "")
@@ -2092,8 +2201,8 @@ corresponding element."
                         (case (if (and (< a (length sub)) (< b (length sub)))
                                   (cmp (aref sub a) (aref sub b))
                                   0)
-                              (0 (< a b))
-                              (-1 t))))
+                          (0 (< a b))
+                          (-1 t))))
       (map nil #'(lambda (i)
                    (format t "~A~%" (aref msgs i)))
            indices))))
@@ -2114,13 +2223,13 @@ corresponding element."
            for paragraph = (get-paragraph file)
            until (string-equal paragraph "")
            do 
-           (when (cl-ppcre:scan (cl-ppcre:create-scanner #?r"^From" :multi-line-mode t) 
-                                paragraph)
+           (when (scan (create-scanner #?r"^From" :multi-line-mode t) 
+                       paragraph)
              (vector-push-extend
               (mkhash                   ; MKHASH defined in appendix
-               :subject (cl-ppcre:register-groups-bind (subject)
-                            ((cl-ppcre:create-scanner #?r/^Subject:\s*(?:Re:\s*)*(.*)/
-                                                      :case-insensitive-mode t :multi-line-mode t) paragraph)
+               :subject (register-groups-bind (subject)
+                            ((create-scanner #?r/^Subject:\s*(?:Re:\s*)*(.*)/
+                                             :case-insensitive-mode t :multi-line-mode t) paragraph)
                           (string-downcase subject))
                :number (fill-pointer msgs)
                :text "")
@@ -2147,22 +2256,22 @@ corresponding element."
            for paragraph = (get-paragraph file)
            until (string-equal paragraph "")
            do 
-           (when (cl-ppcre:scan (cl-ppcre:create-scanner #?r"^From" :multi-line-mode t) 
-                                paragraph)
+           (when (scan (create-scanner #?r"^From" :multi-line-mode t) 
+                       paragraph)
              (vector-push-extend
               (mkhash
-               :subject (cl-ppcre:register-groups-bind (subject)
-                            ((cl-ppcre:create-scanner #?r/^Subject:\s*(?:Re:\s*)*(.*)/
-                                                      :case-insensitive-mode t :multi-line-mode t) paragraph)
+               :subject (register-groups-bind (subject)
+                            ((create-scanner #?r/^Subject:\s*(?:Re:\s*)*(.*)/
+                                             :case-insensitive-mode t :multi-line-mode t) paragraph)
                           (string-downcase subject))
                :number (fill-pointer msgs)
                ;; Need IGNORE-ERRORS because PARSE-DATE-AND-TIME can
                ;; signal conditions
                :date (ignore-errors 
                        (metatilities:parse-date-and-time
-                        (cl-ppcre:register-groups-bind (date)
-                            ((cl-ppcre:create-scanner #?r/^Date:\s*(.*)/ :multi-line-mode t) paragraph)
-                          (car (cl-ppcre:split #?r"\s+\(" date)))))
+                        (register-groups-bind (date)
+                            ((create-scanner #?r/^Date:\s*(.*)/ :multi-line-mode t) paragraph)
+                          (car (split #?r"\s+\(" date)))))
                :text "")
               msgs))
            (let ((mail-record (aref msgs (1- (fill-pointer msgs)))))
@@ -2430,14 +2539,12 @@ multidimensional arrays.)"
 
 (setf (symbol-function 'counter) (counter-maker))
 
-(loop repeat 5 
-     do (format t "~A~%" (counter)))
+(loop repeat 5 do (format t "~A~%" (counter)))
 ;;;-----------------------------
 (setf (symbol-function 'counter1) (counter-maker)
       (symbol-function 'counter2) (counter-maker))
 
-(loop repeat 5 
-     do (format t "~A~%" (counter1)))
+(loop repeat 5 do (format t "~A~%" (counter1)))
 (format t "~A ~A~%" (counter1) (counter2))
 ;; 0
 ;; 1
@@ -2496,7 +2603,7 @@ multidimensional arrays.)"
 (setf var (with-output-to-string (output)
             (sb-ext:run-program "uptime" nil :search t :output output)))
 (setf vref 'var)
-(when (cl-ppcre:scan "load" (symbol-value vref)))
+(when (scan "load" (symbol-value vref)))
 (setf (symbol-value vref) (chomp (symbol-value vref)))
 ;;;-----------------------------
 ;; check whether SOMEREF contains a reference to a symbol, which we're
@@ -2506,13 +2613,11 @@ multidimensional arrays.)"
 
 ;;; @@PLEAC@@_11.6
 ;;;-----------------------------
+(setf array-of-scalar-refs (vector 'a 'b))
+;;;-----------------------------
 ;; Note that because #() quotes its contents, A and B refer to the
 ;; symbols A and B, not their values, which is the closest
 ;; approximation to what the Perl is doing.
-(setf array-of-scalar-refs (vector 'a 'b))
-;;;-----------------------------
-;; #() automatically quotes its contents, so is equivalent to the
-;; previous example.
 (setf array-of-scalar-refs #(a b))
 ;;;-----------------------------
 (setf (symbol-value (aref array-of-scalar-refs 1)) 12) ; B = 12
@@ -2636,13 +2741,13 @@ multidimensional arrays.)"
 (setf peons (remove-if-not
              #'(lambda (employee)
                  (and employee
-                      (cl-ppcre:scan (cl-ppcre:create-scanner "peon" :case-insensitive-mode t)
+                      (scan (create-scanner "peon" :case-insensitive-mode t)
                                      (gethash :title employee))))
              *employees*))
 ;; Or:
 (setf peons (perl-grep *employees*
               (and $_
-                   (cl-ppcre:scan (cl-ppcre:create-scanner "peon" :case-insensitive-mode t)
+                   (scan (create-scanner "peon" :case-insensitive-mode t)
                                   (gethash :title $_)))))
 
 (setf tsevens (remove-if-not 
@@ -2704,7 +2809,7 @@ multidimensional arrays.)"
        until (string-equal paragraph "")
        do
        (let ((fields
-              (cl-ppcre:split (cl-ppcre:create-scanner "^([^:]+):\\s*" :multi-line-mode t)
+              (split (create-scanner "^([^:]+):\\s*" :multi-line-mode t)
                               paragraph :with-registers-p t)))
          (push (apply 'mkhash (cdr fields)) *list-of-records*)))))
 ;;;-----------------------------
@@ -2922,7 +3027,7 @@ multidimensional arrays.)"
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (unless (and (= 3 (length *posix-argv*)) ; Perl skips past executable
                (= 2 (length (perl-grep *posix-argv*
-                              (cl-ppcre:scan "^\\d+$" $_)))))
+                              (scan "^\\d+$" $_)))))
     (error "usage: ~A num1 num2" (car *posix-argv*))))
 
 (require :some.module)
@@ -3091,4 +3196,29 @@ multidimensional arrays.)"
     (loop
        repeat count
        collect (read-line handle))))
+;;;-----------------------------
+
+;;; @@PLEAC@@_12.7
+;;;-----------------------------
+;; In section 12.7 we assume the use of ASDF, which is the de facto
+;; standard package mechanism.
+(loop 
+   for path in asdf:*central-registry*
+   for i from 0
+   do (format t "~D ~A~%" i path))
+;;0 /Users/mongo/moogle-code/cl-fnord/
+;;1 /Users/mongo/common-lisp.net/cl-zztop/trunk/
+;;2 (MERGE-PATHNAMES .sbcl/systems/ (USER-HOMEDIR-PATHNAME))
+;;3 (LET ((HOME (POSIX-GETENV SBCL_HOME)))
+;;    (WHEN HOME (MERGE-PATHNAMES site-systems/ (TRUENAME HOME))))
+;;4 *DEFAULT-PATHNAME-DEFAULTS*
+
+;;;-----------------------------
+(pushnew "/projects/spectre/lib" asdf:*central-registry*)
+;;;-----------------------------
+(require :find-bin)
+(pushnew find-bin::*bin* asdf:*central-registry*)
+;;;-----------------------------
+(shadowing-import find-bin::*bin*)
+(pushnew (concatenate 'string *bin* "/../lib"))
 ;;;-----------------------------
