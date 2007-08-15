@@ -22,6 +22,7 @@
 
 (in-package :cl-user)
 
+(require :cl-ppcre)
 (use-package '(:cl-ppcre))
 
 (declaim (optimize (speed 0) (safety 3) (debug 3)))
@@ -1450,7 +1451,7 @@ my-array
 ;; element rather than $_.  Also, you have to just pass in the hash
 ;; table directly, not a flattened list of hash keys.
 (defmacro amap-into ((&rest refs) &body body)
-  (let* ((gensyms (mapcar #'(lambda (ignore) (declare (ignore ignore)) (gensym)) refs)))
+  (let* ((gensyms (loop repeat (length refs) collect (gensym))))
     (list*
      'let
      (mapcar #'list gensyms refs)
@@ -1459,17 +1460,21 @@ my-array
         and indirect-ref in gensyms
         collect
         `(typecase ,indirect-ref
-           (hash-table (maphash #'(lambda (key value)
-                                    (declare (ignore value))
-                                    (symbol-macrolet ((it (gethash key ,indirect-ref)))
-                                      ,@body))
-                                    ,indirect-ref))
-           (sequence (map-into ,indirect-ref
-                               #'(lambda (it)
-                                   ,@body)
-                               ,indirect-ref))
-           (t (symbol-macrolet ((it ,ref))
-                ,@body)))))))
+           (hash-table 
+            (maphash #'(lambda (key value)
+                         (declare (ignore value))
+                         (symbol-macrolet ((it (gethash key ,indirect-ref)))
+                           ,@body))
+                     ,indirect-ref))
+           ('(and (or vector list) (not string)) 
+            (map-into ,indirect-ref
+                      #'(lambda (it)
+                          ,@body
+                          it)
+                      ,indirect-ref))
+           (t 
+            (symbol-macrolet ((it ,ref))
+              ,@body)))))))
 
 ;; trim whitespace in the scalar, the list, the array, and all the
 ;; values in the hash
