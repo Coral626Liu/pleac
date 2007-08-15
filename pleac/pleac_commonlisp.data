@@ -198,8 +198,8 @@ double quotation mark.
 ;; substitute "at" for "is", restricted to first five characters
 (concatenate 'string
               (regex-replace "is" *string* "at"
-                                      :start 0
-                                      :end (min (length *string*) 5))
+                             :start 0
+                             :end (min (length *string*) 5))
               (when (> (length *string*) 5)
                 (subseq *string* 5)))
 ;;;-----------------------------
@@ -1443,17 +1443,27 @@ my-array
 (format t "~{~A~^ ~} ~{~A~^ ~}~%" (coerce a 'list) (coerce b 'list))
 ;; 3.5 21 0 7
 ;;;-----------------------------
-
-(defmacro perl-foreach ((&rest refs) &body body)
+;; The following macro is mostly like Perl's foreach, in the sense
+;; that you can pass in as many references to sequences or "scalars"
+;; as you want and it will iterate over them and allow you to modify
+;; them.  Unlike the Perl code, it sets the variable IT to each
+;; element rather than $_.  Also, you have to just pass in the hash
+;; table directly, not a flattened list of hash keys.
+(defmacro amap-into ((&rest refs) &body body)
   (let* ((gensyms (mapcar #'(lambda (ignore) (declare (ignore ignore)) (gensym)) refs)))
-    (list* 
+    (list*
      'let
-     (mapcar #'(lambda (symb value) (list symb value)) gensyms refs)
-     (loop 
+     (mapcar #'list gensyms refs)
+     (loop
         for ref in refs
         and indirect-ref in gensyms
         collect
         `(typecase ,indirect-ref
+           (hash-table (maphash #'(lambda (key value)
+                                    (declare (ignore value))
+                                    (symbol-macrolet ((it (gethash key ,indirect-ref)))
+                                      ,@body))
+                                    ,indirect-ref))
            (sequence (map-into ,indirect-ref
                                #'(lambda (it)
                                    ,@body)
@@ -1461,9 +1471,18 @@ my-array
            (t (symbol-macrolet ((it ,ref))
                 ,@body)))))))
 
+;; trim whitespace in the scalar, the list, the array, and all the
+;; values in the hash
+(amap-into (scalar my-list my-array my-hash)
+  (setf it (regex-replace "^\\s+" it ""))
+  (setf it (regex-replace "\\s+$" it "")))
+;;;-----------------------------
+;; The Perl code in this subsection is Perl-specific (demonstrating
+;; the shorthand syntax for "foreach").
+;;;-----------------------------
 
 ;;; @@PLEAC@@_4.6
-;;-----------------------------
+;;;-----------------------------
 
 (let ((seen (make-hash-table))
       (uniq '()))
