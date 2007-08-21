@@ -23,7 +23,8 @@
 (in-package :cl-user)
 
 (require :cl-ppcre)
-(use-package '(:cl-ppcre))
+(require :iterate)
+(use-package '(cl-ppcre iterate))
 
 (declaim (optimize (speed 0) (safety 3) (debug 3)))
 
@@ -40,9 +41,9 @@ and evaluate BODY."
      (when ,var ,@body)))
 
 (defmacro perl-grep (sequence &body predicate-body)
-  "Like Perl's grep.  Predicate is a body of code that can refer to $_
+  "Like Perl's grep.  Predicate is a body of code that can refer to IT
 as the current element of the list."
-  `(remove-if-not #'(lambda ($_)
+  `(remove-if-not #'(lambda (it)
                       ,@predicate-body)
                   ,sequence))
 
@@ -74,6 +75,10 @@ equivalent in standard CL."
       (import (cadr (assoc tag export-tags))
               current-package))))
 
+;; Like Perl's keys function.
+(defun hash-keys (hash)
+  (loop for k being the hash-keys of hash collect k))
+
 ;;;; @@SKIP@@ Common Lisp code makes use of the following for
 ;;;; @@SKIP@@ package/loading: 
 ;;;; @@SKIP@@  (require :PACKAGENAME)
@@ -86,11 +91,12 @@ equivalent in standard CL."
 ;;;; @@SKIP@@  (use-package 'CyberTiggyr-Time) ; for printing times in various formats
 
 ;;;; @@SKIP@@ Packages / libraries used include:
-;;;; @@SKIP@@  http://www.cliki.net/cl-ppcre
-;;;; @@SKIP@@  http://www.cliki.net/cl-interpol
-;;;; @@SKIP@@  http://www.cliki.net/date-calc
-;;;; @@SKIP@@  http://www.cliki.net/asdf
 ;;;; @@SKIP@@  http://cybertiggyr.com/gene/pdl/
+;;;; @@SKIP@@  http://www.cliki.net/asdf
+;;;; @@SKIP@@  http://www.cliki.net/cl-interpol
+;;;; @@SKIP@@  http://www.cliki.net/cl-ppcre
+;;;; @@SKIP@@  http://www.cliki.net/date-calc
+;;;; @@SKIP@@  http://www.cliki.net/iterate
 
 ;;; @@PLEAC@@_1.0
 ;;;-----------------------------
@@ -1450,7 +1456,7 @@ my-array
 ;; them.  Unlike the Perl code, it sets the variable IT to each
 ;; element rather than $_.  Also, you have to just pass in the hash
 ;; table directly, not a flattened list of hash keys.
-(defmacro amap-into ((&rest refs) &body body)
+(defmacro perl-foreach ((&rest refs) &body body)
   (let* ((gensyms (loop repeat (length refs) collect (gensym))))
     (list*
      'let
@@ -1466,7 +1472,7 @@ my-array
                          (symbol-macrolet ((it (gethash key ,indirect-ref)))
                            ,@body))
                      ,indirect-ref))
-           ('(and (or vector list) (not string)) 
+           ((and (or vector list) (not string))
             (map-into ,indirect-ref
                       #'(lambda (it)
                           ,@body
@@ -1478,7 +1484,7 @@ my-array
 
 ;; trim whitespace in the scalar, the list, the array, and all the
 ;; values in the hash
-(amap-into (scalar my-list my-array my-hash)
+(perl-foreach (scalar my-list my-array my-hash)
   (setf it (regex-replace "^\\s+" it ""))
   (setf it (regex-replace "\\s+$" it "")))
 ;;;-----------------------------
@@ -1486,28 +1492,214 @@ my-array
 ;; the shorthand syntax for "foreach").
 ;;;-----------------------------
 
-;;; @@PLEAC@@_4.6
+;;; @@PLEAC@@_4.5
+;;;-----------------------------
+;; iterate over elements of array in ARRAYREF (but if you intend to
+;; modify the elemnts, it will only modify non-"scalar" elements such
+;; as lists, structures, etc).
+(map 'array #'(lambda (item)
+                ;; do something with ITEM
+                )
+     arrayref)
+
+;; or you can use LOOP
+(loop for item across arrayref
+     do ;; do something with ITEM
+     )
+
+;; to modify the array contents (even if they're "scalars" like
+;; numbers)
+(map-into arrayref #'(lambda (item)
+                       ;; do something with ITEM
+                       )
+          arrayref)
+
+;; or you can use ITER
+(iter (for i index-of-vector arrayref)
+      ;; do something with (aref arrayref i)
+      )
+
+;; As a side note, for lists you could also do the following (won't
+;; allow modifying "scalar" elements of the list).
+(dolist (item list)
+  ;; do something with ITEM
+  )
+;;;-----------------------------
+(defparameter *fruits* #("Apple" "Blackberry"))
+(setf fruit-ref *fruits*)
+(loop for fruit across fruit-ref
+   do (format t "~A tastes good in a pie.~%" fruit))
+;;Apple tastes good in a pie.
+;;Blackberry tastes good in a pie.
+;;;-----------------------------
+(loop for i below (length fruit-ref)
+   do (format t "~A tastes good in a pie.~%" (svref fruit-ref i)))
+;;;-----------------------------
+(setf (gethash :felines *namelist*) *rogue-cats*)
+(dolist (cat (gethash :felines *namelist*))
+  (format t "~A purrs hypnotically..~%" cat))
+(format t "--More--~%You are controlled.~%")
+;;;-----------------------------
+(loop for i below (length (gethash :felines *namelist*))
+   do (format t "~A purrs hypnotically..~%" (elt (gethash :felines *namelist*) i)))
 ;;;-----------------------------
 
-(let ((seen (make-hash-table))
-      (uniq '()))
-  (dolist (item list)
-    (unless (gethash item seen)
-      ;; if we are here, we have not seen it before
-      (setf (gethash item seen) 1)
-      (push item uniq))))
-;;-----------------------------
-;;-----------------------------
-;;; @@INCOMPLETE@@
+;;; @@PLEAC@@_4.6
+;;;-----------------------------
+(defparameter *seen* (make-hash-table :test 'equal))
+(defparameter *uniq* '())
+
+(dolist (item my-list)
+  (unless (gethash item *seen*)
+    ;; if we are here, we have not seen it before
+    (setf (gethash item *seen*) 1)
+    (push item *uniq*)))
+;;;-----------------------------
+(clrhash *seen*)
+(dolist (item my-list)
+  (when (= (incf (gethash item *seen* 0)) 1)
+    (push item *uniq*)))
+;;;-----------------------------
+(clrhash *seen*)
+(dolist (item my-list)
+  (when (= (incf (gethash item *seen* 0)) 1)
+    (some-func item)))
+;;;-----------------------------
+(clrhash *seen*)
+(dolist (item my-list)
+  (incf (gethash item *seen* 0)))
+(setf *uniq* (loop for k being the hash-keys of *seen* collect k))
+;;;-----------------------------
+(clrhash *seen*)
+;; PERL-GREP defined in Appendix
+(setf uniqu (perl-grep my-list (= 1 (incf (gethash it *seen* 0)))))
+;;;-----------------------------
+;; generate a list of users logged in, removing duplicates
+(defparameter *ucnt* (make-hash-table :test 'equal))
+
+(defmacro dolines ((var stream) &body body)
+  "Like DOLIST except iterates over the lines of STREAM."
+  (let ((s (gensym "stream-"))
+        (eof (gensym "eof-")))
+    `(let ((,s ,stream))
+       (do ((,var (read-line ,s nil ',eof nil) 
+                  (read-line ,s nil ',eof nil)))
+           ((eql ,var ',eof))
+         ,@body))))
+
+#+sbcl
+(with-open-stream (s (process-output 
+                      (sb-ext:run-program "who" nil :search t :output :stream :wait nil)))
+  (dolines (who s)
+    ;; kill from first space till end-of-line, yielding username
+    (setf who (regex-replace "\\s.*$" who "")) 
+    (incf (gethash who *ucnt* 0)))) ; record the presence of this user
+;; extract and print unique keys
+(defparameter *users* (sort (loop for k being the hash-keys of *ucnt* collect k) #'string=))
+(format t "users logged in: ~{~A~^ ~}~%" *users*)
+;;;-----------------------------
+
+;;; @@PLEAC@@_4.7
+;;;-----------------------------
+;; assume A and B are already loaded
+(defparameter *seen* (make-hash-table :test 'equal)) ; lookup table to test membership of B
+(defparameter *a-only* '())                          ; answer
+
+;; build lookup table
+(loop for item in b do (setf (gethash item *seen*) 1))
+
+;; find only elements in A and not in B
+(dolist (item a)
+  (unless (gethash item *seen*)
+    ;; it's not in SEEN, so add to *A-ONLY*
+    (push item *a-only*)))
+;;;-----------------------------
+;; The Perl example here isn't substantially different from the above
+;; in CL.
+;;;-----------------------------
+(dolist (item a)
+  (unless (gethash item *seen*)
+    (push item *a-only*))
+  (setf (gethash item *seen*) 1)) ; mark as seen
+;;;-----------------------------
+(setf (gethash "key1" my-hash) 1)
+(setf (gethash "key2" my-hash) 2)
+;;;-----------------------------
+(loop
+   for key in '("key1" "key2")
+   and value in '(1 2)
+   do (setf (gethash key my-hash) value))
+;;;-----------------------------
+(loop
+   for key in b
+   do (setf (gethash key my-hash) nil))
+;;;-----------------------------
+(loop
+   for key in b
+   do (setf (gethash key my-hash) (loop repeat (length b) collect 1)))
+;;;-----------------------------
+
+;;; @@PLEAC@@_4.8
+;;;-----------------------------
+(defparameter *a* '(1 3 5 6 7 8))
+(defparameter *b* '(2 3 5 7 9))
+
+(defvar *union*)
+(defvar *isect*)
+(defvar *diff*)
+(defparameter *union-hash* (make-hash-table))
+(defparameter *isect-hash* (make-hash-table))
+(defparameter *count* (make-hash-table))
+;;;-----------------------------
+;; don't actually do this, use instead the built-ins shown at the end
+(dolist (e *a*)
+  (setf (gethash e *union-hash*) 1))
+
+(dolist (e *b*)
+  (when (gethash e *union-hash*)
+    (setf (gethash e *isect-hash*) 1))
+  (setf (gethash e *union-hash*) 1))
+
+(setf *union* (loop for k being the hash-keys of *union-hash* collect k))
+(setf *isect* (loop for k being the hash-keys of *isect-hash* collect k))
+
+;; or you could use the built ins
+(setf *union* (union *a* *b*))
+(setf *isect* (intersection *a* *b*))
+;;;-----------------------------
+(perl-foreach (*a* *b*)
+  (and (prog1 (gethash it *union-hash*)
+         (incf (gethash it *union-hash* 0)))
+       (incf (gethash it *isect-hash* 0))))
+
+(setf *union* (hash-keys *union-hash*)) ; HASH-KEYS defined in Appendix
+(setf *isect* (hash-keys *isect-hash*))
+;;;-----------------------------
+(perl-foreach (*a* *b*) (incf (gethash it *count* 0)))
+  
+(loop
+   for e being the hash-keys of *count* using (hash-value count)
+   do
+   (push e *union*)
+   (case count
+     (2 (push e *isect*))
+     (t (push e *diff*))))
+;;;-----------------------------
+;; Without writing a special macro, there'd be no obvious difference
+;; from the previous example.
+;;;-----------------------------
 
 ;;; @@PLEAC@@_4.9
-;;-----------------------------
-(append array1 array2)
+;;;-----------------------------
+;; push
+(setf array1 (append array1 array2))
+;;;-----------------------------
+(setf array1 `(,@array1 ,@array2))
 ;;-----------------------------
 (let ((members '("Time" "Flies"))
       (initiates '("An" "Arrow")))
   (setf members (append members initiates))
-;;; members is now ("Time" "Flies" "An" "Arrow")
+;; members is now ("Time" "Flies" "An" "Arrow")
 ;;;-----------------------------
   (setf members `(,@(subseq members 0 2) "Like" ,@initiates))
   (format t "~{~a~^ ~}~%" members)
@@ -1517,9 +1709,10 @@ my-array
 ;;;-----------------------------
 ;;Time Flies Like An Arrow
 ;;Fruit Flies Like A Banana
+;;;-----------------------------
 
 ;;; @@PLEAC@@_4.10
-;;-----------------------------
+;;;-----------------------------
 ;; reverse ARRAY into REVERSED
 (setf reversed (reverse *array*))
 ;;-----------------------------
@@ -1527,16 +1720,82 @@ my-array
     ((minusp i))
   ;; do something with (aref array i)
   )
-;;-----------------------------
-;; SORT is destructive, hence COPY-SEQ
-(setf ascending (sort (copy-seq users) #'string-lessp))
+;;;-----------------------------
+;; two-step: sort then reverse
+;; SORT is destructive, hence STABLE-SORT
+(setf ascending (stable-sort users 'string-lessp))
 (setf descending (reverse ascending))
-;;-----------------------------
-(setf descending (reverse (sort (copy-seq users) #'string-lessp)))
-;;-----------------------------
+
+;; one-step: sort with reverse comparison
+(setf descending (reverse (stable-sort users 'string-lessp)))
+;;;-----------------------------
+
+;;; @@PLEAC@@_4.11
+;;;-----------------------------
+;; Removing N elements from front of MY-ARRAY requires 2 steps in CL
+(setf front (subseq my-array 0 n))
+(setf my-array (subseq my-array n))
+
+;; However we can write a macro to mimic Perl's behavior.
+(defmacro perl-splice (sequence-place &optional (offset 0) length replacement-sequence)
+  (let* ((seq (gensym "SEQUENCE-PLACE-"))
+         (off-arg (gensym "OFFSET-ARG-"))
+         (off (gensym "OFFSET-"))
+         (len (gensym "LENGTH-"))
+         (end (gensym "END-"))
+         (rep (gensym "REPLACEMENT-SEQUENCE-"))
+         (left-part (list `(subseq ,seq 0 ,off)))
+         (right-part (when length
+                       (list `(subseq ,seq ,end)))))
+    `(let* ((,seq ,sequence-place)
+            (,off-arg ,offset)
+            (,off (if (minusp ,off-arg)
+                      (+ (length ,seq) ,off-arg)
+                      ,off-arg))
+            (,len ,length)
+            (,end (when ,len
+                    (if (minusp ,len)
+                        (+ (length ,seq) ,len)
+                        (+ ,off ,len))))
+            (,rep ,replacement-sequence))
+       (prog1 (subseq ,seq ,off ,end)
+         (when (or ,rep (not (eql ,off ,end)))
+           (setf ,sequence-place (concatenate (typecase ,seq
+                                                (cons 'list)
+                                              (t 'vector))
+                                            ,@left-part
+                                            ,rep
+                                            ,@right-part)))))))
+
+;; Now the syntax is almost exactlly the same.
+(setf front (perl-splice my-array 0 n))
+(setf end (perl-splice my-array 0 (- n)))
+;;;-----------------------------
+(defmacro shift2 (sequence)
+  `(perl-splice ,sequence 0 2))
+
+(defmacro pop2 (sequence)
+  `(perl-splice ,sequence -2))
+;;;-----------------------------
+(defparameter *friends* '(Peter Paul Mary Jim Tim))
+
+(destructuring-bind (this that) (shift2 *friends*)
+  ;; THIS contains PETER, THAT has PAUL, and
+  ;; *FRIENDS* has MARY, JIM, and TIM
+  )
+  
+(defparameter *beverages* #(Dew Jolt Cola Sprite Fresca))
+(let ((pair (pop2 *beverages*)))
+  ;; (aref pair 0) contains Sprite, (aref pair 1) has Fresca,
+  ;; and *beverages* has #(DEW JOLT COLA)
+  )
+;;;-----------------------------
+(setf (aref line 5) my-list)
+(setf got (pop2 (aref line 5)))
+;;;-----------------------------
 
 ;;; @@PLEAC@@_4.13
-;;-----------------------------
+;;;-----------------------------
 (setf matching (find-if-not #'test list))
 ;;-----------------------------
 (let ((matching '()))
@@ -1554,7 +1813,7 @@ my-array
                    (scan "^gnat " line))
                (split #\Newline
                                (with-output-to-string (output)
-                                 (sb-ext:run-program "who" nil :search t :output output))))
+                                 (sb-ext:run-program "who" nil :search t :output output)q)))
 ;;;-----------------------------
 ;;; Assumes DEFSTRUCT or DEFCLASS of EMPLOYEE with a POSITION slot.
 (setf engineers (remove "Engineer" employees :key #'employee-position :test-not 'string=))
@@ -1563,6 +1822,35 @@ my-array
                                               (and (>= (applicant-income applicant) 26000)
                                                    (<  (applicant-income applicant) 30000)))
                                           applicants))
+;;;-----------------------------
+
+;;; @@PLEAC@@_4.14
+;;;-----------------------------
+(setf sorted (stable-sort unsorted '<))
+;;;-----------------------------
+;; PIDS is an unsorted list of process IDs
+(dolist (pid (stable-sort pids '<))
+  (format t "~A~%" pid))
+(format t "Select a process ID to kill:~%")
+(let ((pid (read)))
+  (etypecase pid
+    (integer (sb-posix:kill pid sb-posix:sigterm)
+             (sleep 2)
+             (ignore-errors
+               (sb-posix:kill pid sb-posix:sigkill)))))
+;;;-----------------------------
+(setf descending (stable-sort unsorted '>))
+(defpackage :sort-subs (:use cl))
+(in-package :sort-subs)
+(defun revnum (a b)
+  (< b a))
+
+(defpackage :other-pack (:use cl))
+(in-package :other-pack)
+(defparameter *all* (stable-sort #(4 19 8 3) 'sort-subs::revnum))
+;;;-----------------------------
+(setf *all* (stable-sort #(4 19 8 3) '>))
+(in-package :cl-user) 
 ;;;-----------------------------
 
 ;;; @@PLEAC@@_4.16
@@ -2770,9 +3058,9 @@ multidimensional arrays.)"
              *employees*))
 ;; Or:
 (setf peons (perl-grep *employees*
-              (and $_
+              (and it
                    (scan (create-scanner "peon" :case-insensitive-mode t)
-                                  (gethash :title $_)))))
+                                  (gethash :title it)))))
 
 (setf tsevens (remove-if-not 
                #'(lambda (employee) 
@@ -3050,8 +3338,8 @@ multidimensional arrays.)"
 ;;;-----------------------------
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (unless (and (= 3 (length *posix-argv*)) ; Perl skips past executable
-               (= 2 (length (perl-grep *posix-argv*
-                              (scan "^\\d+$" $_)))))
+               (= 2 (length (perl-grep *posix-argv* ; PERL-GREP defined in Appendix
+                              (scan "^\\d+$" it)))))
     (error "usage: ~A num1 num2" (car *posix-argv*))))
 
 (require :some.module)
