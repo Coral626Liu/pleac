@@ -2985,7 +2985,7 @@ let () =
 let () =
   let proc = Unix.open_process_in ("wc -l < " ^ file) in
   let count = int_of_string (input_line proc) in
-  close_in proc;
+  ignore (Unix.close_process_in proc);
   (* count now holds the number of lines read *)
   ()
 
@@ -5168,9 +5168,9 @@ let read_process command =
   let chars_read = ref 1 in
   while !chars_read <> 0 do
     chars_read := input in_channel string 0 buffer_size;
-    Buffer.add_string buffer (String.sub string 0 !chars_read)
+    Buffer.add_substring buffer string 0 !chars_read
   done;
-  close_in in_channel;
+  ignore (Unix.close_process_in in_channel);
   Buffer.contents buffer
 
 (* Run a command and return its results as a list of strings,
@@ -5184,7 +5184,7 @@ let read_process_lines command =
         lines := input_line in_channel :: !lines
       done;
     with End_of_file ->
-      close_in in_channel
+      ignore (Unix.close_process_in in_channel)
   end;
   List.rev !lines
 
@@ -5290,7 +5290,8 @@ let () =
   let rec loop line =
     (* ... *)
     loop (input_line readme) in
-  try loop (input_line readme) with End_of_file -> close_in readme
+  try loop (input_line readme)
+  with End_of_file -> ignore (Unix.close_process_in readme)
 
 (*-----------------------------*)
 
@@ -5298,7 +5299,7 @@ let () =
 let () =
   let writeme = Unix.open_process_out "program arguments" in
   output_string writeme "data\n";
-  close_out writeme
+  ignore (Unix.close_process_out writeme)
 
 (*-----------------------------*)
 
@@ -5307,7 +5308,7 @@ let () =
   (* child goes to sleep *)
   let f = Unix.open_process_in "sleep 100000" in
   (* and parent goes to lala land *)
-  close_in f;
+  ignore (Unix.close_process_in f);
   ignore (Unix.wait ())
 
 (*-----------------------------*)
@@ -5317,7 +5318,7 @@ let () =
   (* program will get hello\n on STDIN *)
   output_string writeme "hello\n";
   (* program will get EOF on STDIN *)
-  close_out writeme
+  ignore (Unix.close_process_out writeme)
 
 (*-----------------------------*)
 
