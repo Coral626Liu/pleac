@@ -3534,3 +3534,260 @@ multidimensional arrays.)"
 (shadowing-import find-bin::*bin*)
 (pushnew (concatenate 'string *bin* "/../lib"))
 ;;;-----------------------------
+
+;;; @@PLEAC@@_13.0
+;;;-----------------------------
+;; In CL you don't "bless" hash tables (or other data structures), as
+;; classes, you just create instances which manage their own storage.
+;; See section 13.1 for an example of how to create a more Perl-like
+;; object, if you want to.
+(setf obj (make-instance 'data::encoder))
+;;;-----------------------------
+(let ((obj #(3 5)))
+  (format t "~A ~A~%" (type-of obj) (aref obj 1))
+  (setf obj (make-instance 'human::cannibal))
+  ;; This part isn't exactly like the Perl, there's no way to reuse
+  ;; the array as the underlying storage for the class (as far as I
+  ;; know).
+  (format t "~A~%" (type-of obj)))
+;; (SIMPLE-VECTOR 2) 5
+;; CANNIBAL
+;;;-----------------------------
+(setf (slot-value obj 'stomach) "Empty" ; directly accessing an object's contents
+      (slot-value obj 'NAME) "Thag") ; uppercase field name to make it stand out (optional)
+;;;-----------------------------
+;; The following won't run (due to data::encoder being fake), it just
+;; illustrates the syntax of calling a method.
+(setf encoded (encode obj "data"))
+;;;-----------------------------
+;; Not really different from the above, but more in the spirit of the
+;; Perl example.
+(setf encoded (data::encode obj "data"))
+;;;-----------------------------
+;; This is already built in to CL, MAKE-INSTANCE, no need to define it
+;; ourselves.
+;;;-----------------------------
+(setf object (make-instance 'my-class))
+;;;-----------------------------
+;; No difference from above
+;; $object = Class::new("Class");
+;;;-----------------------------
+;; Note: haven't checked whether the following is the best way to do
+;; the following.  It does seem to work tho.
+
+;; The following will only get called if the type is a class.
+(defmethod class-only-method ((class standard-class))
+  ;; more code here
+  )
+;; Or you could just write a function
+(defun class-only-method (class)
+  (check-type class standard-class)
+  ;; more code here
+  )
+
+;; For more specific classes
+(defmethod my-class-only-method ((class (eql (find-class 'my-class))))
+  ;; more code here
+  )
+;; Or you could just write a function
+(defun my-class-only-method (class)
+  (check-type class #.(find-class 'my-class))
+  ;; more code here
+  )
+;;;-----------------------------
+(defparameter *lector* (make-instance 'human::cannibal))
+(feed *lector* "Zak")
+(move *lector* "New York")
+;;;-----------------------------
+;; No difference from previous subsection.
+;;;-----------------------------
+(format *error-output* "stuff here~%")
+;;;-----------------------------
+;; Not sure what the Perl was trying to show here
+(move (slot-value obj 'field))
+(move (aref ary i))
+;;;-----------------------------
+(slot-value (move obj) 'field)
+(aref (move ary) i)           ; won't work if ARY is actually an array
+;;;-----------------------------
+;; Not sure what this subsection was trying to show
+;;;-----------------------------
+
+;;; @@PLEAC@@_13.1
+;;;-----------------------------
+;; This entire subsection is specific to Perl's object system (or lack
+;; thereof), so it's difficult to write analogous CL code for it.
+;; Most of the examples would be done in CL using MAKE-INSTANCE (or a
+;; custom function wrapping MAKE-INSTANCE).
+
+;; For the example of an initialization routine, here is the standard
+;; way to do it.
+(defmethod initialize-instance :after ((obj my-class) &rest init-args)
+  "Initialize an object of MY-CLASS"
+  (setf (slot-value obj 'SOMETHING) 'mumble
+        (slot-value obj 'SOMETHING-ELSE) 'bumble)
+  ;; ... etc
+  )
+
+;; On the other hand, it wouldn't be sporting not to at least try to
+;; mimic the Perl examples, so here goes.  
+
+;; The following will be used in subsequent examples that attempt to
+;; be like Perl.
+(defclass perl-object () 
+  ((_hash :initform (make-hash-table)
+          :type hash-table))
+  (:documentation "Can be used as a mixin class to make your class
+  more Perl-like, or can be used directly."))
+
+(defmethod slot-missing (class (instance perl-object) slot-name operation 
+                         &optional (new-value nil new-value-supplied-p))
+  (symbol-macrolet ((hash-place (gethash slot-name (slot-value instance '_hash))))
+    (if new-value-supplied-p
+        (setf hash-place new-value)
+        hash-place)))
+
+;; Here's an example of how to use PERL-OBJECT as a "mixin" class to
+;; make your class Perl-like (i.e., able to store arbitrary slots in
+;; an underlying hash).
+(defclass my-perlish-class (perl-object)
+  (a b c))
+
+;; Simliar to the new() function in the Perl.
+(defun perl-new (class)
+  (assert (subtypep class 'perl-object))
+  (make-instance class))
+;;;-----------------------------
+;; No difference
+;;;-----------------------------
+;; No difference
+;;;-----------------------------
+(defun new ()
+  (let ((self (make-instance 'perl-object))) ; allocate perl-object w/ anonymous hash
+    ;; init two sample attributes/data members/fields
+    (setf (slot-value self 'START) (get-universal-time)
+          (slot-value self 'AGE) 0)
+    self))
+;;;-----------------------------
+(defun new (classname)
+  (assert (subtypep classname 'perl-object)) ; Make sure it is of the right type
+  (let ((self (make-instance classname))) ; Allocate new memory
+    ;; init data fields
+    (setf (slot-value self 'START) (get-universal-time)
+          (slot-value self 'AGE) 0)
+    self))                              ; And give it back
+;;;-----------------------------
+(defun new (classname &rest initargs)
+  (assert (subtypep classname 'perl-object)) ; Make sure it is of the right type
+  (let ((self (make-instance classname))) ; Allocate new memory
+    ;; init data fields
+    (apply '_init self initargs)
+    self))                              ; And give it back
+
+;; "private" method to initialize fields.  It always sets START to the
+;; current time, and AGE to 0.  If called with arguments, _init
+;; interprets them as key+value pairs to initialize the object with.
+;; Note that you have to define this for each individual class you
+;; want to have it called upon.  In the example below I used
+;; MY-PERLISH-CLASS, you'd obviously have to change that to whatever
+;; your class was called.
+(defmethod _init ((self my-perlish-class) &rest args)
+  (setf (slot-value self 'start) (get-universal-time)
+        (slot-value self 'age) 0)
+  (loop
+     for key in args by #'cddr 
+     for value in (cdr args) by #'cddr
+     do
+       (setf (slot-value self key) value)))
+;;;-----------------------------
+
+;;; @@PLEAC@@_13.2
+;;;-----------------------------
+
+;; CL has no equivalent to Perl's DESTROY.  Classes that need similar
+;; functionality should provide a WITH- macro to handle automatically
+;; freeing up the resources in exceptional circumstances.  Here's a
+;; skeleton implementation of a macro that one might provide with
+;; one's class.
+(defmacro with-my-class ((my-obj &rest initargs) &body body)
+  `(let ((,my-obj (make-instance 'my-class ,@initargs)))
+     (unwind-protect
+          (progn ,@body)
+       (close ,my-obj)))) ; CLOSE is just an example, should be
+                          ; whatever is necessary
+
+;; Even if a condition is signaled, the cleanup code will be called, as in:
+;;
+;; (with-my-class (obj foo bar) 
+;;    (/ 3 0))
+
+;; If you're willing to use a non-standard extension, you can use,
+;; e.g., SBCL's SB-EXT:FINALIZE
+;;; @@INCOMPLETE@@
+;;;-----------------------------
+
+;;; @@PLEAC@@_13.3
+;;;-----------------------------
+;; Don't do the following, it's just here to match the Perl example.
+(defun get-name (self)
+  (slot-value self 'name))
+
+(defun set-name (self value)
+  (setf (slot-value self 'name) value))
+;;;-----------------------------
+;; The following is the recommended way to do what the Perl example is
+;; doing and is normally preferred to the previous example.  It
+;; creates a method called NAME which does, essentially, the same
+;; thing as the name() function in the example.
+(defclass my-class ()
+  ((name :accessor name)))
+(setf (name my-obj) 'foo               ; just an example
+      val (name my-obj))                ; just an example
+
+;; Just for the record, you could also do this (don't actually do it,
+;; this is just to illustrate :READER and :WRITER).
+(defclass my-class ()
+  ((name :reader get-name :writer set-name)))
+(set-name 'foo my-obj)                      ; just an example
+(get-name my-obj)                           ; just an example
+
+;; You could also do the same thing as the previous example manually.
+(defclass my-class ()
+  (name))
+
+(defmethod get-name ((my-obj my-class))
+  (slot-value my-obj 'name))
+
+(defmethod set-name ((my-obj my-class) value)
+  (setf (slot-value my-obj 'name) value))
+;;;-----------------------------
+(defun age (obj &optional (value nil value-supplied-p))
+  (prog1 (slot-value obj 'age)
+    (when value-supplied-p
+      (setf (slot-value obj 'age) value))))
+;; sample call of get and set: happy birthday!
+(age obj (1+ (age obj)))
+;;;-----------------------------
+(defclass person () 
+  ((name :accessor name)
+   (age :accessor age)
+   (peers :accessor peers)))
+(defparameter *him* (make-instance 'person))
+(setf (slot-value *him* 'name) "Sylvester"
+      (slot-value *him* 'age) 23)
+;;;-----------------------------
+;; @@@INCOMPLETE@@@
+;;;-----------------------------
+
+;; Most of bthis subsection (NAME, AGE, PEERS) is already implemented
+;; by the DEFCLASS above.
+(defmethod exclaim ((self person))
+  (with-accessors ((name name) (age age) (peers peers)) self
+    (format nil
+            "Hi, I'm ~A, age ~D, working with ~{~A~^, ~}"
+            name age peers)))
+          
+(defmethod happy-birthday ((self person))
+  (incf (age self)))
+;;;-----------------------------
+
