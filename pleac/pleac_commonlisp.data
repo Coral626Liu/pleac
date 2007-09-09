@@ -14,9 +14,9 @@
 ;;;; @@SKIP@@ details).
 
 ;;;; @@SKIP@@ In the code below, when the Perl code uses arrays in a
-;;;; @@SKIP@@ way that really requires it (e.g., uses random access),
-;;;; @@SKIP@@ we use CL arrays.  Otherwise we use lists which are
-;;;; @@SKIP@@ slightly more convenient.
+;;;; @@SKIP@@ way that *really* requires it (e.g., uses random
+;;;; @@SKIP@@ access), we use CL arrays.  Otherwise we usually use
+;;;; @@SKIP@@ lists, which are more convenient.
 
 ;;;; @@PLEAC@@_APPENDIX
 
@@ -61,7 +61,7 @@ built-in funcionality."
        do (setf (gethash key newhash) value))
     newhash))
 
-;; See section 12.1 for an example usage of this, including how
+;; Section 12.1 has an example usage of this, including how
 ;; *EXPORT-TAGS* should be formatted.
 (defun import-tags (package-designator &rest tags)
   "Helps emulate Perl's EXPORT_TAGS functionality, which has no
@@ -137,7 +137,6 @@ double quotation mark.
 (setf string (concatenate 'string 
                           (subseq string 0 offset) 
                           newtail))
-
 ;;;-----------------------------
 ;; get a 5-byte string, skip 3, then grab 2 8-byte strings, then the
 ;; rest
@@ -175,18 +174,16 @@ double quotation mark.
 ;; This is what you have
 
 ;; Change "is" to "wasn't"
-(setf *string*
-       (concatenate 'string
-                    (subseq *string* 0 5)
-                    "wasn't"
-                    (subseq *string* (+ 5 2))))
+(setf *string* (concatenate 'string
+                            (subseq *string* 0 5)
+                            "wasn't"
+                            (subseq *string* (+ 5 2))))
 ;; This wasn't what you have
 
 ;; Replace last 12 characters
-(setf *string*
-       (concatenate 'string
-                    (subseq *string* 0 (+ (length *string*) -12))
-                    "ondrous"))
+(setf *string* (concatenate 'string
+                            (subseq *string* 0 (+ (length *string*) -12))
+                            "ondrous"))
 ;; This wasn't wondrous
 
 ;; Delete first character
@@ -251,7 +248,7 @@ double quotation mark.
 ;; set x to y unless x is already true
 (unless x (setf x y))
 ;;;-----------------------------
-;; use b if b is defined, otherwise c
+;; use B if B is defined, otherwise C
 (setf a (if (boundp 'b) b c))
 ;;;-----------------------------
 (setf foo (or bar "DEFAULT VALUE"))
@@ -3610,7 +3607,7 @@ multidimensional arrays.)"
 (slot-value (move obj) 'field)
 (aref (move ary) i)           ; won't work if ARY is actually an array
 ;;;-----------------------------
-;; Not sure what this subsection was trying to show
+;; Not sure what the Perl code was trying to show
 ;;;-----------------------------
 
 ;;; @@PLEAC@@_13.1
@@ -3620,7 +3617,7 @@ multidimensional arrays.)"
 ;; Most of the examples would be done in CL using MAKE-INSTANCE (or a
 ;; custom function wrapping MAKE-INSTANCE).
 
-;; For the example of an initialization routine, here is the standard
+;; For the example of an initialization routine, here is one standard
 ;; way to do it.
 (defmethod initialize-instance :after ((obj my-class) &rest init-args)
   "Initialize an object of MY-CLASS"
@@ -3728,7 +3725,7 @@ multidimensional arrays.)"
 
 ;;; @@PLEAC@@_13.3
 ;;;-----------------------------
-;; Don't do the following, it's just here to match the Perl example.
+;; Don't do the following, it's just here to match the Perl snippet.
 (defun get-name (self)
   (slot-value self 'name))
 
@@ -3741,7 +3738,7 @@ multidimensional arrays.)"
 ;; thing as the name() function in the example.
 (defclass my-class ()
   ((name :accessor name)))
-(setf (name my-obj) 'foo               ; just an example
+(setf (name my-obj) 'foo                ; just an example
       val (name my-obj))                ; just an example
 
 ;; Just for the record, you could also do this (don't actually do it,
@@ -3776,18 +3773,348 @@ multidimensional arrays.)"
 (setf (slot-value *him* 'name) "Sylvester"
       (slot-value *him* 'age) 23)
 ;;;-----------------------------
-;; @@@INCOMPLETE@@@
+;; Naming this different from Perl snippet, to avoid clashing with
+;; NAME accessor above.
+(defun person-name (self &optional (value nil value-supplied-p))
+  (if value-supplied-p
+      (progn
+        ;; CL doesn't have an equivalent of -w (which turns on $^W,
+        ;; AFAICT), so we always warn.
+        (and (scan "[^\\s\\w'-]" value) (warn "funny characters in name"))
+        (and (scan "\\d" value) (warn "numbers in name"))
+        (or (scan "\\S+(\\s+\\S+)+" value) (warn "prefer multiword name"))
+        (or (scan "\\S" value) (warn "name is blank"))
+        (setf (name self) (string-upcase value)))
+      (name self)))
 ;;;-----------------------------
-
-;; Most of bthis subsection (NAME, AGE, PEERS) is already implemented
+;; Most of this subsection (NAME, AGE, PEERS) is already implemented
 ;; by the DEFCLASS above.
 (defmethod exclaim ((self person))
   (with-accessors ((name name) (age age) (peers peers)) self
     (format nil
             "Hi, I'm ~A, age ~D, working with ~{~A~^, ~}"
             name age peers)))
-          
+
 (defmethod happy-birthday ((self person))
   (incf (age self)))
 ;;;-----------------------------
 
+;;; @@PLEAC@@_13.4
+;;;-----------------------------
+(defclass person ()
+  ((gender :accessor gender :initarg :gender)))
+
+(let ((body-count 0))
+  (defun population ()
+    body-count)
+  
+  (defmethod initialize-instance :after ((self person) &rest initargs)
+    (declare (ignore initargs))
+    (incf body-count))
+  
+  ;; Note that using standard CL you would have to arrange for this to
+  ;; be called somehow.  It won't be called automatically by the
+  ;; garbage collector, as it would in Perl.
+  (defmethod destroy ((self person))
+    (declare (ignore self))
+    (decf body-count))
+  )
+
+(defvar *people* nil)
+(loop repeat 10 do (push (make-instance 'person) *people*))
+(format t "There are ~D people alive.~%" (population))
+;; There are 10 people alive.
+;;;-----------------------------
+(defparameter *him* (make-instance 'person :gender :male))
+(defparameter *her* (make-instance 'person :gender :female))
+;;;-----------------------------
+(fixed-array-max-bounds 100)            ; set for whole class
+(defparameter *alpha* (make-instance 'fixed-array))
+(format t "Bound on *alpha* is ~D~%" (max-bounds *alpha*))
+;; Bound on *alpha* is 100
+
+(defparameter *beta* (make-instance 'fixed-array))
+(max-bounds *beta* 50)                  ; still sets for whole class
+(format t "Bound on *alpha* is ~D~%" (max-bounds *alpha*))
+;; Bound on *alpha* is 50
+;;;-----------------------------
+(defclass fixed-array () ())
+
+(let ((bounds 7))
+  (macrolet ((bounds-body ()
+               `(if value-supplied-p
+                    (setf bounds value)
+                    bounds)))
+
+    (defmethod max-bounds ((fixed-array fixed-array) &optional (value nil value-supplied-p))
+      (bounds-body))
+
+    ;; Don't need this, except to be a little more like the Perl code
+    (defun fixed-array-max-bounds (&optional (value nil value-supplied-p))
+      (bounds-body))
+    ))
+;;;-----------------------------
+;; Already implemented in previous snippet
+;;;-----------------------------
+;; Don't do this.  To match the Perl code we have to redefine the
+;; above so that FIXED-ARRAY takes a reference to BOUNDS.  The easiest
+;; way to do that is to make BOUNDS a symbol, there's no direct way to
+;; store a reference to a number in CL since a number can be passed
+;; around by value.
+(defclass fixed-array () (max-bounds-ref))
+
+(let ((bounds-sym (gensym "BOUNDS-"))) ; a symbol, so we can store a ref to int
+  (eval-when (:compile-toplevel :load-toplevel :execute)
+    (setf (symbol-value bounds-sym) 7))
+  (defmethod initialize-instance :after ((self fixed-array) &rest initargs)
+    (declare (ignore initargs))
+    (setf (slot-value self 'max-bounds-ref) bounds-sym))
+
+  (defmethod max-bounds ((fixed-array fixed-array) &optional (value nil value-supplied-p))
+    (if value-supplied-p
+        (setf (symbol-value (slot-value fixed-array 'max-bounds-ref)) value)
+        (symbol-value (slot-value fixed-array 'max-bounds-ref))))
+
+  (defun fixed-array-max-bounds (&optional (value nil value-supplied-p))
+    (if value-supplied-p
+        (setf (symbol-value bounds-sym) value)
+        (symbol-value bounds-sym))))
+;;;-----------------------------
+
+;;; @@PLEAC@@_13.5
+;;;-----------------------------
+;; The closest thing to this example would be CL's built-in
+;; structures, which are simpler than CLOS objects and which by
+;; default store their slots in vectors.
+
+(defstruct person
+  name                                  
+  age
+  (peers nil :type list))
+
+(defparameter *p* (make-person))     ; allocate an empty Person struct
+
+(setf (person-name *p*) "Jason Smythe") ; set its name field
+(setf (person-age *p*) 13)              ; set its age field
+(setf (person-peers *p*) '("Wilbur" "Ralph" "Fred")) ; set its peers field
+
+;; fetch various values, including the zeroth friend
+(format t "At age ~D, ~A's first friend is ~A.~%"
+        (person-age *p*)
+        (person-name *p*)
+        (car (person-peers *p*)))
+;;;-----------------------------
+(defstruct person name age)
+(defstruct family
+  (head (make-person) :type person)
+  address
+  (members nil :type list))
+
+(defparameter *folks* (make-family))
+(defparameter *dad* (family-head *folks*))
+(setf (person-name *dad*) "John")
+(setf (person-age *dad*) 34)
+
+(format t "~A's age is ~D~%"
+        (person-name (family-head *folks*)) 
+        (person-age (family-head *folks*)))
+;;;-----------------------------
+;; You can use DEFMETHOD on any type, not just CLOS objects.
+(defmethod age ((person person) &optional (value nil value-supplied-p))
+  (if value-supplied-p
+      (progn
+        (setf (person-age person)
+              (if (stringp value)
+                  (progn
+                    (when (not (scan "^\\d+" value)) 
+                      (warn "age `~A' isn't numeric" value))
+                    (let ((age (parse-integer value :junk-allowed t)))
+                      (when (> age 150)
+                        (warn "age `~D' is unreasonable" age))
+                      age))
+                  value)))
+      (person-age person)))
+;;;-----------------------------
+;; No equivalent to $^W
+;;;-----------------------------
+;; There's still no equivalent to $^W, but the following illustrates
+;; how you could do the rest of what the Perl does.
+(let ((gripe (if *should-warn* #'warn #'error)))
+  (when (not (scan "^\\d+" value)) 
+    (funcall gripe "age `~A' isn't numeric" value))
+  (let ((age (parse-integer value :junk-allowed t)))
+                      (when (> age 150)
+                        (funcall gripe "age `~D' is unreasonable" age))
+                      age))
+;;;-----------------------------
+;; Just use DEFSTRUCT as you did above.
+;;;-----------------------------
+(defstruct card name color cost type release text)
+;;;-----------------------------
+;; Don't do this.  Very little point, just defining this macro so that
+;; the Perl example can be matched.
+(defmacro defstruct* (name slots)
+  `(defstruct ,name ,@slots))
+
+(defstruct* card #.(mapcar #'identity '(name color cost type release text)))
+;;;-----------------------------
+(defstruct* hostent #.(mapcar #'identity '(name 
+                                           (aliases nil :type list)
+                                           addrtype
+                                           length
+                                           (addr-list nil :type list))))
+;;;-----------------------------
+;; What is this supposed to mean?
+;;#define h_type h_addrtype
+;;#define h_addr h_addr_list[0]
+;;;-----------------------------
+;; make (hostent-addr hostent-object) same as (hostent-addr-list hostent-object)
+
+;; The following has to be a macro so that all the SETF-related stuff
+;; will work correctly.
+(defmacro hostent-addr (hostent-object)
+  `(hostent-addr-list ,hostent-object))
+;;;-----------------------------
+;; Not sure what the corresponding Perl snippet was trying to show.
+;;;-----------------------------
+
+;;; @@PLEAC@@_13.6
+;;;-----------------------------
+;; Skipping this snippet due to Perl-specificity
+;;;-----------------------------
+(setf ob1 (make-instance 'some-class))
+;; later on
+(setf ob2 (make-instance (class-of ob1)))
+;;;-----------------------------
+;; It's a little unclear what the original Perl is doing.  E.g., I
+;; have no idea what PARENT is supposed to be.
+(defun new-from-proto (proto)
+  ;; We don't need to do all the fancy stuff the Perl code does to get
+  ;; the superclass' initializers (equivalent of 'new') to run,
+  ;; they'll be run automatically by MAKE-INSTANCE.
+  (let ((self (make-instance (class-of proto))))
+    ;; The following two lines presume that the class being
+    ;; instantiated either has START and AGE accessors defined, or
+    ;; else inherits the PERL-OBJECT mixin defined earlier in this
+    ;; chapter, so that any accessor will work.
+    (setf (slot-value self 'start) (get-universal-time) ; init data fields
+          (slot-value self 'age) 0)
+    self))
+;;;-----------------------------
+    
+;;; @@PLEAC@@_13.7
+;;;-----------------------------
+(let ((methname 'flicker)
+  (funcall methname obj 10))            ; calls (flicker obj 10) 
+    
+;; call three methods on the object, by name
+(loop for m in '(start run stop)
+     do (funcall m obj))
+;;;-----------------------------
+;; There is no need to do this in CL, in fact in general it won't work
+;; because CLOS supports multi-methods, so the method does not
+;; "belong" to any one object or class.
+;;;-----------------------------
+;;; @@INCOMPLETE@@
+;;;-----------------------------
+
+;;; @@PLEAC@@_13.9
+;;;-----------------------------
+(defclass person ()
+  ((name :accessor name :initarg :name)
+   (age :accessor age :initarg :age)))
+;;;-----------------------------
+(let ((dude (make-instance 'person :name "Jason" :age 23)))
+  (format t "~A is age ~D.~%" (name dude) (age dude)))
+;;;-----------------------------
+(defclass employee (person)
+  ())
+;;;-----------------------------
+(let ((empl (make-instance 'employee :name "Jason" :age 23)))
+  (format t "~A is age ~D.~%" (name empl) (age empl)))
+;;;-----------------------------
+;; No equivalent to this "wrong" Perl snippet.
+;;;-----------------------------
+
+;;; @@PLEAC@@_13.13
+;;;-----------------------------
+(setf (next node) node)
+;;;-----------------------------
+(defclass node ()
+  ((next :accessor next :type node)
+   (prev :accessor prev :type node)
+   (value :accessor value)))
+
+(defclass ring ()
+  ((dummy :accessor dummy :type node)
+   (ring-count :accessor ring-count :type number :initform 0)))
+
+(defmethod initialize-instance :after ((self ring) &rest init-args)
+  (declare (ignore init-args))
+  (let ((dummy (make-instance 'node)))
+    (setf (next dummy) dummy
+          (prev dummy) dummy
+          (value dummy) 'dummy)         ; so PRINT-OBJECT works
+    (setf (dummy self) dummy)))
+;;;-----------------------------
+(loop for i below 20
+     do (let ((r (make-instance 'ring)))
+          (loop repeat 1000
+             do 
+               (insert r i))))
+;;;-----------------------------
+;; Note unlike Perl this isn't called automatically by CL when the
+;; object is collected, however some CL implementations provide an
+;; extension that could be used to "register" this function as such.
+;; Also, depending on the sophistication of your implementation's
+;; garbage collector, it might not be necessary to even have this
+;; method (since the object doesn't hang on to any external
+;; resources).
+(defmethod destroy ((ring ring))
+  (loop for node = (next (dummy ring)) then (next node)
+       until (eq node (dummy ring))
+       do (delete-node ring node))
+  (setf (prev (dummy ring)) nil
+        (next (dummy ring)) nil))
+       
+(defmethod delete-node ((ring ring) (node node))
+  (setf (next (prev node)) (next node)
+        (prev (next node)) (prev node))
+  (decf (ring-count ring)))
+;;;-----------------------------
+(defmethod ring-search ((ring ring) value &key (test 'eql))
+  "Find VALUE in the RING structure, returning a NODE."
+  (loop 
+     for node = (next (dummy ring)) then (next node)
+     until (eq node (dummy ring))
+     do (when (funcall test (value node) value)
+          (return-from ring-search node)))
+  (dummy ring))
+
+(defmethod insert ((ring ring) value)
+  "Insert VALUE into the RING structure."
+  (let ((node (make-instance 'node)))
+    (setf (value node) value
+          (next node) (next (dummy ring))
+          (prev (next (dummy ring))) node
+          (next (dummy ring)) node
+          (prev node) (dummy ring))
+    (incf (ring-count ring))))
+
+(defmethod delete-value ((ring ring) value &key (test 'eql))
+  "Delete a node from the RING structure by VALUE."
+  (let ((node (ring-search ring value :test test)))
+    (unless (eq node (dummy ring))
+      (delete-node ring node))))
+
+;; just for debugging
+(defmethod print-object ((node node) stream)
+  (format stream "#<NODE ~A>" (value node)))
+
+(defmethod print-object ((ring ring) stream)
+  (format stream "#<RING")
+  (do ((node (next (dummy ring)) (next node)))
+      ((eq node (dummy ring)))
+    (format stream " ~A" node))
+  (format stream ">"))
+;;;-----------------------------
