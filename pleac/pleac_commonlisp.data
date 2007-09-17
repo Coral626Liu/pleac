@@ -4015,7 +4015,39 @@ multidimensional arrays.)"
 ;; because CLOS supports multi-methods, so the method does not
 ;; "belong" to any one object or class.
 ;;;-----------------------------
-;;; @@INCOMPLETE@@
+(defparameter *fn-ref* #'(lambda (&rest args) (apply 'my-method args)))
+;;;-----------------------------
+(funcall *fn-ref* obj 10 "fred")
+;;;-----------------------------
+(my-method obj 10 "fred")
+;;;-----------------------------
+;; There is no equivalent of the Perl snippet because methods don't
+;; "belong" to a single class.  The following is about as close as you
+;; can get but it only works if there is a specific method defined for
+;; that class and you know which argument(s) are specialized.
+(when (typep (type-of obj) obj-target)
+  ;; Find a 3-arg method with the first one specialized to the type of
+  ;; OBJ.
+  (when (find-method #'my-method '() (list (type-of obj) t t))
+    (apply #'my-method obj-target arguments)))
+;;;-----------------------------
+
+;;; @@PLEAC@@_13.8
+;;;-----------------------------
+(typep obj 'http:message)
+;; There is no equivalent to Per's can() method, as described earlier
+;; methods don't belong to a single class.  You could use FIND-METHOD
+;; as the final example in section 13.7 above shows, althouth that's
+;; not recommended.
+;;;-----------------------------
+(setf has-io (typep fd 'io:handle))
+(setf itza-handle (typep fd 'io:handle))
+;;;-----------------------------
+;; No equivalent.  You could use the following after verifying that
+;; OBJ was of the right type.
+(setf his-print-method #'as-string)
+;;;-----------------------------
+;; There's no standardized support for versions in CL.
 ;;;-----------------------------
 
 ;;; @@PLEAC@@_13.9
@@ -4034,6 +4066,51 @@ multidimensional arrays.)"
   (format t "~A is age ~D.~%" (name empl) (age empl)))
 ;;;-----------------------------
 ;; No equivalent to this "wrong" Perl snippet.
+;;;-----------------------------
+
+;;; @@PLEAC@@_13.10
+;;;-----------------------------
+(defmethod meth ((self my-class))
+  ;; Normally this will result in calling the "superclass" as you
+  ;; might think of it in, say, Java.  Note though that CLOS supports
+  ;; multiple inheritance, aspect-oriented programming, and various
+  ;; other extensions, so CALL-NEXT-METHOD won't *always* do that.
+  (call-next-method))
+;;;-----------------------------
+(meth self)                        ; call wherever first METH is found
+
+;; I can't find any obvious way to do the other examples, you can find
+;; a method with FIND-METHOD but there isn't an obviuos way to call it
+;; directly on an object.
+;;;-----------------------------
+;; Don't need to define new(), use MAKE-INSTANCE.
+
+;; Don't need to define _init(), just add an INITIALIZE-INSTANCE
+;; method, which will be called automatically and which won't prevent
+;; other stuff from running.
+(defmethod initialize-instance :after ((self my-class) &rest initargs)
+  (with-slots (start age extra)
+      (setf (start self) (get-decoded-time) ; init data fields
+            (age self)   0
+            (extra self) initargs       ; anything extra
+;;;-----------------------------
+(defparameter *obj* (make-instance 'widget :haircolor :red :freckles 121))
+;;;-----------------------------
+;; The perl snippet is doing something that's done automatically by
+;; CLOS (i.e., all inherited INITIALIZE-INSTANCE methods will be
+;; called automatically).
+;;;-----------------------------
+
+;;; @@PLEAC@@_13.11
+;;;-----------------------------
+
+;; The equivalent of AUTOLOAD is CLOS's SLOT-MISSING functionality,
+;; used to define PERL-OBJECT, above.  In order to add the ok_field
+;; behavior, we'll subclass it here.
+(defclass person (perl-object) 
+  ((ok-field :initform (make-hash-table))))
+
+;;; @@INCOMPLETE@@
 ;;;-----------------------------
 
 ;;; @@PLEAC@@_13.13
