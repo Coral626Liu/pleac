@@ -4108,9 +4108,76 @@ multidimensional arrays.)"
 ;; used to define PERL-OBJECT, above.  In order to add the ok_field
 ;; behavior, we'll subclass it here.
 (defclass person (perl-object) 
-  ((ok-field :initform (make-hash-table))))
+  ((ok-field :initform (mkhash 'name t 'age t 'peers t 'parent t)
+             :type hash-table
+             :allocation :class)))
 
-;;; @@INCOMPLETE@@
+;; This isn't *exactly* like the Perl snippet, e.g., it doesn't do the
+;; uppercase checking or checking for DESTROY.  However, since CL
+;; isn't case-sensitive and methods are kept separate from slots,
+;; there's no need to do either of those things.
+;; 
+;; This method "intercepts" SLOT-MISSING, which is normally handled by
+;; PERL-OBJECT and lets the call through if the slot name is valid.
+(defmethod slot-missing (class (instance person) slot-name operation
+                         &optional new-value)
+  (declare (ignore new-value operation))
+  (if (gethash slot-name (slot-value instance 'ok-field))
+      (call-next-method)                ; ok, pass control to PERL-OBJECT
+      (error "invalid attribute method ~A" slot-name)))
+;;;-----------------------------
+(let ((dad (make-instance 'person))
+      (kid (make-instance 'person)))
+  (setf (slot-value dad 'name) "Jason"
+        (slot-value dad 'age) 23
+        (slot-value kid 'name) "Rachel"
+        (slot-value kid 'age) 2
+        (slot-value kid 'parent) dad
+        )
+  (format t "Kid's parent is ~A~%" (slot-value (slot-value kid 'parent) 'name)))
+;; Kid's parent is Jason
+;;;-----------------------------
+;; The above SLOT-MISSING definition already works the same way as
+;; this Perl snippet.
+;;;-----------------------------
+
+;;; @@PLEAC@@_13.12
+;;;-----------------------------
+;; With respect to this particular Perl snippet, there's no need to
+;; define Employee::age as its equivalent is automatically defined by
+;; the DEFCLASS below.
+;;;-----------------------------
+(defpackage :person (:use cl))
+(in-package person)
+(defclass person ()
+  ((name :accessor name)
+   (age :accessor age)
+   (peers :accessor peers)
+   (parent :accessor parent)))
+
+(export '(person name age peers parent))
+;;;-----------------------------
+(defpackage :employee (:use cl))
+(in-package employee)
+(defclass employee (person:person)
+  ((salary :accessor salary)
+   (age :accessor age)
+   (boss :accessor boss)))
+
+(export '(employee salary age boss))
+;;;-----------------------------
+;; The "data inheritance problem", as far as I can tell, is
+;; automatically solved by CL in a similar manner to what the Perl is
+;; doing.  Being automatic, there is no need to define a custom class
+;; like Class::Attributes.  By putting the different classes into
+;; different packages, CL automatically distinguishes the slots by the
+;; package name.
+;;
+;; E.g., the above definitions allow you to write (employee:age obj) or
+;; (person:age obj) and they access distinct slots.
+;;
+;; If you *do* want the AGE slot to be shared by the superclasses, you
+;; should put the DEFCLASS forms in the same package.
 ;;;-----------------------------
 
 ;;; @@PLEAC@@_13.13
@@ -4194,4 +4261,71 @@ multidimensional arrays.)"
       ((eq node (dummy ring)))
     (format stream " ~A" node))
   (format stream ">"))
+;;;-----------------------------
+
+;;; @@PLEAC@@_13.14
+;;;-----------------------------
+;; In CL there is no distinction between operators and functions.
+;; However, functions can be "overloaded" by using DEFMETHOD.
+
+(defmethod <=> ((s1 hash-table) (s2 hash-table))
+  (let ((s1 (gethash 'name s1))
+        (s2 (gethash 'name s2)))
+    (case (string-lessp s1 s2)
+      (nil (if (string= s1 s2)
+               0
+               1))
+      (t -1))))
+
+;; TODO: write a reader macro for "-like stuff.
+;;;-----------------------------
+;; The following allows us to implement MY-PLUS without having to
+;; prefix most of the function calls, etc, with CL:, which gets
+;; old fast.
+(defpackage :time-number-internal (:use cl))
+
+;; The following package is where we define the method.  It doesn't
+;; use the CL package, so that + can be redefined (redefining anything
+;; in the CL package is disallowed by the standard).
+(defpackage :time-number)
+
+(in-package time-number)
+
+(cl:defclass time-number ()
+  ((seconds :accessor seconds :initform 0 :initarg :seconds)
+   (minutes :accessor minutes :initform 0 :initarg :minutes)
+   (hours :accessor hours :initform 0 :initarg :hours)
+   ))
+
+(cl:defmethod + ((left time-number) (right time-number))
+  (time-number-internal::my-plus left right))
+
+(cl:export 'time-number)
+
+;; There's no need to do anything like "use overload", you can just
+;; use DEFMETHOD directly, as shown below.
+;;;-----------------------------
+(in-package time-number-internal)
+
+;; The following can safely assume that LEFT and RIGHT are
+;; time-numbers since this is intended to be called by the
+;; TIME-NUMBER:+ method specialized on TIME-NUMBER.
+(defun my-plus (left right)
+  (let ((answer (make-instance 'time-number:time-number)))
+    (with-accessors ((answer-seconds seconds) (answer-minutes minutes) (answer-hours hours)) answer
+      (setf answer-seconds (+ (seconds left)
+                              (seconds right))
+            answer-minutes (+ (minutes left)
+                              (minutes right))
+            answer-hours (+ (hours left)
+                            (hours right)))
+      (when (>= answer-seconds 60)
+        (setf answer-seconds (mod answer-seconds 60))
+        (incf answer-minutes))
+      (when (>= answer-minutes 60)
+        (setf answer-minutes (mod answer-minutes 60))
+        (incf answer-hours)))
+    answer))
+;;;-----------------------------
+;;; @@INCOMPLETE@@
 ;;;-----------------------------
