@@ -1971,17 +1971,17 @@ my-array
           ("Jules" . 25)
           ("Josh" . 17)))
 ;;-----------------------------
-(setf food-color (make-hash-table :test 'equal))
+(defparameter *food-color* (make-hash-table :test 'equal))
 
 (mapcar #'(lambda (l)
-            (setf (gethash (car l) food-color) (cdr l)))
+            (setf (gethash (car l) *food-color*) (cdr l)))
         '(("Apple" . "red")
           ("Banana" . "yellow")
           ("Lemon" . "yellow")
           ("Carrot" . "orange")))
 ;;;-----------------------------
 (mapcar #'(lambda (l)
-            (setf (gethash (car l) food-color) (cdr l)))
+            (setf (gethash (car l) *food-color*) (cdr l)))
         '((Apple . "red")
           (Banana . "yellow")
           (Lemon . "yellow")
@@ -1992,25 +1992,25 @@ my-array
 ;;;-----------------------------
 (setf (gethash key hash) value)
 ;;;-----------------------------
+;; *FOOD-COLOR* defined per the introduction
+(setf (gethash "Raspberry" *food-color*) "pink")
 
-(setf (gethash "Raspberry" food-color) "pink")
-
-(format t "Known foods:~%~{~a~%~}"
-        (loop for f being the hash-keys food-color
+(format t "Known foods:~%~{~A~%~}"
+        (loop for f being the hash-keys *food-color*
            collect f))
 
 ;;; @@PLEAC@@_5.2
 ;;;-----------------------------
-;; does %HASH have a value for $KEY ?
+;; does HASH have a value for KEY ?
 (if (nth-value 1 (gethash key hash))
     'it-exists
     'it-does-not)
 ;;;-----------------------------
-;; food-color per the introduction
+;; *FOOD-COLOR* per the introduction
 (dolist (name '("Banana" "Martini"))
   (format t "~A is a ~A.~%"
           name
-          (if (nth-value 1 (gethash name food-color))
+          (if (nth-value 1 (gethash name *food-color*))
               "food" "drink")))
 ;;;-----------------------------
 (setf age (make-hash-table :test 'equal))
@@ -2025,19 +2025,120 @@ my-array
         (format t "Exists ")
         (when defined 
           (format t "Defined ")
-          ;; 0 is not false in CL, so must explicitly mimic Perl here
+          ;; 0 is "true" in CL, so explicitly mimic Perl
           (unless (zerop defined)
             (format t "True ")))))
   (format t "~%"))
 
 ;;; @@PLEAC@@_5.3
 ;;;-----------------------------
-;;; remove $KEY and its value from %HASH
+;; remove KEY and its value from HASH
 (remhash key hash)
 ;;;-----------------------------
+;; *FOOD-COLOR* as per Introduction
+(defun print-foods ()
+  (let ((foods (hash-keys *food-color*)))
+    (format t "Keys: ~{~A~^ ~}~%Values: ~{~A~^ ~}~%" 
+            foods                      ; HASH-KEYS defined in Appendix
+            (loop for food in foods
+               collect (or (gethash food *food-color*)
+                           "(undef)")))))
 
+(format t "Initially~%")
+(print-foods)
 
-; @@PLEAC@@_8.2
+(format t "~%With Banana undef~%")
+(setf (gethash "Banana" *food-color*) 
+
+(format t "~%With Banana deleted~%")
+(remhash "Banana" *food-color*)
+(print-foods)
+
+;; Initially
+;; Keys: Apple Banana Lemon Carrot
+;; Values: red yellow yellow orange
+;;
+;; With Banana undef
+;; Keys: Apple Banana Lemon Carrot
+;; Values: red (undef) yellow orange
+;; 
+;; With Banana deleted
+;; Keys: Apple Lemon Carrot
+;; Values: red yellow orange
+;;;-----------------------------
+(mapc #'(lambda (key) (remhash key *food-color*)) '("Banana" "Apple" "Cabbage"))
+;;;-----------------------------
+    
+;;; @@PLEAC@@_5.4
+;;;-----------------------------
+(loop for key being the hash-keys of hash using (hash-value value)
+     ;; do something with KEY and VALUE
+     )
+;;;-----------------------------
+(maphash #'(lambda (key value)
+             ;; do something with KEY and VALUE
+             )
+         hash)
+;;;-----------------------------
+;; *FOOD-COLOR* per the introduction
+(loop for food being the hash-keys of *food-color* using (hash-value color)
+     do (format t "~A is ~A.~%" food color))
+;; Apple is red.
+;; Banana is yellow.
+;; Lemon is yellow.
+;; Carrot is orange.
+;;;-----------------------------
+(maphash #'(lambda (food color)
+             (format t "~A is ~A.~%" food color))
+         *food-color*)
+;; Apple is red.
+;; Banana is yellow.
+;; Lemon is yellow.
+;; Carrot is orange.
+;;;-----------------------------
+;; No equivalent
+;;;-----------------------------
+(loop for food in (sort (hash-keys *food-color*) 'string-lessp)
+   do (format t "~A is ~A~%" food (gethash food *food-color*)))
+;; Apple is red
+;; Banana is yellow
+;; Carrot is orange
+;; Lemon is yellow
+;;;-----------------------------
+;; Not sure what the following Perl is supposed to do:
+;;while ( ($k,$v) = each %food_color ) {
+;;    print "Processing $k\n";
+;;    keys %food_color;               # goes back to the start of %food_color
+;;}
+;;;-----------------------------
+(use-package :cl-ppcre)
+(use-package :iterate)
+
+;; The following handles the case that the Perl handles where there is
+;; no filename (and it then opens '-'.  To do the same thing you'd do
+;; something like: (countfrom *standard-input*) and this method would
+;; automatically get triggered instead of the one requiring a
+;; filename.
+(defmethod countfrom ((stream stream))
+  (let ((from (make-hash-table :test 'equal)))
+    (with-open-stream (input stream)
+      (iter (for line in-stream input using 'read-line)
+            (register-groups-bind (person) ("^From: (.*)\\s" line)
+              (incf (gethash person from 0)))))
+    (loop for person in (sort (hash-keys from) 'string-lessp)
+       do (format t "~A: ~A~%" person (gethash person from)))))
+
+;; This method is a bit of a hack in that it shouldn't really assume
+;; that the string designates a filename, but for the purposes of this
+;; example that seems ok.  Note that it just calls OPEN directly
+;; without WITH-OPEN-FILE because it knows that the STREAM version of
+;; this function will always close it.
+(defmethod countfrom ((filename string))
+  (countfrom-stream (open filename)))
+;;;-----------------------------
+
+;;; @@PLEAC@@_8.2
+;;;-----------------------------
 ;; Should we count the last line, if it does not end with a newline?
 ;; This version counts:
 (with-open-file (stream #p"numbers.html")
@@ -4307,9 +4408,9 @@ multidimensional arrays.)"
 ;;;-----------------------------
 (in-package time-number-internal)
 
-;; The following can safely assume that LEFT and RIGHT are
-;; time-numbers since this is intended to be called by the
-;; TIME-NUMBER:+ method specialized on TIME-NUMBER.
+;; The following can safely assume that LEFT and RIGHT are TIME-NUMBER
+;; objects, since this is only called by the TIME-NUMBER:+ method
+;; specialized on TIME-NUMBER.
 (defun my-plus (left right)
   (let ((answer (make-instance 'time-number:time-number)))
     (with-accessors ((answer-seconds seconds) (answer-minutes minutes) (answer-hours hours)) answer
@@ -4329,3 +4430,4 @@ multidimensional arrays.)"
 ;;;-----------------------------
 ;;; @@INCOMPLETE@@
 ;;;-----------------------------
+
