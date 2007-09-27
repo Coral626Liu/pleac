@@ -507,11 +507,11 @@ characters, otherwise it should be a file name."
 ;;;-----------------------------
 (loop for line = (read-line *standard-input* nil nil)
       while line do
-      (format t "~a~%" (tab-expand line)))
+      (format t "~A~%" (tab-expand line)))
 ;;;-----------------------------
 (loop for line = (read-line *standard-input* nil nil)
       while line do
-      (format t "~a~%" (tab-unexpand line)))
+      (format t "~A~%" (tab-unexpand line)))
 ;;;-----------------------------
 
 ;;; @@PLEAC@@_1.8
@@ -1764,7 +1764,7 @@ my-array
                                             ,rep
                                             ,@right-part)))))))
 
-;; Now the syntax is almost exactlly the same.
+;; Now the syntax is almost exactly the same.
 (setf front (perl-splice my-array 0 n))
 (setf end (perl-splice my-array 0 (- n)))
 ;;;-----------------------------
@@ -1791,6 +1791,46 @@ my-array
 (setf got (pop2 (aref line 5)))
 ;;;-----------------------------
 
+;;; @@PLEAC@@_4.12
+;;;-----------------------------
+(let ((match (find item *sequence*)))
+  (cond
+    (match
+     ;; do something with MATCH
+     )
+    (t
+     ;; unfound
+     )))
+;;;-----------------------------
+(let ((match-idx (position item *sequence*)))
+  (cond
+    (match-idx
+     ;; found in (elt *sequence* match-idx) (any sequence)
+     ;; or (svref *sequence* match-idx) if you know it's a vector 
+     )
+    (t
+     ;; unfound
+     )))
+;;;-----------------------------
+(defstruct employee name category) ; just to make example work
+(format t "Highest paid engineer is: ~A~%"
+        (employee-name (find 'engineer *employees* :key 'employee-category :from-end t)))
+;;;-----------------------------
+;; Don't do this, just intended how one could match the Perl example.
+(let ((i
+       (loop for idx below (length *array*)
+          ;;
+          do (when criterion ;; put criterion here
+               (return idx)))))
+  (if (< i (length *array*))
+      (progn
+        ;; found and I is the index
+        )
+      (progn
+        ;; not found
+        )))
+;;;-----------------------------
+        
 ;;; @@PLEAC@@_4.13
 ;;;-----------------------------
 (setf matching (find-if-not #'test list))
@@ -1996,15 +2036,25 @@ my-array
 (setf (gethash "Raspberry" *food-color*) "pink")
 
 (format t "Known foods:~%~{~A~%~}"
-        (loop for f being the hash-keys *food-color*
+        (loop for f being the hash-keys of *food-color*
            collect f))
+;;Known foods:
+;;Apple
+;;Banana
+;;Lemon
+;;Carrot
+;;;-----------------------------
 
 ;;; @@PLEAC@@_5.2
 ;;;-----------------------------
 ;; does HASH have a value for KEY ?
 (if (nth-value 1 (gethash key hash))
-    'it-exists
-    'it-does-not)
+    (progn
+      ;; it exists
+      )
+    (progn
+      ;; it doesn't
+      ))
 ;;;-----------------------------
 ;; *FOOD-COLOR* per the introduction
 (dolist (name '("Banana" "Martini"))
@@ -2012,6 +2062,9 @@ my-array
           name
           (if (nth-value 1 (gethash name *food-color*))
               "food" "drink")))
+
+;;Banana is a food.
+;;Martini is a drink.
 ;;;-----------------------------
 (setf age (make-hash-table :test 'equal))
 (setf (gethash "Toddler" age) 3)
@@ -2030,6 +2083,13 @@ my-array
             (format t "True ")))))
   (format t "~%"))
 
+;;Toddler: Exists Defined True 
+;;Unborn: Exists Defined 
+;;Phantasm: Exists 
+;;Relic: 
+;;;-----------------------------
+;;; @@INCOMPLETE@@
+
 ;;; @@PLEAC@@_5.3
 ;;;-----------------------------
 ;; remove KEY and its value from HASH
@@ -2037,9 +2097,9 @@ my-array
 ;;;-----------------------------
 ;; *FOOD-COLOR* as per Introduction
 (defun print-foods ()
-  (let ((foods (hash-keys *food-color*)))
+  (let ((foods (hash-keys *food-color*))) ; HASH-KEYS defined in Appendix
     (format t "Keys: ~{~A~^ ~}~%Values: ~{~A~^ ~}~%" 
-            foods                      ; HASH-KEYS defined in Appendix
+            foods
             (loop for food in foods
                collect (or (gethash food *food-color*)
                            "(undef)")))))
@@ -2151,6 +2211,7 @@ my-array
             (multiple-value-list (read-line stream nil))
         while line
         count (not missing-newline-p)))
+;;; @@INCOMPLETE@@
 
 ;;; @@PLEAC@@_10.0
 ;;;-----------------------------
@@ -2456,7 +2517,7 @@ my-array
 (when CONDITION
   (let ((*age* 23))
     (func)                              ; sees temporary value of 23
-    ) ; restore old value at block exit
+    )) ; restore old value at block exit
 ;;;-----------------------------
 (setf para (get-paragraph fh))
 (defun get-paragraph (fh)
@@ -3900,6 +3961,7 @@ multidimensional arrays.)"
   (incf (age self)))
 ;;;-----------------------------
 
+
 ;;; @@PLEAC@@_13.4
 ;;;-----------------------------
 (defclass person ()
@@ -4303,10 +4365,9 @@ multidimensional arrays.)"
     (setf (dummy self) dummy)))
 ;;;-----------------------------
 (loop for i below 20
-     do (let ((r (make-instance 'ring)))
-          (loop repeat 1000
-             do 
-               (insert r i))))
+   do (let ((r (make-instance 'ring)))
+        (loop repeat 1000
+           do (insert r i))))
 ;;;-----------------------------
 ;; Note unlike Perl this isn't called automatically by CL when the
 ;; object is collected, however some CL implementations provide an
@@ -4431,3 +4492,20 @@ multidimensional arrays.)"
 ;;; @@INCOMPLETE@@
 ;;;-----------------------------
 
+
+;;; @@PLEAC@@_18.1
+;;;-----------------------------
+(use-package :sb-bsd-sockets)
+(defparameter *addresses* (host-ent-addresses (get-host-by-name name))) ; "or die" done implicitly
+;; *addresses* is a list of IP addresses (#(192 48 96 9) #(192 48 96 23))
+;;;-----------------------------
+;; There isn't really any equivalent to inet_aton(), all the functions
+;; return either a string or a vector.
+;;;-----------------------------
+(use-package :sb-bsd-sockets)
+(setf name (get-host-by-address #(192 48 96 9)))
+;; name is the hostname "ftp.uu.net"
+;;;-----------------------------
+(use-package :sb-bsd-sockets)
+(setf packed-address (make-inet-address "208.146.140.1"))
+;;; @@INCOMPLETE@@
