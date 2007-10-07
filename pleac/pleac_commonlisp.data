@@ -2197,6 +2197,189 @@ my-array
   (countfrom-stream (open filename)))
 ;;;-----------------------------
 
+;;; @@PLEAC@@_6.0
+;;;-----------------------------
+;; Note that the following do not modify STRING, which may be
+;; different from how the Perl snippet works.
+(use-package :cl-ppcre)         ; assumed by all of section 6.0's code
+(scan pattern string)
+(regex-replace pattern string replacement)
+;;;-----------------------------
+(scan "sheep" meadow)   ; Non-nil if MEADOW contains "sheep"
+(not (scan "sheep" meadow)) ; Non-nil if MEADOW doesn't contain "sheep"
+(regex-replace "old" meadow "new") ; Replace "old" with "new" in MEADOW
+;;;-----------------------------
+;; Fine bovines demand fine toreadors.
+;; Muskoxen are a polar ovibovine species.
+;; Grooviness went out of fashion decades ago.
+;;;-----------------------------
+;; Ovines are found typically in oviaries.
+;;;-----------------------------
+(when (scan (create-scanner "\\bovines?\\b" :case-insensitive-mode t)
+                     meadow)
+           (format t "Here be sheep!"))
+;;;-----------------------------
+(setf my-string "good food")
+(setf my-string (regex-replace "o*" my-string "e"))
+;;;-----------------------------
+;; Not sure how to reproduce the same output.  The above
+;; REGEX-REPLACE just prepends "e" every time (but I'm not
+;; sure that's wrong).
+;;;-----------------------------
+(with-input-from-string (s "ababacaca
+")
+  (let ((match (scan-to-strings "(a|ba|b)+(a|ac)+" (read-line s))))
+    (format t "~A~%" match)))
+;; ababa
+;;;-----------------------------
+;;% echo ababacaca | 
+;;    awk 'match($0,/(a|ba|b)+(a|ac)+/) { print substr($0, RSTART, RLENGTH) }'
+;;ababacaca
+;;;-----------------------------
+;; Since there is no magic $_ variable in CL, using MY-STRING as an
+;; example.
+(register-groups-bind (num)
+    ("(\\d+)" some-string)
+  (format t "Found number ~A~%" num))
+;;;-----------------------------
+;; Again, MY-STRING is a placeholder for $_.
+(defparameter *numbers* (mapcar #'parse-integer (all-matches-as-strings "(\\d+)" my-string)))
+;;;-----------------------------
+(defparameter *digits* "1234567890")
+(defparameter *nonlap* (all-matches-as-strings "(\\d\\d\\d)" *digits*))
+(defparameter *yeslap* (all-matches-as-strings "(?=\\d\\d\\d)" *digits*))
+(format t "Non-overlapping:  ~{~A~^ ~}~%Overlapping:      ~{~A~^ ~}~%" 
+        *nonlap* *yeslap*)
+;; Non-overlapping:  123 456 789
+;; Overlapping:             
+
+;; Note that CL-PPCRE seems to treat ?= differently from Perl, hence
+;; the lack of output for Overlapping.
+;;;-----------------------------
+;; CL-PPCRE doesn't support $` etc after a match (it does for
+;; REGEX-REPLACE but that wouldn't work here.
+;;;-----------------------------
+
+;;; @@PLEAC@@_6.1
+;;;-----------------------------
+(setf dst (regex-replace "that" src "this"))
+;;;-----------------------------
+;; No difference from previous.
+;;;-----------------------------
+;; strip to basename
+(defparameter *progname* (regex-replace "^.*/" (car *posix-argv*) ""))
+
+;; Make All Words Title-Cased
+;; Unfortunately \u and \L aren't supported by CL-PPCRE (AFAICT), but
+;; CL does have built-in support for capitalization.
+(defparameter *capword* (string-capitalize *word*))
+
+;; /usr/man/man3/foo.1 changes to /usr/man/cat3/foo.1
+(defparameter *catpage* (regex-replace "man(?=\\d)" *manpage* "cat"))
+;;;-----------------------------
+(defparameter *bindirs* '("/usr/bin" "/bin" "/usr/local/bin"))
+(defparameter *libdirs* (mapcar #'(lambda (dir) (regex-replace "bin" dir "lib")) *bindirs*))
+(format t "~{~A~^ ~}~%" *libdirs*)
+;; /usr/lib /lib /usr/local/lib
+;;;-----------------------------
+(setf a (regex-replace-all "x" b "y"))  ; copy B and then change A
+;; CL-PPCRE doesn't support returning the count of changed characters.
+;;;-----------------------------
+
+;;; @@PLEAC@@_6.2
+;;;-----------------------------
+(when (scan "^[A-Za-z]+$" var)
+  ;; it is purely alphabetic
+  )
+;;;-----------------------------
+(when (scan "^[^\\W\\d_]+$" var)
+  ;; it is purely alphabetic
+  )
+;;;-----------------------------
+;; This seems to work without setting the locale.  Not sure why but
+;; there ya' go.
+(let ((data '("silly" "façade" "coöperate" "niño" "Renée" "Molière" "hæmoglobin" "naïve" "tschüß"
+              "random!stuff#here")))
+  (loop for word in data
+        do (if (scan "^[^\W\d_]+$" word)
+               (format t "~A: alphabetic~%" word)
+               (format t "~A: line noise~%" word))))
+;;silly: alphabetic
+;;façade: line noise
+;;coöperate: alphabetic
+;;niño: alphabetic
+;;Renée: alphabetic
+;;Molière: alphabetic
+;;hæmoglobin: alphabetic
+;;naïve: alphabetic
+;;tschüß: alphabetic
+;;random!stuff#here: line noise
+;;;-----------------------------
+
+;;; @@PLEAC@@_6.3
+;;;-----------------------------
+;; "\\S+"               ; as many non-whitespace bytes as possible
+;; "[A-Za-z'-]+"        ; as many letters, apostrophes, and hyphens
+;;;-----------------------------
+;; "\\b([A-Za-z]+)\\b"            ; usually best
+;; "\\s([A-Za-z]+)\\s"            ; fails at ends or w/ punctuation
+;;;-----------------------------
+
+;;; @@PLEAC@@_6.4
+;;;-----------------------------
+;; It makes more sense for this just to be a function in CL rather
+;; than a separate "script".
+(defun hostname->address (hostname)
+  (format nil "~{~A~^.~}" 
+          (or
+           (ignore-errors (concatenate 'list
+                                       (sb-bsd-sockets:host-ent-address
+                                        (sb-bsd-sockets:get-host-by-name hostname))))
+           (list "???"))))
+
+(defun resname (stream)
+  (let ((matcher (create-scanner 
+                  "    (     # capture the hostname in $1
+        (?:                 # these parens for grouping only
+            (?! [-_]  )     # lookahead for neither underscore nor dash
+            [\\w-] +        # hostname component
+            \\.             # and the domain dot
+        ) +                 # now repeat that whole thing a bunch of times
+        [A-Za-z]            # next must be a letter
+        [\\w-] +            # now trailing domain part
+    )                       # end of $1 capture" :extended-mode t)))
+    (iter (for line in-stream stream using 'read-line)
+          (format t "~A"
+                  (regex-replace-all 
+                   matcher
+                   line 
+                   #'(lambda (target-string start end 
+                                            match-start match-end 
+                                            reg-starts reg-ends)
+                       (declare (ignore start end reg-starts reg-ends))
+                       (let ((hostname (subseq target-string match-start match-end)))
+                         (concatenate 'string hostname " [" (hostname->address hostname) "]"))))))))
+;;;-----------------------------
+(regex-replace-all 
+ (create-scanner 
+  "                  # replace
+  \\#                #   a pound sign
+  (\\w+)             #   the variable name
+  \\#                #   another pound sign"
+  :extended-mode t)
+ my-string                         ; using this instead of implicit $_
+ #'(lambda (target-string start end match-start match-end reg-starts reg-ends)
+     (declare (ignore start end reg-starts reg-ends))
+     (let ((symb (string-upcase (subseq target-string (elt reg-starts 0) (elt reg-ends 0)))))
+       (format nil "~A" (symbol-value (intern symb))))))
+;;;-----------------------------
+;; I'm not sure there's any way to do this in CL.  There's
+;; no guarantee that a local variable hasn't been optimized
+;; away, for example.  EVAL operates in the null lexical
+;; environment, so can't be used for this purpose.
+;;;-----------------------------
+
+
 ;;; @@PLEAC@@_8.2
 ;;;-----------------------------
 ;; Should we count the last line, if it does not end with a newline?
