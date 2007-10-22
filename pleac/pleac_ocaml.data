@@ -1544,6 +1544,102 @@ let () =
   Printf.printf "Dateline: %02d:%02d:%02d-%04d/%02d/%02d\n"
     hours minutes seconds (year + 1900) (month + 1) day_of_month
 
+(* @@PLEAC@@_3.4 *)
+let birthtime = 96176750.                     (* 18/Jan/1973, 3:45:50 am *)
+let interval = 5. +.                          (* 5 seconds *)
+               17. *. 60. +.                  (* 17 minutes *)
+               2.  *. 60. *. 60. +.           (* 2 hours *)
+               55. *. 60. *. 60. *. 24.       (* and 55 days *)
+let then' = birthtime +. interval
+let () =
+  (* format_time is defined in section 3.8. *)
+  Printf.printf "Then is %s\n" (format_time then');
+  (* Then is Tue Mar 13 23:02:55 1973 *)
+
+(* @@PLEAC@@_3.5 *)
+let bree = 361535725.                   (* 16 Jun 1981, 4:35:25 *)
+let nat  =  96201950.                   (* 18 Jan 1973, 3:45:50 *)
+
+let difference = bree -. nat
+let () =
+  Printf.printf "There were %.f seconds between Nat and Bree\n"
+    difference
+  (* There were 265333775 seconds between Nat and Bree *)
+
+let seconds    =  mod_float difference 60.
+let difference = (difference -. seconds) /. 60.
+let minutes    =  mod_float difference 60.
+let difference = (difference -. minutes) /. 60.
+let hours      =  mod_float difference 24.
+let difference = (difference -. hours)   /. 24.
+let days       =  mod_float difference 7.
+let weeks      = (difference -. days)    /.  7.
+
+let () =
+  Printf.printf "(%.f weeks, %.f days, %.f:%.f:%.f)\n"
+    weeks days hours minutes seconds
+  (* (438 weeks, 4 days, 23:49:35) *)
+
+(* @@PLEAC@@_3.6 *)
+#load "unix.cma";;
+
+let {Unix.tm_mday=monthday; tm_wday=weekday; tm_yday=yearday} =
+  Unix.localtime date
+let weeknum = yearday / 7 + 1
+
+(* @@PLEAC@@_3.7 *)
+#load "unix.cma";;
+
+let epoch_seconds date =
+  Scanf.sscanf date "%04d-%02d-%02d"
+    (fun yyyy mm dd ->
+       fst (Unix.mktime {Unix.tm_sec=0; tm_min=0; tm_hour=0;
+                         tm_mday=dd; tm_mon=mm-1; tm_year=yyyy-1900;
+                         tm_wday=0; tm_yday=0; tm_isdst=false}))
+
+let () =
+  while true do
+    let line = read_line () in
+    try
+      let date = epoch_seconds line in
+      let {Unix.tm_mday=day; tm_mon=month; tm_year=year} =
+        Unix.localtime date in
+      let month = month + 1 in
+      let year = year + 1900 in
+      Printf.printf "Date was %d/%d/%d\n" month day year
+    with
+      | Scanf.Scan_failure _
+      | End_of_file 
+      | Unix.Unix_error (Unix.ERANGE, "mktime", _) ->
+          Printf.printf "Bad date string: %s\n" line
+  done
+
+(* @@PLEAC@@_3.8 *)
+#load "unix.cma";;
+
+open Unix
+open Printf
+
+let days = [| "Sun"; "Mon"; "Tue"; "Wed"; "Thu"; "Fri"; "Sat" |]
+let months = [| "Jan"; "Feb"; "Mar"; "Apr"; "May"; "Jun";
+                "Jul"; "Aug"; "Sep"; "Oct"; "Nov"; "Dec" |]
+
+let format_time time =
+  let tm = localtime time in
+  sprintf "%s %s %2d %02d:%02d:%02d %04d"
+    days.(tm.tm_wday)
+    months.(tm.tm_mon)
+    tm.tm_mday
+    tm.tm_hour
+    tm.tm_min
+    tm.tm_sec
+    (tm.tm_year + 1900)
+
+let time = fst (Unix.mktime {tm_sec=50; tm_min=45; tm_hour=3;
+                             tm_mday=18; tm_mon=0; tm_year=73;
+                             tm_wday=0; tm_yday=0; tm_isdst=false})
+let () = printf "format_time gives: %s\n" (format_time time)
+
 (* @@PLEAC@@_3.9 *)
 
 (* @@INCOMPLETE@@ *)
