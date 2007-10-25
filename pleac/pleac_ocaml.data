@@ -5627,6 +5627,88 @@ let () =
    kind soul is up to the challenge. *)
 
 
+(* @@PLEAC@@_15.3 *)
+#load "unix.cma";;
+
+(* Run the clear command to clear the screen. *)
+let () = ignore (Sys.command "clear")
+
+(* Save the output to a string to avoid running a process each time. *)
+let clear =
+  try
+    let proc = Unix.open_process_in "clear" in
+    try
+      let chars = input_line proc in
+      ignore (Unix.close_process_in proc);
+      chars
+    with e -> ignore (Unix.close_process_in proc); ""
+  with _ -> ""
+let () = print_string clear
+
+(* @@PLEAC@@_15.5 *)
+(* Requires the ANSITerminal library by Christophe Troestler,
+   available at http://math.umh.ac.be/an/software.php#x4-80007 *)
+
+#load "ANSITerminal.cma";;
+open ANSITerminal
+
+let () =
+  print_string [red] "Danger Will Robinson!\n";
+  print_string [] "This is just normal text.\n";
+  print_string [Blink] "<BLINK>Do you hurt yet?</BLINK>\n"
+
+(*-----------------------------*)
+
+let () =
+  set_autoreset false;
+  (* rhyme for the deadly coral snake *)
+  print_string [red; on_black] "venom lack\n";
+  print_string [red; on_yellow] "kill that fellow\n";
+  print_string [green; on_cyan; Blink] "garish!\n";
+  print_string [Reset] ""
+
+(*-----------------------------*)
+
+let () =
+  set_autoreset true;
+  List.iter
+    (print_string [red; on_white; Bold; Blink])
+    ["This way\n";
+     "each line\n";
+     "has its own\n";
+     "attribute set.\n"]
+
+(* @@PLEAC@@_15.7 *)
+(* OCaml doesn't recognize '\a'; instead use '\007'. *)
+let () = print_endline "\007Wake up!"
+
+(* Use the "tput" command to produce a visual bell. *)
+let () = ignore (Sys.command "tput flash")
+
+(* @@PLEAC@@_15.10 *)
+#load "unix.cma";;
+
+(* Thanks to David Mentre, Remi Vanicat, and David Brown's posts on
+   caml-list. Works on Unix only, unfortunately, due to tcsetattr. *)
+let read_password () =
+  let term_init = Unix.tcgetattr Unix.stdin in
+  let term_no_echo = { term_init with Unix.c_echo = false } in
+  Unix.tcsetattr Unix.stdin Unix.TCSANOW term_no_echo;
+  try
+    let password = read_line () in
+    print_newline ();
+    Unix.tcsetattr Unix.stdin Unix.TCSAFLUSH term_init;
+    password
+  with e ->
+    Unix.tcsetattr Unix.stdin Unix.TCSAFLUSH term_init;
+    raise e
+
+let () =
+  print_string "Enter your password: ";
+  let password = read_password () in
+  Printf.printf "You said: %s\n" password
+
+
 (* @@PLEAC@@_16.1 *)
 (* Process support is mostly in the "unix" library. *)
 #load "unix.cma";;
