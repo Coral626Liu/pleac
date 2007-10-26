@@ -6590,10 +6590,9 @@ let answer = sock_recv sock 4096 ;; (* but you can still read *)
 
 
 (* @@PLEAC@@_17.12 *)
-
+#!/usr/bin/ocaml
 (* preforker - server who forks first *)
-#load "unix.cma"
-open Unix
+#load "unix.cma";;
 
 (* global variables *)
 let prefork = 5
@@ -6604,14 +6603,16 @@ let children = ref PidSet.empty
 (* takes care of dead children *)
 let rec reaper _ =
   Sys.set_signal Sys.sigchld (Sys.Signal_handle reaper);
-  match wait () with (pid, _) -> children := PidSet.remove pid !children
+  match Unix.wait ()
+  with (pid, _) -> children := PidSet.remove pid !children
 
 (* signal handler for SIGINT *)
 let rec huntsman _ =
   (* we're going to kill our children *)
   Sys.set_signal Sys.sigchld Sys.Signal_ignore;
   PidSet.iter
-    (fun pid -> try kill Sys.sigint pid with Unix.Unix_error _ -> ())
+    (fun pid ->
+       try Unix.kill Sys.sigint pid with Unix.Unix_error _ -> ())
     !children;
   (* clean up with dignity *)
   exit 0
@@ -6619,20 +6620,20 @@ let rec huntsman _ =
 let make_new_child server =
   (* block signal for fork *)
   let sigset = [Sys.sigint] in
-  ignore (sigprocmask SIG_BLOCK sigset);
+  ignore (Unix.sigprocmask Unix.SIG_BLOCK sigset);
 
-  match fork () with
+  match Unix.fork () with
     | 0 ->
         (* Child can *not* return from this subroutine. *)
         (* make SIGINT kill us as it did before *)
         Sys.set_signal Sys.sigint Sys.Signal_default;
 
         (* unblock signals *)
-        ignore (sigprocmask SIG_UNBLOCK sigset);
+        ignore (Unix.sigprocmask Unix.SIG_UNBLOCK sigset);
 
         (* handle connections until we've reached max_clients_per_child *)
         for i = 1 to max_clients_per_child do
-          let (client, _) = accept server in
+          let (client, _) = Unix.accept server in
           (* do something with the connection *)
           ()
         done;
@@ -6645,15 +6646,15 @@ let make_new_child server =
         exit 0
     | pid ->
         (* Parent records the child's birth and returns. *)
-        ignore (sigprocmask SIG_UNBLOCK sigset);
+        ignore (Unix.sigprocmask Unix.SIG_UNBLOCK sigset);
         children := PidSet.add pid !children
 
 let () =
   (* establish SERVER socket, bind and listen. *)
-  let server = socket PF_INET SOCK_STREAM 0 in
-  setsockopt server SO_REUSEADDR true;
-  bind server (ADDR_INET (inet_addr_any, 6969));
-  listen server 10;
+  let server = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
+  Unix.setsockopt server Unix.SO_REUSEADDR true;
+  Unix.bind server (Unix.ADDR_INET (Unix.inet_addr_any, 6969));
+  Unix.listen server 10;
 
   (* Fork off our children. *)
   for i = 1 to prefork do
@@ -6667,7 +6668,7 @@ let () =
   (* And maintain the population. *)
   while true do
     (* wait for a signal (i.e., child's death) *)
-    pause ();
+    Unix.pause ();
     for i = (PidSet.cardinal !children) to (prefork - 1) do
       (* top up the child pool *)
       make_new_child server
