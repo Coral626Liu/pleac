@@ -6528,12 +6528,8 @@ let () =
 (*-----------------------------*)
 
 let rec reaper signal =
-  let pid, status = Unix.waitpid [Unix.WNOHANG] (-1) in
-  if pid > 0 then begin
-    (* ... *)
-    reaper signal
-  end;
-  (* install *after* calling waitpid *)
+  try while true do ignore (Unix.waitpid [Unix.WNOHANG] (-1)) done
+  with Unix.Unix_error (Unix.ECHILD, _, _) -> ();
   Sys.set_signal Sys.sigchld (Sys.Signal_handle reaper)
 
 let () =
@@ -6679,6 +6675,35 @@ while true do
 	shutdown client_sock SHUTDOWN_ALL
 	done ;;
 
+(* @@PLEAC@@_17.7 *)
+#load "unix.cma";;
+
+(* Get the remote IP address. *)
+let () =
+  let other_end = Unix.getpeername socket in
+  let name_info = Unix.getnameinfo other_end [Unix.NI_NUMERICHOST] in
+  let ip_address = name_info.Unix.ni_hostname in
+  (* ... *)
+  ()
+
+(*-----------------------------*)
+
+(* Attempt to determine the remote host name, with forward and reverse
+   DNS lookups to detect spoofing. *)
+let () =
+  let other_end = Unix.getpeername socket in
+  let name_info = Unix.getnameinfo other_end [Unix.NI_NUMERICHOST] in
+  let actual_ip = name_info.Unix.ni_hostname in
+  let claimed_hostname =
+    (Unix.gethostbyaddr (Unix.inet_addr_of_string actual_ip))
+      .Unix.h_name in
+  let name_lookup = Unix.gethostbyname claimed_hostname in
+  let resolved_ips =
+    Array.to_list (Array.map
+                     Unix.string_of_inet_addr
+                     name_lookup.Unix.h_addr_list) in
+  (* ... *)
+  ()
 
 (* @@PLEAC@@_17.8 *)
 (*-----------------------------*)
@@ -6727,6 +6752,35 @@ sock_send sock "my request\n" ;    (* send some data *)
 shutdown sock SHUTDOWN_SEND ;      (* send eof; no more writing *)
 let answer = sock_recv sock 4096 ;; (* but you can still read *)
 
+(* @@PLEAC@@_17.11 *)
+(* set up the socket SERVER, bind and listen ... *)
+#load "unix.cma";;
+
+let rec reaper signal =
+  try while true do ignore (Unix.waitpid [Unix.WNOHANG] (-1)) done
+  with Unix.Unix_error (Unix.ECHILD, _, _) -> ();
+  Sys.set_signal Sys.sigchld (Sys.Signal_handle reaper)
+
+let () =
+  Sys.set_signal Sys.sigchld (Sys.Signal_handle reaper)
+
+let () =
+  while true do
+    try
+      let (client, addr) = Unix.accept server in
+      let pid = Unix.fork () in
+      if pid = 0 then                   (* parent *)
+        begin
+          Unix.close server;            (* no use to child *)
+          (* ... do something *)
+          exit 0                        (* child leaves *)
+        end
+      else
+        begin
+          Unix.close client             (* no use to parent *)
+        end
+    with Unix.Unix_error (Unix.EINTR, _, _) -> ()
+  done
 
 (* @@PLEAC@@_17.12 *)
 #!/usr/bin/ocaml
