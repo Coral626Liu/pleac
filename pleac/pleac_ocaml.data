@@ -3580,6 +3580,10 @@ let regexp = Str.regexp "\\b\\([A-Za-z]+\\)\\b"
 let regexp = Str.regexp (space ^ "\\([A-Za-z]+\\)" ^ space)
 
 (* @@PLEAC@@_6.4 *)
+#!/usr/bin/ocaml
+(* resname - change all "foo.bar.com" style names in the input stream
+   into "foo.bar.com [204.148.40.9]" (or whatever) instead *)
+
 #directory "+pcre";;
 #load "pcre.cma";;
 #load "unix.cma";;
@@ -3597,7 +3601,7 @@ let regexp =
     )                     # end of substring 1 capture
   "
 
-let () =
+let process line =
   print_endline
     (Pcre.substitute_substrings
        ~rex:regexp
@@ -3609,7 +3613,15 @@ let () =
                        (Unix.gethostbyname name).Unix.h_addr_list.(0)
                    with Not_found -> "???" in
                  name ^ " [" ^ addr ^ "]")
-       "google.com, yahoo.com, pleac.sf.net")
+       line)
+
+let () =
+  try
+    while true do
+      let line = read_line () in
+      process line
+    done
+  with End_of_file -> ()
 
 (*-----------------------------*)
 
