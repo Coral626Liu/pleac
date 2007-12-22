@@ -1696,17 +1696,12 @@ let line_stream_of_channel channel =
    paragraph is a stream of lines. Paragraphs are delimited by one
    or more empty lines. *)
 let paragraphs lines =
-  let return = function
-    | [] -> None
-    | xs -> Some (Stream.of_list (List.rev xs)) in
   let rec next para_lines i =
-    try
-      match Stream.next lines with
-        | "" when para_lines = [] -> next para_lines i
-        | "" -> return para_lines
-        | line -> next (line :: para_lines) i
-    with Stream.Failure ->
-      return para_lines in
+    match Stream.peek lines, para_lines with
+      | None, [] -> None
+      | Some "", [] -> Stream.junk lines; next para_lines i
+      | Some "", _ | None, _ -> Some (Stream.of_list (List.rev para_lines))
+      | Some line, _ -> Stream.junk lines; next (line :: para_lines) i in
   Stream.from (next [])
 
 (* Find blocks of email headers in a stream of paragraphs. Headers
@@ -3735,6 +3730,85 @@ let color = List.hd colors
 let () = Printf.printf "Last fish is %s.\n" color
 
 (* Last fish is blue. *)
+
+(* @@PLEAC@@_6.6 *)
+#!/usr/bin/ocaml
+(* killtags - very bad html tag killer *)
+#load "str.cma";;
+let regexp = Str.regexp "<[^>]*>"
+let () =
+  List.iter
+    (fun filename ->
+       let lines = ref [] in
+       let in_channel = open_in filename in
+       try
+         begin
+           try while true do lines := input_line in_channel :: !lines done
+           with End_of_file -> ()
+         end;
+         let contents = String.concat "\n" (List.rev !lines) in
+         print_endline
+           (String.concat ""
+              (List.map
+                 (function
+                    | Str.Text s -> s
+                    | _ -> "")
+                 (Str.full_split regexp contents)));
+         close_in in_channel
+       with e ->
+         close_in in_channel;
+         raise e)
+    (List.tl (Array.to_list Sys.argv))
+
+(*-----------------------------*)
+
+#!/usr/bin/ocaml
+(* headerfy - change certain chapter headers to html *)
+#load "str.cma";;
+
+let line_stream_of_channel channel =
+  Stream.from
+    (fun _ -> try Some (input_line channel) with End_of_file -> None)
+
+let paragraphs lines =
+  let rec next para_lines i =
+    match Stream.peek lines, para_lines with
+      | None, [] -> None
+      | Some "", [] -> Stream.junk lines; next para_lines i
+      | Some "", _ | None, _ -> Some (Stream.of_list (List.rev para_lines))
+      | Some line, _ -> Stream.junk lines; next (line :: para_lines) i in
+  Stream.from (next [])
+
+let concat_lines stream =
+  let lines = ref [] in
+  Stream.iter (fun line -> lines := line :: !lines) stream;
+  String.concat "\n" (List.rev !lines)
+
+let regexp = Str.regexp "^Chapter[\r\n\t ]+[0-9]+[\r\n\t ]*:[^\r\n]*"
+
+let headerfy chunk =
+  String.concat ""
+    (List.map
+       (function
+          | Str.Text s -> s
+          | Str.Delim s -> "<H1>" ^ s ^ "</H1>")
+       (Str.full_split regexp chunk))
+
+let () =
+  List.iter
+    (fun filename ->
+       let in_channel = open_in filename in
+       try
+         Stream.iter
+           (fun para ->
+              print_endline (headerfy (concat_lines para));
+              print_newline ())
+           (paragraphs (line_stream_of_channel in_channel));
+         close_in in_channel
+       with e ->
+         close_in in_channel;
+         raise e)
+    (List.tl (Array.to_list Sys.argv))
 
 
 (* @@PLEAC@@_7.4 *)
