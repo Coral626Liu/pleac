@@ -3810,6 +3810,156 @@ let () =
          raise e)
     (List.tl (Array.to_list Sys.argv))
 
+(* @@PLEAC@@_6.7 *)
+#load "str.cma";;
+let chunks =
+  let lines = ref [] in
+  begin
+    try while true do lines := input_line stdin :: !lines done
+    with End_of_file -> ()
+  end;
+  let contents = String.concat "\n" (List.rev !lines) in
+  Str.full_split (Str.regexp "^\\.\\(Ch\\|Se\\|Ss\\)$") contents
+let () =
+  Printf.printf
+    "I read %d chunks.\n"
+    (List.length chunks)
+
+(* @@PLEAC@@_6.8 *)
+#load "str.cma";;
+
+(* Creates a stream that produces ranges of items from another stream.
+   Production of items starts when when (start_test count item) returns
+   true and stops when (finish_test count item) returns true. Multiple
+   ranges will be produced if start_test returns true again. The count
+   starts at 1. Ranges are inclusive; the item that causes finish_test
+   to return true will be produced. *)
+let stream_range start_test finish_test stream =
+  let active = ref false in
+  let count = ref 1 in
+  let rec next i =
+    match Stream.peek stream with
+      | None -> None
+      | Some item ->
+          if not !active then
+            begin
+              if start_test !count item
+              then (active := true; next i)
+              else (Stream.junk stream; incr count; next i)
+            end
+          else
+            begin
+              if finish_test !count item then active := false;
+              Stream.junk stream;
+              incr count;
+              Some item
+            end in
+  Stream.from next
+
+(* Creates a stream that produces items between a pair of indices.
+   If start = 2 and finish = 4, items 2, 3, and 4 will be produced.
+   The first item is number 1. *)
+let stream_range_numbers start finish stream =
+  stream_range
+    (fun count _ -> count = start)
+    (fun count _ -> count = finish)
+    stream
+
+(* Creates a stream that produces strings between a pair of regexps.
+   The regexp will be tested using Str.string_match. *)
+let stream_range_patterns start finish stream =
+  stream_range
+    (fun _ line -> Str.string_match start line 0)
+    (fun _ line -> Str.string_match finish line 0)
+    stream
+
+(* Produce a stream of lines from an input channel. *)
+let line_stream_of_channel channel =
+  Stream.from
+    (fun _ -> try Some (input_line channel) with End_of_file -> None)
+
+(* Print lines 15 through 17 inclusive. *)
+let () =
+  Stream.iter
+    print_endline
+    (stream_range_numbers 15 17
+       (line_stream_of_channel (open_in datafile)))
+
+(* Print out all <XMP> .. </XMP> displays from HTML doc. *)
+let () =
+  Stream.iter
+    print_endline
+    (stream_range_patterns
+       (Str.regexp ".*<XMP>")
+       (Str.regexp ".*</XMP>")
+       (line_stream_of_channel stdin))
+
+(*-----------------------------*)
+
+let in_header = ref true
+let in_body = ref false
+let () =
+  Stream.iter
+    (fun line ->
+       if !in_header && line = ""
+       then (in_header := false; in_body := true)
+       else
+         begin
+           (* do something with line *)
+         end)
+    (line_stream_of_channel stdin)
+
+(*-----------------------------*)
+
+module StringSet = Set.Make(String)
+let seen = ref StringSet.empty
+let email_regexp = Str.regexp "\\([^<>(),; \t]+@[^<>(),; \t]+\\)"
+let () =
+  Stream.iter
+    (fun line ->
+       List.iter
+         (function
+            | Str.Delim email ->
+                if not (StringSet.mem email !seen)
+                then
+                  begin
+                    seen := StringSet.add email !seen;
+                    print_endline email;
+                  end
+            | _ -> ())
+         (Str.full_split email_regexp line))
+    (stream_range_patterns
+       (Str.regexp "^From:?[ \t]")
+       (Str.regexp "^$")
+       (line_stream_of_channel stdin))
+
+(* @@PLEAC@@_6.9 *)
+let regexp_string_of_glob s =
+  let i, buffer = ref (-1), Buffer.create (String.length s + 8) in
+  let read () =
+    try incr i; Some s.[!i]
+    with Invalid_argument _ -> None in
+  let write = Buffer.add_string buffer in
+  let rec parse_glob () =
+    match read () with
+      | Some '*' -> write ".*"; parse_glob ()
+      | Some '?' -> write "."; parse_glob ()
+      | Some '[' -> parse_bracket ""
+      | Some c -> write (Str.quote (String.make 1 c)); parse_glob ()
+      | None -> ()
+  and parse_bracket text =
+    match read () with
+      | Some '!' when text = "" -> parse_bracket "^"
+      | Some ']' -> write ("[" ^ text ^ "]"); parse_glob ()
+      | Some c -> parse_bracket (text ^ (String.make 1 c))
+      | None -> write (Str.quote ("[" ^ text)) in
+  write "^";
+  parse_glob ();
+  write "$";
+  Buffer.contents buffer
+
+let regexp_of_glob s = Str.regexp (regexp_string_of_glob s)
+
 
 (* @@PLEAC@@_7.4 *)
 open Unix
