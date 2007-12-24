@@ -3770,19 +3770,16 @@ let line_stream_of_channel channel =
   Stream.from
     (fun _ -> try Some (input_line channel) with End_of_file -> None)
 
-let paragraphs lines =
+let paragraph_stream_of_channel channel =
+  let lines = line_stream_of_channel channel in
   let rec next para_lines i =
     match Stream.peek lines, para_lines with
       | None, [] -> None
       | Some "", [] -> Stream.junk lines; next para_lines i
-      | Some "", _ | None, _ -> Some (Stream.of_list (List.rev para_lines))
+      | Some "", _
+      | None, _ -> Some (String.concat "\n" (List.rev para_lines))
       | Some line, _ -> Stream.junk lines; next (line :: para_lines) i in
   Stream.from (next [])
-
-let concat_lines stream =
-  let lines = ref [] in
-  Stream.iter (fun line -> lines := line :: !lines) stream;
-  String.concat "\n" (List.rev !lines)
 
 let regexp = Str.regexp "^Chapter[\r\n\t ]+[0-9]+[\r\n\t ]*:[^\r\n]*"
 
@@ -3801,9 +3798,9 @@ let () =
        try
          Stream.iter
            (fun para ->
-              print_endline (headerfy (concat_lines para));
+              print_endline (headerfy para);
               print_newline ())
-           (paragraphs (line_stream_of_channel in_channel));
+           (paragraph_stream_of_channel in_channel);
          close_in in_channel
        with e ->
          close_in in_channel;
@@ -4027,6 +4024,85 @@ let popgrep3 () =
 let () = popgrep1 ()         (* time: 13.670s *)
 let () = popgrep2 ()         (* time:  0.264s *)
 let () = popgrep3 ()         (* time:  0.123s *)
+
+(* @@PLEAC@@_6.11 *)
+#load "str.cma";;
+let () =
+  while true do
+    print_string "Pattern? ";
+    flush stdout;
+    let pattern = input_line stdin in
+    try ignore (Str.regexp pattern)
+    with Failure message ->
+      Printf.printf "INVALID PATTERN: %s\n" message
+  done
+
+(*-----------------------------*)
+
+let is_valid_pattern pattern =
+  try ignore (Str.regexp pattern); true
+  with Failure _ -> false
+
+(*-----------------------------*)
+
+#!/usr/bin/ocaml
+(* paragrep - trivial paragraph grepper *)
+#load "str.cma";;
+
+let line_stream_of_channel channel =
+  Stream.from
+    (fun _ -> try Some (input_line channel) with End_of_file -> None)
+
+let paragraph_stream_of_channel channel =
+  let lines = line_stream_of_channel channel in
+  let rec next para_lines i =
+    match Stream.peek lines, para_lines with
+      | None, [] -> None
+      | Some "", [] -> Stream.junk lines; next para_lines i
+      | Some "", _
+      | None, _ -> Some (String.concat "\n" (List.rev para_lines))
+      | Some line, _ -> Stream.junk lines; next (line :: para_lines) i in
+  Stream.from (next [])
+
+let paragrep pat files =
+  let regexp =
+    begin
+      try Str.regexp pat
+      with Failure msg ->
+        Printf.eprintf "%s: Bad pattern %s: %s\n" Sys.argv.(0) pat msg;
+        exit 0
+    end in
+  let count = ref 0 in
+  List.iter
+    (fun file ->
+       let channel =
+         if file = "-"
+         then stdin
+         else open_in file in
+       try
+         Stream.iter
+           (fun para ->
+              incr count;
+              try
+                ignore (Str.search_forward regexp para 0);
+                Printf.printf "%s %d: %s\n\n" file !count para
+              with Not_found -> ())
+           (paragraph_stream_of_channel channel);
+         close_in channel
+       with e ->
+         close_in channel;
+         raise e)
+    files
+
+let () =
+  match List.tl (Array.to_list Sys.argv) with
+    | pat :: [] -> paragrep pat ["-"]
+    | pat :: files -> paragrep pat files
+    | [] -> Printf.eprintf "usage: %s pat [files]\n" Sys.argv.(0)
+
+(*-----------------------------*)
+
+let safe_pat = Str.quote pat
 
 
 (* @@PLEAC@@_7.4 *)
