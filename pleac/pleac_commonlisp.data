@@ -704,7 +704,7 @@ goes here
   ;; add more code here if you want
    )))
 ;;;-----------------------------
-(setf poem (dequote
+(defparameter *poem* (dequote
 "       Now far ahead the Road has gone,
           And I must follow, if I can,
        Pursuing it with eager feet,
@@ -714,7 +714,7 @@ goes here
                 --Bilbo in /usr/src/perl/pp_ctl.c
 "))
 
-(format t "Here's your poem:~%~%~A~%" poem)
+(format t "Here's your poem:~%~%~A~%" *poem*)
 ;;;-----------------------------
 (defun dequote (string)
   ;; Can't get multiple values returned thru the OR, hence the use of
@@ -760,9 +760,9 @@ goes here
 
 ;;; The closest thing to Perl's wantarray is CL's ability to return
 ;;; multiple values from a function.  Unless the caller uses
-;;; MULTIPLE-VALUE-BIND (or, this case MULTIPLE-VALUE-LIST), they will
-;;; only "see" the first value.  Note also that, normally, you'd use
-;;; CL's built-in STRING-TRIM function for this.
+;;; MULTIPLE-VALUE-BIND (or, in this case, MULTIPLE-VALUE-LIST), they
+;;; will only "see" the first value.  Note also that, normally, you'd
+;;; use CL's built-in STRING-TRIM function for this.
 (defun trim (&rest strings)
   (values-list 
    (loop for string in strings
@@ -778,6 +778,31 @@ goes here
    (let ((line (read-line)))
      (chomp line)
      (format t #?">$(line)<~%")))
+;;;-----------------------------
+
+;;; @@PLEAC@@_1.15
+;;;-----------------------------
+(defun parse-csv (text)
+  (let (fields)
+    (cl-ppcre:do-register-groups (quoted unquoted)
+        ("\"([^\"\\\\]*(?:\\\\.[^\"\\\\]*)*)\",?|([^,]+),?|," text)
+      (push (or quoted unquoted) fields))
+    (nreverse fields)))
+;;;-----------------------------
+;; CL has no obvious equivalent to Text::ParseWords
+;;;-----------------------------
+(defparameter *line* "XYZZY,\"\",\"O'Reilly, Inc\",\"Wall, Larry\",\"a \\\"glug\\\" bit,\",5,\"Error, Core Dumped\"")
+(let ((fields (parse-csv *line*)))
+  (loop
+     for i below (length fields)
+     do (format t "~D : ~A~%" i (elt fields i))))
+;;0 : XYZZY
+;;1 : 
+;;2 : O'Reilly, Inc
+;;3 : Wall, Larry
+;;4 : a \"glug\" bit,
+;;5 : 5
+;;6 : Error, Core Dumped
 ;;;-----------------------------
 
 ;;; @@PLEAC@@_2.1
@@ -1574,8 +1599,9 @@ my-array
 ;; generate a list of users logged in, removing duplicates
 (defparameter *ucnt* (make-hash-table :test 'equal))
 
-(defmacro dolines ((var stream) &body body)
-  "Like DOLIST except iterates over the lines of STREAM."
+(defmacro dostream ((var stream) &body body)
+  "Like DOLIST except iterates over the lines of STREAM.  Does not
+close STREAM."
   (let ((s (gensym "stream-"))
         (eof (gensym "eof-")))
     `(let ((,s ,stream))
@@ -1587,7 +1613,7 @@ my-array
 #+sbcl
 (with-open-stream (s (process-output 
                       (sb-ext:run-program "who" nil :search t :output :stream :wait nil)))
-  (dolines (who s)
+  (dostream (who s)
     ;; kill from first space till end-of-line, yielding username
     (setf who (regex-replace "\\s.*$" who "")) 
     (incf (gethash who *ucnt* 0)))) ; record the presence of this user
@@ -1729,11 +1755,11 @@ my-array
 
 ;;; @@PLEAC@@_4.11
 ;;;-----------------------------
-;; Removing N elements from front of MY-ARRAY requires 2 steps in CL
+;; Removing N elements from front of MY-ARRAY requires 2 steps in CL.
 (setf front (subseq my-array 0 n))
 (setf my-array (subseq my-array n))
 
-;; However we can write a macro to mimic Perl's behavior.
+;; We can write a macro to mimic Perl's behavior, however.
 (defmacro perl-splice (sequence-place &optional (offset 0) length replacement-sequence)
   (let* ((seq (gensym "SEQUENCE-PLACE-"))
          (off-arg (gensym "OFFSET-ARG-"))
@@ -2192,9 +2218,9 @@ my-array
 ;; that the string designates a filename, but for the purposes of this
 ;; example that seems ok.  Note that it just calls OPEN directly
 ;; without WITH-OPEN-FILE because it knows that the STREAM version of
-;; this function will always close it.
+;; this method will always close it.
 (defmethod countfrom ((filename string))
-  (countfrom-stream (open filename)))
+  (countfrom (open filename)))
 ;;;-----------------------------
 
 ;;; @@PLEAC@@_6.0
@@ -2378,6 +2404,214 @@ my-array
 ;; away, for example.  EVAL operates in the null lexical
 ;; environment, so can't be used for this purpose.
 ;;;-----------------------------
+
+;;; @@PLEAC@@_7.0
+;;;-----------------------------
+(with-open-file (input "/usr/local/widgets/data")
+  ;; No need for "die" like call here b/c WITH-OPEN-FILE will do it
+  ;; automatically.
+  (iter (for line in-stream input using 'read-line)
+        (when (scan "blue" line)
+          (format t "~A~%" line)))
+  ;; No need for explicit CLOSE here b/c WITH-OPEN-FILE will do it
+  ;; automatically.
+  )
+;;;-----------------------------
+(let ((var *standard-input*))
+  (mysub var logfile))
+;;;-----------------------------
+;; The Perl example here is showing the "object-oriented" style of
+;; file manipulation.  In CL it isn't any different than the above.
+;; However we will use this opportunity to demonstrate how to
+;; "manually" open/close a file without WITH-OPEN-FILE.
+(let ((input (open "/usr/local/widgets/data")))
+  (iter (for line in-stream input using 'read-line)
+        (setf line (chomp line))
+        (when (scan "blue" line)
+          (format t "~A~%" line)))
+  ;; Don't do this, either use WITH-OPEN-FILE or use UNWIND-PROTECT as
+  ;; illustrated later.
+  (close line))
+;;;-----------------------------
+(unwind-protect 
+    (progn
+      (iter (for line in-stream *standard-input* using 'read-line)
+            (unless (scan "\\d" line)
+              (warn "No digit found.~%"))
+            (format t "Read: ~A~%" line)))
+  ;; Not normally a good idea to do the following; just matching the
+  ;; Perl.
+  (close *standard-output*))
+;;;-----------------------------
+;; No need for explicit die, OPEN will throw an exception.
+(defparameter *logfile* (open "/tmp/log" :direction :output))
+;;;-----------------------------
+(close *fh*)                            ; no need for die()
+;;;-----------------------------
+(let ((*standard-output* *logfile*))    ; switch to *LOGFILE* for output
+  (format t "Countdown initiated ...~%"))
+;; return to original output
+(format t "You have 30 seconds to reach minimum safety distance.~%")
+;;;-----------------------------
+
+;;; @@PLEAC@@_7.1
+;;;-----------------------------
+;; For reading is the default, no need for "<" or equivalent.  No need
+;; for explicit die()-like call either.  Note also that you should use
+;; WITH-OPEN-FILE instead of a raw OPEN wherever possible.
+(defparameter *source* (open path)) 
+
+(defparameter *sink* (open path :direction :output)) 
+;;;-----------------------------
+#+sbcl
+(progn
+  (defparameter *source* (sb-posix:open path sb-posix:o-rdonly))
+
+  (defparameter *sink* (sb-posix:open path sb-posix:o-wronly)))
+;;;-----------------------------
+;; There is no equivalent of Perl's "object-oriented" file interface
+;; (arguably, the standard mechanism is already object-oriented).
+;;;-----------------------------
+#+sbcl
+(progn
+  (defparameter *filehandle* (sb-posix:open name flags))
+  (defparameter *filehandle* (sb-posix:open name flags perms)))
+;;;-----------------------------
+(defparameter *fh* (open path))
+#+sbcl
+(defparameter *fh* (sb-posix:open path sb-posix:o-rdonly))
+;;;-----------------------------
+(defparameter *fh* (open path :direction :output))
+#+sbcl
+(defparameter *fh* (sb-posix:open path (logior sb-posix:o-wronly
+                                               sb-posix:o-trunc
+                                               sb-posix:o-creat)
+                                  #o600))
+;;;-----------------------------
+#+sbcl
+(progn
+  (defparameter *fh* (sb-posix:open path (logior sb-posix:o-wronly
+                                                 sb-posix:o-excl
+                                                 sb-posix:o-creat)))
+  (defparameter *fh* (sb-posix:open path (logior sb-posix:o-wronly
+                                                 sb-posix:o-excl
+                                                 sb-posix:o-creat)
+                                    #o600)))
+;;;-----------------------------
+(defparameter *fh* (open path :direction :output 
+                              :if-exists :append
+                              :if-does-not-exist :create))
+#+sbcl
+(progn
+  (defparameter *fh* (sb-posix:open path (logior sb-posix:o-wronly
+                                                 sb-posix:o-append
+                                                 sb-posix:o-creat)))
+  (defparameter *fh* (sb-posix:open path (logior sb-posix:o-wronly
+                                                 sb-posix:o-append
+                                                 sb-posix:o-creat)
+                                    #o600)))
+;;;-----------------------------
+(defparameter *fh* (sb-posix:open path (logior sb-posix:o-wronly sb-posix:o-append)))
+;;;-----------------------------
+(defparameter *fh* (open path :direction :io :if-exists :overwrite))
+#+sbcl
+(defparameter *fh* (sb-posix:open path sb-posix:o-rdwr))
+;;;-----------------------------
+#+sbcl
+(progn
+  (defparameter *fh* (sb-posix:open path (logior sb-posix:o-rdwr
+                                                 sb-posix:o-creat)))
+  (defparameter *fh* (sb-posix:open path (logior sb-posix:o-rdwr
+                                                 sb-posix:o-creat)
+                                    #o600)))
+;;;-----------------------------
+#+sbcl
+(progn
+  (defparameter *fh* (sb-posix:open path (logior sb-posix:o-rdwr
+                                                 sb-posix:o-excl
+                                                 sb-posix:o-creat)))
+  (defparameter *fh* (sb-posix:open path (logior sb-posix:o-rdwr
+                                                 sb-posix:o-excl
+                                                 sb-posix:o-creat)
+                                    #o600)))
+;;;-----------------------------
+
+;;; @@PLEAC@@_7.2
+;;;-----------------------------
+;; The machinations that the Perl example is doing is dealing with the
+;; fact that Perl normally ignores leading whitespace in a filename.
+;; This shouldn't be necessary in CL (since the filename doesn't also
+;; contain the input mode, as it does in Perl), but the following
+;; example illustrates how to do the same thing anyway.
+(setf *filename* (regex-replace "^(\\s)" *filename* "./$1"))
+;; I'm not sure what the \0 being appended in the Perl example is for,
+;; but SBCL, at least, doesn't seem to even allow NUL in a namestring
+;; (filename), so it's not shown here.
+(defparameter *handle* (open *filename*))
+;;;-----------------------------
+#+sbcl
+(defparameter *handle* (sb-posix:open *filename* sb-posix:o-rdonly))
+;;;-----------------------------
+(defparameter *filename* (second *posix-argv*))
+(defparameter *input* (open *filename*))
+;;;-----------------------------
+(defparameter *output* (open *filename* :direction :output))
+;;;-----------------------------
+#+sbcl
+(defparameter *output* (sb-posix:open *filename* (logior sb-posix:o-wronly 
+                                                         sb-posix:o-trunc)))
+;;;-----------------------------
+(setf *file* (regex-replace "^(\\s)" *file* "./$1"))
+(defparameter *output* (open *file* :direction :output))
+;;;-----------------------------
+
+;;; @@PLEAC@@_7.3
+;;;-----------------------------
+;;; @@INCOMPLETE@@
+;;; @@INCOMPLETE@@
+
+
+;;; @@PLEAC@@_7.4
+;;;-----------------------------
+
+;; You should not normally do this in CL.  However the example below
+;; does roughly the same thing as the Perl and is a crude example of
+;; how you can handle exceptions in CL.
+(handler-case
+    (let ((file (open *path*)))
+      ;; use FILE
+      )
+  ;; Catch "all" exceptions (CONDITION is the base class of all
+  ;; "exceptions" in CL).
+  (condition (msg)
+    (format *error-output* "~&Couldn't open ~A for reading : ~A~%" *path* msg)))
+;;;-----------------------------
+
+;;; @@PLEAC@@_7.6
+;;;-----------------------------
+(defparameter *data* "
+Your data goes here
+")
+
+(loop for line in (split #\Newline *data*)
+     do
+     (progn
+       ;; process the line
+       ))
+;;;-----------------------------
+;; The Perl example here would be the same as the above.
+;;;-----------------------------
+;; There's no equivalent to how DATA is used here.  E.g., there's no
+;; standard way to get the currently executing "script" file.
+;;;-----------------------------
+
+;;; @@PLEAC@@_7.18
+;;;-----------------------------
+(loop
+   for filehandle in *filehandles* ; *FILEHANDLES* is list of STREAM objects
+   do (princ stuff-to-print filehandle))
+;;;-----------------------------
+;;; @@INCOMPLETE@@
 
 
 ;;; @@PLEAC@@_8.2
@@ -4675,20 +4909,36 @@ multidimensional arrays.)"
 ;;; @@INCOMPLETE@@
 ;;;-----------------------------
 
-
 ;;; @@PLEAC@@_18.1
 ;;;-----------------------------
 (use-package :sb-bsd-sockets)
-(defparameter *addresses* (host-ent-addresses (get-host-by-name name))) ; "or die" done implicitly
+(defparameter *addresses* (host-ent-addresses (get-host-by-name name)))
 ;; *addresses* is a list of IP addresses (#(192 48 96 9) #(192 48 96 23))
 ;;;-----------------------------
-;; There isn't really any equivalent to inet_aton(), all the functions
-;; return either a string or a vector.
+(defun inet-ntoa (packed-address)
+  (format nil "~{~D~^.~}" (coerce packed-address 'list)))
+
+(defparameter *address* (inet-ntoa (make-inet-address *name*)))
 ;;;-----------------------------
 (use-package :sb-bsd-sockets)
-(setf name (get-host-by-address #(192 48 96 9)))
-;; name is the hostname "ftp.uu.net"
+(defparameter *name* (get-host-by-address #(192 48 96 9)))
+;; *NAME* is the hostname "ftp.uu.net"
 ;;;-----------------------------
 (use-package :sb-bsd-sockets)
-(setf packed-address (make-inet-address "208.146.140.1"))
+(defparameter *packed-address* (make-inet-address "208.146.140.1"))
+(defparameter *ascii-address* (inet-ntoa *packed-address*)) ; INET-NTOA defined above
+;;;-----------------------------
+(use-package :sb-bsd-sockets)
+(let* ((packed (get-host-by-name *hostname*)) ; no need for die, will signal a condition
+       (address (host-ent-address packed)))
+  (format t "I will use ~A as the address for ~A~%" address *hostname*))
+;;;-----------------------------
+;; *address* is the IP address I'm checking, like "128.138.243.20"
+(use-package :sb-bsd-sockets)
+(defparameter *name* (host-ent-name 
+                      (get-host-by-address (make-inet-address *address*))))
+(defparameter *addresses* (host-ent-addresses (get-host-by-name *name*)))
+(defparameter *found* (member *address* *addresses* :test 'equal :key 'inet-ntoa))
+;;;-----------------------------
 ;;; @@INCOMPLETE@@
+;;;-----------------------------
