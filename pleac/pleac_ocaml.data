@@ -5628,6 +5628,103 @@ let () =
   Unix.dup2 old_descr Unix.stdout;
   print_endline "You have 30 seconds to reach minimum safety distance."
 
+(* @@PLEAC@@_7.1 *)
+let source =
+  try open_in path
+  with Sys_error msg -> failwith ("Couldn't read from " ^ msg)
+
+let sink =
+  try open_out path
+  with Sys_error msg -> failwith ("Couldn't write to " ^ msg)
+
+(*-----------------------------*)
+
+#load "unix.cma";;
+
+let source =
+  try Unix.openfile path [Unix.O_RDONLY] 0o644
+  with Unix.Unix_error (code, func, param) ->
+    failwith (Printf.sprintf "Couldn't open %s for reading: %s"
+                path (Unix.error_message code))
+
+let sink =
+  try Unix.openfile path [Unix.O_WRONLY; Unix.O_CREAT] 0o644
+  with Unix.Unix_error (code, func, param) ->
+    failwith (Printf.sprintf "Couldn't open %s for writing: %s"
+                path (Unix.error_message code))
+
+(*-----------------------------*)
+
+let fh =
+  try Unix.openfile filename [Unix.O_RDWR] 0o644
+  with Unix.Unix_error (code, func, param) ->
+    failwith (Printf.sprintf "Couldn't open %s for read and write: %s"
+                filename (Unix.error_message code))
+
+(*-----------------------------*)
+
+let fh = open_in path
+let fh = Unix.openfile path [Unix.O_RDONLY] 0o644
+
+(*-----------------------------*)
+
+let fh = open_out path
+let fh = Unix.openfile path [Unix.O_WRONLY; Unix.O_TRUNC; Unix.O_CREAT] 0o600
+
+(*-----------------------------*)
+
+let fh = Unix.openfile path [Unix.O_WRONLY; Unix.O_EXCL; Unix.O_CREAT] 0o600
+
+(*-----------------------------*)
+
+let fh =
+  open_out_gen [Open_wronly; Open_append; Open_creat] 0o600 path
+let fh =
+  Unix.openfile path [Unix.O_WRONLY; Unix.O_APPEND; Unix.O_CREAT] 0o600
+
+(*-----------------------------*)
+
+let fh = Unix.openfile path [Unix.O_WRONLY; Unix.O_APPEND] 0o600
+
+(*-----------------------------*)
+
+let fh = Unix.openfile path [Unix.O_RDWR] 0o600
+
+(*-----------------------------*)
+
+let fh = Unix.openfile path [Unix.O_RDWR; Unix.O_CREAT] 0o600
+
+(*-----------------------------*)
+
+let fh = Unix.openfile path [Unix.O_RDWR; Unix.O_EXCL; Unix.O_CREAT] 0o600
+
+(* @@PLEAC@@_7.2 *)
+(* Nothing different needs to be done with OCaml *)
+
+(* @@PLEAC@@_7.3 *)
+#load "str.cma";;
+#load "unix.cma";;
+
+let expanduser =
+  let regexp = Str.regexp "^~\\([^/]*\\)" in
+  let replace s =
+    match Str.matched_group 1 s with
+      | "" ->
+          (try Unix.getenv "HOME"
+           with Not_found ->
+             (try Unix.getenv "LOGDIR"
+              with Not_found ->
+                (Unix.getpwuid (Unix.getuid ())).Unix.pw_dir))
+      | user -> (Unix.getpwnam user).Unix.pw_dir in
+  Str.substitute_first regexp replace
+
+(*-----------------------------*)
+
+    ~user
+    ~user/blah
+    ~
+    ~/blah
+
 (* @@PLEAC@@_7.4 *)
 open Unix
 
