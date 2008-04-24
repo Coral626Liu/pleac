@@ -469,7 +469,7 @@ equal_num n1 n2 accuracy = abs (n1 - n2) < 10 ^^ (-accuracy)
 
 wage = 536          -- $5.36/hour
 week = 40 * wage    -- $214.40
-weekwage :: IO()
+weekwage :: String
 weekwage = printf "One week's wage is: $%.2f\n" (week / 100 :: Double)
 
 -- @@PLEAC@@_2.3
@@ -774,6 +774,7 @@ main = getArgs >>= mapM_ do_one
 
 
 -- @@PLEAC@@_3.0
+-- you can use haskell-98 standard module:
 import Time
 
 date = fmap show getClockTime   -- "Wed Apr 25 19:43:29 CEST 2007"
@@ -788,40 +789,90 @@ t = do tm <- localtime
 -- => Today is day 114 of the current year
 
 
+-- or you can use new "time library":
+import Data.Time
+
+date = getCurrentTime
+-- "2008-04-18 14:11:22.476894 UTC"
+
+t = do today <- fmap utctDay getCurrentTime      
+       let (year, _, _) = toGregorian today
+       let days = diffDays today (fromGregorian year 0 0)
+       putStrLn $ "Today is day " ++ show days ++ " of the current year"
+-- => Today is day 108 of the current year
+
 -- @@PLEAC@@_3.1
-import Time
+import Data.Time
 import System.Locale (defaultTimeLocale)
 
-localtime = getClockTime >>= toCalendarTime
+t = do tm <- getCurrentTime
+       let (year, month, day) = toGregorian (utctDay tm)
+       printf "The current date is %04d %02d %02d\n" year month day
 
-t = do tm <- localtime
-       putStrLn $ unwords $ [ "The current date is", show (ctDay tm), show (ctMonth tm), show (ctYear tm) ]
--- => The current date is 26 April 2007
+t2 = do tm <- getCurrentTime
+        return $ "The current date is " ++ show (utctDay tm)
+-- The current date is 2008-04-18
 
-t2 = do tm <- localtime
-        printf "The current date is %04d-%02d-%02d\n" (ctYear tm) (fromEnum (ctMonth tm) + 1) (ctDay tm)
--- => The current date is 2007-04-26
-
-t3 = fmap (formatCalendarTime defaultTimeLocale "%Y-%m-%d") localtime 
--- => 2007-04-26
-
+t3 = fmap (formatTime defaultTimeLocale "%Y-%m-%d") getCurrentTime
+-- => 2008-04-18
 
 -- @@PLEAC@@_3.2
-import System.Time   -- module "Time" has less functions than "System.Time"
+import Data.Time
+import Data.Time.Clock.POSIX
 
--- use toClockTime to do the reverse of toCalendarTime/toUTCTime
+-- !! epoch is not the "base" value in Data.Time, so do not use it unless you !!
+-- !! really need it !!
 
--- sets HH:MM:SS to 0
-last_midnight tm = tm { ctHour = 0, ctMin = 0, ctSec = 0, ctPicosec = 0 }
-localtime = getClockTime >>= toCalendarTime
-t = fmap (toClockTime . last_midnight) localtime
--- => Thu Apr 26 00:00:00 CEST 2007
+-- if you want epoch, use:
+t = getPOSIXTime                -- 1208529250.856017s
 
--- if you want to modify time, use addToClockTime without using CalendarTime:
-height_hours_ago = addToClockTime (noTimeDiff { tdHour = -8 })
-t2 = getClockTime                        -- Thu Apr 26 09:56:28 CEST 2007
-t3 = fmap height_hours_ago getClockTime  -- Thu Apr 26 01:56:29 CEST 2007
+-- if you want to get epoch from a time, use:
+t2 = fmap utcTimeToPOSIXSeconds getCurrentTime -- 1208529250.856017s
 
+-- @@PLEAC@@_3.3
+import System.Time
+import Data.Time
+import Data.Time.Clock.POSIX
+
+epoch = 111111
+t1 = posixSecondsToUTCTime epoch      -- 1970-01-02 06:51:51 UTC
+t2 = timeToTimeOfDay (utctDayTime t1) -- 06:51:51
+
+-- @@PLEAC@@_3.4
+import Data.Time
+
+ten_seconds_before = addUTCTime (-10)
+t = do now <- getCurrentTime
+       return (now, ten_seconds_before now)
+-- (2008-04-18 14:48:33.075113 UTC,
+--  2008-04-18 14:48:23.075113 UTC)
+
+-- ten_seconds_before can also be written:
+ten_seconds_before (UTCTime day time) = UTCTime day (time - 10)
+ten_seconds_before t = t { utctDayTime = utctDayTime t - 10 }
+
+
+birth_date = fromGregorian 1973 1 18
+t  = "Nat was 55 days old on: " ++ show (addDays 55 birth_date)
+-- Nat was 55 days old on: 1973-03-14
+
+-- @@PLEAC@@_3.5
+import Data.Time
+import Data.Time.Clock.POSIX
+
+bree = UTCTime (fromGregorian 1981 6 16) (timeOfDayToTime $ TimeOfDay 4 35 25) -- 1981-06-16 04:35:25 UTC
+nat  = UTCTime (fromGregorian 1973 1 18) (timeOfDayToTime $ TimeOfDay 3 45 50) -- 1973-01-18 03:45:50 UTC
+-- or simpler:
+bree' = read "1981-06-16 04:35:25" :: UTCTime
+nat'  = read "1973-01-18 03:45:50" :: UTCTime
+
+difference = diffUTCTime bree nat / posixDayLength
+t = "There were " ++ (show $ round difference) ++ " days between Nat and Bree"
+-- There were 3071 days between Nat and Bree
+
+toFloat n = realToFrac n :: Float
+t2 = printf "There were %.2f days between Nat and Bree" (toFloat difference) :: String
+-- There were 3071.03 days between Nat and Bree
 
 -- @@PLEAC@@_4.0
 single_level = [ "this", "that", "the", "other" ]
