@@ -152,6 +152,36 @@ print
 swap
 ! -----------------------------
 
+! @@PLEAC@@_1.15
+! -----------------------------
+! The "csv" vocabulary allows to parse real CSV
+
+! reading the file "testdata.csv", UTF-8 encoded, CSV format
+USE: csv
+
+"testdata.csv" utf8 <file-reader> csv
+! An array of row arrays is on the top of the stack now.
+
+! -----------------------------
+! You could use the word "<string-reader>" to turn a string into a stream.
+
+USING: csv io.streams.string ;
+
+"XYZZY,\"\",\"O'Reilly, Inc\",\"Wall, Larry\",\"a \"\"glug\"\" bit,\",5,\"Error, Core Dumped\""
+    <string-reader> csv .
+!    {
+!        {
+!            "XYZZY"
+!            ""
+!            "O'Reilly, Inc"
+!            "Wall, Larry"
+!            "a \"glug\" bit,"
+!            "5"
+!            "Error, Core Dumped"
+!        }
+!    }
+! -----------------------------
+
 ! @@PLEAC@@_3.0
 ! -----------------------------
 ! All examples use the "calendar" vocabulary
@@ -197,3 +227,69 @@ gmt timestamp>millis
 ! -----------------------------
 ! Epoch milliseconds to timestamp
 1210538827773 millis>timestamp
+
+! @@PLEAC@@_3.4
+! -----------------------------
+! Durations can be added and substracted with the words "time+" and "time-"
+now 5 days time+ timestamp>ymd print
+! 2008-05-17
+now 5 days time- timestamp>ymd print
+! 2008-05-07
+! -----------------------------
+1973 1 18 3 45 50 gmt-offset-duration <timestamp>   ! Birthtime
+    0 0 55 2 17 5 <duration>                        ! Interval
+    time+
+    timestamp>string "Then is " swap append print
+! Then is Wed, 14 Mar 1973 06:02:55
+! -----------------------------
+"Nat was 55 days old on: " 1973 1 18 <date> 55 days time+ timestamp>ymd append print
+! Nat was 55 days old on: 1973-03-14
+! -----------------------------
+
+! @@PLEAC@@_3.5
+! -----------------------------
+! Timestamps can be substracted from each other with "time-". You get a duration,
+! which can be converted to the number of seconds, minutes, etc.
+now 5 days time-        ! 5 days before
+    now 5 days time+    ! in 5 days
+    time-               ! substracting the two timestamps
+    dt>days .           ! converting duration to number of days and prettyprinting it.
+! -10
+! -----------------------------
+! Putting duration since lunar landing onto the stack:
+now
+    1969 7 20 20 17 40 instant <timestamp>   ! 1969-07-20 20:17:40 UTC
+    time-
+! -----------------------------
+USING: calendar math.parser ;
+1981 6 16 4 35 25 instant <timestamp>   ! 16 Jun 1981, 4:35:25 UTC, Bree
+1973 1 18 3 45 50 instant <timestamp>   ! 18 Jan 1973, 3:45:50 UTC, Nat
+time-
+dt>seconds
+dup     ! Duplicates top of stack so we can use it later again.
+
+[ "There were " % # " seconds between Nat and Bree" % ] "" make print
+! There were 265337375 seconds between Nat and Bree
+
+[ dup 60 mod dup , ! seconds
+  - 60 /  ! rest in minutes
+  dup 60 mod dup , ! minutes
+  - 60 /  ! rest in hours
+  dup 24 mod dup , ! hours
+  - 24 /  ! rest in days
+  dup 7 mod dup , ! days
+  - 7 / , ! weeks
+] { } make
+
+[ [ "(" % # " weeks, " % # " days, " % # ":" % # ":" % # ")" % ] "" make ] with-datastack
+first print
+! (438 weeks, 5 days, 0:49:35)
+
+! -----------------------------
+1981 6 16 <date>    ! 16 Jun 1981, Bree
+1973 1 18 <date>    ! 18 Jan 1973, Nat
+time-
+dt>days
+[ "There were " % # " days between Nat and Bree" % ] "" make print
+! There were 3071 days between Nat and Bree
+! -----------------------------
