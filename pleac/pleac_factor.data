@@ -1,0 +1,199 @@
+! -*- factor -*-
+! vim:set ft=factor:
+
+! @@PLEAC@@_NAME
+! @@SKIP@@ Factor
+
+! @@PLEAC@@_WEB
+! @@SKIP@@ http://factorcode.org/
+
+! @@PLEAC@@_INTRO
+! @@SKIP@@ Factor is a general purpose, dynamically typed, 
+! @@SKIP@@ stack-based programming language released under a BSD-style license.
+
+! @@SKIP@@ Factor has variables (global and local) but most of the time it is more
+! @@SKIP@@ idiomatic to put results on the stack. The examples will look different
+! @@SKIP@@ from the typical "a = b(x)" of other programming languages.
+
+! @@PLEAC@@_1.0
+! -----------------------------
+: string ( -- str ) "\\n" ;                 ! two characters, \ and an n
+: string ( -- str ) "Jon 'Maddog' Orwant" ; ! literal single quotes
+! -----------------------------
+: string ( -- str ) "\n" ;                      ! a "newline" character
+: string ( -- str ) "Jon \"Maddog\" Orwant" ;   ! literal double quotes
+! -----------------------------
+! Multiline strings need the multiline vocabulary
+
+USE: multiline
+
+STRING: a
+This is a multiline document
+terminated by ; on a line by itself
+;
+
+: a ( -- str )
+    <" This is a multiline document
+terminated by double quotes plus greater sign"> ;
+! -----------------------------
+
+! @@PLEAC@@_1.1
+! -----------------------------
+! use subseq from the sequences vocabulary, since strings are just sequences
+from to str subseq
+
+1 3 "abcdefg" subseq .
+! "bc"
+
+! The rest from a given position is handled by tail
+str n tail
+
+1 "abcdefg" tail .
+! "bcdefg"
+
+! Replacing a substring with replace-slice
+newstr from to str replace-slice
+
+"1234" 3 7 "abcdefg" [ replace-slice ] keep .
+!"abc1234"
+
+: replace-tail ( new from seq -- )
+    dup length swap [ replace-slice ] keep ;
+
+"1234" 3 "abcdefg" replace-tail .
+! "abc1234"
+
+! -----------------------------
+
+! split at five character boundaries
+USE: splitting
+5 group     ! Splits sequence/string on top of stack into an array
+
+"abcdefghijklmnopqrstuvwxyz" 5 group .
+! { "abcde" "fghij" "klmno" "pqrst" "uvwxy" "z" }
+
+! chop string into individual characters
+1 group
+
+"abcd" 1 group .
+! { "a" "b" "c" "d" }
+
+! -----------------------------
+: str ( -- str ) "This is what you have" ;
+!                +012345678901234567890  Indexing forwards  (left to right)
+!                 109876543210987654321- Indexing backwards (right to left)
+!                  note that 0 means 10 or 20, etc. above
+
+0 1 str subseq  ! "T" (on top of stack)
+str 1 head      ! "T"
+5 7 str subseq  ! "is"
+str 13 tail     ! "you have"
+str 1 tail*     ! "e"
+str 4 tail*     ! "have"
+! 8 indexed from backward, 3 characters
+str length 8 - dup 3 + str subseq   ! "you"
+! Or with a new word, using the locals vocabulary
+USE: locals
+:: chars-from-rindex ( from count str -- newstr )
+    str length from - dup count + str subseq ;
+
+8 3 str chars-from-rindex   ! "you"
+
+! -----------------------------
+SYMBOL: str
+"This is what you have" str set
+
+str get print
+! This is what you have
+
+str get
+! Top of stack: "This is what you have"
+
+[ 5 head ] [ 7 tail ] bi "wasn't" swap 3append   ! change "is" to "wasn't"
+! Top of stack: "This wasn't what you have"
+
+13 head "ondrous" append    ! replace last 12 characters
+! Top of stack: "This wasn't wondrous"
+
+1 tail      ! delete first character
+! Top of stack: "his wasn't wondrous"
+
+10 head*    ! delete last 10 characters
+! Top of stack: "his wasn'"
+
+str set
+! str = "his wasn'"
+
+str get print
+! his wasn'
+! -----------------------------
+! you can test substrings with "subseq?"
+
+10 tail* "substring" swap subseq?
+    [ "\"substring\" within the last 10 characters" print ]
+    when
+
+! substitute "at" for "is", restricted to first five characters
+USING: peg peg.search ;
+
+5 cut >r "is" token [ drop "at" ] action replace r> append
+
+! -----------------------------
+! exchange the first and last letters in a string
+"make a hat"
+1 cut 1 cut* spin 3append
+print
+! take a ham
+
+! -----------------------------
+
+! @@PLEAC@@_1.3
+! -----------------------------
+swap
+! -----------------------------
+
+! @@PLEAC@@_3.0
+! -----------------------------
+! All examples use the "calendar" vocabulary
+USE: calendar
+
+[ "Today is day " % now day-of-year # " of the current year." % ] "" make print
+! Today is day 132 of the current year.
+! -----------------------------
+
+! @@PLEAC@@_3.1
+! -----------------------------
+now ! puts timestamp on stack
+
+! accessing day
+day>>
+! -----------------------------
+
+! Formatting the date with "calender.format" vocabulary
+USE: calendar.format
+
+now timestamp>rfc3339
+! Top of stack: "2008-05-11T22:39:01+02:00"
+
+now timestamp>ymd
+! Top of stack: "2008-05-11"
+! -----------------------------
+
+! @@PLEAC@@_3.2
+! -----------------------------
+! Epoch milliseconds
+now timestamp>millis
+! Top of stack: 1210538827773
+
+! Calculate seconds 
+1000 / >integer
+! -----------------------------
+
+! GMT milliseconds
+gmt timestamp>millis
+! Top of Stack: 1210539018199
+
+! @@PLEAC@@_3.3
+! -----------------------------
+! Epoch milliseconds to timestamp
+1210538827773 millis>timestamp
