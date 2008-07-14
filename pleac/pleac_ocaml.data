@@ -4036,11 +4036,15 @@ let () =
        (line_stream_of_channel stdin))
 
 (* @@PLEAC@@_6.9 *)
+#load "str.cma";;
+
 let regexp_string_of_glob s =
   let i, buffer = ref (-1), Buffer.create (String.length s + 8) in
   let read () =
-    try incr i; Some s.[!i]
-    with Invalid_argument _ -> None in
+    incr i;
+    if !i < String.length s
+    then Some s.[!i]
+    else None in
   let write = Buffer.add_string buffer in
   let rec parse_glob () =
     match read () with
@@ -4060,7 +4064,11 @@ let regexp_string_of_glob s =
   write "$";
   Buffer.contents buffer
 
-let regexp_of_glob s = Str.regexp (regexp_string_of_glob s)
+let regexp_of_glob s =
+  Str.regexp (regexp_string_of_glob s)
+
+let regexp_of_glob_case_fold s =
+  Str.regexp_case_fold (regexp_string_of_glob s)
 
 (* @@PLEAC@@_6.10 *)
 #load "str.cma";;
@@ -7771,6 +7779,7 @@ let plainfiles dir =
        (Array.to_list (Sys.readdir dir)))
 
 (* @@PLEAC@@_9.6 *)
+(* See recipe 6.9 for a more powerful globber. *)
 #load "str.cma";;
 
 (* OCaml does not come with a globbing function. As a workaround, the
