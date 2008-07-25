@@ -9531,10 +9531,10 @@ module S :
    http://caml.inria.fr/cgi-bin/hump.cgi *)
 
 (* @@PLEAC@@_12.1 *)
-(* Interfaces, also known as module types, are usually saved in files
-   with the same name as the corresponding module but with a ".mli"
-   extension. For instance, if the module is defined in "YourModule.ml",
-   the interface will be in "YourModule.mli". *)
+(* Interfaces, also known as module types or signatures, are usually
+   saved in files with the same name as the corresponding module but
+   with a ".mli" extension. For instance, if the module is defined in
+   "YourModule.ml", the interface will be in "YourModule.mli". *)
 
 (* YourModule.mli *)
 val version : string
@@ -9556,9 +9556,34 @@ struct
 end
 
 (* @@PLEAC@@_12.2 *)
-(* The failure to load a module will always result in a compilation
-   error. The only exception is with dynamic linking, which is an
-   advanced topic. See the Dynlink module for details. *)
+(* Due to static typing, missing modules are detected at compilation
+   time, so this is not normally an error you can catch (or need to).
+   When using ocaml interactively or as an interpreter, the "#load"
+   directive can fail, resulting in a message like the following:
+
+       Cannot find file <filename>.
+
+   being printed to standard output. This is also not an error you can
+   catch, and its occurrence will not stop the script from executing.
+   It is possible to dynamically load modules and detect the failure of
+   this operation with Dynlink. An example is given in the next recipe. *)
+
+(* @@PLEAC@@_12.3 *)
+(* Registry.ml *)
+let (registry : (string, unit -> unit) Hashtbl.t) = Hashtbl.create 32
+
+(* SomeModule.ml *)
+let say_hello () = print_endline "Hello, world!"
+let () = Hashtbl.replace Registry.registry "say_hello" say_hello
+
+(* Main program *)
+let filename = "SomeModule.cmo"
+let funcname = "say_hello"
+let () =
+  Dynlink.init ();
+  (try Dynlink.loadfile filename
+   with Dynlink.Error e -> failwith (Dynlink.error_message e));
+  (Hashtbl.find Registry.registry funcname) ()
 
 
 (* @@PLEAC@@_14.0 *)
