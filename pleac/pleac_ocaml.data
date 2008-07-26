@@ -9753,6 +9753,79 @@ Findlib has been successfully loaded. Additional directives:
 $ ocamlfind ocamlc -package mylibrary myprogram.ml -o myprogram
 $ ocamlfind ocamlopt -package mylibrary myprogram.ml -o myprogram
 
+(* @@PLEAC@@_12.9 *)
+(* OCaml supports native compilation. If module load time is an issue,
+   it's hard to find a better solution than "ocamlopt". If compilation
+   is slow as well, try "ocamlopt.opt", which is the natively-compiled
+   native compiler. *)
+
+(* @@PLEAC@@_12.10 *)
+(* This recipe is not relevant or applicable to OCaml. *)
+
+(* @@PLEAC@@_12.11 *)
+#load "unix.cma";;
+
+(* The Unix module returns the time as a float. Using a local module
+   definition and an "include", we can override this function to return
+   an int32 instead. (This is a bit silly, but it illustrates the basic
+   technique. *)
+module Unix = struct
+  include Unix
+  let time () = Int32.of_float (time ())
+end
+
+(* Use the locally modified Unix.time function. *)
+let () =
+  let start = Unix.time () in
+  while true do
+    Printf.printf "%ld\n" (Int32.sub (Unix.time ()) start)
+  done
+
+(* Operators can also be locally modified. Here, we'll temporarily
+   define '-' as int32 subtraction. *)
+let () =
+  let ( - ) = Int32.sub in
+  let start = Unix.time () in
+  while true do
+    Printf.printf "%ld\n" (Unix.time () - start)
+  done
+
+(* @@PLEAC@@_12.12 *)
+(* There are two built-in functions that raise standard exceptions.
+   Many standard library functions use these. "invalid_arg" raises
+   an Invalid_argument exception, which takes a string parameter: *)
+let even_only n =
+  if n land 1 <> 0 (* one way to test *)
+  then invalid_arg (string_of_int n);
+  (* ... *)
+  ()
+
+(* "failwith" raises a Failure exception, which also takes a string
+   parameter (though it is typically used to identify the name of
+   the function as opposed to the argument). *)
+let even_only n =
+  if n mod 2 <> 0 (* here's another *)
+  then failwith "even_only";
+  (* ... *)
+  ()
+
+(* In most cases, it is preferable to define your own exceptions. *)
+exception Not_even of int
+let even_only n =
+  if n land 1 <> 0 then raise (Not_even n);
+  (* ... *)
+  ()
+
+(* OCaml does not provide a facility for emitting warnings. You can
+   write to stderr, which may be an acceptable substitute. *)
+let even_only n =
+  let n =
+    if n land 1 <> 0 (* test whether odd number *)
+    then (Printf.eprintf "%d is not even, continuing\n%!" n; n + 1)
+    else n in
+  (* ... *)
+  ()
+
 
 (* @@PLEAC@@_14.0 *)
 (* OCaml's standard library includes bindings to the NDBM database.
