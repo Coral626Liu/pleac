@@ -10220,6 +10220,152 @@ cairo.lablgtk2      (version: n/a)
 ...
 
 
+(* @@PLEAC@@_13.0 *)
+(* The simplest object possible. This object has no data, no methods,
+   and does not belong to any class. *)
+let obj = object end
+
+(* The simplest class possible, and an instance of it. *)
+class encoder = object end
+let obj = new encoder
+
+(* A class living inside of a module. *)
+module Data = struct
+  class encoder = object end
+end
+let obj = new Data.encoder
+
+(* An object with data and a method. *)
+let obj = object
+  val data = [3; 5]
+  method at n = List.nth data n
+end
+let () =
+  (* Display the object's identity (an integer) and call a method. *)
+  Printf.printf "%d %d\n" (Oo.id obj) (obj#at 1)
+
+(* A module containing a class with data and a method. *)
+module Human = struct
+  class ['a] cannibal data = object
+    val data : 'a list = data
+    method at n = List.nth data n
+  end
+end
+let () =
+  let obj = new Human.cannibal [3; 5] in
+  Printf.printf "%d %d\n" (Oo.id obj) (obj#at 1)
+
+(* Method calls are indicated by the '#' operator. *)
+let encoded = obj#encode "data"
+
+(* There is no notion of a class method in OCaml.
+   Use a module-level function instead. *)
+let encoded = Data.Encoder.encode "data"
+
+(* Using the "class" keyword is much like defining a function. *)
+class klass (initial_name : string) = object
+  val mutable my_name = initial_name
+  method name = my_name
+  method set_name name = my_name <- name
+end
+let () =
+  let obj = new klass "Class" in
+  print_endline obj#name;
+  obj#set_name "Clown";
+  print_endline obj#name
+
+(* Initialization can be performed prior to object creation. *)
+class random n =
+  let rng = Random.State.make_self_init () in
+object
+  method next () = Random.State.int rng n
+end
+let () =
+  let r = new random 10 in
+  Printf.printf "Three random numbers: %d, %d, %d.\n"
+    (r#next ()) (r#next ()) (r#next ())
+
+(* Initialization can also be performed after object creation.
+   Note the "self" parameter, which can be used much like the
+   "this" reference in other OO languages. *)
+class late_initializer name = object (self)
+  val my_name = name
+  method prepare_name () = String.capitalize my_name
+  initializer Printf.printf "%s is ready\n" (self#prepare_name ())
+end
+let obj = new late_initializer "object"
+
+(* Methods are curried just like functions. This allows them to
+   be used just like functions in many cases. It is customary for
+   methods to take at least one argument (even if it is unit)
+   unless they represent an object's attribute. *)
+module Human = struct
+  class cannibal (name : string) = object
+    val mutable name = name
+    method name = name
+    method feed who = print_endline ("Feeding " ^ who)
+    method move where = print_endline ("Moving to " ^ where)
+    method die () = print_endline "Dying"
+  end
+end
+let () =
+  let lector = new Human.cannibal "Hannibal" in
+  let feed, move, die = lector#feed, lector#move, lector#die in
+  Printf.printf "Cannibal's name is %s\n" lector#name;
+  feed "Zak";
+  move "New York";
+  die ()
+
+(* @@PLEAC@@_13.1 *)
+#load "unix.cma";;
+
+class klass args = object (self)
+  val mutable start = 0.
+  val mutable age = 0
+  val extra = Hashtbl.create 0
+
+  (* Private method to initialize fields. Sets start to
+     the current time, and age to 0. If called with arguments,
+     init interprets them as key+value pairs to initialize the
+     hashtable "extra" with. *)
+  method private init () =
+    start <- Unix.time ();
+    List.iter
+      (fun (k, v) -> Hashtbl.replace extra k v)
+      args
+
+  initializer
+    self#init ()
+end
+
+(* @@PLEAC@@_13.2 *)
+(* The Gc.finalise function can be used to create finalizers,
+   which are like destructors but run at garbage collection time,
+   for any value, not just objects. You can still use a method if
+   you want: *)
+
+class klass =
+object (self)
+  initializer
+    Gc.finalise (fun self -> self#destroy ()) self
+  method destroy () =
+    Printf.printf "klass %d is dying\n" (Oo.id self)
+end
+let () =
+  ignore (new klass);
+  Gc.major ()
+
+(* The "destroy" method above is public. If you want to keep it
+   hidden, you can create a finalizer in a let-binding instead: *)
+
+class klass =
+  let destroy obj =
+    Printf.printf "klass %d is dying\n" (Oo.id obj) in
+object (self)
+  initializer Gc.finalise destroy self
+end
+
+
 (* @@PLEAC@@_14.0 *)
 (* OCaml's standard library includes bindings to the NDBM database.
    Bindings to other database systems can be found on the web. *)
