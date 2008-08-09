@@ -10815,7 +10815,7 @@ let () =
 module TimeNumber = struct
 
   (* TimeNumber.t contains the time values. *)
-  class t hours minutes seconds = object
+  class t hours minutes seconds = object (self)
     val mutable hours = (hours : int)
     val mutable minutes = (minutes : int)
     val mutable seconds = (seconds : int)
@@ -10827,30 +10827,30 @@ module TimeNumber = struct
     method set_hours hours' = hours <- hours'
     method set_minutes minutes' = minutes <- minutes'
     method set_seconds seconds' = seconds <- seconds'
-  end
 
-  (* TimeNumber.add adds two times together. *)
-  let add (t1 : t) (t2 : t) =
-    let answer = new t
-      (t1#hours + t2#hours)
-      (t1#minutes + t2#minutes)
-      (t1#seconds + t2#seconds) in
-    if answer#seconds >= 60
-    then (answer#set_seconds (answer#seconds mod 60);
-          answer#set_minutes (answer#minutes + 1));
-    if answer#minutes >= 60
-    then (answer#set_minutes (answer#minutes mod 60);
-          answer#set_hours (answer#hours + 1));
-    answer
+    (* TimeNumber.t#add adds two times together. *)
+    method add (other : t) =
+      let answer = new t
+        (self#hours + other#hours)
+        (self#minutes + other#minutes)
+        (self#seconds + other#seconds) in
+      if answer#seconds >= 60
+      then (answer#set_seconds (answer#seconds mod 60);
+            answer#set_minutes (answer#minutes + 1));
+      if answer#minutes >= 60
+      then (answer#set_minutes (answer#minutes mod 60);
+            answer#set_hours (answer#hours + 1));
+      answer
+  end
 
   (* TimeNumber.Operators is a submodule that is designed to be
      imported using "open". It redefines the built-in arithmetic
      operators to work on TimeNumber.t values. *)
   module Operators = struct
-    let ( + ) = add
-    (* let ( - ) = sub *)
-    (* let ( * ) = mult *)
-    (* let ( / ) = div *)
+    let ( + ) (t1 : t) (t2 : t) = t1 #add t2
+    (* let ( - ) (t1 : t) (t2 : t) = t1 #sub t2 *)
+    (* let ( * ) (t1 : t) (t2 : t) = t1 #mult t2 *)
+    (* let ( / ) (t1 : t) (t2 : t) = t1 #div t2 *)
   end
 
 end
