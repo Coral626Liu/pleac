@@ -19,7 +19,7 @@
  #*****************************************************************************
 
 # IMPLS must be sorted by percentage of completion
-IMPLS = perl groovy python ocaml ruby guile rexx tcl php commonlisp pike merd ada haskell haskell-on-steroids java cposix pliant c++ factor smalltalk forth erlang R masd nasm
+IMPLS = perl groovy ocaml python ruby guile rexx tcl php commonlisp pike merd ada haskell haskell-on-steroids java cposix pliant c++ factor smalltalk forth erlang R masd nasm
 
 
 DATAFILES = $(wildcard pleac_*.data)
@@ -77,6 +77,5 @@ upload: cvs all web
 	rm -rf ../t
 	mkdir ../t
 	cp -a * ../t
-	cd ../t; rm -rf `find -type d -name CVS`; scp -r * ggc@shell.sourceforge.net:/home/groups/p/pl/pleac/htdocs
-#	cd ../t; rm -rf `find -type d -name CVS`; scp -r * mandrakesoft.com:www/pleac
+	cd ../t; rm -rf `find -type d -name CVS`; scp -r * ggc,pleac@web.sourceforge.net:/home/groups/p/pl/pleac/htdocs
 	rm -rf ../t
