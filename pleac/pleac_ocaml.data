@@ -15544,10 +15544,9 @@ type payload = { timestamp : float; data : string }
 
 (* Send a single ICMP echo request to the given socket and address. *)
 let ping socket sockaddr id seq =
-  let timestamp = Unix.gettimeofday () in
   let payload =
-    Marshal.to_string {timestamp=timestamp;
-                       data="abcdefghijklmnopqrstuvwxy"} [] in
+    Marshal.to_string {timestamp=Unix.gettimeofday ();
+                       data="abcdefghijklmnopqrstuvwxyz0123456"} [] in
   let message = Packet.to_string (Packet.make ~id ~seq payload) in
   ignore
     (Unix.sendto socket message 0 (String.length message) [] sockaddr)
@@ -15555,8 +15554,8 @@ let ping socket sockaddr id seq =
 (* Loop forever waiting for echo replies, printing them to the
    console along with their hostname, IP, and round-trip time. *)
 let pong socket id =
+  let buffer = String.make 256 '\000' in
   while true do
-    let buffer = String.make 256 '\000' in
     let length, sockaddr =
       Unix.recvfrom socket buffer 0 (String.length buffer) [] in
     let response =
