@@ -15437,24 +15437,47 @@ let () =
 
 (* @@PLEAC@@_18.7 *)
 #!/usr/bin/ocaml
+(* ping - send and receive ICMP echo packets *)
 
+(* There do not appear to be any libraries available for pinging
+   servers from OCaml, ICMP or otherwise. In this recipe, we will
+   make a diversion from the Perl recipe, which simply determines
+   if a host is up, and instead write a lookalike for the "ping"
+   shell command. We might as well, if we're going to all the
+   trouble of building ICMP packets directly. *)
+
+(* Import Unix and enable threads using findlib for convenience. *)
 #use "topfind";;
-#thread;;
 #require "unix";;
+#thread;;
 
+(* The Packet module defines a data type and operations for building,
+   parsing, and checking the integrity of ICMP packets. *)
 module Packet = struct
   exception Invalid_length of int
   exception Invalid_checksum of int * int
 
+  (* type' and code define the ICMP message type. An echo message
+     has type'=8, code=0, and an echo reply has type'=0, code=0.
+     The id is a unique identifier for the current process to help
+     distinguish between replies for other processes. seq is the
+     sequence number, which is usually incremented with each message.
+     data is the message body whose contents depend on the type of
+     message. *)
   type t = { type' : int;
              code : int;
              id : int;
              seq : int;
              data : string }
 
+  (* Define a convenience function for constructing packets. *)
   let make ?(type'=8) ?(code=0) ~id ~seq data =
     {type'=type'; code=code; id=id; seq=seq; data=data}
 
+  (* Calculate a checksum for a message by adding its contents, two
+     bytes at a time, folding the high order bits into the low order
+     bits, and taking the logical complement. The result will be an
+     int with 16-bit precision. *)
   let checksum s =
     let num_bytes = String.length s in
     let num_shorts = num_bytes / 2 in
@@ -15479,6 +15502,7 @@ module Packet = struct
          (Int32.lognot (Int32.add (Int32.shift_right sum 16) sum))
          0xffffl)
 
+  (* Convert a packet to a string that can be sent over a socket. *)
   let to_string {type'=type'; code=code; id=id; seq=seq; data=data} =
     let b = Buffer.create 20 in
     Buffer.add_char b (char_of_int type');
@@ -15496,6 +15520,10 @@ module Packet = struct
     packet.[3] <- char_of_int (sum land 0xff);
     packet
 
+  (* Parse a string into a packet structure. If the string is less than
+     8 bytes long, an Invalid_length exception will be raised. If the
+     checksum does not match the contents, an Invalid_checksum
+     exception will be raised. *)
   let of_string s =
     if String.length s < 8 then raise (Invalid_length (String.length s));
     let s' = String.copy s in
@@ -15511,36 +15539,51 @@ module Packet = struct
      data=String.sub s 8 (String.length s - 8)}
 end
 
-let ping socket sockaddr id seq =
-  let timestamp = Marshal.to_string (Unix.gettimeofday ()) [] in
-  let message = Packet.to_string (Packet.make ~id ~seq timestamp) in
-  ignore (Unix.sendto socket message 0 (String.length message) [] sockaddr);
-  Unix.sleep 1
+(* Define a data structure for the message body of our echo requests. *)
+type payload = { timestamp : float; data : string }
 
+(* Send a single ICMP echo request to the given socket and address. *)
+let ping socket sockaddr id seq =
+  let timestamp = Unix.gettimeofday () in
+  let payload =
+    Marshal.to_string {timestamp=timestamp;
+                       data="abcdefghijklmnopqrstuvwxy"} [] in
+  let message = Packet.to_string (Packet.make ~id ~seq payload) in
+  ignore
+    (Unix.sendto socket message 0 (String.length message) [] sockaddr)
+
+(* Loop forever waiting for echo replies, printing them to the
+   console along with their hostname, IP, and round-trip time. *)
 let pong socket id =
   while true do
     let buffer = String.make 256 '\000' in
-    let length, sockaddr = Unix.recvfrom socket buffer 0 (String.length buffer) [] in
-    let response = Packet.of_string (String.sub buffer 20 (length - 20)) in
+    let length, sockaddr =
+      Unix.recvfrom socket buffer 0 (String.length buffer) [] in
+    let response =
+      Packet.of_string (String.sub buffer 20 (length - 20)) in
     match sockaddr, response with
       | Unix.ADDR_INET (addr, port),
-        {Packet.type'=0; code=0; id=id'; seq=seq; data=data} when id = id' ->
+        {Packet.type'=0; code=0; id=id'; seq=seq; data=data}
+          when id = id' ->
           let host_entry = Unix.gethostbyaddr addr in
-          let timestamp = Marshal.from_string data 0 in
-          Printf.printf "%d bytes from %s (%s): icmp_seq=%d time=%.3f ms\n%!"
+          let payload = Marshal.from_string data 0 in
+          Printf.printf
+            "%d bytes from %s (%s): icmp_seq=%d time=%.3f ms\n%!"
             (String.length data)
             host_entry.Unix.h_name
             (Unix.string_of_inet_addr addr)
             seq
-            ((Unix.gettimeofday () -. timestamp) *. 1000.)
+            ((Unix.gettimeofday () -. payload.timestamp) *. 1000.)
       | _ -> ()
   done
 
+(* Read hostname from command line. *)
 let host =
   if Array.length Sys.argv <> 2
   then (Printf.eprintf "Usage: %s host\n" Sys.argv.(0); exit 1)
   else Sys.argv.(1)
 
+(* Use DNS to find the IP address and canonical name. *)
 let name, addr =
   try
     let h = Unix.gethostbyname host in
@@ -15549,17 +15592,36 @@ let name, addr =
     Printf.eprintf "%s: unknown host %s\n" Sys.argv.(0) host;
     exit 2
 
+(* Make sure we are running as root, since this is required to
+   open a socket with SOCK_RAW and send ICMP packets. *)
+let () =
+  if Unix.getuid () <> 0
+  then (Printf.eprintf "%s: icmp ping requires root privilege\n"
+          Sys.argv.(0);
+        exit 3)
+
+(* Start the ping loop. *)
 let () =
   Printf.printf "PING %s (%s)\n" name (Unix.string_of_inet_addr addr);
+
+  (* Build a socket and destination address. *)
   let proto = (Unix.getprotobyname "icmp").Unix.p_proto in
   let socket = Unix.socket Unix.PF_INET Unix.SOCK_RAW proto in
-  let sockaddr = Unix.ADDR_INET (addr, 22) in
+  let sockaddr = Unix.ADDR_INET (addr, 0) in
+
+  (* Use the PID as the ID for packets, and create a counter for
+     the sequence number. *)
   let id = Unix.getpid () in
   let seq = ref 0 in
+
+  (* Start a background thread to print the echo replies. *)
   ignore (Thread.create (pong socket) id);
+
+  (* Loop forever sending echo requests and sleeping. *)
   while true do
     incr seq;
-    ping socket sockaddr id !seq
+    ping socket sockaddr id !seq;
+    Unix.sleep 1
   done
 
 
