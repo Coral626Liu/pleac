@@ -5780,15 +5780,14 @@ print RESET
 
 # @@PLEAC@@_16.1
 output = `program args`       # collect output into one multiline string
-output = `program args`.split # collect output into array, one line per
-element
+output = `program args`.to_a  # collect output into array, one line per element
 
-readme = IO.popen("ls")
 output = ""
-while readme.gets do
-    output += $_
+IO.popen("ls") do |readme|
+  readme.each do |line|
+    output << line
+  end
 end
-readme.close
 
 `fsck -y /dev/rsd1a`  # BAD AND SCARY in Perl because it's managed by the shell
                       # I donna in Ruby ...
@@ -5797,16 +5796,16 @@ readme.close
 readme, writeme = IO.pipe
 pid = fork {
     # child
-    $stdout = writeme
+    $stdout.reopen writeme
     readme.close
     exec('find', '..')
 }
 # parent
-Process.waitpid(pid, 0)
 writeme.close
-while readme.gets do
-    # do something with $_
+readme.each do |line|
+    # do something with 'line'
 end
+Process.waitpid(pid)
 
 
 # @@PLEAC@@_16.2
@@ -5818,11 +5817,12 @@ system("cmd1 args | cmd2 | cmd3 >outfile")
 system("cmd args <infile >outfile 2>errfile")
 
 # stop if the command fails
-raise "$program exited funny: #{$?}" unless system("cmd", "args1", "args2")
+abort "$program exited funny: #{$?}" unless system("cmd", "args1", "args2")
 
 # get the value of the signal sent to the child
 # even if it is a SIGINT or SIGQUIT
-system(arglist)
+arglist = ['ruby', '-e', '5.times {|i| p i}']
+system(*arglist)
 raise "program killed by signal #{$?}" if ($? & 127) != 0
 
 pid = fork {
@@ -5834,10 +5834,9 @@ trap ("SIGINT") {
 }
 Process.waitpid(pid, 0)
 
-# Ruby doesn't permit to lie to the program called by a 'system'.
+# Ruby permits to lie to the program called by a 'system'.
 # (ie specify what return argv[0] in C, $0 in Perl/Ruby ...)
-# A (dirty) way is to create a link (under Unix), run this link and
-# erase it. Somebody has a best idea ?
+system ['bash', 'fake'], '-c', 'echo $0'
 
 
 # @@PLEAC@@_16.3
