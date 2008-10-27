@@ -16319,6 +16319,45 @@ ocaml [options] name1=value1 ... nameN=valueN
 
 
 (* @@PLEAC@@_20.9 *)
+(* Template replacement using regular expressions from the Str module. *)
+#load "str.cma";;
+
+let slurp_channel channel =
+  let buffer_size = 4096 in
+  let buffer = Buffer.create buffer_size in
+  let string = String.create buffer_size in
+  let chars_read = ref 1 in
+  while !chars_read <> 0 do
+    chars_read := input channel string 0 buffer_size;
+    Buffer.add_substring buffer string 0 !chars_read
+  done;
+  Buffer.contents buffer
+
+let slurp_file filename =
+  let channel = open_in_bin filename in
+  let result =
+    try slurp_channel channel
+    with e -> close_in channel; raise e in
+  close_in channel;
+  result
+
+let template_regexp = Str.regexp "%%\\([^%]+\\)%%"
+
+let template filename fillings =
+  let text = slurp_file filename in
+  let eval s =
+    try Hashtbl.find fillings s
+    with Not_found -> "" in
+  let replace _ =
+    eval (Str.matched_group 1 text) in
+  Str.global_substitute template_regexp replace text
+
+(*-----------------------------*)
+
+(* Alternative implementation: a hand-written stream parser. This version
+   avoids loading the whole template into memory, so it is efficient for
+   large files. *)
+
 let template filename fillings =
   let f = open_in filename in
   try
