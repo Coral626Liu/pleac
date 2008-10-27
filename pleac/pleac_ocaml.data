@@ -16348,6 +16348,7 @@ let content = http_get url
 (* titlebytes - find the title and size of documents  *)
 
 #use "topfind";;
+#require "str";;
 #require "netclient";;
 
 let raw_url = Sys.argv.(1)
@@ -16366,7 +16367,17 @@ let () =
         let bytes = String.length content in
         let count = ref 0 in
         String.iter (function '\n' -> incr count | _ -> ()) content;
-        Printf.printf "%s (%d lines, %d bytes)\n" "title" !count bytes
+        let regexp =
+          Str.regexp_case_fold ".*<title>\\([^<]*\\)</title>.*" in
+        let title =
+          try (ignore (Str.search_forward regexp content 0);
+               Str.matched_group 1 content)
+          with Not_found -> "(untitled)" in
+        let title =
+          Str.global_replace
+            (Str.regexp "\\(^[\n\r\t ]+\\)\\|\\([\n\r\t ]+$\\)") ""
+            title in
+        Printf.printf "%s (%d lines, %d bytes)\n" title !count bytes
     | `Client_error ->
         Printf.eprintf "Client error: %d %s\n"
           call#response_status_code
