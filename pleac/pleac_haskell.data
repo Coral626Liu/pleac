@@ -874,6 +874,84 @@ toFloat n = realToFrac n :: Float
 t2 = printf "There were %.2f days between Nat and Bree" (toFloat difference) :: String
 -- There were 3071.03 days between Nat and Bree
 
+-- @@PLEAC@@_3.6
+import Data.Time
+import Data.Time.Calendar.MonthDay
+import Data.Time.Calendar.OrdinalDate
+import Locale
+
+(year, month, day) = (1981, 6, 16)
+
+t = do printf "%d/%d/%d was a %s\n" year month day week_day_name
+       printf "%d/%d/%d was day %d of the week %d\n" year month day week_day week
+       printf "%d/%d/%d was day %d of month %d\n" year month day month_day month_
+       printf "%d/%d/%d was day %d of year %d\n" year month day year_day year_
+    where date = (fromGregorian year month day)
+          (week, week_day) = sundayStartWeek date
+          (_, month_, month_day) = toGregorian date
+          (year_, year_day) = toOrdinalDate date
+          (week_day_name, _) = wDays defaultTimeLocale !! week_day
+-- 1981/6/16 was a Tuesday
+-- 1981/6/16 was day 2 of the week 24
+-- 1981/6/16 was day 16 of month 6
+-- 1981/6/16 was day 167 of year 1981
+
+-- @@PLEAC@@_3.7
+import Data.Time
+import Data.Time.Format
+import Data.Time.Clock.POSIX
+import Locale
+
+day :: Day
+day = readTime defaultTimeLocale "%F" "1998-06-03"
+
+-- calculate epoch seconds at midnight on that day in UTC
+epoch = utcTimeToPOSIXSeconds (UTCTime day 0)
+-- 896832000s
+
+-- readTime can return a UTCTime:
+epoch_ = utcTimeToPOSIXSeconds (readTime defaultTimeLocale "%F" "1998-06-03")
+
+-- it seems readTime is not flexible, 
+-- for example "%d/%m/%Y" can't handle 16/6/1981, only 16/06/1981
+--
+-- here is an alternative solution, using regexp
+import Data.Time
+import Data.Time.Clock.POSIX
+import Text.Regex
+
+day = fromGregorian (read year) (read month) (read day)
+      where Just [year, month, day] = matchRegex (mkRegex "(.*)-(.*)-(.*)") "1998-06-03"
+-- 1998-06-03
+
+-- @@PLEAC@@_3.8
+-- formatTime from Data.Time.Format allow powerful time formatting:
+import Data.Time
+import Data.Time.Format
+import Locale
+
+t = do now <- getCurrentTime
+       return $ formatTime defaultTimeLocale "The date is %A (%a) %d/%m/%Y" now
+-- "The date is Tuesday (Tue) 28/10/2008"
+
+-- @@PLEAC@@_3.9
+-- getCurrentTime/UTCTime has an accuracy of 1 picosecond, full precision is used by default
+import Data.Time
+import System.Posix.Unistd
+
+t = do t1 <- getCurrentTime
+       usleep 100000 -- 100ms
+       t2 <- getCurrentTime
+       return (diffUTCTime t2 t1)
+-- 0.111262s
+
+-- @@PLEAC@@_3.10
+-- short sleeps:
+t = do usleep 3100000
+
+-- for even more precision, nanosleep is available
+
+
 -- @@PLEAC@@_4.0
 single_level = [ "this", "that", "the", "other" ]
 
