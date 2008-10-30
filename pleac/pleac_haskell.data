@@ -1777,6 +1777,95 @@ t2 = putStr $ mydraw dirs_tree
 --    |               |      |         1 .
 --    |              32 .
 
+-- @@PLEAC@@_6.0
+-- for info about the various regexp libraries, see http://haskell.org/haskellwiki/Regular_expressions
+--
+-- [Oct 2008] Text.Regex.Posix/Text.Regex.Base provides =~ which is quite powerful
+-- but it misses simple things like subRegex and splitRegex so in many cases
+-- Text.Regex must be used
+--
+-- with Text.Regex.Posix:
+import Text.Regex.Posix
+import Text.Regex.Base
+
+meadow = [ "sheeps are ovine", "Sheeps are ovine"
+         , "Fine bovines demand fine toreadors."
+         , "Muskoxen are polar ovibovine species."
+         , "Grooviness went out of fashion decades ago." ]
+
+t1 = filter (=~ "sheep") meadow
+-- ["sheeps are ovine"]
+
+t2 = filter (=~ "\\<ovines?") meadow
+-- ["sheeps are ovine","Sheeps are ovine"]
+
+-- below require "import Data.Bits" for .|. :
+ignoreCase = makeRegexOpts (defaultCompOpt .|. compIgnoreCase) defaultExecOpt
+t3 = filter (matchTest $ ignoreCase "sheep") meadow
+-- ["sheeps are ovine","Sheeps are ovine"]
+
+
+-- the same with Text.Regex:
+import Data.Maybe
+import Text.Regex
+
+t1 = filter (isJust . matchRegex (mkRegex "sheep")) meadow
+-- ["sheeps are ovine"]
+
+t2 = filter (isJust . matchRegex (mkRegex "\\<ovines?")) meadow
+-- ["sheeps are ovine","Sheeps are ovine"]
+
+-- below require "import Data.Bits" for .|. :
+ignoreCase s = mkRegexWithOpts s True False
+t3 = filter (isJust . matchRegex (ignoreCase "sheep")) meadow
+-- ["sheeps are ovine","Sheeps are ovine"]
+
+-- note that Data.ByteString.Char8 has a few interesting functions,
+-- but usually regexps are better
+import qualified Data.ByteString.Char8 as B
+
+t = filter is_sheep meadow
+    where is_sheep s = B.isInfixOf (B.pack "sheep") (B.pack s)
+-- ["sheeps are ovine"]
+
+
+s1 = subRegex (mkRegex "o+") "good food" "e"
+-- ged fed 
+
+-- the following helper functions are useful
+subRegexWith re new s =
+    case matchRegexAll re s of
+      Nothing -> s
+      Just (before, matched, after, _) -> before ++ new matched ++ (subRegexWith re new after)
+subRegexOnceWith re new s = 
+    case matchRegexAll re s of
+      Nothing -> s
+      Just (before, matched, after, _) -> before ++ new matched ++ after
+
+s2 = subRegexOnceWith (mkRegex "o+") (\_ -> "e") "good food" 
+-- ged food
+
+
+digits = "123456789";
+l = digits =~ "..." :: [String] -- nb: in List context, calls matchAll
+-- ["123","456","789"]
+
+-- for overlapping matches, one must do it by hand:
+allOverlappingMatches re s = 
+    case matchRegexAll re s of
+      Nothing -> []
+      Just (before, matched, after, _) -> matched : allOverlappingMatches re (tail matched ++ after)
+
+l = allOverlappingMatches (mkRegex "...") digits
+-- ["123","234","345","456","567","678","789"]
+
+
+string = "And little lambs eat ivy"
+(before, matched, after) = string =~ "l[^s]*s" :: (String, String, String)
+s = printf "(%s) (%s) (%s)" before matched after :: String
+-- "(And ) (little lambs) ( eat ivy)"
+
+
 -- @@PLEAC@@_APPENDIX
 import List
 import Data.Ord (comparing)
