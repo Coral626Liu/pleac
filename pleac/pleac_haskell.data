@@ -1865,6 +1865,73 @@ string = "And little lambs eat ivy"
 s = printf "(%s) (%s) (%s)" before matched after :: String
 -- "(And ) (little lambs) ( eat ivy)"
 
+-- @@PLEAC@@_6.1
+-- copying is the default in pure languages :)
+import Text.Regex
+import System.Environment
+import System.FilePath.Posix
+
+prog_ = subRegex (mkRegex ".*/") "/etc/foo" ""
+-- "foo"
+-- but it's much nicer to use takeFileName
+prog__ = takeFileName "/etc/foo"
+-- "foo"
+
+-- as for the program basename, it is:
+prog = getProgName
+
+
+manpage = "/usr/man/man3/foo.1"
+catpage = subRegexMatchesWith (mkRegex "man([0-9])") (\[n] -> "cat" ++ n) manpage
+-- /usr/man/cat3/foo.1
+
+subRegexMatchesWith re new s = 
+    case matchRegexAll re s of
+      Nothing -> s
+      Just (before, matched, after, l) -> before ++ new l ++ after
+
+bindirs = [ "/usr/bin", "/bin", "/usr/local/bin" ]
+libdirs = map (\s -> subRegex (mkRegex "bin$") s "lib") bindirs
+
+-- @@PLEAC@@_6.2
+-- matching words
+is_pure_alphabetic = isJust . matchRegex (mkRegex "^[A-Za-z]+$")
+is_pure_alphabetic_ = all isLetter -- this handles unicode (accents...)
+
+some_words = [ "silly", "random!stuff#here", "faÃ§ade", "tschÃŒÃ", "niÃ±o", "ÑÑÑÑÐºÐžÐ¹" ]
+l1 = filter is_pure_alphabetic some_words -- ["silly"]
+l2 = filter is_pure_alphabetic_ some_words -- all except "random!stuff#here"
+
+-- @@PLEAC@@_6.3
+-- Matching Words
+-- "\\S+"         -- as many non-whitespace bytes as possible
+-- "[A-Za-z'-]+"  -- as many letters, apostrophes, and hyphens
+-- 
+-- "\\b([A-Za-z]+)\\b" -- usually best
+-- "\\s([A-Za-z]+)\\s" -- fails at ends or w/ punctuation
+
+-- words is similar to splitting on "\s+"
+l = words "A text   with some\tseparator\n"
+-- ["A","text","with","some","separator"]
+--
+-- (nb: spaces at beginning or end do not change the result)
+
+-- @@PLEAC@@_6.4
+-- Commenting Regular Expressions
+-- since regexps are simple strings, you can concatenate regexp pieces:
+re = "#"          -- a pound sign
+     ++ "(\\w+)"  -- the variable name
+     ++ "#"       -- another pound sign
+expand_macro vals = subAllRegexMatchesWith (mkRegex re) get_val
+    where get_val [s] = fromJust (lookup s vals)
+s = expand_macro [ ("foo", "42") ] "blah #foo# blah"
+-- "blah 42 blah"
+
+subAllRegexMatchesWith re new s = 
+    case matchRegexAll re s of
+      Nothing -> s
+      Just (before, matched, after, l) -> before ++ new l ++ (subAllRegexMatchesWith re new after)
+
 
 -- @@PLEAC@@_APPENDIX
 import List
