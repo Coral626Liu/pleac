@@ -184,17 +184,22 @@ import Text.Regex
 -- special unfoldr (unfoldr only returns [b] whereas we also need the rest)
 -- nb: we can use Control.Arrow.first which is \f (a,b) -> (f a, b)
 --     and write:  Arrow.first (a :) (unfoldr' f b')
+unfoldr' :: (a -> Maybe (b, a)) -> a -> ([b], a)
 unfoldr' f b  =
   case f b of
    Just (a, b') -> let (l, b'') = unfoldr' f b' in (a:l, b'')
    Nothing      -> ([], b)
 
+splitRegex' :: Regex -> String -> [(String, String)]
 splitRegex' re s = 
     case unfoldr' f s of
       (l, "") -> l
       (l, s) -> l ++ [(s, "")]
-    where f = fmap f' . matchRegexAll re
-          f' (before, matched, after, _) = ((before, matched), after)
+    where 
+      -- small helper functions which tranform matchRegexAll output
+      -- to the one wanted by unfoldr'
+      f = fmap f' . matchRegexAll re
+      f' (before, matched, after, _) = ((before, matched), after)
 
 words' = concatMap (\(a,b) -> [a,b]) . splitRegex' (mkRegex "\\s+")
 
@@ -2004,6 +2009,39 @@ test = "<a>after a\n\
        \bbb>after b <c>after c\n"
 s = strip_tags test
 -- "after a\n<bbb\nbbb>after b after c\n"
+
+-- @@PLEAC@@_6.7
+-- fmap (splitRegex $ mkRegex "PATTERN") (readFile filename)
+
+-- .Ch, .Se and .Ss divide chunks
+f = splitRegex (mkRegex "^\\.(Ch|Se|Ss)$")
+
+-- note that in the example above, you loose the matched line,
+-- if you need it, you must create your own splitRegex:
+splitRegex' :: Regex -> String -> [(String, String)]
+splitRegex' re s = 
+    case unfoldr' f s of
+      (l, "") -> l
+      (l, s) -> l ++ [(s, "")]
+    where 
+      -- small helper functions which tranform matchRegexAll output
+      -- to the one wanted by unfoldr'
+      f = fmap f' . matchRegexAll re
+      f' (before, matched, after, _) = ((before, matched), after)
+
+-- it uses this special unfoldr
+-- (unfoldr only returns [b] whereas we also need the rest)
+-- nb: with Control.Arrow.first which is \f (a,b) -> (f a, b)
+--     we could write:  Arrow.first (a :) (unfoldr' f b')
+unfoldr' :: (a -> Maybe (b, a)) -> a -> ([b], a)
+unfoldr' f b  =
+  case f b of
+   Just (a, b') -> let (l, b'') = unfoldr' f b' in (a:l, b'')
+   Nothing      -> ([], b)
+
+unwords_keeping_spaces = splitRegex' (mkRegex "\\s+")
+t = unwords_keeping_spaces "a b  c \t d"
+-- [("a"," "),("b","  "),("c"," \t "),("d","")]
 
 
 -- @@PLEAC@@_APPENDIX
