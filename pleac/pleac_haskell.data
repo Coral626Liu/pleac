@@ -180,11 +180,13 @@ revwords' = (unwords . reverse . splitRegex (mkRegex " ")) string
 -- yet another version using a home made version of splitRegex' which keeps the matched string
 import List
 import Text.Regex
-import qualified Control.Arrow as Arrow
 
+-- special unfoldr (unfoldr only returns [b] whereas we also need the rest)
+-- nb: we can use Control.Arrow.first which is \f (a,b) -> (f a, b)
+--     and write:  Arrow.first (a :) (unfoldr' f b')
 unfoldr' f b  =
   case f b of
-   Just (a, b') -> Arrow.first (a :) (unfoldr' f b')
+   Just (a, b') -> let (l, b'') = unfoldr' f b' in (a:l, b'')
    Nothing      -> ([], b)
 
 splitRegex' re s = 
@@ -194,7 +196,7 @@ splitRegex' re s =
     where f = fmap f' . matchRegexAll re
           f' (before, matched, after, _) = ((before, matched), after)
 
-words' = concatMap (\(a,b) -> [a,b]) . splitRegex' (mkRegex "[[:space:]]+")
+words' = concatMap (\(a,b) -> [a,b]) . splitRegex' (mkRegex "\\s+")
 
 revwords' = (concat . reverse . words') string
 
@@ -1675,7 +1677,7 @@ include_free =
     where get_includes h_file = fmap (with_content h_file) (readFile $ dir ++ "/" ++ h_file)
           with_content h_file content = (h_file, content_to_includes content)
           content_to_includes = catMaybes . map (fmap head . matchRegex regex) . lines
-          regex = mkRegex "^[[:space:]]*#[[:space:]]*include[[:space:]]*<([^>]+)>"
+          regex = mkRegex "^\\s*#\\s*include\\s*<([^>]+)>"
 
 
 -- @@PLEAC@@_5.16
@@ -1906,7 +1908,7 @@ l2 = filter is_pure_alphabetic_ some_words -- all except "random!stuff#here"
 -- "\\S+"         -- as many non-whitespace bytes as possible
 -- "[A-Za-z'-]+"  -- as many letters, apostrophes, and hyphens
 -- 
--- "\\b([A-Za-z]+)\\b" -- usually best
+-- "\\<([A-Za-z]+)\\>" -- usually best
 -- "\\s([A-Za-z]+)\\s" -- fails at ends or w/ punctuation
 
 -- words is similar to splitting on "\s+"
@@ -1930,6 +1932,78 @@ subAllRegexMatchesWith re new s =
     case matchRegexAll re s of
       Nothing -> s
       Just (before, matched, after, l) -> before ++ new l ++ (subAllRegexMatchesWith re new after)
+
+-- @@PLEAC@@_6.5
+fishes = "One fish two fish red fish blue fish"
+
+-- first some very simple and useful functions:
+ignoreCase s = mkRegexWithOpts s True False
+allMatches re s =
+    case matchRegexAll re s of
+      Nothing -> []
+      Just (_before, _, after, matches) -> matches : allMatches re after
+
+-- here we go:
+colors = map head $ allMatches (ignoreCase "(\\w+)\\s+fish\\>") fishes
+-- ["One","two","red","blue"]
+s1 = printf "The third fish is a %s one." (colors !! 2) :: String
+-- The third fish is a red one.
+
+-- another solution to skip the first 2 matches using an ad'hoc regexp:
+s2 = printf "The third fish is a %s one." color :: String
+    where Just (_, _, _, [_, color]) = 
+              matchRegexAll (ignoreCase "(\\w+\\s+fish\\s+){2}(\\w+)\\s+fish") fishes
+-- The third fish is a red one.
+
+-- a modified subRegex to be able to handle differently the 4th match
+subRegexWithEnv re f env s =
+    case matchRegexAll re s of
+      Nothing -> s
+      Just (before, matched, after, matches) -> before ++ matched' ++ (subRegexWithEnv re f env' after)
+          where (env', matched') = f env (matched:matches)
+
+s3 = subRegexWithEnv (ignoreCase "(\\w+)(\\s+fish\\>)") f 1 fishes
+    where f n [verbatim, _, fish] = (n+1, if n == 4 then "sushi" ++ fish else verbatim)
+-- One fish two fish red fish sushi fish
+
+-- note that we can easily specialize subRegexWithEnv into subRegexWithCount:
+withCountEnv f g s = f (\n val -> (n+1, g n val)) 1 s
+subRegexWithCount re = withCountEnv (subRegexWithEnv re)
+
+s3' = subRegexWithCount (ignoreCase "(\\w+)(\\s+fish\\>)") f fishes
+    where f n [verbatim, _, fish] = if n == 4 then "sushi" ++ fish else verbatim
+-- One fish two fish red fish sushi fish
+
+-- adding .* at beginning of the regexp will ensure we get the last hit.
+-- but we must be carefull ".*(\\w+)\\s+fish\\>" is wrong since .* will match
+-- most the color, so \\< is also needed
+s4 = case matchRegex (ignoreCase ".*\\<(\\w+)\\s+fish\\>") fishes of
+     Just [last_fish_color] -> printf "Last fish is %s." last_fish_color
+     _ -> "Failed!"
+-- Last fish is blue.
+
+-- @@PLEAC@@_6.6
+-- for multi line regexps, use (mkRegexWithOpts _ False _)
+#!/usr/bin/runghc
+
+-- killtags - very bad html tag killer
+import System
+import Text.Regex
+
+main = do s <- getArgs >>= any_input
+          putStr (strip_tags s)
+
+any_input [] = getContents
+any_input (f:_) = readFile f
+
+strip_tags s = subRegex (mkRegexWithOpts "<[^>]*>" False True) s ""
+
+-- testing it:
+test = "<a>after a\n\
+       \<bbb\n\
+       \bbb>after b <c>after c\n"
+s = strip_tags test
+-- "after a\n<bbb\nbbb>after b after c\n"
 
 
 -- @@PLEAC@@_APPENDIX
