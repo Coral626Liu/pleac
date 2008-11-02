@@ -2046,6 +2046,51 @@ unwords_keeping_spaces = splitRegex' (mkRegex "\\s+")
 t = unwords_keeping_spaces "a b  c \t d"
 -- [("a"," "),("b","  "),("c"," \t "),("d","")]
 
+-- @@PLEAC@@_6.7
+import Text.Regex
+import Text.Regex.Posix
+import Data.Maybe
+import Text.Printf
+import System
+
+any_input [] = getContents
+any_input (f:_) = readFile f
+
+-- command-line to print lines 15 through 17 inclusive (see below)
+main = do s <- getArgs >>= any_input
+          putStr (unlines $ take 3 $ drop 14 $ lines s)
+
+filterByRange :: (a -> Bool) -> (a -> Bool) -> [a] -> [[a]]
+filterByRange _ _ [] = []
+filterByRange f_beg f_end l = 
+    let l' = dropWhile (not . f_beg) l in
+    case break f_end l' of
+      (before, match : l'') -> (before ++ [match]) : filterByRange f_beg f_end l''
+      _ -> []
+
+extract_XMP :: [String] -> [[String]]
+extract_XMP = filterByRange (=~ "<XMP>") (=~ "</XMP>")
+
+t1 = do s <- readFile "foo.html"
+        return $ extract_XMP $ lines s
+
+ignoreCase s = mkRegexWithOpts s True False
+extract_XMP' = filterByRange (match "<XMP>") (match "</XMP>")
+    where match re = isJust . matchRegex (ignoreCase re)
+
+t1' = do s <- readFile "foo.html"
+         return $ extract_XMP' $ lines s
+
+mbox_to_headers = filterByRange (match "^From:?\\s") (match "^$")
+    where match re = isJust . matchRegex (ignoreCase re)
+mail_adresses = concatMap search_in_line
+    where search_in_line line = (line =~ "[^<>(),;[:space:]]+@[^<>(),;[:space:]]+") :: [String]
+          -- nb: in List context, calls matchAll.
+          -- nb: \s can not be used, so instead of [^<>\s], one must do [^<>[:space:]]
+
+t2 = do s <- readFile "mbox"
+        return $ mail_adresses $ concat $ mbox_to_headers $ lines s
+
 
 -- @@PLEAC@@_APPENDIX
 import List
