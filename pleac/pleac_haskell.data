@@ -2091,6 +2091,32 @@ mail_adresses = concatMap search_in_line
 t2 = do s <- readFile "mbox"
         return $ mail_adresses $ concat $ mbox_to_headers $ lines s
 
+-- @@PLEAC@@_6.9
+import List
+import Data.Maybe
+
+special_chars = ".()+*?[]\\{}$^|"
+
+regex_escape_char :: Char -> String
+regex_escape_char c = if elem c special_chars 
+               then ['\\', c] 
+               else [c]
+regex_escape :: String -> String
+regex_escape = concatMap regex_escape_char
+
+glob_list = 
+    [ ('*', ".*")
+    , ('?', ".")
+    , ('[', "[")
+    , (']', "]") ]
+glob_char_to_regexp c = fromMaybe (regex_escape_char c) (lookup c glob_list)
+-- nb: fromMaybe will try (lookup ...) first, then fallback on (regex_escape_char c)
+
+glob2pat = concatMap glob_char_to_regexp
+
+pat = glob2pat "*File.*"
+-- ".*File\\..*"
+
 
 -- @@PLEAC@@_APPENDIX
 import List
