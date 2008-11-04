@@ -2159,6 +2159,24 @@ t = let regexp = "(" in
 -- @@PLEAC@@_6.12
 -- Text.Regex and Text.Regex.Posix do not handle unicode (accents...)
 
+-- @@PLEAC@@_6.13
+import Data.List
+
+-- Calculates the Levenshtein, or edit distance, between two strings.
+-- (version taken on internet)
+levenshtein sa sb = last $ foldl transform [0..length sa] sb 
+    where 
+      transform xs@(x:xs') c = scanl compute (x+1) (zip3 sa xs xs') 
+          where
+            compute z (c', x, y) = minimum [y+1, z+1, x + if c == c' then 0 else 1]
+
+-- Determines if two strings are an approximate match.
+amatch percentage s t = levenshtein s t * 100 <= percentage * length s
+
+main = do s <- readFile "/usr/share/dict/words"
+          print $ filter (amatch 20 "balast") (lines s)
+-- ["balant","balas","balat","ballast","belast","blast"]
+
 
 -- @@PLEAC@@_APPENDIX
 import List
