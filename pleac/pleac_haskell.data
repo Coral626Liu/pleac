@@ -296,15 +296,13 @@ var = "your text\n\
       \goes here\n"
 
 -- @@PLEAC@@_1.12
-import List
-joinString :: String -> [String] -> String
-joinString s = concat . intersperse s
+import Data.List
 
 input = "Folding and splicing is the work of an editor,\
         \ not a mere collection of silicon and mobile electrons!"
 
 wrap columns first_indent indent s =
-	joinString "\n" $ wgroup (tail first_indent) (words s)
+	intercalate "\n" $ wgroup (tail first_indent) (words s)
 	where wgroup current [] = [current]
 	      wgroup current (w : ws) =
 	        if length current + length w + 1 < columns 
@@ -314,11 +312,11 @@ wrap columns first_indent indent s =
 
 -- another version
 wrap_simple columns s =
-    joinString "\n" $ map unwords $ groupWhile pred $ words s
+    intercalate "\n" $ map unwords $ groupWhile pred $ words s
     where pred = (<= columns) . sum . map ((+1) . length)
 
 wrap columns first_indent indent s =
-    first_indent ++ joinString ("\n" ++ indent) (map unwords $ first : next)
+    first_indent ++ intercalate ("\n" ++ indent) (map unwords $ first : next)
     where (first, rest) = spanWhile (pred $ columns - length first_indent) (words s)
           next = groupWhile (pred $ columns - length indent) rest 
           pred width = (<= width) . sum . map ((+1) . length)
@@ -695,8 +693,9 @@ t' = do permissions <- putStr_getLine "Enter file permission in octal: "
 
 
 -- @@PLEAC@@_2.17
--- (using joinString and groupNelem from "Helpers")
-commify = reverse . joinString "," . groupNelem 3 . reverse
+import Data.List
+-- (using groupNelem from "Helpers")
+commify = reverse . intercalate "," . groupNelem 3 . reverse
 -- commify "-1740525205" == "-1,740,525,205"
 
 -- a version handling decimal numbers (using subRegexOnceWith from "Helpers")
@@ -1023,10 +1022,11 @@ t = do id <- getProcessID
        system ("ps " ++ show id)
 
 -- @@PLEAC@@_4.2
+import Data.List
 commify_series :: [String] -> String
 commify_series []  = ""
 commify_series [x]  = x
-commify_series xs  = joinString ", " (init xs) ++ " and " ++ (last xs)
+commify_series xs  = intercalate ", " (init xs) ++ " and " ++ (last xs)
 
 array = ["red", "yellow", "green"]
 s1 = "I have " ++ commify_series array ++ " marbles" -- I have red, yellow and green marbles
@@ -1614,7 +1614,7 @@ name = mapM open_files [ "/etc/termcap", "/etc/passwd", "/bin/cat" ]
        where open_files file = do fh <- openFile file ReadMode
                                   return (fh, file)
 t = do files <- fmap (map snd) name
-       putStrLn $ "open files: " ++ joinString ", " files
+       putStrLn $ "open files: " ++ intercalate ", " files
 t2 = name >>= mapM_ display_size
     where display_size (fh, file) = 
               do size <- hFileSize fh
@@ -1637,6 +1637,8 @@ s = encode $ sort "Apple Banana Lemon"
 
 
 -- @@PLEAC@@_5.15
+import Data.List
+
 father = [ ("Cain",      "Adam")
 	 , ("Abel",      "Adam")
 	 , ("Seth",      "Adam")
@@ -1660,7 +1662,7 @@ from_Irad = upline "Irad"       -- ["Irad","Enoch","Cain","Adam"]
 ifNull default_ [] = default_
 ifNull _ l = l
 
-downline person = person ++ " begat " ++ (ifNull "Nobody" $ joinString ", " $ children)
+downline person = person ++ " begat " ++ (ifNull "Nobody" $ intercalate ", " $ children)
     where children = map fst $ filter ((== person) . snd) father
 
 to_Tubalcain = downline "Tubalcain" -- Tubalcain begat Nobody
@@ -2128,9 +2130,6 @@ import qualified Control.Arrow as Arrow
 
 listToArray :: [a] -> Array Int a
 listToArray l = Array.listArray (0, length l - 1) l
-
-joinString :: String -> [String] -> String
-joinString s = concat . intersperse s
 
 indexOf subst s = findIndex (subst `isPrefixOf`) (tails s)
 
