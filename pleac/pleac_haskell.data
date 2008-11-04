@@ -2119,6 +2119,45 @@ glob2pat = concatMap glob_char_to_regexp
 pat = glob2pat "*File.*"
 -- ".*File\\..*"
 
+-- @@PLEAC@@_6.10
+import Data.List
+import Data.Maybe
+import Text.Regex
+
+popstates = ["CO","ON","MI","WI","MN"]
+
+is_state = isJust . matchRegex re
+    where re = mkRegex $ "\\<(" ++ intercalate "|" popstates ++ ")\\>"
+
+l = filter is_state [ "xxx", "xx CO xx", "WI", "WIxx" ]
+-- ["xx CO xx","WI"]
+
+-- this is less efficient:
+is_state' line = any (\re -> isJust $ matchRegex re line) (map to_regexp popstates)
+    where to_regexp c = mkRegex $ "\\<" ++ c ++ "\\>"
+
+-- @@PLEAC@@_6.11
+import Data.Maybe
+import Data.List
+import Text.Regex.Base
+import Text.Regex.Posix
+
+-- one can not catch invalid patterns using Text.Regex
+
+-- recent versions of Text.Regex.Base have makeRegexM:
+is_valid_pattern :: String -> Bool
+is_valid_pattern re = isJust (makeRegexM re :: Maybe Regex)
+-- nb: the type Regex must be specified since matchRegexM uses abstract
+--     classes and haskell can't guess which instance to use
+
+-- or can use compile from Text.Regex.Posix.String:
+t = let regexp = "(" in
+    compile defaultCompOpt defaultExecOpt regexp >>=
+      (\re -> case re of
+                Left (_, err) -> error ("bad regexp \"" ++ regexp ++ "\": " ++ err)
+                Right re -> return re)
+-- *** Exception: bad regexp "(": Unmatched ( or \(
+
 
 -- @@PLEAC@@_APPENDIX
 import List
