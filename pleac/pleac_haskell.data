@@ -2197,6 +2197,41 @@ main = do s <- readFile "/usr/share/dict/words"
           print $ filter (amatch 20 "balast") (lines s)
 -- ["balant","balas","balat","ballast","belast","blast"]
 
+-- @@PLEAC@@_6.14
+import List
+import Text.Regex
+import Text.Regex.Posix
+import Text.Printf
+
+allMatches re = unfoldr (fmap adjust . matchRegexAll re)
+    where adjust (_before, _, after, matches) = (matches, after)
+
+-- special unfoldr (unfoldr only returns [b] whereas we also need the rest)
+unfoldr' :: (a -> Maybe (b, a)) -> a -> ([b], a)
+unfoldr' f b  =
+  case f b of
+   Just (a, b') -> let (l, b'') = unfoldr' f b' in (a:l, b'')
+   Nothing      -> ([], b)
+
+allMatches' re = unfoldr' (fmap adjust . matchRegexAll re)
+    where adjust (_before, _, after, matches) = (matches, after)
+
+t = allMatches (mkRegex "([0-9]+)") "3,4,5,9,120"
+-- [["3"],["4"],["5"],["9"],["120"]]
+-- (note that \d is not special, one must use [0-9] or [[:digit:]])
+
+mystr = "The year 1752 lost 10 days on the 3rd of September"
+t2 = 
+    let (l, remain) = allMatches' (mkRegex "([0-9]+)") mystr in
+    let after = remain =~ "(\\S+)" :: String in
+    putStr $ unlines $ map (\[n] -> "Found number " ++ n) l ++ 
+                        [ printf "Found %s after the last number" after ]
+    
+-- Found number 1752
+-- Found number 10
+-- Found number 3
+-- Found rd after the last number
+
 
 -- @@PLEAC@@_APPENDIX
 import List
