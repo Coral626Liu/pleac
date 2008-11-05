@@ -2163,10 +2163,30 @@ t = let regexp = "(" in
 import Data.List
 
 -- Calculates the Levenshtein, or edit distance, between two strings.
--- (version taken on internet)
-levenshtein sa sb = last $ foldl transform [0..length sa] sb 
+-- here is a basic/slow version:
+levenshtein_basic s t = distance (length s) (length t)
+    where distance i 0 = i
+          distance 0 j = j
+          distance i j = minimum [ distance (i-1) j + 1
+                                 , distance i (j-1) + 1
+                                 , distance (i-1) (j-1) + (if s!!(i-1)==t!!(j-1) then 0 else 1) ]
+
+-- a fast version based on the previous one, adding memoization
+-- (note the recursive use of "d")
+levenshtein s t = d
+    where d = [ [distance m n | n<-[0..length t]] | m<-[0..length s] ]
+          distance i 0 = i
+          distance 0 j = j
+          distance i j = minimum [ d!!(i-1)!!j + 1
+                                 , d!!i!!(j-1) + 1
+                                 , d!!(i-1)!!(j-1) + (if s!!(i-1)==t!!(j-1) then 0 else 1) ]
+
+-- a more efficient/cryptic version.
+-- (it computes the "distance" figures for each "sb" chars,
+--  ie it memoizes only what is needed)
+levenshtein' sa sb = foldl transform [0..length sa] sb 
     where 
-      transform xs@(x:xs') c = scanl compute (x+1) (zip3 sa xs xs') 
+      transform xs@(x:xs') c = scanl compute (x+1) (zip3 sa xs xs')
           where
             compute z (c', x, y) = minimum [y+1, z+1, x + if c == c' then 0 else 1]
 
