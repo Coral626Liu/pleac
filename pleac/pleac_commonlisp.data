@@ -5,47 +5,37 @@
 
 ;;;; @@PLEAC@@_WEB
 ;;;; @@SKIP@@ http://www.lisp.org/
-;;;; @@SKIP@@ http://www.sbcl.org/
 
 ;;;; @@PLEAC@@_INTRO
-
-;;;; @@SKIP@@ Newer submissions use SBCL, and make use of a number of
-;;;; @@SKIP@@ SBCL and third-party libraries (see Appendix for
-;;;; @@SKIP@@ details).
-
-;;;; @@SKIP@@ In the code below, when the Perl code uses arrays in a
-;;;; @@SKIP@@ way that *really* requires it (e.g., uses random
-;;;; @@SKIP@@ access), we use CL arrays.  Otherwise we usually use
-;;;; @@SKIP@@ lists, which are more convenient.
+;;;; @@SKIP@@ Various submissions rely on third party http://cliki.net/ASDF packages (e.g. cl-ppcre,
+;;;; @@SKIP@@ soundex, etc) and specific helper utility functions (WHEN-LET, CHOMP, etc). Used ASDF
+;;;; @@SKIP@@ packages are assumed to be installable via http://cliki.net/ASDF-INSTALL and helper
+;;;; @@SKIP@@ utilities are available in the appendix.
+;;;; @@SKIP@@ Most of the demonstrated solutions are free from low-level Common Lisp optimizations
+;;;; @@SKIP@@ (no type declarations, missing tail-call-optimizations, etc) for the sake of simplicity.
+;;;; @@SKIP@@ While this doesn't mean such programs would perform poorly, in certain situations
+;;;; @@SKIP@@ particular optimizations might be necessary.
+;;;; @@SKIP@@ It should  also be noted that,  most of the scripts are given in plain function form.
+;;;; @@SKIP@@ For how to execute these functions using a script file, please consult to your
+;;;; @@SKIP@@ implementation's http://en.wikipedia.org/wiki/Shebang_(Unix) documentation.
+;;;; @@SKIP@@ (You may also be interested in trivial-shell ASDF package for a lightweight shell
+;;;; @@SKIP@@  interaction layer.)
 
 ;;;; @@PLEAC@@_APPENDIX
-
-(in-package :cl-user)
-
-(require :cl-ppcre)
-(require :iterate)
-(use-package '(cl-ppcre iterate))
-
-(declaim (optimize (speed 0) (safety 3) (debug 3)))
-
 (defun chomp (string)
-  "Similar to Perl's chomp(), although it returns the new value of
-STRING rather than the number of characters removed, and doesn't
-modify its argument."
+  "Similar  to Perl's chomp(),  although it  returns the  new value  of `STRING'
+rather than the number of characters removed, and doesn't modify its argument."
   (string-right-trim #(#\Newline #\Return) string))
 
 (defmacro when-let ((var value) &body body)
-  "Evaluate VALUE, and if the result is non-nil bind it to VAR
-and evaluate BODY."
-  `(let ((,var ,value))
-     (when ,var ,@body)))
+  "Evaluate  `VALUE', and  bind  it to  `VAR'.  When `VALUE'  evaluates to  some
+non-NIL value, evaluate `BODY' in the same binding scope."
+  `(let ((,var ,value)) (when ,var ,@body)))
 
 (defmacro perl-grep (sequence &body predicate-body)
-  "Like Perl's grep.  Predicate is a body of code that can refer to IT
-as the current element of the list."
-  `(remove-if-not #'(lambda (it)
-                      ,@predicate-body)
-                  ,sequence))
+  "Like Perl's grep.  Predicate is a body  of code that can refer to `IT' as the
+current element of the list."
+  `(remove-if-not #'(lambda (it) ,@predicate-body) ,sequence))
 
 ;; The following could be made more efficient by using a faster TEST
 ;; function if the keys appear to be simpler.
@@ -730,6 +720,65 @@ goes here
      "")))
 ;;;-----------------------------
 
+;;; @@PLEAC@@_1.12
+(defvar *default-line-width* 72)
+
+(defun partition (list max-part-len item-offset-len)
+  "Partitions supplied `LIST' into list of item lists where every sublist is of
+maximum `MAX-PART-LEN' size. (`ITEM-OFFSET-LEN' is added to every item while
+calculating item lengths.)"
+  (destructuring-bind (parts part part-len)
+      (reduce
+       (lambda (accum item)
+         (destructuring-bind (parts part part-len) accum
+           (let ((item-len (+ (length item) item-offset-len)))
+             (if (< max-part-len (+ part-len item-len))
+                 (list (cons (nreverse part) parts) (list item) item-len)
+                 (list parts (cons item part) (+ part-len item-len))))))
+       list :initial-value (list nil nil 0))
+    (declare (ignore part-len))
+    (nreverse (if part (cons part parts) parts))))
+
+(defun wrap-paragraph (string &optional line-width)
+  (with-output-to-string (out)
+    (dolist (words
+              (partition
+               (ppcre:split "\\s+" string)
+               (1+ (or line-width *default-line-width*))
+               1))
+      (format out "~&~{~A~^ ~}" words))))
+
+(defun wrap-paragraphs (string &optional line-width)
+  (format nil "~{~A~^~%~%~}"
+          (mapcar (lambda (paragraph) (wrap-paragraph paragraph line-width))
+                  (ppcre:split "([\\r]?\\n){2,}" string))))
+
+(wrap-paragraphs "foo0 foo1 foo2 foo3 foo5 foo6 foo7 foo8
+foo9 bar0
+
+bar1 bar2
+
+
+bar3 bar4 bar5 bar6
+bar7
+bar8 bar9 baz0
+
+baz1 baz2 baz3 baz4 baz5 baz6 baz7 baz8 baz9" 14)
+; => "foo0 foo1 foo2
+;     foo3 foo5 foo6
+;     foo7 foo8 foo9
+;     bar0
+;     
+;     bar2 bar1
+;     
+;     bar3 bar4 bar5
+;     bar6 bar7 bar8
+;     baz0 bar9
+;     
+;     baz1 baz2 baz3
+;     baz4 baz5 baz6
+;     baz9 baz8 baz7"
+
 ;;; @@PLEAC@@_1.13
 ;; backslash
 (setf var (regex-replace-all "([CHARLIST])" var "\\\1"))
@@ -804,6 +853,153 @@ goes here
 ;;5 : 5
 ;;6 : Error, Core Dumped
 ;;;-----------------------------
+
+
+;;; @@PLEAC@@_1.16
+(defun system-users ()
+  (with-open-file (in "/etc/passwd")
+    (loop for line = (read-line in nil nil)
+          while line collect (ppcre:split ":" line))))
+
+(defun soundex (string)
+  (soundex:soundex
+   (with-output-to-string (out)
+     (loop for char across string
+           when (alphanumericp char)
+             do (format out "~C" char)))))
+
+(defun lookup-user (user)
+  (let ((user-code (soundex user)))
+  (dolist (user-spec (system-users))
+    (dolist (user-name (ppcre:split "\\s+" (elt user-spec 4)))
+      (unless (mismatch user-code (soundex user-name))
+        (format t "User: ~S. (Matched Token: ~S.)~%"
+                (elt user-spec 0) user-name))))))
+
+(defun prompt-read (prompt)
+  (format *query-io* "~A: " prompt)
+  (force-output *query-io*)
+  (read-line *query-io*))
+
+(defun prompt-lookup-user ()
+  (lookup-user (prompt-read "Lookup user")))
+
+; TEST> (prompt-lookup-user)
+; Lookup user: volkan
+; User: "vy". (Matched Token: "Volkan".)
+
+
+;;; @@PLEAC@@_1.17
+(defvar *replacements*
+  '(("analysed"        . "analyzed")
+    ("built-in"        . "builtin")
+    ("chastized"       . "chastised")
+    ("commandline"     . "command-line")
+    ("de-allocate"     . "deallocate")
+    ("dropin"          . "drop-in")
+    ("hardcode"        . "hard-code")
+    ("meta-data"       . "metadata")
+    ("multicharacter"  . "multi-character")
+    ("multiway"        . "multi-way")
+    ("non-empty"       . "nonempty")
+    ("non-profit"      . "nonprofit")
+    ("non-trappable"   . "nontrappable")
+    ("pre-define"      . "predefine")
+    ("preextend"       . "pre-extend")
+    ("re-compiling"    . "recompiling")
+    ("reenter"         . "re-enter")
+    ("turnkey"         . "turn-key")))
+
+(let ((scanner
+       (ppcre:create-scanner
+        (format nil "(~{~A~^|~})" (mapcar #'car *replacements*)))))
+  (defun apply-replacements (string)
+    (ppcre:regex-replace-all
+     scanner string
+     (lambda (target-string start end match-start match-end reg-starts reg-ends)
+       (declare (ignore start end reg-starts reg-ends))
+       (cdr (find (make-array (- match-end match-start)
+                              :element-type (array-element-type target-string)
+                              :displaced-to target-string
+                              :displaced-index-offset match-start)
+                  *replacements* :test #'string-equal :key #'car))))))
+
+(defun replace-stream (in out)
+  (loop for line = (read-line in nil nil)
+        while line do (format out "~&~A" (apply-replacements line))))
+
+(with-input-from-string
+    (stream
+     (format nil "~{~&~A~}"
+             '("If I have analysed these built-in"
+               "results correctly in a chastized manner"
+               "from commandline")))
+  (with-output-to-string (out)
+    (replace-stream stream out)))
+; => "If I have analyzed these builtin
+;     results correctly in a chastised manner
+;     from command-line"
+
+
+;;; @@PLEAC@@_1.18
+(defvar *ps-fields*
+  '((flags   . integer)
+    (uid     . integer)
+    (pid     . integer)
+    (ppid    . integer)
+    (pri     . integer)
+    (nice    . integer)
+    (size    . integer)
+    (rss     . integer)
+    (wchan   . string)
+    (stat    . string)
+    (tty     . string)
+    (time    . string)
+    (command . string)))
+
+(defun format-ps-fields (fields)
+  (mapcar
+   (lambda (field-type field)
+     (ecase field-type
+       (integer (parse-integer field :junk-allowed t))
+       (string field)))
+   (mapcar #'cdr *ps-fields*)
+   fields))
+
+(defun ps ()
+  (with-input-from-string
+      (in
+       (trivial-shell:shell-command
+        (format nil "ps -o ~{~(~A~)~^,~}" (mapcar #'car *ps-fields*))))
+    (let ((header (read-line in nil nil))
+          (lines (loop for line = (read-line in nil nil)
+                       while line collect line)))
+      (values (mapcar #'format-ps-fields
+                      (mapcar
+                       (let ((limit (length *ps-fields*)))
+                         (lambda (line) (ppcre:split "\\s+" line :limit limit)))
+                       lines))
+              header lines))))
+
+(defmacro ps-grep (expr)
+  (alexandria:with-unique-names (header-printed-p entries entry header lines line)
+    `(let (,header-printed-p)
+       (multiple-value-bind (,entries ,header ,lines) (ps)
+         (loop for ,entry in ,entries
+               for ,line in ,lines
+               when (destructuring-bind ,(mapcar #'car *ps-fields*) ,entry
+                      (declare (ignorable ,@(mapcar #'car *ps-fields*)))
+                      ,expr)
+                 do (unless ,header-printed-p
+                      (format t "~A~%" ,header)
+                      (setq ,header-printed-p t))
+                    (format t "~A~%" ,line))))))
+
+(ps-grep (and (< 2220 rss) (= flags 1)))
+; => F   UID   PID  PPID PRI  NI    SZ   RSS WCHAN  STAT TT           TIME COMMAND
+;    1  1000  2931     1  19   0   828  2644 -      Ss   ?        00:00:03 /usr/bin/fetchmail --daemon 600 --logfile /home/vy/.fetchmail.log
+;    1  1000  3106  3104  19   0  1700  2360 -      Ss   ?        00:00:09 SCREEN -U
+
 
 ;;; @@PLEAC@@_2.1
 ;;;-----------------------------
@@ -904,43 +1100,18 @@ its integer equivalent."
 ;;;-----------------------------
 
 ;;; @PLEAC@@_2.5
-;;;-----------------------------
-(loop for i from x upto y
-     do
-   ;; i is set to every integer from X to Y, inclusive
-)
+(defun seq (start end)
+  (loop for i from start to end collect i))
 
-(loop for i from y downto x
-     do 
-   ;; i is set to every integer from Y to X, inclusive
-)
+(format t "Infancy is: ~{~A~^ ~}~%" (seq 0 2))
+(format t "Toddling is: ~{~A~^ ~}~%" (seq 3 4))
+(format t "Childhood is: ~{~A~^ ~}~%" (seq 5 12))
+; => Infancy is: 0 1 2
+;    Toddling is: 3 4
+;    Childhood is: 5 6 7 8 9 10 11 12
 
-(do ((i x (1+ i)))
-    ((> i y))
-   ;; i is set to every integer from X to Y, inclusive
-  )
-
-(loop for i from x upto y by 7
-     do
-   ;; i is set to every integer from X to Y, stepsize = 7
-)
-;;;-----------------------------
-(format t "Infancy is: ~{~A~^ ~}~%"
-        (loop for i from 0 to 2 collect i))
-
-(format t "Toddling is: ~{~A~^ ~}~%"
-        (loop for i from 3 to 4 collect i))
-
-(format t "Childhood is: ~{~A~^ ~}~%"
-        (loop for i from 5 to 12 collect i))
-;;Infancy is: 0 1 2
-;;Toddling is: 3 4
-;;Childhood is: 5 6 7 8 9 10 11 12
-;;;-----------------------------
 
 ;;; @@PLEAC@@_2.6
-;;;-----------------------------
-
 ;;; CL has a built in FORMAT directive (used below) to print out
 ;;; numbers as roman numerals, but doesn't have a built-in mechanism
 ;;; to convert back.  Here are some rough CL equivalents of Perl's
@@ -1202,6 +1373,232 @@ corresponding element."
 (let ((permissions (chomp permissions)))
   (format t "The decimal value is ~A~%" (oct permissions)))
 ;;;-----------------------------
+
+;;; @@PLEAC@@_2.17
+(defun comma-separated (input &optional (n-digits 3))
+  (coerce
+   (first
+    (reduce
+     (lambda (char accum)
+       (format *trace-output* "~S, ~S~%" accum char)
+       (destructuring-bind (chars pos) accum
+         (list
+          (if (and (not (zerop pos)) (zerop (mod pos n-digits)))
+              (cons char (cons #\, chars))
+              (cons char chars))
+          (1+ pos))))
+     (coerce (format nil "~A" input) 'list)
+     :initial-value (list nil 0)
+     :from-end t))
+   'string))
+
+; (comma-separated 1234567890)   => "1,234,567,890"
+; (comma-separated 1234567890 2) => "12,34,56,78,90"
+
+
+;;; @@PLEAC@@_2.18
+;;; There isn't a  Lingua::EN::Inflect like F/OSS Common Lisp  library I know of
+;;; (as of date 2009-03-09). Below is a quick & dirty implementation of its Perl
+;;; equivalent.  On  the other hand, one  might be interested  in ~P (pluralize)
+;;; directive of  the FORMAT  command and  its modifiers for  a quick  and cheap
+;;; solution.
+
+(setq *pluralization-regexps*
+  '(("ss$"       . "sses")
+    ("([psc]h)$" . "\\1es")
+    ("z$"        . "zes")
+    ("ff$"       . "ffs")
+    ("f$"        . "ves")
+    ("ey$"       . "eys")
+    ("y$"        . "ies")
+    ("ix$"       . "ices")
+    ("([sx])$"   . "\\1es")
+    ("$"         . "s")))
+
+(defun pluralize (noun)
+  (dolist (regexp *pluralization-regexps*)
+    (multiple-value-bind (result foundp)
+        (ppcre:regex-replace (car regexp) noun (cdr regexp))
+      (when foundp (return result)))))
+
+(format t "~{~{One ~A, two ~A.~}~%~}"
+        (mapcar
+         (lambda (noun) (list noun (pluralize noun)))
+         '("fish" "fly" "ox" "species" "genus" "phylum" "cherub" "radius"
+           "jockey" "index" "matrix" "mythos" "phenomenon" "formula")))
+; => One fish, two fishes.
+;    One fly, two flies.
+;    One ox, two oxes.
+;    One species, two specieses.
+;    One genus, two genuses.
+;    One phylum, two phylums.
+;    One cherub, two cherubs.
+;    One radius, two radiuses.
+;    One jockey, two jockeys.
+;    One index, two indexes.
+;    One matrix, two matrices.
+;    One mythos, two mythoses.
+;    One phenomenon, two phenomenons.
+;    One formula, two formulas.
+
+
+;;; @@PLEAC@@_2.19
+(defun factorize (n)
+  (let ((factors (make-hash-table))
+        (m n))
+    (loop for i from 2
+          while (<= (1+ (* i 2)) m)
+          do (loop while (zerop (mod m i))
+                   do (setq m (/ m i))
+                      (setf (gethash i factors)
+                            (1+ (gethash i factors 0)))))
+    (unless (or (= 1 m) (= n m))
+      (setf (gethash m factors) 1))
+    (format t "~A = ~{~{~A^~A~}~^ * ~}~%"
+            n (loop for factor being each hash-key of factors
+                     collect (list factor (gethash factor factors))))))
+
+; (factorize 49249597168049276)
+; => 49249597168049276 = 2^2 * 29^1 * 179^1 * 103387^1 * 22941707^1
+
+
+;;; @@PLEAC@@_3.0
+;;; Despite  standard Common Lisp  date &  time related  functions used  in this
+;;; chapter,  there are  also these  date &  time libraries  which you  might be
+;;; interested  in: local-time, net-telent-date,  and date-calc.   (Packages are
+;;; available      via      ASDF-INSTALL.)       There      is      also      <a
+;;; href="http://cybertiggyr.com/gene/pdl/">Parsing  Dates  in Lisp</a>  webpage
+;;; written by G. M. Stover containing some utility scripts.
+
+;;; As a shortcut,  below is a small  list of available Common Lisp  date & time
+;;; builtins.
+
+;;; Constant Variable <a href="http://l1sp.org/cl/internal-time-units-per-second">INTERNAL-TIME-UNITS-PER-SECOND</a>
+;;; Function <a href="http://l1sp.org/cl/decode-universal-time">DECODE-UNIVERSAL-TIME</a>
+;;; Function <a href="http://l1sp.org/cl/encode-universal-time">ENCODE-UNIVERSAL-TIME</a>
+;;; Function <a href="http://l1sp.org/cl/get-universal-time">GET-UNIVERSAL-TIME</a>
+;;; Function <a href="http://l1sp.org/cl/get-decoded-time">GET-DECODED-TIME</a>
+;;; Function <a href="http://l1sp.org/cl/sleep">SLEEP</a>
+;;; Function <a href="http://l1sp.org/cl/get-internal-real-time">GET-INTERNAL-REAL-TIME</a>
+;;; Function <a href="http://l1sp.org/cl/get-internal-run-time">GET-INTERNAL-RUN-TIME</a>
+
+;;; A "decoded time" is an ordered  series of nine values (second, minute, hour,
+;;; day,  month, year,  dow,  daylight-p, and  timezone)  that, taken  together,
+;;; represent a point in calendar time (ignoring leap seconds).
+
+;;; "Universal time"  is an absolute  time represented as a  single non-negative
+;;; integer  --- the  number  of seconds  since  midnight, January  1, 1900  GMT
+;;; (ignoring leap seconds).
+
+(get-universal-time)
+; => 3445946614
+
+(multiple-value-list (get-decoded-time))
+; => (45 23 17 13 3 2009 4 NIL -2)
+
+;;; Current  Common   Lisp  specification   is  lacking  of   a  day-of-the-year
+;;; concept.   But  we   can  easily   implement   it  using   a  decoded   time
+;;; specification.     (For     hairy    details     you     can    check     <a
+;;; href="http://en.wikipedia.org/wiki/Calculating_the_day_of_the_week">related
+;;; wikipedia page</a> out.)
+
+(defun day-of-the-year (&optional universal-time)
+  (let* ((decoded-time (multiple-value-list
+                           (decode-universal-time
+                            (or universal-time
+                                (get-universal-time)))))
+         (day          (elt decoded-time 3))
+         (month        (elt decoded-time 4))
+         (year         (elt decoded-time 5)))
+    (loop for m from 2 to month
+          do (incf day
+                   (elt
+                     (multiple-value-list
+                         (decode-universal-time
+                          (- (encode-universal-time 0 0 0 1 m year)
+                             (* 60 60 24))))
+                     3)))
+    day))
+
+(format t "Today is day ~A of the current year.~%" (day-of-the-year))
+; => Today is day 72 of the current year.
+
+(day-of-the-year (encode-universal-time 59 59 23 31 12 2009))
+; => 365
+
+(format t "Today is day ~A of the current year.~%" (day-of-the-year))
+
+;;; And here is a quick & dirty `STRFTIME' utility.
+
+(defmacro define-time-formatters (&body formatter-specs)
+  `(list
+    ,@(mapcar
+       (lambda (formatter-spec)
+         `(cons
+           ,(first formatter-spec)
+           (lambda (second minute hour day month year dow daylight-p zone)
+             (declare (ignorable second minute hour day month year dow daylight-p zone))
+             ,@(rest formatter-spec))))
+       formatter-specs)))
+
+(defvar *time-formatters*
+  (define-time-formatters
+    (#\a (elt #("Mon" "Tue" "Wed" "Thu" "Fri" "Sat" "Sun") dow))
+    (#\b (elt #("Jan" "Feb" "Mar"
+                "Apr" "May" "Jun"
+                "Jul" "Aug" "Sep"
+                "Oct" "Nov" "Dec")
+              month))
+    (#\d (format nil "~2,'0D" day))
+    (#\H (format nil "~2,'0D" hour))
+    (#j  (day-of-the-year
+          (encode-universal-time
+           second minute hour day month year dow zone)))
+    (#\m (format nil "~2,'0D" month))
+    (#\M (format nil "~2,'0D" minute))
+    (#\S (format nil "~2,'0D" second))
+    (#\w dow)
+    (#\Y year)
+    (#\z zone)))
+
+(defun strftime (format &optional universal-time)
+  (with-output-to-string (out)
+    (loop for curr-index from 0
+          for prev-special-p = nil then curr-special-p
+          for curr-char across format
+          for curr-special-p = (char-equal #\% curr-char)
+          do (cond
+               ((or (and prev-special-p curr-special-p)
+                    (not (or prev-special-p curr-special-p)))
+                (format out "~C" curr-char))
+               (prev-special-p
+                (format
+                 out "~A"
+                 (if (not (< curr-index (length format)))
+                     (error "Missing directive at position ~D." curr-index)
+                     (or (alexandria:when-let
+                             (formatter
+                              (find curr-char *time-formatters*
+                                    :test #'char-equal :key #'car))
+                           (apply
+                            (cdr formatter)
+                            (multiple-value-list
+                                (decode-universal-time
+                                 (or universal-time (get-universal-time))))))
+                         (error "Invalid directive ~S at position ~D."
+                                curr-char curr-index)))))))))
+
+(strftime "%d %b, %Y, %a")
+; => "12 Apr, 2009, Thu"
+
+(let* ((today     (get-universal-time))
+       (yesterday (- today (* 60 60 24))))
+  (format t "Today    : ~A (~A)~%Yesterday: ~A (~A)~%"
+          (strftime "%Y-%m-%d %H:%M:%S" today) today
+          (strftime "%Y-%m-%d %H:%M:%S" yesterday) yesterday))
+; => Today    : 2009-22-13 17:22:09 (3445946529)
+;    Yesterday: 2009-22-12 17:22:09 (3445860129)
+
 
 ;;; @@PLEAC@@_3.1
 ;;;-----------------------------
@@ -1593,8 +1990,7 @@ my-array
 (setf *uniq* (loop for k being the hash-keys of *seen* collect k))
 ;;;-----------------------------
 (clrhash *seen*)
-;; PERL-GREP defined in Appendix
-(setf uniqu (perl-grep my-list (= 1 (incf (gethash it *seen* 0)))))
+(setf *uniq* (perl-grep my-list (= 1 (incf (gethash it *seen* 0)))))
 ;;;-----------------------------
 ;; generate a list of users logged in, removing duplicates
 (defparameter *ucnt* (make-hash-table :test 'equal))
@@ -1916,6 +2312,35 @@ close STREAM."
 (in-package :cl-user) 
 ;;;-----------------------------
 
+
+;;; @@PLEAC@@_4.15
+;;; There is nothing special about sorting  a list by computable field in Common
+;;; Lisp. One just need to pass an appropriate `KEY' function to `SORT'.
+
+(defvar *sample-list*
+  '((1 -1 0.1 "one")
+    (2 -2 0.2 "two")
+    (3 -3 0.3 "three")))
+
+;;; Just  keep in  mind that,  `SORT' works  destructively. (That's  why  we use
+;;; `COPY-LIST' in the below expression.)
+(sort (copy-list *sample-list*) #'< :key #'first)
+; => ((1 -1 0.1 "one")
+;     (2 -2 0.2 "two")
+;     (3 -3 0.3 "three"))
+
+(sort (copy-list *sample-list*) #'string< :key #'fourth)
+; => ((1 -1 0.1 "one")
+;     (3 -3 0.3 "three")
+;     (2 -2 0.2 "two"))
+
+(sort (copy-list *sample-list*) #'<
+      :key (lambda (list) (* (second list) (third list))))
+; => ((3 -3 0.3 "three")
+;     (2 -2 0.2 "two")
+;     (1 -1 0.1 "one"))
+
+
 ;;; @@PLEAC@@_4.16
 ;;;-----------------------------
 ;;; The following aren't efficient on long lists
@@ -1960,68 +2385,94 @@ close STREAM."
         do (rotatef (aref vector i) (aref vector j)))
   vector)
 
+
+;;; @@PLEAC@@_4.18
+(defun print-matrix (matrix column-len)
+  (format t (format nil "~~{~~{~~@[~~~DA~~^ ~~]~~}~~%~~}" column-len) matrix))
+
+(defun pop-matrix-column (matrix)
+  (when matrix
+    (let ((elt (caar matrix)))
+      (setf (car matrix) (cdar matrix))
+      (cons elt (pop-matrix-column (cdr matrix))))))
+
+(defun transpose-matrix (matrix)
+  (when (car matrix)
+    (cons (pop-matrix-column matrix)
+          (transpose-matrix matrix))))
+
+(defun parse-matrix-row (string &key count)
+  (when string (ppcre:split "\\s+" string :limit count)))
+
+(defun parse-matrix (stream)
+  (let ((first-row (parse-matrix-row (read-line stream nil nil))))
+    (when first-row
+      (let* ((n-columns (length first-row))
+             (matrix
+              (cons first-row
+                    (loop for row = (parse-matrix-row
+                                     (read-line stream nil nil)
+                                     :count n-columns)
+                          while row collect row)))
+             (column-len
+              (reduce #'max matrix
+                      :key (lambda (vals)
+                             (reduce #'max vals :key #'length)))))
+        (print-matrix (transpose-matrix matrix) column-len)))))
+
+(with-input-from-string
+    (in "awk      cp       ed       login    mount    rmdir    sum
+basename csh      egrep    ls       mt       sed      sync
+cat      date     fgrep    mail     mv       sh       tar
+chgrp    dd       grep     mkdir    ps       sort     touch
+chmod    df       kill     mknod    pwd      stty     vi
+chown    echo     ln       more     rm       su")
+  (parse-matrix in))
+; => awk      basename cat      chgrp    chmod    chown   
+;    cp       csh      date     dd       df       echo    
+;    ed       egrep    fgrep    grep     kill     ln      
+;    login    ls       mail     mkdir    mknod    more    
+;    mount    mt       mv       ps       pwd      rm      
+;    rmdir    sed      sh       sort     stty     su      
+;    sum      sync     tar      touch    vi       
+
+
 ;;; @@PLEAC@@_4.19
-;;;-----------------------------
+;;; A naive `FACTORIAL' implementation.
 (defun factorial (n)
-  (loop for result = 1 then (* result i)
-        for i from 1 to n
-        finally (return result)))
+  (if (< n 2) 1 (* n (factorial (1- n)))))
 
-(factorial 500) ; => 1220136... (1135 digits total)
+;;; A tail-recursive derivative of the above `FACTORIAL' implementation.
+(defun tco-factorial (n)
+  (labels ((iter (m acc)
+             (if (< n m) acc (iter (1+ m) (* m acc)))))
+    (iter 1 1)))
 
-(defun map-vector-permutations (function vector)
-  (labels ((permute (end)
-             (if (= end 0)
-                 (funcall function vector)
-                 (dotimes (i end)
-                   (rotatef (aref vector (1- end)) (aref vector i))
-                   (permute (1- end))
-                   (rotatef (aref vector (1- end)) (aref vector i))))))
-    (permute (length vector))))
-(map-vector-permutations #'print #(1 2 3))
+(tco-factorial (expt 2 8))
+; => 857817775342842654119082271681232625157781520279485619859655650377269452553
+;    147589377440291360451408450375885342336584306157196834693696475322289288497
+;    426025679637332563368786442675207626794560187968867971521143307702077526646
+;    451464709187326100832876325702818980773671781454170250523018608495319068138
+;    257481070252817559459476987034665712738139286205234756808218860701203611083
+;    152093501947437109101726968262861606263662435022840944191408424615936000000
+;    000000000000000000000000000000000000000000000000000000000
 
-(defun map-list-permutations (function list)
-  (labels ((permute (tail)
-             (if (null tail)
-                 (funcall function list)
-                 (loop for subtail on tail
-                       do (rotatef (car tail) (car subtail))
-                          (permute (cdr tail))
-                          (rotatef (car tail) (car subtail))))))
-    (permute list)))
-(map-list-permutations #'print '(1 2 3))
-;;; permute words in each line of input stream
-(loop for line = (read-line *standard-input* nil nil)
-      while line
-      do (map-list-permutations (lambda (words)
-                                  (format t "~{~A~^ ~}~%" words))
-                                (split "\\s+" line)))
+(defun permutations (items &key test &aux (test (or test #'eql)))
+  (if (null items) '(())
+      (mapcan
+       (lambda (item)
+         (mapcar (lambda (permutation) (cons item permutation))
+                 (permutations (remove item items :test test) :test test)))
+       items)))
 
-;;;
-(let ((memo (make-hash-table)))
-  (setf (gethash 0 memo) 1)
-  (defun factorial (n)
-    (or (gethash n memo)
-        (setf (gethash n memo) (* n (factorial (1- n)))))))
+(permutations '("man" "bites" "dog") :test #'string-equal)
+; => (("man" "bites" "dog")
+;     ("man" "dog" "bites")
+;     ("bites" "man" "dog")
+;     ("bites" "dog" "man")
+;     ("dog" "man" "bites")
+;     ("dog" "bites" "man"))
 
-(defun nth-pattern (n length)
-  (loop for i from length downto 1
-        for (new-n elem) = (multiple-value-list (truncate n i))
-        collect elem
-        do (setf n new-n)))
-
-(defun pattern-permutation (pattern)
-  (loop with source = (cons nil
-                            (loop for i from 0 below (length pattern)
-                                  collect i))
-        for i in pattern
-        for pred = (nthcdr i source)
-        for (elem . rest) = (cdr pred)
-        collect elem
-        do (setf (cdr pred) rest)))
-
-(defun nth-permutation (n length)
-  (pattern-permutation (nth-pattern n length)))
 
 ;;; @@PLEAC@@_5.0
 ;;;-----------------------------
@@ -2222,6 +2673,493 @@ close STREAM."
 (defmethod countfrom ((filename string))
   (countfrom (open filename)))
 ;;;-----------------------------
+
+
+;;; @@PLEAC@@_5.5
+(defvar *table* (make-hash-table :test #'equal))
+
+(dotimes (i 10)
+  (setf (gethash (format nil "~R" i) *table*) i))
+
+(maphash (lambda (key val) (format t "~A~%" (cons key val))) *table*)
+; => ("nine"  . 9)
+;    ("eight" . 8)
+;    ("seven" . 7)
+;    ("six"   . 6)
+;    ("five"  . 5)
+;    ("four"  . 4)
+;    ("three" . 3)
+;    ("two"   . 2)
+;    ("one"   . 1)
+;    ("zero"  . 0)
+
+;;; Unfortunately there doesn't exist a  `FORMAT' directive for hash tables. But
+;;; one can easily override existing `PRINT-OBJECT' method for hash tables.
+
+;;; @@PLEAC@@_5.6
+;;; There doesn't exist a portable way of preserving insertion order of contents
+;;; of a hash table in Common Lisp.   (Neither there is a rational behind such a
+;;; feature, IMHO.)  On the  other hand, one  can keep  a history of  hash table
+;;; modifications separately.
+
+(defun make-ordered-hash-table (&rest make-hash-table-args)
+  (cons (apply #'make-hash-table make-hash-table-args) 0))
+
+(defun setkey (table key val)
+  (setf (gethash key (car table)) (cons (incf (cdr table)) val)))
+
+(defun remkey (table key)
+  (remhash key (car table)))
+
+(defun getkey (table key &optional default)
+  (let* ((missing-key (gensym))
+         (val (gethash key (car table) missing-key)))
+    (if (eql missing-key val) default (cdr val))))
+
+(defun keys (table)
+  (let (key-id-pairs)
+    (maphash
+     (lambda (key val) (push (cons key (car val)) key-id-pairs))
+     (car table))
+    (mapcar #'car (sort key-id-pairs #'< :key #'cdr))))
+
+(defvar *table* (make-ordered-hash-table))
+
+(dotimes (i 10)
+  (setkey *table* (/ (1+ i)) i))
+
+(keys *table*)
+; => (1 1/2 1/3 1/4 1/5 1/6 1/7 1/8 1/9 1/10)
+
+(setkey *table* (/ 2) 20)
+(setkey *table* (/ 4) 40)
+(remkey *table* (/ 6))
+
+(keys *table*)
+; => (1 1/3 1/5 1/7 1/8 1/9 1/10 1/2 1/4)
+
+
+;;; @@PLEAC@@_5.7
+;;; You can  easily create hash tables  using multiple values per  key. For this
+;;; purpose you  just need to increase  the verbosity of the  used test function
+;;; during hash table creation.
+
+(defvar *employee-table* (make-hash-table :test #'equal))
+
+(defvar *employee-list*
+  '(("R&D"   "Bob"   "1000")
+    ("R&D"   "Trudy" "1001")
+    ("R&D"   "Alice" "1002")
+    ("Sales" "Bob"   "2001")
+    ("Sales" "Jane"  "2003")))
+
+;;; Pay attention that  we have to "Bob"s in  different departments. We'll place
+;;; employees into  the `*EMPLOYEE-TABLE*' using  these two (name  & department)
+;;; identifier fields.
+
+(dolist (employee *employee-list*)
+  (destructuring-bind (dept name phone) employee
+    (setf (gethash (list dept name) *employee-table*)
+          phone)))
+
+(maphash (lambda (key val) (format t "~S => ~S~%" key val))
+         *employee-table*)
+; => ("R&D" "Bob")    => "1000"
+;    ("R&D" "Trudy")  => "1001"
+;    ("R&D" "Alice")  => "1002"
+;    ("Sales" "Bob")  => "2001"
+;    ("Sales" "Jane") => "2003"
+
+
+;;; @@PLEAC@@_5.8
+(defun reverse-hash-table (old-table &key test)
+  (let ((new-table
+         (make-hash-table
+          :test (or test (hash-table-test old-table))
+          :size (hash-table-size old-table))))
+    (maphash (lambda (key val)
+               (setf (gethash val new-table) key))
+             old-table)
+    new-table))
+
+(defvar *table* (make-hash-table))
+
+(dotimes (i 10) (setf (gethash (/ (1+ i)) *table*) i))
+
+(maphash (lambda (key val) (format t "~S => ~S~%" key val))
+         *table*)
+; => 1    => 0
+;    1/2  => 1
+;    1/3  => 2
+;    1/4  => 3
+;    1/5  => 4
+;    1/6  => 5
+;    1/7  => 6
+;    1/8  => 7
+;    1/9  => 8
+;    1/10 => 9
+
+(maphash (lambda (key val) (format t "~S => ~S~%" key val))
+         (reverse-hash-table *table*))
+; => 0 => 1
+;    1 => 1/2
+;    2 => 1/3
+;    3 => 1/4
+;    4 => 1/5
+;    5 => 1/6
+;    6 => 1/7
+;    7 => 1/8
+;    8 => 1/9
+;    9 => 1/10
+
+
+;;; @@PLEAC@@_5.9
+;;; One cannot (and shouldn't) make assumptions  on the order of the elements in
+;;; a hash table in  Common Lisp. Anyway, while you're here, below  is a quick &
+;;; dirty solution.
+
+(defun ordered-keys (table)
+  (sort
+   (loop for key being each hash-key of table
+         collect key)
+   #'<))
+
+(defvar *table* (make-hash-table))
+
+(dotimes (i 10)
+  (setf (gethash  (/ (1+ i)) *table*) i))
+
+(ordered-keys *table*)
+; => (1/10 1/9 1/8 1/7 1/6 1/5 1/4 1/3 1/2 1)
+
+
+;;; @@PLEAC@@_5.10
+(defun merge-hash-tables (&rest tables)
+  (let ((union
+         (make-hash-table
+          :test (first
+                 (sort (mapcar #'hash-table-test tables) #'>
+                       :key (lambda (test)
+                              (ecase test
+                                (eq 0)
+                                (eql 1)
+                                (equal 2)
+                                (equalp 3)))))
+          :size (reduce #'max (mapcar #'hash-table-size tables)))))
+    (dolist (table tables)
+      (maphash (lambda (key val) (setf (gethash key union) val)) table))
+    union))
+
+(defvar *table-x* (make-hash-table))
+
+(defvar *table-y* (make-hash-table :test #'equal))
+
+(dotimes (i 5)
+  (setf (gethash i *table-x*) (* 10 i)
+        (gethash (format nil "~R" i) *table-y*) i))
+
+(defvar *table-u* (merge-hash-tables *table-x* *table-y*))
+
+(maphash (lambda (key val) (format t "~10S => ~S~%" key val)) *table-u*)
+; => 0       => 0
+;    1       => 10
+;    2       => 20
+;    3       => 30
+;    4       => 40
+;    "zero"  => 0
+;    "one"   => 1
+;    "two"   => 2
+;    "three" => 3
+;    "four"  => 4
+
+
+;;; @@PLEAC@@_5.11
+;;; Before  going  into  the  details   about  how  to  find  intersections  and
+;;; differences between two hash tables,  one should note the existence of below
+;;; functions operating on lists.
+
+;;; Function <a href="http://l1sp.org/cl/set-exclusive-or">SET-EXCLUSIVE-OR</a>, <a href="http://l1sp.org/cl/nset-exclusive-or">NSET-EXCLUSIVE-OR</a>
+;;; Function <a href="http://l1sp.org/cl/set-difference">SET-DIFFERENCE</a>, <a href="http://l1sp.org/cl/nset-difference">NSET-DIFFERENCE</a>
+;;; Function <a href="http://l1sp.org/cl/intersection">INTERSECTION</a>, <a href="http://l1sp.org/cl/nintersection">NINTERSECTION</a>
+;;; Function <a href="http://l1sp.org/cl/union">UNION</a>, <a href="http://l1sp.org/cl/nunion">NUNION</a>
+
+;;; While  a hash  table implementation  of above  set operations  would perform
+;;; better  for large  data sets,  people  report that  above functions  perform
+;;; better than hash tables for collections of size 20-30 elements. On the other
+;;; hand, it's  obvious that  working with  lists is much  more suitable  to the
+;;; nature of a lisp program.
+
+;;; Simple & Clean Hash Table Intersection/Difference Implementations
+
+(defun hash-table-keys (table)
+  (loop for key being each hash-key of table
+        collect key))
+
+(defun key-intersection (u v)
+  (intersection
+   (hash-table-keys u) (hash-table-keys v)
+   :test (hash-table-test u)))
+
+(defun key-difference (u v)
+  (set-difference
+   (hash-table-keys u) (hash-table-keys v)
+   :test (hash-table-test u)))
+
+
+;;; Hairy Hash Table Intersection/Difference Implementations
+
+(defun hairy-key-frequency (tables &key (test 'eql))
+  (let ((frequency (make-hash-table :test test)))
+    (dolist (table tables)
+      (maphash
+       (lambda (key val)
+         (declare (ignore val))
+         (incf (gethash key frequency 0)))
+       table))
+    frequency))
+
+(defmacro with-table-test-consistency ((tables test) &body body)
+  (alexandria:with-unique-names (table)
+    `(let ((,test (hash-table-test (first ,tables))))
+       (unless (every (lambda (,table) (eql (hash-table-test ,table) ,test))
+                      (rest ,tables))
+         (error "Inconsistent test functions! (Expecting ~S.)" ,test))
+       ,@body)))
+
+(defun hairy-key-frequency-filter (tables pred)
+  (when tables
+    (with-table-test-consistency (tables test)
+      (let (accum)
+        (maphash
+         (lambda (key val) (when (funcall pred val) (push key accum)))
+         (hairy-key-frequency tables :test test))
+        accum))))
+
+(defun hairy-key-intersection (&rest tables)
+  (hairy-key-frequency-filter tables (lambda (val) (< 1 val))))
+
+(defun hairy-key-difference (&rest tables)
+  (hairy-key-frequency-filter tables (lambda (val) (< val 2))))
+
+
+;;; Example Usage
+
+(let ((u (make-hash-table))
+      (v (make-hash-table)))
+  (dolist (i '(1 2 3 4 5)) (setf (gethash i u) t))
+  (dolist (i '(3 4 5 6 7)) (setf (gethash i v) t))
+  (list :simple (list :intersection (key-intersection u v)
+                      :difference   (key-difference u v))
+        :hairy  (list :intersection (hairy-key-intersection u v)
+                      :difference   (hairy-key-difference u v))))
+; => (:SIMPLE (:INTERSECTION (5 4 3) :DIFFERENCE (2 1))
+;     :HAIRY  (:INTERSECTION (5 4 3) :DIFFERENCE (7 6 2 1)))
+
+
+;;; @@PLEAC@@_5.12
+(defun consume-stream (stream &key (buffer-size 8192))
+  (let ((buffer
+         (make-sequence
+          `(vector ,(stream-element-type stream))
+          buffer-size)))
+    (loop for pos = (read-sequence buffer stream)
+          until (zerop pos) sum pos)))
+
+(let* ((streams (mapcar #'open (list "/etc/passwd" "/etc/motd" "/etc/fstab"))))
+  (unwind-protect
+       (let ((table (make-hash-table)))
+         ;; Place `(STREAM . PATHNAME)' pairs as table key and values.
+         (dolist (stream streams)
+           (setf (gethash stream table) (pathname stream)))
+         ;; Let's find the sizes of the streams.
+         (let (accum)
+           (maphash
+            (lambda (key val) (push (cons val (consume-stream key)) accum))
+            table)
+           accum))
+    ;; Don't forget to close open file streams.
+    (mapcar #'close streams)))
+; => ((#P"/etc/fstab"  . 488)
+;     (#P"/etc/motd"   . 351)
+;     (#P"/etc/passwd" . 1232))
+
+
+;;; @@PLEAC@@_5.13
+;;; In Common Lisp,  you can create hash tables of  previously known sizes using
+;;; `SIZE'             keyword             supplied            to             <a
+;;; href="http://l1sp.org/cl/make-hash-table">`MAKE-HASH-TABLE'</a>.    (Moreover
+;;; there are `REHASH-SIZE'  and `REHASH-THRESHOLD' keyword parameters available
+;;; which  might  interest  you.) But  once  you  created  a hash  table,  these
+;;; configurations  stay as  is;  in  other words  later  modifications are  not
+;;; allowed.
+
+
+;;; @@PLEAC@@_5.14
+;;; See  `HAIRY-KEY-FREQUENCY'  in  "Hairy  Hash  Table  Intersection/Difference
+;;; Implementations".
+
+
+;;; @@PLEAC@@_5.15
+;;; We construct  the family  tree (in s-expressions)  extracted from  the given
+;;; parent-child relationship table.
+
+(defvar *relations*
+  '(("Cain"      . "Adam")
+    ("Abel"      . "Adam")
+    ("Seth"      . "Adam")
+    ("Enoch"     . "Cain")
+    ("Irad"      . "Enoch")
+    ("Mehujael"  . "Irad")
+    ("Methusael" . "Mehujael")
+    ("Lamech"    . "Methusael")
+    ("Jabal"     . "Lamech")
+    ("Jubal"     . "Lamech")
+    ("Tubalcain" . "Lamech")))
+
+(defun construct-relation-tree (rels)
+  (labels ((construct (parent)
+             (cons parent
+                   (mapcar #'construct
+                           (mapcar #'car
+                                   (remove parent rels
+                                           :key #'cdr
+                                           :test (complement #'string-equal)))))))
+    (mapcar #'construct
+            (remove-duplicates
+             (mapcar #'cdr
+                     (remove-if
+                      (lambda (pair)
+                        (find (cdr pair) rels :test #'string-equal :key #'car))
+                      rels))
+             :test #'string-equal))))
+
+(construct-relation-tree *relations*)
+; => (("Adam"
+;      ("Cain"
+;       ("Enoch"
+;        ("Irad"
+;         ("Mehujael" ("Methusael" ("Lamech" ("Jabal") ("Jubal") ("Tubalcain")))))))
+;      ("Abel")
+;      ("Seth")))
+
+;;; In a similar way, we can  construct the dependency tree between C source and
+;;; header files.
+
+(defun parse-file-dependencies (pathname)
+  (let (deps)
+    (with-open-file (in pathname)
+      (loop for line = (read-line in nil nil)
+            while line
+            do (ppcre:do-scans
+                   (m-s m-e r-ss r-es
+                    "\\s*#\\s*include\\s*[<\"]([^>\"]+)[>\"]" line)
+                 (push (subseq line (elt r-ss 0) (elt r-es 0)) deps))))
+    deps))
+
+(defun construct-file-relations (pathnames)
+  (mapcan
+   (lambda (child)
+     (mapcar (lambda (parent)
+               (cons
+                (format nil "~A.~A" (pathname-name child) (pathname-type child))
+                parent))
+             (parse-file-dependencies child)))
+   pathnames))
+
+(construct-file-relations
+ '("/tmp/c/hello.c" "/tmp/c/hello.h" "/tmp/c/main.c"))
+; => (("hello.c" . "hello.h")
+;     ("hello.c" . "stdio.h")
+;     ("main.c" . "hello.h")
+;     ("main.c" . "stdlib.h")
+;     ("main.c" . "stdio.h"))
+
+(construct-relation-tree
+ (construct-file-relations
+  '("/tmp/c/hello.c" "/tmp/c/hello.h" "/tmp/c/main.c")))
+; => (("hello.h" ("hello.c") ("main.c"))
+;     ("stdlib.h" ("main.c"))
+;     ("stdio.h" ("hello.c") ("main.c")))
+
+;;; Actually, whole PLEAC  example was related with hash  tables in its original
+;;; demonstration.  But  the more I  think about it,  the more I find  that list
+;;; structures are  more suitable for  this kind of  a tasks. But it  is obvious
+;;; that, `REMOVE-DUPLICATES' kind of  tricks will perform poorly when duplicate
+;;; eliminations will consume the majority  of the computation power and in such
+;;; a situation you'll inevitably need hash tables.
+
+
+;;; @@PLEAC@@_5.16
+(defstruct hash-branch (weight 0) (tree nil))
+
+(defun hash-tree-add (branch path weight)
+  (let ((branch (or branch (make-hash-branch))))
+    (prog1 branch
+      (incf (hash-branch-weight branch) weight)
+      (when path
+        (setf (hash-branch-tree branch)
+              (or (hash-branch-tree branch)
+                  (make-hash-table :test #'equal)))
+        (setf (gethash (first path) (hash-branch-tree branch))
+              (hash-tree-add
+               (gethash (first path) (hash-branch-tree branch))
+               (rest path) weight))))))
+
+(defun hash-tree->list-tree (branch)
+  (when branch
+    (cons (hash-branch-weight branch)
+          (let ((tree (hash-branch-tree branch))
+                (accum))
+            (when tree
+              (maphash
+               (lambda (key val)
+                 (push (cons key (hash-tree->list-tree val)) accum))
+               tree)
+              accum)))))
+
+(defun print-list-tree (branches &optional (depth 0))
+  (dolist (branch (sort (copy-list branches) #'> :key #'second))
+    (format t "~8D |" (second branch))
+    (loop repeat depth do (format t "--"))
+    (format t "-> ~A~%" (first branch))
+    (print-list-tree (cddr branch) (1+ depth))))
+
+(defun du-output->size-path-pair (string)
+  (with-input-from-string (in string)
+    (loop for line = (read-line in nil nil)
+          while line
+          collect (ppcre:register-groups-bind (size path)
+                      ("^\(\[^\\s\]+\)\\s+\(\[^\\s\]+\)$" line)
+                    (cons (parse-integer size)
+                          (delete-if #'zerop (ppcre:split "/" path)
+                                     :key #'length))))))
+
+(defun du-output->list-tree (string)
+  (let ((branch (make-hash-branch)))
+    (dolist (size-path-pair (du-output->size-path-pair string))
+      (hash-tree-add branch (cdr size-path-pair) (car size-path-pair)))
+    (rest (hash-tree->list-tree branch))))
+
+(du-output->list-tree
+  (trivial-shell:shell-command "du -ab /tmp/c"))
+; => (("tmp" 21026
+;      ("c" 21026 ("hello.h" 71) ("hello.c" 128) ("main.c" 123) ("main" 9168)
+;       ("out" 1212 ("stdout" 44) ("stderr" 246) ("debug" 256)))))
+
+(print-list-tree
+ (du-output->list-tree
+  (trivial-shell:shell-command "du -ab /tmp/c")))
+; =>    21026 |-> tmp
+;       21026 |---> c
+;        9168 |-----> main
+;        1212 |-----> out
+;         256 |-------> debug
+;         246 |-------> stderr
+;          44 |-------> stdout
+;         128 |-----> hello.c
+;         123 |-----> main.c
+;          71 |-----> hello.h
+
 
 ;;; @@PLEAC@@_6.0
 ;;;-----------------------------
