@@ -3192,6 +3192,52 @@ rescue Errno::ENOENT
 end
 
 
+# @@PLEAC@@_7.16
+# filehandles are normal variables, so they behave properly
+def subroutine(fh):
+  fh.print "Hello, file"
+end
+
+variable = fh
+subroutine(variable)
+
+
+# @@PLEAC@@_7.18
+#----------------------------
+filehandles.each do |filehandle|
+  filehandle.print stuff_to_print
+end
+#----------------------------
+# NOTE: this is unix specific
+IO.popen("tee file1 file2 file3 >/dev/null", "w") do |many|
+  many.puts "data"
+end
+#----------------------------
+# (really a Perl issue here, no problem in ruby)
+[fh1 fh2 fh3].each {|fh| fh.puts "whatever" }
+#----------------------------
+# redirect to stdout to use print/puts directly
+$stdout = IO.popen("tee file1 file2 file3", "w")
+puts "whatever"
+$stdout.close
+$stdout = STDOUT   # get things back to the way they were
+#----------------------------
+# create a class/object to encapsulate the behavior in ruby
+class MultiDispatcher < BasicObject # inherit from BasicObject in 1.9.x only
+ def initialize(targets)
+   @targets = targets
+ end
+
+ def method_missing(*a,&b)
+   @targets.each {|tgt| tgt.send(*a,&b)}
+ end
+end
+
+md = MultiDispatcher.new [$stdout, $stderr]
+4.times {|i| md.printf "%3d\n", i}
+md.close
+
+
 # @@PLEAC@@_8.0
 #-----------------------------
 # datafile is a file or IO object
