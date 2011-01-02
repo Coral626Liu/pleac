@@ -1,0 +1,1001 @@
+# -*- picolisp -*-
+# @@PLEAC@@_NAME
+# @@SKIP@@ PicoLisp
+
+# @@PLEAC@@_WEB
+# @@SKIP@@ http://picolisp.com
+
+# @@PLEAC@@_1.0
+# PicoLisp has no special string type. Instead, symbols are used. Syntactically,
+# "transient" symbols resemble strings in other languages. Also, there is no
+# separate character type. Instead, characters are represented by strings of
+# length 1 (using 1 .. 3 bytes (UTF-8)).
+#-----------------------------
+(setq String "^J")             # a newline character
+(setq String "\^J")            # two characters, '^' and 'J'
+#-----------------------------
+: "Jon \"Maddog\" Orwant"      # literal double quotes
+-> "Jon \"Maddog\" Orwant"
+
+# Single quotes do not delimit strings, and are not special inside strings
+#-----------------------------
+: "This is a multiline string
+containing a newline"
+-> "This is a multiline string^Jcontaining a newline"
+
+: "This is a multiline string \
+without a newline"
+-> "This is a multiline string without a newline"
+#-----------------------------
+
+# @@PLEAC@@_1.1
+# First 'chop' the string to convert it to a list of characters, and then use
+# the rich set of list processing functions. Optionally, you can 'pack' the
+# result to a string (not necessary in many cases, as many functions that expect
+# a string also accept a list of characters).
+#-----------------------------
+# get a 5-byte string, skip 3, then grab 2 8-byte strings, then the rest
+: (let S (chop "This is a suitable string")
+   (prinl (cut 5 'S))
+   (cut 3 'S)
+   (prinl (cut 8 'S))
+   (prinl (cut 8 'S))
+   (prinl S) )
+This
+a suitab
+le strin
+g
+#-----------------------------
+# split at five byte boundaries
+: (make (for (S (chop "This is what you have")  S)
+   (link (pack (cut 5 'S))) ) )
+-> ("This " "is wh" "at yo" "u hav" "e")
+#-----------------------------
+(let S (chop "This is what you have")
+   (prinl (car S))
+   (prinl (tail 2 (head 4 S)))
+   (prinl (tail -13 S))
+   (prinl (tail 1 S))
+   (prinl (tail 4 S))
+   (prinl (head 3 (tail 8 S))) )
+T
+is
+you have
+e
+have
+you
+#-----------------------------
+# You can test for substrings with 'pre?' and 'sub?'
+: (pre? "a" "abc")
+-> "abc"
+
+: (sub? "bc" "abcdef")
+-> "abcdef"
+
+:  (sub? "x" "abc")
+-> NIL
+
+# or use the 'match' function
+: (match '("a" "b" @X "d" "e") (chop "abcde"))
+-> T
+: @X
+-> ("c")
+#-----------------------------
+# substitute "at" for "is", restricted to first five characters
+: (match '(@A "i" "s" @Z) (head 5 (chop "Me is You"))) (pack @A "at" @Z)
+-> "Me at"
+#-----------------------------
+# exchange the first and last letters in a string
+: (let S (chop "make a hat")
+   (xchg S (tail 1 S))
+   (pack S) )
+-> "take a ham"
+#-----------------------------
+# extract column
+: (pack (tail 6 (head 12 (chop "To be or not to be"))))
+-> "or not"
+#-----------------------------
+# skip every second character
+: (pack (filter prog2 (chop "To be or not to be") '(T NIL .)))
+-> "T eo o ob"
+#-----------------------------
+
+# @@PLEAC@@_1.2
+#-----------------------------
+# Use B if B is true, else C
+(setq A (or B C))
+
+# set X to Y unless X is already true
+(default X Y)
+#-----------------------------
+# use B if B is defined, else C
+(setq A (or (fun? B) C))
+(def 'A (or (fun? B) C))
+#-----------------------------
+(setq Dir (or (opt) "/tmp"))
+#-----------------------------
+(setq Dir (if (argv) (car @) "/tmp"))
+#-----------------------------
+# find the user name on Unix systems
+(setq User
+   (or
+      (sys "USER")
+      (sys "LOGNAME")
+      (native "@" "getlogin" 'S)  # 'native' only in 64-bits
+      (car (native "@" "getpwuid" '(S) UserID))
+      (pack "Unknown uid number " UserID) ) )
+#-----------------------------
+: (default StartingPoint "Greenwich")
+-> "Greenwich"
+#-----------------------------
+(setq A (if B B C))            # assign B if nonempty, else C
+#-----------------------------
+
+# @@PLEAC@@_1.3
+#-----------------------------
+(xchg 'Var1 'Var2)
+#-----------------------------
+(setq Temp A  A B  B Temp)
+#-----------------------------
+(setq A "alpha"  B "omega") (xchg 'A 'B)
+#-----------------------------
+: (setq Alpha 'January Beta 'March Production 'August)
+-> August
+: (setq Alpha Beta  Beta Production  Production Alpha)
+-> March
+: Alpha
+-> March
+: Beta
+-> August
+#-----------------------------
+
+# @@PLEAC@@_1.4
+#-----------------------------
+(char Character) -> Number
+(char Number) -> Character
+#-----------------------------
+: (let Num 101
+   (prinl "Number " Num " is character " (char Num)) )
+Number 101 is character e
+-> "e"
+#-----------------------------
+: (mapcar char (chop "sample"))
+-> (115 97 109 112 108 101)
+
+: (pack (mapcar char (115 97 109 112 108 101)))
+-> "sample"
+#-----------------------------
+: (pack
+   (mapcar
+      '((C) (char (inc (char C))))
+      (chop "HAL") ) )
+-> "IBM"
+#-----------------------------
+
+# @@PLEAC@@_1.5
+#-----------------------------
+(for Char (chop String)
+   (doSomethingWith Char) )
+#-----------------------------
+: (prinl "unique chars are: " (sort (uniq (chop "an apple a day"))))
+unique chars are:  adelnpy
+
+# Analog to Perl
+: (let Seen NIL
+   (for C (chop "an apple a day")
+      (accu 'Seen C 1) )
+   (pack (sort (mapcar car Seen))) )
+-> " adelnpy"
+#-----------------------------
+: (sum char (chop "an apple a day"))
+-> 1248
+#-----------------------------
+# @@INCLUDE@@ include/picolisp/ch01/sum
+#-----------------------------
+$ ./sum lib.l lib/misc.l
+52659
+#-----------------------------
+# @@INCLUDE@@ include/picolisp/ch01/slowcat
+#-----------------------------
+
+# @@PLEAC@@_1.6
+#-----------------------------
+(setq
+   RevChars (flip (chop String))
+   RevWords (glue " " (flip (split (chop String) " "))) )
+#-----------------------------
+# reverse word order
+: (glue " "
+   (flip
+      (split (chop "Yoda said, \"can you see this?\"") " ") ) )
+-> "this?\" see you \"can said, Yoda"
+#-----------------------------
+: (de palindrome? (S)
+   (= (setq S (chop S)) (reverse S)) )
+: (palindrome? "reviver")
+-> T
+#-----------------------------
+: (in "/usr/share/dict/words"
+   (until (eof)
+      (let L (line)
+         (and
+            (> (length L) 5)
+            (= L (reverse L))
+            (prinl L) ) ) ) )
+deified
+redder
+#-----------------------------
+
+# @@PLEAC@@_1.7
+#-----------------------------
+(let Str (line)
+   (use (@A @Z)                        # Expand tabs
+      (while (match '(@A "^I" @Z) Str)
+         (setq Str
+            (conc
+               @A
+               (need (- 8 (% (length @A) 8)) " ")
+               @Z ) ) ) )
+   Str )
+#-----------------------------
+(let Str (line)
+   (make                               # Compress tabs
+      (while (nth Str 9)
+         (let S (trim (cut 8 'Str))
+            (chain S)
+            (or (= 8 (length S)) (link "^I")) ) )
+      (and Str (chain @)) ) )
+#-----------------------------
+
+# @@PLEAC@@_1.8
+#-----------------------------
+: (let Dept 123
+   (prinl "You owe " Dept " to me.")
+   (pack "You owe " Dept " to me.") )
+You owe 123 to me.
+-> "You owe 123 to me."
+#-----------------------------
+: (text "I am @1 high and @2 long" 24 80)
+-> "I am 24 high and 80 long"
+#-----------------------------
+(let (@Rows 24  @Cols 80)
+   (fill '(I am @Rows high and @Cols long)) )
+-> (I am 24 high and 80 long)
+#-----------------------------
+# expand variables in 'Lst', but put an error message in
+# if the variable isn't defined
+(let (@Rows 24  Lst '(I am @Rows high and @Cols long))
+   (for Var (fish pat? Lst)
+      (unless (val Var)
+         (set Var (pack "[NO VARIABLE: " Var "]")) ) )
+   (fill Lst) )
+-> (I am 24 high and "[NO VARIABLE: @Cols]" long)
+#-----------------------------
+
+# @@PLEAC@@_1.9
+#-----------------------------
+: (uppc "bo peep")
+-> "BO PEEP"
+: (lowc "JOHN")
+-> "john"
+: (let S (chop "dromedary") (pack (uppc (car S)) (cdr S)))
+-> "Dromedary"
+#-----------------------------
+# capitalize each word's first character, downcase the rest
+(let Str "thIS is a loNG liNE"
+   (glue " "
+      (mapcar
+         '((W) (cons (uppc (car W)) (mapcar lowc (cdr W))))
+         (split (chop Str) " ") ) ) )
+-> "This Is A Long Line"
+#-----------------------------
+(when (= (uppc A) (uppc B))
+   (prinl "A and B are the same") )
+#-----------------------------
+# @@INCLUDE@@ include/picolisp/ch01/randcap
+#-----------------------------
+
+# @@PLEAC@@_1.10
+#-----------------------------
+: (let N 7
+   (prinl "I have " (+ N 2) " guanacos.")
+   (pack "I have " (+ N 2) " guanacos.") )
+I have 9 guanacos.
+-> "I have 9 guanacos."
+#-----------------------------
+: (let N 7
+   (text "I have @1 guanacos." (+ N 2)) )
+#-----------------------------
+(mail "localhost" 25 "Your Bank" Naughty "Subject"
+   (prinl "Dear " Naughty)
+   ""
+   (prinl "Today, you bounced check number " (+ 500 (rand 0 99)) " to us.")
+   "Your account is now closed."
+   ""
+   "Sincerely,"
+   "the management" )
+#-----------------------------
+
+# @@PLEAC@@_1.11
+#-----------------------------
+(de myhere (Target)  # The built-in 'here' cannot be used
+   (char)
+   (setq Target (chop Target))
+   (make
+      (for (L (line)  (and L (<> L Target))  (line))
+         (link L) ) ) )
+#-----------------------------
+(setq Var (mapcar clip (myhere "HERE_TARGET")))
+   your text
+   goes here
+HERE_TARGET
+
+# or with two steps
+(setq Var (myhere "HERE_TARGET"))
+   your text
+   goes here
+HERE_TARGET
+(setq Var (mapcar clip Var))
+#-----------------------------
+(prinl "Here's your poem:")
+(prinl)
+(let (Str (prog (char) (line))  Cnt 1)
+   (for (S Str  (and S (sp? (car S)))  (cdr S))
+      (inc 'Cnt) )
+   (loop
+      (prinl (nth Str Cnt))
+      (T (eof))
+      (setq Str (line))
+      (T (=  '`(chop "EVER_ON_AND_ON") Str)) ) )
+   Now far ahead the Road has gone,
+      And I must follow, if I can,
+   Pursuing it with eager feet,
+      Until it joins some larger way
+   Where many paths and errands meet.
+      And whither then? I cannot say.
+            --Bilbo in /usr/src/perl/pp_ctl.c
+EVER_ON_AND_ON
+#-----------------------------
+
+# @@PLEAC@@_1.12
+#-----------------------------
+# @@INCLUDE@@ include/picolisp/ch01/wrapdemo
+#-----------------------------
+
+# @@PLEAC@@_1.13
+#-----------------------------
+# backslash
+: (let (CharList '(a d g)  Str "abcdefghi")
+   (pack
+      (mapcar
+         '((C) (pack (and (member C CharList) "\\") C))
+         (chop Str) ) ) )
+-> "\\abc\\def\\ghi"
+
+# double
+: (let (CharList '(a d g)  Str "abcdefghi")
+   (pack
+      (mapcar
+         '((C) (pack (and (member C CharList) C) C))
+         (chop Str) ) ) )
+-> "aabcddefgghi"
+#-----------------------------
+
+# @@PLEAC@@_1.14
+#-----------------------------
+(trim (chop String))  # Remove trailing white space
+(clip (chop String))  # Remove white space from both ends
+#-----------------------------
+# print what's typed, but surrounded by >< symbols
+(in NIL
+   (until (eof)
+      (prinl ">" (clip (line)) "<") ) )
+#-----------------------------
+
+# @@PLEAC@@_1.15
+#-----------------------------
+(for (I . Line)
+   (let *Uni T
+      (str
+         "XYZZY,\"\",\"O'Reilly, Inc\",\"Wall, Larry\",\"a \
+         \\\"glug\\\" bit,\",5,  \"Error, Core Dumped\"" ) )
+   (prinl I " : " Line) )
+1 : XYZZY
+2 :
+3 : O'Reilly, Inc
+4 : Wall, Larry
+5 : a "glug" bit,
+6 : 5
+7 : Error, Core Dumped
+#-----------------------------
+
+# @@PLEAC@@_1.16
+#-----------------------------
+# @@INCLUDE@@ include/picolisp/ch01/soundex
+#-----------------------------
+$ ./soundexUsers
+Lookup user: sshd
+("sshd" "x" 71 65 "SSH daemon" "/var/lib/sshd" "/bin/false")
+#-----------------------------
+
+# @@PLEAC@@_1.17
+#-----------------------------
+# @@INCLUDE@@ include/picolisp/ch01/fixstyle
+#-----------------------------
+
+# @@PLEAC@@_1.18
+#-----------------------------
+# @@INCLUDE@@ include/picolisp/ch01/psgrep
+#-----------------------------
+
+
+# @@PLEAC@@_2.1
+#-----------------------------
+# PicoLisp has only a single numeric type, the bignum.
+# The function 'format' returns NIL if the argument is
+# not a legal number
+: (format "12345")
+-> 12345                       # is a number
+: (format "123a5")
+-> NIL                         # is not
+#-----------------------------
+: (format "1234.5678")
+-> 1235
+: (format "1234,5678" 2 ",")
+-> 123457
+: (format "-1,234.5" 2 "." ",")
+-> -123450
+#-----------------------------
+
+# @@PLEAC@@_2.2
+# PicoLisp has no real floating point numbers
+# Only scaled (fixpoint) integers
+#-----------------------------
+: (= (format "1234.5678" 2) (format "1234.572" 2))
+-> T
+#-----------------------------
+
+# @@PLEAC@@_2.3
+#-----------------------------
+: (format "1234.5678")
+-> 1235
+: (format "1234.5678" 2)
+-> 123457
+
+: (scl 3)
+-> 3
+: (setq A 0.255)
+-> 255
+: (prinl "Unrounded: " (format A *Scl) "^JRounded: " (round A 2))
+Unrounded: 0.255
+Rounded: 0.26
+-> "0.26"
+#-----------------------------
+: (scl 1)
+-> 1
+: (let Fmt (7 7 7 7)
+   (tab Fmt "number" "int" "floor" "ceil")
+   (for N (3.3 3.5 3.7 -3.3)
+      (tab Fmt
+         (format N *Scl)
+         (format (* 1.0 (/ N 1.0)) *Scl)
+         (format (* 1.0 (*/ (- N 0.5) 1.0)) *Scl)
+         (format (* 1.0 (*/ (+ N 0.5) 1.0)) *Scl) ) ) )
+ number    int  floor   ceil
+    3.3    3.0    3.0    4.0
+    3.5    3.0    3.0    4.0
+    3.7    3.0    3.0    4.0
+   -3.3   -3.0   -4.0   -3.0
+-> NIL
+#-----------------------------
+
+# @@PLEAC@@_2.4
+#-----------------------------
+: (bin 54)
+-> "110110"
+: (bin "110110")
+-> 54
+#-----------------------------
+
+# @@PLEAC@@_2.5
+#-----------------------------
+: (prin "Infancy is: ") (for N 3 (printsp (dec N))) (prinl)
+Infancy is: 0 1 2
+#-----------------------------
+: (prin "Toddling is: ") (println 3 4)
+Toddling is: 3 4
+#-----------------------------
+: (prin "Childhood is: ") (apply println (range 5 12))
+Childhood is: 5 6 7 8 9 10 11 12
+# or
+: (prin "Childhood is: ") (mapc printsp (range 5 12)) (prinl)
+Childhood is: 5 6 7 8 9 10 11 12
+# or
+: (prin "Childhood is: ") (for (N 5 (>= 12 N) (inc N)) (printsp N)) (prinl)
+#-----------------------------
+
+# @@PLEAC@@_2.6
+#-----------------------------
+: (de roman (N)
+   (pack
+      (make
+         (mapc
+            '((C D)
+               (while (>= N D)
+                  (dec 'N D)
+                  (link C) ) )
+            '(M CM D CD C XC L XL X IX V IV I)
+            (1000 900 500 400 100 90 50 40 10 9 5 4 1) ) ) ) )
+-> roman
+
+: (prinl "Roman for fifteen is " (roman 15))
+Roman for fifteen is XV
+-> "XV"
+
+: (de arabic (R)
+   (let N 0
+      (for (L (chop (uppc R))  L)
+         (find
+            '((C D)
+               (when (head C L)
+                  (cut (length C) 'L)
+                  (inc 'N D) ) )
+            '`(mapcar chop '(M CM D CD C XC L XL X IX V IV I))
+            (1000 900 500 400 100 90 50 40 10 9 5 4 1) ) )
+      N ) )
+-> arabic
+
+: (prinl "Converted back, " (roman 15) " is " (arabic (roman 15)))
+Converted back, XV is 15
+-> 15
+#-----------------------------
+
+# @@PLEAC@@_2.7
+#-----------------------------
+: (rand)
+-> 643875838651014379
+#-----------------------------
+: (rand 1 6)  # Dice
+-> 3
+#-----------------------------
+: (rand 900000 999999)
+-> 989901
+#-----------------------------
+: (rand T)  # Boolean
+-> NIL
+: (rand T)
+-> T
+#-----------------------------
+: (setq Password
+   (pack
+      (head 8
+         (by '(NIL (rand)) sort
+            (conc
+               (chop "!@$%\^&*")
+               (mapcar char
+                  (conc
+                     (range `(char "A") `(char "Z"))
+                     (range `(char "a") `(char "z"))
+                     (range `(char "0") `(char "9")) ) ) ) ) ) ) )
+#-----------------------------
+
+# @@PLEAC@@_2.8
+#-----------------------------
+: (seed 42)
+-> 62419389940
+
+: (seed "Hello world")
+-> -967786026117696633
+
+: (seed (time))
+-> -54340987292621
+#-----------------------------
+
+# @@PLEAC@@_2.9
+#-----------------------------
+: (in "/dev/urandom" (rd 12))
+-> 50416291644794614409246112035
+#-----------------------------
+
+# @@PLEAC@@_2.10
+#-----------------------------
+(load "@lib/math.l")
+
+(de rand2 ()
+   (rand `(inc -1.0) `(dec 1.0)) )
+
+(de gaussianRand ()
+   (use (U1 U2 W)
+      (while
+         (>=
+            (setq W
+               (+
+                  (*/ (setq U1 (rand2)) U1 1.0)
+                  (*/ (setq U2 (rand2)) U2 1.0) ) )
+            1.0 ) )
+      (setq W (sqrt (*/ 1.0 -2.0 (log W) W)))
+      (*/ U2 W 1.0) ) )
+
+(prinl
+   "You have been hired at $"
+   (round (+ 25.0 (* 2 (gaussianRand))) 2) )
+#-----------------------------
+
+# @@PLEAC@@_2.11
+#-----------------------------
+(load "@lib/math.l")
+
+(de deg2rad (Deg)
+   (*/ Deg pi 180.0) )
+
+(de rad2deg (Rad)
+   (*/ Rad 180.0 pi) )
+#-----------------------------
+
+# @@PLEAC@@_2.12
+#-----------------------------
+(load "@lib/math.l")
+:  (format (cos 0.333333) *Scl)
+-> "0.944957"
+
+:  (format (acos 0.944957) *Scl)
+-> "0.333333"
+
+: (format (tan pi/2) *Scl)
+-> "3060023.306953"
+#-----------------------------
+
+# @@PLEAC@@_2.13
+#-----------------------------
+(load "@lib/math.l")
+: (format (log 10.0) *Scl)
+-> "2.302585"
+
+(de logBase(Base Val)
+   (*/ (log Val) 1.0 (log Base)) )
+
+: (format (logBase 10.0 10000.0) *Scl)
+-> "4.000000"
+#-----------------------------
+
+# @@PLEAC@@_2.14
+#-----------------------------
+(de mmult (Mat1 Mat2)
+   (unless (= (length Mat1) (length (car Mat2)))
+      (quit "IndexError: matrices don't match") )
+   (mapcar
+      '((Row)
+         (apply mapcar Mat2
+            '(@ (apply + (mapcar * Row (rest)))) ) )
+      Mat1 ) )
+#-----------------------------
+: (mmult
+   '((3 2 3) (5 9 8))
+   '((4 7) (9 3) (8 8)) )
+-> ((54 51) (165 126))
+#-----------------------------
+
+# @@PLEAC@@_2.15
+# PicoLisp doesn't have a complex library, but a set of
+# functions for complex numbers can be easily written
+#-----------------------------
+(load "@lib/math.l")
+
+(de addComplex (A B)
+   (cons
+      (+ (car A) (car B))        # Real
+      (+ (cdr A) (cdr B)) ) )    # Imag
+
+(de mulComplex (A B)
+   (cons
+      (-
+         (*/ (car A) (car B) 1.0)
+         (*/ (cdr A) (cdr B) 1.0) )
+      (+
+         (*/ (car A) (cdr B) 1.0)
+         (*/ (cdr A) (car B) 1.0) ) ) )
+
+(de invComplex (A)
+   (let Denom
+      (+
+         (*/ (car A) (car A) 1.0)
+         (*/ (cdr A) (cdr A) 1.0) )
+      (cons
+         (*/ (car A) 1.0 Denom)
+         (- (*/ (cdr A) 1.0 Denom)) ) ) )
+
+(de negComplex (A)
+   (cons (- (car A)) (- (cdr A))) )
+
+(de sqrtComplex (A)
+   (let
+      (R (sqrt (+ (* (car A) (car A)) (* (cdr A) (cdr A))))
+         Y (sqrt (* (- R (car A)) 0.5))
+         X (*/ (cdr A) 0.5 Y) )
+      (cons  # Return both results
+         (cons X Y)
+         (cons (- X) (- Y)) ) ) )
+
+(de fmtComplex (A)
+   (pack
+      (round (car A) (dec *Scl))
+      (and (gt0 (cdr A)) "+")
+      (round (cdr A) (dec *Scl))
+      "i" ) )
+#-----------------------------
+: (let (A (3.0 . 5.0)  B (2.0 . -2.0))
+   (prinl "c = " (fmtComplex (mulComplex A B))) )
+c = 16.00000+4.00000i
+#-----------------------------
+: (let D (3.0 . 4.0)
+   (prinl "sqrt(" (fmtComplex D) ") = " (fmtComplex (car (sqrtComplex D)))) )
+sqrt(3.00000+4.00000i) = 2.00000+1.00000i
+#-----------------------------
+
+# @@PLEAC@@_2.16
+#-----------------------------
+(prin "Gimme a number in decimal, octal, or hex: ")
+(let Num (in NIL (clip (line)))
+   (setq Num
+      (if2 (= "0" (car Num)) (= "x" (cadr Num))
+         (hex (cddr Num))
+         (oct (cdr Num))
+         NIL
+         (format Num) ) )
+   (prinl Num " " (hex Num) " " (oct Num)) )
+#-----------------------------
+(prin "Enter file permission in octal: ")
+(let Permissions (oct (in NIL (clip (line))))
+   (prinl "The decimal value is " Permissions) )
+#-----------------------------
+
+# @@PLEAC@@_2.17
+#-----------------------------
+: (let Cnt -1740525205
+   (prinl
+      "Your web page received "
+      (format Cnt 0 "." ",")
+      " accesses last month." ) )
+Your web page received -1,740,525,205 accesses last month.
+#-----------------------------
+
+# @@PLEAC@@_2.18
+#-----------------------------
+(prinl "It took " Time " hour" (unless (= 1 Time) "s"))
+
+(prinl
+   Time
+   " hour" (unless (= 1 Time) "s")
+   (if (= 1 Time) " is" " are")
+   " enough." )
+
+(prinl "It took " Time " centur" (if (= 1 Time) "y" "ies"))
+#-----------------------------
+(de nounPlural (Str)
+   (let (S (chop Str)  @A)
+      (cond
+         ((find tail '((s s) (p h) (s h) (c h) (z)) (circ S))
+            (pack Str "es") )
+         ((tail '(f f) S) (pack S "s"))
+         ((match '(@A f) S) (pack @A "ves"))
+         ((tail '(e y) S) (pack S "s"))
+         ((match '(@A y) S) (pack @A "ies"))
+         ((match '(@A i x) S) (pack @A "ices"))
+         ((or (tail '(s) S) (tail '(x) S))
+            (pack S "es") )
+         (T (pack S "s")) ) ) )
+#-----------------------------
+(for S
+   (quote
+      fish fly ox
+      species genus phylum
+      cherub radius jockey
+      index matrix mythos
+      phenomenon formula )
+   (prinl "One " S ", two " (nounPlural S) ".") )
+#-----------------------------
+
+# @@PLEAC@@_2.19
+#-----------------------------
+# @@INCLUDE@@ include/picolisp/ch02/bigfact
+#-----------------------------
+$  ./bigfact 17 60 125 239322000000000000000000
+17          PRIME
+60          2**2 3 5
+125         5**3
+239322000000000000000000 2**19 3 5**18 39887
+#-----------------------------
+
+# vi:et:ts=3:sw=3
+ly ox
+      species genus phylum
+      cherub radius jockey
+      index matrix mythos
+      phenomenon formula )
+   (prinl "One " S ", two " (nounPlural S) ".") )
+#-----------------------------
+
+
+# @@PLEAC@@_3.0
+# Dates and times are handled in PicoLisp by the built-in 'date' and 'time'
+# functions, and additional functions like 'day' and 'week', and various
+# functions for formatting and localization
+#-----------------------------
+: (prinl
+   "Today is day "
+   (- (date) (date (car (date (date))) 1 1) -1)
+   " of the current year." )
+Today is day 365 of the current year.
+#-----------------------------
+
+# @@PLEAC@@_3.1
+#-----------------------------
+: (date (date))
+-> (2010 12 31)
+#-----------------------------
+: (prinl "The current date is " (dat$ (date) " "))
+The current date is 2010 12 31
+#-----------------------------
+: (prinl "The current date is " (dat$ (date) "-"))
+The current date is 2010-12-31
+#-----------------------------
+: (prinl (stamp))
+2010-12-31 13:31:27
+#-----------------------------
+
+# @@PLEAC@@_3.2
+#-----------------------------
+: (- (+ (* 86400 (date T)) (time T)) (* 86400 (date 1970 1 1)))
+-> 1293799342
+
+: (- (+ (* 86400 (date 2010 12 30)) (time 6 57 52)) (* 86400 (date 1970 1 1)))
+-> 1293692272
+
+: (- (+ (* 86400 ($dat "20101230")) ($tim "6:57:52")) (* 86400 (date 1970 1 1)))
+-> 1293692272
+#-----------------------------
+
+# @@PLEAC@@_3.3
+#-----------------------------
+: (let
+   (Secs (+ 1293692272 (* 86400 (date 1970 1 1)))
+      Date (/ Secs 86400)
+      Time (% Secs 86400) )
+   (prinl "Date: " (datSym Date) ",  time: " (tim$ Time T)) )
+Date: 30dec10,  time: 06:57:52
+#-----------------------------
+
+# @@PLEAC@@_3.4
+# See also the add/subtract in above epoch calculations
+#-----------------------------
+: (let D (date)
+   (prinl
+      "Today: " (day D) ", " (datStr D)
+      " -> next week: " (day (inc 'D 7)) ", " (datStr D) ) )
+Today: Friday, 2010-12-31 -> next week: Friday, 2011-01-07
+#-----------------------------
+
+# @@PLEAC@@_3.5
+#-----------------------------
+: (prinl
+   "Today Jimi Hendrix would be "
+   (- (date) (date 1942 11 27))
+   " days old" )
+Today Jimi Hendrix would be 24871 days old
+#-----------------------------
+
+# @@PLEAC@@_3.6
+#-----------------------------
+: (prinl "Today is " (day (date)))
+Today is Friday
+
+: (prinl "Jimi Hendrix was born on a " (day (date 1942 11 27)))
+Jimi Hendrix was born on a Friday
+#-----------------------------
+: (prinl "This is the " (week (date)) "th week")
+This is the 52th week
+#-----------------------------
+: (prinl "This is the " (cadr (date (date))) "th month")
+This is the 12th month
+#-----------------------------
+: (prinl "This is the year " (car (date (date))))
+This is the year 2010
+#-----------------------------
+
+# @@PLEAC@@_3.7
+#-----------------------------
+# Calculate the days since the epoch
+: (- (date) ($dat "1998-06-03" "-"))
+-> 4594
+#-----------------------------
+: (date (expDat "31"))
+-> (2010 12 31)
+
+: (date (expDat "3112"))
+-> (2010 12 31)
+
+: (date (expDat "311210"))
+-> (2010 12 31)
+
+: (date (expDat "31.12.10"))
+-> (2010 12 31)
+
+: (date (expDat "31.12"))
+-> (2010 12 31)
+#-----------------------------
+
+# @@PLEAC@@_3.8
+#-----------------------------
+(load "@lib/http.l")
+
+: (httpDate (date T) (time T))
+Fri, 31 Dec 2010 13:21:03 GMT
+#-----------------------------
+: (stamp)
+-> "2010-12-31 14:21:47"
+#-----------------------------
+: (datStr (date))
+-> "2010-12-31"
+
+: (locale "DE" "de")
+
+: (datStr (date))
+-> "31.12.2010"
+
+: (locale "JP" "jp")
+
+: (datStr (date))
+-> "2010/12/31"
+#-----------------------------
+
+# @@PLEAC@@_3.9
+#-----------------------------
+: (usec)         # Microseconds
+-> 250502252
+#-----------------------------
+: (let U (usec)
+   (prin "Press return when ready: ")
+   (line)
+   (prinl "You took " (format (- (usec) U) 6) " seconds") )
+Press return when ready:
+You took 2.711455 seconds
+#-----------------------------
+: (bench (prin "Press return when ready: ") (line))
+Press return when ready:
+1.332 sec
+#-----------------------------
+# Generate, sort and count 1 million random numbers
+: (bench (length (sort (make (do 1000000 (link (rand)))))))
+2.839 sec
+-> 1000000
+#-----------------------------
+
+# @@PLEAC@@_3.10
+#-----------------------------
+(wait 250)  # Sleep 0.25 secs
+#-----------------------------
+: (key 4000)  # Wait max. 4 secs for a keypress
+-> "a"        # (pressed "a" after 2 seconds)
+
+: (key 4000)
+-> NIL        # (timed out)
+#-----------------------------
+
+# @@PLEAC@@_3.11
+#-----------------------------
+# @@INCLUDE@@ include/picolisp/ch03/hopdelta
+#-----------------------------
+$ ./hopdelta <header
+Sender               Recipient            Time                    Delta
+------               ---------            ----                    -----
+Start                app                  15:44:34 2010/12/31
+app                  mo-p00-ob.rzone.de   15:44:34 2010/12/31  00:00:00
+mo-p00-ob.rzone.de   post.strato.de       15:44:39 2010/12/31  00:00:05
+post.strato.de       localhost            15:46:09 2010/12/31  00:01:30
+#-----------------------------
+
+# vi:et:ts=3:sw=3
+------------------
+$ ./hopdelta <header
+Sender               Recipient            Time                    Delta
+-

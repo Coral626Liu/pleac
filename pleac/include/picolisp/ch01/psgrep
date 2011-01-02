@@ -1,0 +1,53 @@
+#!/usr/bin/picolisp /usr/lib/picolisp/lib.l
+
+# Use: psgrep 'lisp-expression'
+#
+# Takes a single optional argument:
+# An arbitrary lisp expression without the outermost parentheses
+#
+# For example:
+#    psgrep '= "Ss+" STAT'
+#    psgrep 'and (> SIZE 10000) (= TT "tty1")'
+#    psgrep 'member UID (101 102 104 106)'
+#
+# The variables (case-sensitive!) have the
+# same names as the column headers
+
+(load "@lib/misc.l")
+
+(de PsFields
+   (F         1  "flags"   NIL (read))
+   (UID       6  "uid"     NIL (read))
+   (PID       6  "pid"     NIL (read))
+   (PPID      6  "ppid"    NIL (read))
+   (PRI       4  "pri"     NIL (read))
+   (NI        4  "nice"    NIL (read))
+   (NIL       1)
+   (SIZE      5  "size"    NIL (read))
+   (NIL       1)
+   (RSS       5  "rss"     NIL (read))
+   (NIL       1)
+   (WCHAN    -7  "wchan"   NIL (skip) (till " " T))
+   (STAT     -5  "stat"    NIL (skip) (till " " T))
+   (TT       -9  "tty"     NIL (skip) (till " " T))
+   (TIME      8  "time"    (tim$ TIME T) (skip) ($tim (till " " T)))
+   (NIL       1)
+   (COMMAND -30  "command" NIL (char) (line T)) )
+
+(let Cond (or (str (opt)) T)
+   (in (list 'ps "hax" "-o" (glue "," (extract caddr PsFields)))
+      (let Fmt (mapcar cadr PsFields)
+         (apply tab (mapcar car PsFields) Fmt)
+         (bind (mapcar car PsFields)
+            (until (eof)
+               (for Fld PsFields
+                  (when (car Fld)
+                     (set @ (run (cddddr Fld))) ) )
+               (when (eval Cond)
+                  (apply tab
+                     (mapcar
+                        '((Fld) (or (eval (cadddr Fld)) (val (car Fld))))
+                        PsFields )
+                     Fmt ) ) ) ) ) ) )
+
+(bye)

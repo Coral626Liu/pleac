@@ -1,0 +1,40 @@
+#!/usr/bin/picolisp /usr/lib/picolisp/lib.l
+
+(load "@lib/misc.l")
+
+(in NIL
+   (let (Fmt (-21 -21 -9 -10 10)  Sender "Start"  LastSecs NIL)
+      (tab Fmt "Sender" "Recipient" "Time" NIL "Delta")
+      (tab Fmt "------" "---------" "----" NIL "-----")
+      (for Lst
+         (flip
+            (make
+               (while (from "^JReceived: from ")
+                  (let Recipient (till " ^J" T)
+                     (from "; ")
+                     (from ",")
+                     (let
+                        (Day (read)
+                           Mon (index (till " " T) *Mon)
+                           Year (read)
+                           Tim (till " " T)
+                           Offs (read)
+                           Secs (+ (* 86400 (date Year Mon Day)) ($tim Tim)) )
+                        (when (num? Offs)
+                           (inc 'Secs (*/ 3600 Offs 100)) )
+                        (link
+                           (list
+                              Recipient
+                              Tim
+                              (dat$ (date Year Mon Day) "/")
+                              Secs ) ) ) ) ) ) )
+         #(println (list Day Mon Year Tim '- Secs))
+         (tab Fmt
+            Sender
+            (car Lst)
+            (cadr Lst)
+            (caddr Lst)
+            (tim$ (- (cadddr Lst) LastSecs) T) )
+         (setq Sender (car Lst)  LastSecs (cadddr Lst)) ) ) )
+
+(bye)
