@@ -1,0 +1,48 @@
+#!/usr/bin/picolisp /usr/lib/picolisp/lib.l
+# dutree - print sorted indented rendition of du output
+
+(load "@lib/misc.l")
+
+# Run du, read input, save directories and sizes
+(setq *Dirsize  # ((name size kids ..) ..)
+   (by length sort
+      (in (list 'du (opt))
+         (make
+            (while (read)
+               (skip)
+               (link (list (split (line) "/") @)) ) ) ) ) )
+
+# Assign kids
+(for D *Dirsize
+   (when (assoc (head -1 (car D)) *Dirsize)
+      (conc @ (cons (car D))) ) )
+
+(let Root (car *Dirsize)
+   # Figure out how much is taken up in each directory
+   # that isn't stored in subdirectories.  add a new
+   # fake kid called "." containing that much
+   (recur (Root)
+      (let (Size (cadr Root)  Cursize Size)
+         (for Kid (cddr Root)
+            (when (assoc Kid *Dirsize)
+               (dec 'Cursize (cadr @))
+               (recurse @) ) )
+         (unless (= Size Cursize)
+            (let Dot (append (car Root) '((".")))
+               (push '*Dirsize (list Dot Cursize))
+               (conc Root (cons Dot)) ) ) ) )
+   # Recursively output everything
+   (let (Prefix NIL  Width (length (cadr Root)))
+      (recur (Root Prefix Width)
+         (let Name (last (car Root))
+            (prinl Prefix (align Width (cadr Root)) " " Name)
+            (let? Kids
+               (flip
+                  (by cadr sort
+                     (mapcar '((K) (assoc K *Dirsize)) (cddr Root)) ) )
+               (setq Prefix (pack Prefix (align Width "|")))
+               (setq Width (+ 1 (length Name) (length (cadar Kids))))
+               (for Kid Kids
+                  (recurse Kid Prefix Width) ) ) ) ) ) )
+
+(bye)
