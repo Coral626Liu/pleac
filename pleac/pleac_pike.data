@@ -4391,3 +4391,116 @@ function(int : int) outer = lambda(int arg)
 @@INCOMPLETE@@
 @@INCOMPLETE@@
 
+
+// ^^PLEAC^^_17.0
+//-----------------------------
+
+//Pike doesn't normally use packed IP addresses. Strings such as "204.148.40.9" are used literally.
+
+// -----------------------------
+
+// DNS lookups can be done with gethostbyname() and gethostbyaddr()
+[string host,array ip,array alias] = gethostbyname("www.example.com");
+// ip[0] is a string "192.0.32.10"
+
+//-----------------------------
+
+// ^^PLEAC^^_17.1
+//-----------------------------
+Stdio.File sock=Stdio.File();
+if (!sock->connect(remote_host,remote_port)) //Connection failed. Error code is in sock->errno() .
+{
+    werror("Couldn't connect to %s:%d: %s\n",remote_host,remote_port,strerror(sock->errno()));
+    return 1;
+}
+sock->write("Hello, world!"); //Send something to the socket
+string answer=sock->read(); //Read until the remote side disconnects. Use sock->read(1024,1) to read only some (up to 1KB here).
+sock->close(); //Not necessary if the sock object goes out of scope here.
+
+//-----------------------------
+
+// ^^PLEAC^^_17.2
+//-----------------------------
+Stdio.Port mainsock=Stdio.Port();
+if (!mainsock->bind(server_port))
+{
+    werror("Couldn't be a tcp server on port %d: %s\n",server_port,strerror(mainsock->errno()));
+    return 1;
+}
+while (1)
+{
+    Stdio.File sock=mainsock->accept();
+    if (!sock) break;
+    // sock is the new connection
+    // if you don't do anything and just let sock expire, the client connection will be closed
+}
+//-----------------------------
+
+// ^^PLEAC^^_17.3
+//-----------------------------
+sock->write("What is your name?\n");
+string response=sock->read(1024,1); //Reads up to 1KB or whatever is available (minimum 1 byte).
+//Buffered reads:
+Stdio.FILE sock2=Stdio.FILE(); sock2->assign(sock);
+string response=sock2->gets();
+//-----------------------------
+
+//-----------------------------
+
+// ^^PLEAC^^_17.7
+//-----------------------------
+string other_end=sock->query_address(); //eg "10.1.1.1 123"
+//-----------------------------
+
+// ^^PLEAC^^_17.9
+//-----------------------------
+sock->close("r");   //Close the read direction
+sock->close("w");   //Close the write direction
+sock->close("rw");  //Shut down both directions
+sock->close();      //Close completely
+//-----------------------------
+
+// ^^PLEAC^^_17.11
+//-----------------------------
+
+//Forking is generally unnecessary in Pike, as the driver works more efficiently with other models.
+//-----------------------------
+
+// ^^PLEAC^^_17.13
+//-----------------------------
+
+//Incomplete. There's multiple ways to do this, including:
+//1) Threaded server (works like forking but clients can share global state if desired)
+//2) Multiplexing using select()
+//3) Callback mode (puts the sockets under the control of a Backend which uses select())
+//-----------------------------
+
+// ^^PLEAC^^_17.14
+//-----------------------------
+Stdio.Port mainsock=Stdio.Port();
+if (!mainsock->bind(server_port))
+{
+    werror("Couldn't be a tcp server on port %d: %s\n",server_port,strerror(mainsock->errno()));
+    return 1;
+}
+while (1)
+{
+    Stdio.File sock=mainsock->accept();
+    if (!sock) break;
+    string localaddr=sock->query_address(1); //Is the IP address and port connected to.
+    //The IP will be that of one of your interfaces, and the port should be equal to server_port
+}
+//-----------------------------
+
+// ^^PLEAC^^_17.15
+//-----------------------------
+if (!System.chroot("/var/daemon")) werror("Unable to chroot to /var/daemon: %s\n",strerror(errno()));
+//Incomplete (I don't fork in Pike). See predef::fork() and Process.create_process() for details.
+//-----------------------------
+
+// ^^PLEAC^^_17.16
+//-----------------------------
+//The best way to restart the server is to adopt a microkernel concept and restart only the parts of
+//the server that need updating. However, if you must reload, see Process.exec()
+//-----------------------------
+
