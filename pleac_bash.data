@@ -1,28 +1,249 @@
 # -*- sh -*-
-
 # @@PLEAC@@_NAME
 # @@SKIP@@ Bash
 
-# @@PLEAC@@_WEB
-# @@SKIP@@ http://tiswww.case.edu/php/chet/bash/bashtop.html
+# @@PLEAC@@_1.0
+#-----------------------------
+string="\n"							# two characters, \ and an n
+string="Jon 'Maddog' Orwant"		# literal single quotes
+#-----------------------------
+string="
+"									# a "newline" character
+string="Jon \"Maddog\" Orwant" 		# literal double quotes
 
+string='Jon "Maddog" Orwant'		# literal double quotes inside single quotes
+string="Jon \"Maddog\" Orwant"   	# escaped double quotes inside double quotes
+#-----------------------------
+string="\
+This is a multiline string declaration\
+using escaped (you cannot use simple quotes)\
+"
+# @@PLEAC@@_1.1
+#-----------------------------
+string="hippopotamus"
+offset=6; count=2; end=`expr $offset + $count`;
+value=`echo $string | cut -c$offset-$end`
+value=`echo $string | cut -c$offset-`
+#-----------------------------
+# No real unpack equivalent exist in bash. Exemples here use a custom
+# implementation to split an original string into chunks of specified length (derived from Java PLEAC version)
+function unpack {
+	format=$1
+	data=$2
 
-# @@PLEAC@@_4.0
-# declaring an array
-declare -a ary
-# declaring + defining
-single_level = ( this that the other )
-# @@INCOMPLETE@@
+	nospace="false"
+	result=""
+	dataOffset=1
+    minDataOffset=1
+	maxDataOffset=`echo $data | wc -c`
+	# "cut" command starts to count at 1
+	maxDataOffset=`expr $maxDataOffset + 1`
 
+	for token in $format
+	do
+		tokenLengh=`echo $token | wc -c`
+		# count determination
+		count=0
+		if [ $tokenLengh -eq 1 ]
+		then
+			count=1
+		elif [ "`echo $token | cut -c2-`" = "*" ]
+		then
+			count=-1
+		else
+			count=`echo $token | cut -c2-`
+		fi
 
-# @@PLEAC@@_4.1
-# pushing at the end of an array
-ary[${#ary[@]}]=whatever
-# @@INCOMPLETE@@
+		# action detrmination
+		action=`echo $token | cut -c1-1`
+		case $action in
+			'A')
+				if [ $count -eq -1 ]
+				then
+					if [ $dataOffset -lt $maxDataOffset ]
+					then
+						start=$dataOffset
+					else
+						start=$maxDataOffset
+					fi
+					result="${result}`echo $data | cut -c$start-`"
+					dataOffset=$maxDataOffset
+				else
+					if [ $dataOffset -lt $maxDataOffset ]
+					then
+						start=$dataOffset
+					else
+						start=$maxDataOffset
+					fi
+					if [ `expr $dataOffset + $count` -lt $maxDataOffset ]
+					then
+						end=`expr $dataOffset + $count`
+						end=`expr $end - 1` # cut command particularity
+					else
+						end=$maxDataOffset
+					fi
+					if [ $nospace = "false" ]
+					then
+						result="${result} `echo $data | cut -c$start-$end`"
+					else
+						result="${result}`echo $data | cut -c$start-$end`"
+					fi
+					dataOffset=`expr $dataOffset + $count`
+				fi
+			;;
+			'x')
+				if [ $count -eq -1 ]
+				then
+					dataOffset=$maxDataOffset
+				else
+					dataOffset=`expr $dataOffset + $count`
+				fi
+				nospace="true"
+			;;
+			'X')
+				if [ $count -eq -1 ]
+				then
+					dataOffset=$minDataOffset
+				else
+					dataOffset=`expr $dataOffset - $count`
+				fi
+				nospace="true"
+			;;
+			* ) echo "Unknown action token: $action"; return 1;;
+		esac
+	done
+	echo $result
+}
 
+function repeat {
+	string=$1
+	time=$2
+	counter=0
+	result=""
 
-# @@PLEAC@@_4.4
-for element in "${list[@]}"; do
-    echo $element
-done
-# @@INCOMPLETE@@
+	while [ $counter -lt $time ]
+	do
+		counter=`expr $counter + 1`
+		result="$result $string"
+	done
+	echo $result
+}
+
+# get a 5-byte string, skip 3, then grab 2 8-byte strings, then the rest
+data='hippopotamus means river horse'
+string=`unpack "A5 x3 A8 A8 A*" "$data"`
+echo $string
+# hippoamus means river horse
+
+# split at five byte boundaries
+time=`echo $data | wc -c`
+time=`expr $time / 5`
+param=`repeat "A5" $time`
+string=`unpack "$param" "$data"`
+echo $string
+# hippo potam us me ans r iver horse
+
+# chop string into individual characters
+time=`echo $data | wc -c`
+param=`repeat "A1" $time`
+string=`unpack "$param" "$data"`
+echo $string
+# h i p p o p o t a m u s  m e a n s  r i v e r  h o r s e
+
+#-----------------------------
+string="This is what you have"
+#         +012345678901234567890  Indexing forwards  (left to right)
+#          109876543210987654321- Indexing backwards (right to left)
+#           note that 0 means 10 or 20, etc. above
+first=`echo $string | cut -c1`		# "T"
+start=`echo $string | cut -c6-8`	# "is"
+rest=`echo $string | cut -c14-`		# "you have"
+length=`echo -n $string | wc -c`
+# cut position start to 1 instead of 0, so we've to add 1
+pos=`expr $length + 1 - 1`
+last=`echo $string | cut -c$pos-`	# "e"
+pos=`expr $length + 1 - 4`
+end=`echo $string | cut -c$pos-`    # "have"
+st=`expr $length + 1 - 8`
+ed=`expr $st + 3`
+piece=`echo $string | cut -c$st-$ed` # "you"
+#-----------------------------
+string="This is what you have";
+echo $string
+#This is what you have
+
+string=`echo $string | sed -e "s/ is / wasn't /"`					# change "is" to "wasn't"
+echo $string
+#This wasn't what you have
+
+string=`echo $string | sed -e "s/\(wasn't w\)\(.*\)$/\1ondrous/"`	# replace last 12 characters through regexp
+echo $string
+#This wasn't wondrous
+
+string=`echo $string | cut -c2-`									# delete first character
+echo $string
+#his wasn't wondrous
+
+length=`echo -n $string | wc -c`
+pos=`expr $length - 10`
+string=`echo $string | cut -c1-$pos`								# delete last 10 characters
+echo $string
+#his wasn'
+#-----------------------------
+# you can test substrings with "cut" and "grep -E"
+pattern=[a-z]+
+result=`echo $string | cut -c5 | grep -E $pattern`
+if [ -n "$result" ]
+then
+ echo "Pattern matches"
+fi
+
+# substitute "at" for "is", restricted to first five characters (first match)
+string="This is a test"
+string=`echo $string | sed -e 's/is/at/1'`
+if [ "$string" == "That is a test" ]
+then
+	echo "substitution is OK"
+fi
+#-----------------------------
+# exchange the first and last letters in a string with sed
+a="make a hat"
+a=`echo $a | sed -e 's/^\(.\)\(.*\)\(.\)$/\3\2\1/'`
+echo $a
+# take a ham
+#-----------------------------
+# extract column with cut
+a="To be or not to be"
+skip=6
+until=`expr $skip + 6`
+b=`echo $a | cut -c$skip-$until`  				# skip 6, grab 6 (until offset 12)
+echo $b;
+# or not
+
+forward=`expr 1 + 6`
+grab=`expr $forward - 1 + 2`
+b=`echo $a | cut -c$forward-$grab`				# forward 6, grab 2
+backward=`expr $forward + 2 - 5`
+grab=`expr $backward - 1 + 2`
+c=`echo $a | cut -c$backward-$grab`				# backward 5, grab 2
+echo "$b"
+echo
+echo "$c"
+# or
+#
+# be
+#-----------------------------
+function cut2fmt {
+    positions=$*
+	template=""
+    lastpos=1
+	for pos in $positions
+	do
+		template="${template}A`expr $pos - $lastpos` "
+		lastpos=$pos
+	done
+    echo "${template}A*"
+}
+fmt=`cut2fmt 8 14 20 26 30`
+echo "$fmt"
+# A7 A6 A6 A6 A4 A*
