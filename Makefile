@@ -39,9 +39,9 @@ skeleton/index.html: skeleton.sgml
 	db2html -d pleac.dsl $<
 
 %.html: %.data
-	ruby -pe 'sub(/((@@|\^\^)INCLUDE(@@|\^\^) (\S+))/) { "#{$$1}\n" + File.open($$4).read }' $< > tmp.data
+	ruby -pe 'gsub(/((@@|\^\^)INCLUDE(@@|\^\^) (\S+))/,"") { "#{$$1}\n" + File.open($$4).read }' $< > tmp.data
 	./code2html tmp.data
-	ruby -pi -e 'sub(/(@@|\^\^)INCLUDE(@@|\^\^) (\S+)/) { "<font size=\"-1\"><a href=\"http://pleac.sourceforge.net/#{$$3}\">download the following standalone program</a></font>" }' tmp.data.html
+	ruby -pi -e 'gsub(/(@@|\^\^)INCLUDE(@@|\^\^) (\S+)/,"") { "<font size=\"-1\"><a href=\"http://pleac.sourceforge.net/#{$$3}\">download the following standalone program</a></font>" }' tmp.data.html
 	mv -f tmp.data.html $@
 
 $(HTMLTARGETSDEP): %/index.html: %.html skeleton/index.html
@@ -65,7 +65,7 @@ web: $(DATAFILES)
 		echo "<a href=\"pleac_$$i/index.html\">$$i</a>, $$percent% done " >> webcontents; \
 		echo "(<a href=\"pleac_$$i.data\">raw source</a>, <a href=\"pleac_$$i.html\">colorized source</a>)" >> webcontents; \
 		echo "</li>" >> webcontents; \
-	done  
+	done
 	echo "</ul> " >> webcontents
 	ruby -pi -e "sub(/@CURRENTVERSIONS@/, '`cat webcontents`')" index.html
 	rm -f webcontents
