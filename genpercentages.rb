@@ -1,4 +1,4 @@
-#!/usr/bin/ruby
+#!/usr/bin/env ruby
 #
 #        *  PLEAC - Programming Language Examples Alike Cookbook  *
 #
