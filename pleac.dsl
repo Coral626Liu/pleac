@@ -1,10 +1,10 @@
 <!DOCTYPE style-sheet PUBLIC "-//James Clark//DTD DSSSL Style Sheet//EN" [
-<!ENTITY docbook.dsl SYSTEM "/usr/share/sgml/docbook/dsssl-stylesheets/html/docbook.dsl" CDATA DSSSL >
+<!ENTITY docbook.dsl SYSTEM "/usr/share/sgml/docbook/stylesheet/dsssl/modular/html/docbook.dsl" CDATA DSSSL >
 ]>
 
-<style-sheet> 
+<style-sheet>
 <style-specification id="html" use="docbook">
-<style-specification-body> 
+<style-specification-body>
 
 ;;; If you want everything on one page
 ;(define nochunks #t)
@@ -18,7 +18,7 @@
 
 
 ;; name for the root html file (default t1.html)
-(define %root-filename% "index")	
+(define %root-filename% "index")
 
 ;; extension for HTML output files (default .htm)
 (define %html-ext% ".html")
@@ -38,6 +38,6 @@
 </style-specification-body>
 </style-specification>
 
-<external-specification id="docbook" document="docbook.dsl"> 
+<external-specification id="docbook" document="docbook.dsl">
 
 </style-sheet>
