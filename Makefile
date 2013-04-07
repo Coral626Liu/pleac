@@ -39,9 +39,9 @@ skeleton/index.html: skeleton.sgml
 	db2html -d pleac.dsl $<
 
 %.html: %.data
-	ruby -pe 'gsub(/((@@|\^\^)INCLUDE(@@|\^\^) (\S+))/,"") { "#{$$1}\n" + File.open($$4).read }' $< > tmp.data
+	ruby1.8 -pe 'sub(/((@@|\^\^)INCLUDE(@@|\^\^) (\S+))/) { "#{$$1}\n" + File.open($$4).read }' $< > tmp.data
 	./code2html tmp.data
-	ruby -pi -e 'gsub(/(@@|\^\^)INCLUDE(@@|\^\^) (\S+)/,"") { "<font size=\"-1\"><a href=\"http://pleac.sourceforge.net/#{$$3}\">download the following standalone program</a></font>" }' tmp.data.html
+	ruby1.8 -pi -e 'sub(/(@@|\^\^)INCLUDE(@@|\^\^) (\S+)/) { "<font size=\"-1\"><a href=\"http://pleac.sourceforge.net/#{$$3}\">download the following standalone program</a></font>" }' tmp.data.html
 	mv -f tmp.data.html $@
 
 $(HTMLTARGETSDEP): %/index.html: %.html skeleton/index.html
@@ -53,21 +53,21 @@ $(HTMLTARGETSDEP): %/index.html: %.html skeleton/index.html
 web: $(DATAFILES)
 	total=`grep "PLEAC:[0-9].*:CAELP" skeleton.sgml | wc -l` ; \
 	cp index-skeleton.html index.html ; \
-	ruby -pi -e "sub(/@LASTUPDATE@/, '`date`')" index.html ; \
+	ruby1.8 -pi -e "sub(/@LASTUPDATE@/, '`date`')" index.html ; \
 	echo "<ul> " > webcontents ; \
 	for i in $(IMPLS); \
 	do \
 		echo "<li>" >> webcontents; \
 		done=`grep "..PLEAC.._[0-9].*" pleac_$$i.data | wc -l`; \
 		incomp=`grep "@@INCOMPLETE@@" pleac_$$i.data | wc -l`; \
-		percent=`ruby -e "printf \"%.2f\n\", ($$done-0.5*$$incomp)*100/Float($$total)"`; \
+		percent=`ruby1.8 -e "printf \"%.2f\n\", ($$done-0.5*$$incomp)*100/Float($$total)"`; \
 		echo "" >> webcontents; \
 		echo "<a href=\"pleac_$$i/index.html\">$$i</a>, $$percent% done " >> webcontents; \
 		echo "(<a href=\"pleac_$$i.data\">raw source</a>, <a href=\"pleac_$$i.html\">colorized source</a>)" >> webcontents; \
 		echo "</li>" >> webcontents; \
 	done
 	echo "</ul> " >> webcontents
-	ruby -pi -e "sub(/@CURRENTVERSIONS@/, '`cat webcontents`')" index.html
+	ruby1.8 -pi -e "sub(/@CURRENTVERSIONS@/, '`cat webcontents`')" index.html
 	rm -f webcontents
 
 cvs:
