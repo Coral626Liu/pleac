@@ -1,0 +1,1794 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Dates and Times</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-C/Posix/GNU"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Numbers"
+HREF="numbers.html"><LINK
+REL="NEXT"
+TITLE="Arrays"
+HREF="arrays.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-C/Posix/GNU</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="numbers.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="arrays.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="DATESANDTIMES"
+>3. Dates and Times</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN132"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// NOTE: In order to keep the size / verbosity of code examples to a minimum, library function</span>
+<span class="c1">// calls will generally not include error checking and handling. Example:</span>
+<span class="c1">//</span>
+<span class="c1">//     p = malloc(...);                if ((p = malloc(...)) == NULL)</span>
+<span class="c1">//                                     {</span>
+<span class="c1">//                                       ... handle error ...</span>
+<span class="c1">//                                     }</span>
+<span class="c1">//</span>
+<span class="c1">// However, any necessary, application-specific error-related code, will still be used. Code</span>
+<span class="c1">// examples will endeavour, wherever possible, to make use of:</span>
+<span class="c1">//</span>
+<span class="c1">// * C99 Features e.g. variable-length arrays, non-const aggregate initialisers</span>
+<span class="c1">// * GNU Extensions e.g. nested functions, statement expressions</span>
+<span class="c1">//</span>
+<span class="c1">// The aim of doing so is to reduce redundancy [i.e. copious examples of older / standard C</span>
+<span class="c1">// already exist] as well as enhance the information value of each PLEAC example.</span>
+<span class="c1">//</span>
+<span class="c1">// Another item worthy of note is the use of writeable &#39;static local storage&#39; in many custom</span>
+<span class="c1">// functions. Whilst a commonly-used technique that makes functions self-contained, and easier</span>
+<span class="c1">// to use [which is precisely why it is used here], it is not viable in multi-threaded code;</span>
+<span class="c1">// examples need to be suitably modified to work in such code. The section, &#39;Printing a Date&#39;,</span>
+<span class="c1">// in Chapter 3: Dates and Times, discusses this issue, and provides illustrative examples.</span>
+<span class="c1">//</span>
+<span class="c1">// The GNU C Library provides extensive, if somewhat low-level, date / time functionality. The</span>
+<span class="c1">// relevant section of the manual may be found at:</span>
+<span class="c1">//</span>
+<span class="c1">//     http://www.gnu.org/software/libc/manual/html_mono/libc.html#Date%20and%20Time</span>
+<span class="c1">//</span>
+<span class="c1">// Outline of some of the more important concepts:</span>
+<span class="c1">//</span>
+<span class="c1">// * Calendar time represented in three forms:</span>
+<span class="c1">//   - Simple time [a.k.a. Epoch Seconds, seconds since Jan 1, 1970]; represented by the</span>
+<span class="c1">//    &#39;time_t&#39; type [generally implemented as a 32 bit integer]</span>
+<span class="c1">//   - Broken-down time; represented by &#39;struct tm&#39;, having a field for each time component</span>
+<span class="c1">//   - Formatted string; certain string formats are printable and parseable as valid calendar</span>
+<span class="c1">//     times</span>
+<span class="c1">//</span>
+<span class="c1">// * Date manipulations are ordinarily performed using broken-down time form, and are converted</span>
+<span class="c1">//   to / from this form as the need arises:</span>
+<span class="c1">//   - Input</span>
+<span class="c1">//     + simple -&gt; broken-down: &#39;localtime&#39; / &#39;gmtime&#39;</span>
+<span class="c1">//     + string -&gt; broken-down: &#39;strptime&#39; / &#39;getdate&#39;</span>
+<span class="c1">//   - Arithmetic</span>
+<span class="c1">//     + broken-down -&gt; simple: &#39;mktime&#39;</span>
+<span class="c1">//   - Output</span>
+<span class="c1">//     + broken-down -&gt; string: &#39;strftime&#39;, &#39;asctime&#39;</span>
+<span class="c1">//</span>
+<span class="c1">//   The above list shows that a date / time value might be either be read in as a string [then</span>
+<span class="c1">//   parsed, and converted], or converted from a simple-time value [e.g. the &#39;time&#39; and</span>
+<span class="c1">//   &#39;gettimeofday&#39; routines return the current date / time as a simple-time value]. Date</span>
+<span class="c1">//   arithmetic can, of course, be performed using the component fields of a broken-time value,</span>
+<span class="c1">//   but would, more commonly, be first converted to a simple-time value [via &#39;mktime&#39;], the</span>
+<span class="c1">//   relevant operations performed, and converted back. Date / time output is ordinarily in</span>
+<span class="c1">//   string form, the conversion most likely performed using &#39;strftime&#39; routine, but use of the</span>
+<span class="c1">//   &#39;printf&#39; family is also possible</span>
+<span class="c1">//</span>
+<span class="c1">// * Despite a few exceptions, the date / time library routines are well standardised [just</span>
+<span class="c1">//   include the &lt;time.h&gt; header], so are available across platforms. The widely-implemented,</span>
+<span class="c1">//   though *NIX-specific, routines include:</span>
+<span class="c1">//   - &#39;gettimeofday&#39;, essentially a higher resolution [microseconds, possibly nanoseconds]</span>
+<span class="c1">//      version of &#39;time&#39;</span>
+<span class="c1">//   - &#39;strptime&#39; and &#39;getdate&#39;, both routines similar in functionlity to &#39;sscanf&#39; but using</span>
+<span class="c1">//     format specifications specialised for date / time handling</span>
+<span class="c1">//</span>
+<span class="c1">// Implementations of general purpose date routines [which are generally used in several</span>
+<span class="c1">// sections] appear here. Protoypes appear in each section in which they are used. To</span>
+<span class="c1">// successfully compile examples ensure the relevant code from this section is copied into</span>
+<span class="c1">// the example source file.</span>
+
+<span class="k">struct</span> <span class="n">tm</span> <span class="n">mk_tm</span><span class="p">(</span><span class="kt">int</span> <span class="n">year</span><span class="p">,</span> <span class="kt">int</span> <span class="n">month</span><span class="p">,</span> <span class="kt">int</span> <span class="n">day</span><span class="p">,</span> <span class="kt">int</span> <span class="n">hour</span><span class="p">,</span> <span class="kt">int</span> <span class="n">minute</span><span class="p">,</span> <span class="kt">int</span> <span class="n">second</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">struct</span> <span class="n">tm</span> <span class="n">tmv</span> <span class="o">=</span>
+  <span class="p">{</span>
+    <span class="p">.</span><span class="n">tm_hour</span> <span class="o">=</span> <span class="n">hour</span><span class="p">,</span> <span class="p">.</span><span class="n">tm_min</span> <span class="o">=</span> <span class="n">minute</span><span class="p">,</span> <span class="p">.</span><span class="n">tm_sec</span> <span class="o">=</span> <span class="n">second</span><span class="p">,</span>
+    <span class="p">.</span><span class="n">tm_year</span> <span class="o">=</span> <span class="n">year</span> <span class="o">-</span> <span class="mi">1900</span><span class="p">,</span> <span class="p">.</span><span class="n">tm_mon</span> <span class="o">=</span> <span class="n">month</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="p">.</span><span class="n">tm_mday</span> <span class="o">=</span> <span class="n">day</span><span class="p">,</span>
+    <span class="p">.</span><span class="n">tm_isdst</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+  <span class="p">};</span>
+
+  <span class="n">mktime</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tmv</span><span class="p">);</span>
+
+  <span class="k">return</span> <span class="n">tmv</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">struct</span> <span class="n">tm</span> <span class="n">mk_tm_unfilled</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="c1">// -1 value used to indicate &#39;unfilled&#39; since zero is a legitimate value in some fields</span>
+  <span class="k">return</span> <span class="p">((</span><span class="k">struct</span> <span class="n">tm</span><span class="p">)</span> <span class="p">{</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span> <span class="p">});</span>
+<span class="p">}</span>
+
+<span class="k">struct</span> <span class="n">tm</span> <span class="n">mk_tm_zero</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">return</span> <span class="p">((</span><span class="k">struct</span> <span class="n">tm</span><span class="p">)</span> <span class="p">{</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span> <span class="p">});</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="n">show_tm</span><span class="p">(</span><span class="k">const</span> <span class="k">struct</span> <span class="n">tm</span><span class="o">*</span> <span class="n">tmvptr</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="kt">int</span> <span class="n">year</span> <span class="o">=</span> <span class="n">tmvptr</span><span class="o">-&gt;</span><span class="n">tm_year</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span> <span class="o">?</span> <span class="n">tmvptr</span><span class="o">-&gt;</span><span class="n">tm_year</span> <span class="o">+</span> <span class="mi">1900</span> <span class="o">:</span> <span class="n">tmvptr</span><span class="o">-&gt;</span><span class="n">tm_year</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">month</span> <span class="o">=</span> <span class="n">tmvptr</span><span class="o">-&gt;</span><span class="n">tm_mon</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span> <span class="o">?</span> <span class="n">tmvptr</span><span class="o">-&gt;</span><span class="n">tm_mon</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">:</span> <span class="n">tmvptr</span><span class="o">-&gt;</span><span class="n">tm_mon</span><span class="p">;</span>
+
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Y/M/D H:M:S -&gt; %04d/%02d/%02d %02d:%02d:%02d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span>
+    <span class="n">year</span><span class="p">,</span> <span class="n">month</span><span class="p">,</span> <span class="n">tmvptr</span><span class="o">-&gt;</span><span class="n">tm_mday</span><span class="p">,</span>
+    <span class="n">tmvptr</span><span class="o">-&gt;</span><span class="n">tm_hour</span><span class="p">,</span> <span class="n">tmvptr</span><span class="o">-&gt;</span><span class="n">tm_min</span><span class="p">,</span> <span class="n">tmvptr</span><span class="o">-&gt;</span><span class="n">tm_sec</span><span class="p">);</span>
+
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;DOW: %02d</span><span class="se">\n</span><span class="s">DOY: %02d</span><span class="se">\n</span><span class="s">Daylight Saving: %02d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span>
+    <span class="n">tmvptr</span><span class="o">-&gt;</span><span class="n">tm_wday</span><span class="p">,</span> <span class="n">tmvptr</span><span class="o">-&gt;</span><span class="n">tm_yday</span><span class="p">,</span> <span class="n">tmvptr</span><span class="o">-&gt;</span><span class="n">tm_isdst</span><span class="p">);</span>
+
+  <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// Note: Equivalent of &#39;timegm&#39; function implemented on *NIX platforms [code may be &#39;unpacked&#39;</span>
+<span class="c1">// for compilers not supporting nested functions] using the more portable technique of changing,</span>
+<span class="c1">// temporarily, the TZ value</span>
+<span class="kt">time_t</span> <span class="n">mktime_utc</span><span class="p">(</span><span class="k">struct</span> <span class="n">tm</span><span class="o">*</span> <span class="n">tmvptr</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">const</span> <span class="kt">char</span> <span class="n">NUL</span> <span class="o">=</span> <span class="sc">&#39;\0&#39;</span><span class="p">;</span> <span class="kt">char</span> <span class="n">tzold</span><span class="p">[</span><span class="mi">32</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">NUL</span><span class="p">},</span> <span class="n">tznew</span><span class="p">[</span><span class="mi">32</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">NUL</span><span class="p">};</span>
+
+  <span class="kt">void</span> <span class="nf">save_tz</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="kt">char</span><span class="o">*</span> <span class="n">tz</span> <span class="o">=</span> <span class="n">getenv</span><span class="p">(</span><span class="s">&quot;TZ&quot;</span><span class="p">);</span> <span class="k">if</span> <span class="p">(</span><span class="n">tz</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="n">strcpy</span><span class="p">(</span><span class="n">tzold</span><span class="p">,</span> <span class="n">tz</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="nf">restore_tz</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="kt">char</span><span class="o">*</span> <span class="n">tz</span> <span class="o">=</span> <span class="p">(</span><span class="n">tzold</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">NUL</span><span class="p">)</span> <span class="o">?</span> <span class="n">strcat</span><span class="p">(</span><span class="n">strcpy</span><span class="p">(</span><span class="n">tznew</span><span class="p">,</span> <span class="s">&quot;TZ=&quot;</span><span class="p">),</span> <span class="n">tzold</span><span class="p">)</span> <span class="o">:</span> <span class="s">&quot;TZ&quot;</span><span class="p">;</span>
+    <span class="n">putenv</span><span class="p">(</span><span class="n">tz</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="n">save_tz</span><span class="p">();</span>
+  <span class="n">putenv</span><span class="p">(</span><span class="s">&quot;TZ=UTC&quot;</span><span class="p">);</span>
+  <span class="kt">time_t</span> <span class="n">utc</span> <span class="o">=</span> <span class="n">mktime</span><span class="p">(</span><span class="n">tmvptr</span><span class="p">);</span>
+  <span class="n">restore_tz</span><span class="p">();</span>
+
+  <span class="k">return</span> <span class="n">utc</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="c1">// ----</span>
+
+<span class="c1">// The following helper functions are loosely based on the implementations found in the</span>
+<span class="c1">// corresponding section(s) of PLEAC-PHP. The &#39;mk_date_interval&#39; function is notable for</span>
+<span class="c1">// several reasons:</span>
+<span class="c1">// * Heavy use of pointer manipulation to search and tokenise string contents; illustrative</span>
+<span class="c1">//   of a faster, more lightweight, though considerably more complex, approach to this task</span>
+<span class="c1">//   when compared with use of library functions like &#39;strtok&#39;, &#39;strstr&#39; and &#39;strchr&#39;</span>
+<span class="c1">// * Comprehensive example of both variable-argument handling, and of sensible nested function</span>
+<span class="c1">//   use</span>
+<span class="c1">// * The &#39;parse_entry&#39; nested function illustrates an approach that can be used for mimicing</span>
+<span class="c1">//   named function parameters</span>
+<span class="c1">// * Use of a delimited string as a lookup table in the &#39;getvalue&#39; nested function is mainly</span>
+<span class="c1">//   illustrative. Better performance can be obtained by other means; if still opting for a</span>
+<span class="c1">//   string-based lookup table approach, a &#39;perfect hash&#39;-based technique would be ideal,</span>
+<span class="c1">//   though would require much more code to implement</span>
+<span class="c1">//</span>
+<span class="c1">// This function, together with &#39;to_epoch&#39; and &#39;from_epoch&#39;, make use of string parameters</span>
+<span class="c1">// to represent a keyword. In C this approach wouldn&#39;t ordinarily be used because such</span>
+<span class="c1">// information can most often be encode in integer form e.g. integer constants or enumerations,</span>
+<span class="c1">// and the processing of integers is dramatically faster and far more efficient than string</span>
+<span class="c1">// operations such as linear searching and comparision. However, the reason for adopting this</span>
+<span class="c1">// string-based approach is to mimic the beahviour of the PLEAC-PHP implementations, as well</span>
+<span class="c1">// as illustrate various C techniques such as pointer manipulation and variable argument</span>
+<span class="c1">// handling.</span>
+<span class="c1">//</span>
+<span class="c1">// As an aside, error checking is minimal in most of these functions, and could certainly be</span>
+<span class="c1">// improved.</span>
+
+<span class="kt">time_t</span> <span class="n">mk_date_interval</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">arg1</span><span class="p">,</span> <span class="p">...)</span>
+<span class="p">{</span>
+  <span class="k">static</span> <span class="k">const</span> <span class="kt">char</span> <span class="n">EQ</span> <span class="o">=</span> <span class="sc">&#39;=&#39;</span><span class="p">,</span> <span class="n">COMMA</span> <span class="o">=</span> <span class="sc">&#39;,&#39;</span><span class="p">,</span> <span class="n">NUL</span> <span class="o">=</span> <span class="sc">&#39;\0&#39;</span><span class="p">;</span>
+  <span class="k">static</span> <span class="kt">char</span> <span class="n">buffer</span><span class="p">[</span><span class="mi">16</span><span class="p">];</span>
+
+  <span class="c1">// ----</span>
+
+  <span class="kt">char</span><span class="o">*</span> <span class="nf">parse_entry</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">entry</span><span class="p">,</span> <span class="kt">int</span><span class="o">*</span> <span class="n">value</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="kt">char</span><span class="o">*</span> <span class="n">p</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span> <span class="n">entry</span><span class="p">;</span> <span class="c1">// Assumes: &quot;key=value&quot; form</span>
+
+    <span class="c1">// Extract, and convert &#39;value&#39;</span>
+    <span class="k">while</span> <span class="p">(</span><span class="o">*</span><span class="n">p</span><span class="o">++</span> <span class="o">!=</span> <span class="n">EQ</span><span class="p">)</span> <span class="k">if</span> <span class="p">(</span><span class="o">*</span><span class="n">p</span> <span class="o">==</span> <span class="n">NUL</span><span class="p">)</span> <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+    <span class="o">*</span><span class="n">value</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">p</span><span class="p">);</span>
+
+    <span class="c1">// Extract &#39;key&#39;, copy to buffer for return</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">buffer</span><span class="p">;</span>
+    <span class="k">while</span> <span class="p">(</span><span class="o">*</span><span class="n">entry</span> <span class="o">!=</span> <span class="n">EQ</span><span class="p">)</span> <span class="o">*</span><span class="n">p</span><span class="o">++</span> <span class="o">=</span> <span class="o">*</span><span class="n">entry</span><span class="o">++</span><span class="p">;</span>
+    <span class="o">*</span><span class="n">p</span> <span class="o">=</span> <span class="n">NUL</span><span class="p">;</span>
+
+    <span class="k">return</span> <span class="n">buffer</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="c1">// ----</span>
+
+  <span class="kt">int</span> <span class="nf">getvalue</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">key</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="c1">// Lookup table implemented as a delimited string</span>
+    <span class="k">static</span> <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="k">const</span> <span class="n">TBL</span> <span class="o">=</span> <span class="s">&quot;sec=1,min=60,hou=3600,day=86400,wee=604800&quot;</span><span class="p">;</span>
+
+    <span class="c1">// Perform table lookup [via linear search (slow) of string]</span>
+    <span class="kt">char</span><span class="o">*</span> <span class="n">p</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span> <span class="n">strcasestr</span><span class="p">(</span><span class="n">TBL</span><span class="p">,</span> <span class="n">key</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">p</span><span class="p">)</span> <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+
+    <span class="c1">// Extract table value. Since table is in delimited string form, use pointer</span>
+    <span class="c1">// manipulation to mark start and end locations of required substring [value for key].</span>
+    <span class="c1">// Since locations are in a string constant, NUL-termination cannot be performed</span>
+    <span class="c1">// in-place, so substring is copied to a buffer for subsequent processing</span>
+    <span class="k">while</span> <span class="p">(</span><span class="o">*</span><span class="n">p</span><span class="o">++</span> <span class="o">!=</span> <span class="n">EQ</span><span class="p">)</span> <span class="p">;</span>
+    <span class="kt">char</span><span class="o">*</span> <span class="n">q</span> <span class="o">=</span> <span class="n">p</span><span class="p">;</span>
+    <span class="k">while</span> <span class="p">(</span><span class="o">*</span><span class="n">q</span> <span class="o">!=</span> <span class="n">NUL</span><span class="p">)</span> <span class="k">if</span> <span class="p">(</span><span class="o">*</span><span class="n">q</span> <span class="o">==</span> <span class="n">COMMA</span><span class="p">)</span> <span class="k">break</span><span class="p">;</span> <span class="k">else</span> <span class="o">++</span><span class="n">q</span><span class="p">;</span>
+    <span class="n">memcpy</span><span class="p">(</span><span class="n">buffer</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span> <span class="o">-</span> <span class="n">p</span><span class="p">);</span>
+    <span class="o">*</span><span class="p">(</span><span class="n">buffer</span> <span class="o">+</span> <span class="p">(</span><span class="n">q</span> <span class="o">-</span> <span class="n">p</span><span class="p">))</span> <span class="o">=</span> <span class="n">NUL</span><span class="p">;</span>
+
+    <span class="k">return</span> <span class="n">atoi</span><span class="p">(</span><span class="n">buffer</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="c1">// ----</span>
+
+  <span class="kt">int</span> <span class="n">interval</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">value</span><span class="p">;</span> <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">key</span><span class="p">;</span>
+
+  <span class="c1">// Extract values from 1st argument</span>
+  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="p">(</span><span class="n">key</span> <span class="o">=</span> <span class="n">parse_entry</span><span class="p">(</span><span class="n">arg1</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">value</span><span class="p">)))</span> <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="n">interval</span> <span class="o">+=</span> <span class="n">value</span> <span class="o">*</span> <span class="n">getvalue</span><span class="p">(</span><span class="n">key</span><span class="p">);</span>
+
+  <span class="c1">// Setup for variable argument handling, and extract values from each of these</span>
+  <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">arg</span><span class="p">;</span> <span class="kt">va_list</span> <span class="n">ap</span><span class="p">;</span>
+
+  <span class="n">va_start</span><span class="p">(</span><span class="n">ap</span><span class="p">,</span> <span class="n">arg1</span><span class="p">);</span>
+
+  <span class="k">while</span> <span class="p">((</span><span class="n">arg</span> <span class="o">=</span> <span class="n">va_arg</span><span class="p">(</span><span class="n">ap</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span><span class="o">*</span><span class="p">))</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="p">(</span><span class="n">key</span> <span class="o">=</span> <span class="n">parse_entry</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">value</span><span class="p">)))</span> <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">interval</span> <span class="o">+=</span> <span class="n">value</span> <span class="o">*</span> <span class="n">getvalue</span><span class="p">(</span><span class="n">key</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="n">va_end</span><span class="p">(</span><span class="n">ap</span><span class="p">);</span>
+
+  <span class="k">return</span> <span class="n">interval</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">time_t</span> <span class="n">to_epoch</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">intvltype</span><span class="p">,</span> <span class="kt">double</span> <span class="n">multiple</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">return</span> <span class="p">(</span><span class="kt">time_t</span><span class="p">)</span> <span class="n">floor</span><span class="p">(</span><span class="n">multiple</span> <span class="o">*</span> <span class="n">get_date_interval_value</span><span class="p">(</span><span class="n">intvltype</span><span class="p">));</span>
+<span class="p">}</span>
+
+<span class="kt">double</span> <span class="n">from_epoch</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">intvltype</span><span class="p">,</span> <span class="kt">time_t</span> <span class="n">tv</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="kt">double</span> <span class="n">interval</span> <span class="o">=</span> <span class="n">get_date_interval_value</span><span class="p">(</span><span class="n">intvltype</span><span class="p">);</span>
+  <span class="k">return</span> <span class="p">(</span><span class="n">interval</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">)</span> <span class="o">?</span> <span class="n">tv</span> <span class="o">/</span> <span class="n">interval</span> <span class="o">:</span> <span class="mf">0.0</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">double</span> <span class="n">get_date_interval_value</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">intvltype</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="kt">double</span> <span class="n">interval</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">;</span>
+
+  <span class="c1">// What, no lookup table ;) ?</span>
+  <span class="k">switch</span> <span class="p">(</span><span class="o">*</span><span class="n">intvltype</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="k">case</span> <span class="sc">&#39;d&#39;</span> : <span class="n">interval</span> <span class="o">=</span> <span class="n">strncasecmp</span><span class="p">(</span><span class="n">intvltype</span><span class="p">,</span> <span class="s">&quot;day&quot;</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="o">?</span> <span class="mf">86400.0</span> <span class="o">:</span> <span class="mf">0.0</span><span class="p">;</span> <span class="k">break</span><span class="p">;</span>
+    <span class="k">case</span> <span class="sc">&#39;h&#39;</span> : <span class="n">interval</span> <span class="o">=</span> <span class="n">strncasecmp</span><span class="p">(</span><span class="n">intvltype</span><span class="p">,</span> <span class="s">&quot;hou&quot;</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="o">?</span> <span class="mf">3600.0</span> <span class="o">:</span> <span class="mf">0.0</span><span class="p">;</span> <span class="k">break</span><span class="p">;</span>
+    <span class="k">case</span> <span class="sc">&#39;m&#39;</span> : <span class="n">interval</span> <span class="o">=</span> <span class="n">strncasecmp</span><span class="p">(</span><span class="n">intvltype</span><span class="p">,</span> <span class="s">&quot;min&quot;</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="o">?</span> <span class="mf">60.0</span> <span class="o">:</span> <span class="mf">0.0</span><span class="p">;</span> <span class="k">break</span><span class="p">;</span>
+    <span class="k">case</span> <span class="sc">&#39;s&#39;</span> : <span class="n">interval</span> <span class="o">=</span> <span class="n">strncasecmp</span><span class="p">(</span><span class="n">intvltype</span><span class="p">,</span> <span class="s">&quot;sec&quot;</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="o">?</span> <span class="mf">1.0</span> <span class="o">:</span> <span class="mf">0.0</span><span class="p">;</span> <span class="k">break</span><span class="p">;</span>
+    <span class="k">case</span> <span class="sc">&#39;w&#39;</span> : <span class="n">interval</span> <span class="o">=</span> <span class="n">strncasecmp</span><span class="p">(</span><span class="n">intvltype</span><span class="p">,</span> <span class="s">&quot;wee&quot;</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="o">?</span> <span class="mf">604800.0</span> <span class="o">:</span> <span class="mf">0.0</span><span class="p">;</span> <span class="k">break</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="k">return</span> <span class="n">interval</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">int</span> <span class="n">doy</span><span class="p">(</span><span class="kt">int</span> <span class="n">year</span><span class="p">,</span> <span class="kt">int</span> <span class="n">month</span><span class="p">,</span> <span class="kt">int</span> <span class="n">day</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">const</span> <span class="kt">int</span> <span class="n">BASE</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span> <span class="c1">// Zero base [i.e. 1st day is zero] assumed</span>
+  <span class="k">static</span> <span class="k">const</span> <span class="kt">int</span> <span class="n">cumdays</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">31</span><span class="p">,</span> <span class="mi">59</span><span class="p">,</span> <span class="mi">90</span><span class="p">,</span> <span class="mi">120</span><span class="p">,</span> <span class="mi">151</span><span class="p">,</span> <span class="mi">181</span><span class="p">,</span> <span class="mi">212</span><span class="p">,</span> <span class="mi">243</span><span class="p">,</span> <span class="mi">273</span><span class="p">,</span> <span class="mi">304</span><span class="p">,</span> <span class="mi">334</span><span class="p">,</span> <span class="mi">365</span> <span class="p">};</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">month</span> <span class="o">&lt;</span> <span class="mi">1</span> <span class="o">||</span> <span class="n">month</span> <span class="o">&gt;</span> <span class="mi">12</span><span class="p">)</span> <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+  <span class="k">return</span> <span class="n">BASE</span> <span class="o">+</span> <span class="n">cumdays</span><span class="p">[</span><span class="n">month</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">day</span> <span class="o">+</span> <span class="p">(</span><span class="n">is_leap_year</span><span class="p">(</span><span class="n">year</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="n">month</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="o">?</span> <span class="mi">1</span> <span class="o">:</span> <span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">dayname</span><span class="p">(</span><span class="kt">int</span> <span class="n">day</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">static</span> <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">dnams</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span> <span class="s">&quot;Sunday&quot;</span><span class="p">,</span> <span class="s">&quot;Monday&quot;</span><span class="p">,</span> <span class="s">&quot;Tuesday&quot;</span><span class="p">,</span> <span class="s">&quot;Wednesday&quot;</span><span class="p">,</span> <span class="s">&quot;Thursday&quot;</span><span class="p">,</span> <span class="s">&quot;Friday&quot;</span><span class="p">,</span> <span class="s">&quot;Saturday&quot;</span> <span class="p">};</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">day</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="o">||</span> <span class="n">day</span> <span class="o">&gt;</span> <span class="mi">6</span><span class="p">)</span> <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+  <span class="k">return</span> <span class="n">dnams</span><span class="p">[</span><span class="n">day</span><span class="p">];</span>
+<span class="p">}</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">bool</span> <span class="n">is_parseable_date</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">date</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">fmt</span><span class="p">,</span> <span class="k">struct</span> <span class="n">tm</span><span class="o">*</span> <span class="n">tmvptr</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">static</span> <span class="kt">char</span> <span class="n">datebuf</span><span class="p">[</span><span class="mi">128</span><span class="p">];</span>
+
+  <span class="c1">// Date / time string is parsed according to format specification; if it fails it can</span>
+  <span class="c1">// be assumed a format or type error occurred</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">strptime</span><span class="p">(</span><span class="n">date</span><span class="p">,</span> <span class="n">fmt</span><span class="p">,</span> <span class="n">tmvptr</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="n">datebuf</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="sc">&#39;\1&#39;</span><span class="p">;</span>
+    <span class="c1">// Attempt to generate a date / time string using the previously created broken-time</span>
+    <span class="c1">// value; if it succeeds it can be assumed the broken-down value is sound, but further</span>
+    <span class="c1">// validation is needed to ensure the value is truly &#39;valid&#39;</span>
+    <span class="k">return</span> <span class="o">!</span><span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="n">datebuf</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">datebuf</span><span class="p">),</span> <span class="n">fmt</span><span class="p">,</span> <span class="n">tmvptr</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">datebuf</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="sc">&#39;\0&#39;</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">bool</span> <span class="n">is_leap_year</span><span class="p">(</span><span class="kt">int</span> <span class="n">year</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">return</span> <span class="n">year</span> <span class="o">%</span> <span class="mi">4</span> <span class="o">==</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="n">year</span> <span class="o">%</span> <span class="mi">100</span> <span class="o">!=</span> <span class="mi">0</span> <span class="o">||</span> <span class="n">year</span> <span class="o">%</span> <span class="mi">400</span> <span class="o">==</span> <span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">bool</span> <span class="n">is_valid_hms</span><span class="p">(</span><span class="kt">int</span> <span class="n">hour</span><span class="p">,</span> <span class="kt">int</span> <span class="n">minute</span><span class="p">,</span> <span class="kt">int</span> <span class="n">second</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="c1">// Purely arbitrary choice; allows 24:00:00, but may be omitted</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">hour</span> <span class="o">==</span> <span class="mi">24</span> <span class="o">&amp;&amp;</span> <span class="n">minute</span> <span class="o">==</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">second</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">hour</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span> <span class="o">&amp;&amp;</span> <span class="n">hour</span> <span class="o">&lt;</span> <span class="mi">24</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">minute</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span> <span class="o">&amp;&amp;</span> <span class="n">minute</span> <span class="o">&lt;</span> <span class="mi">60</span><span class="p">)</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">second</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span> <span class="o">&amp;&amp;</span> <span class="n">second</span> <span class="o">&lt;</span> <span class="mi">60</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+
+  <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">bool</span> <span class="n">is_valid_ymd</span><span class="p">(</span><span class="kt">int</span> <span class="n">year</span><span class="p">,</span> <span class="kt">int</span> <span class="n">month</span><span class="p">,</span> <span class="kt">int</span> <span class="n">day</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">static</span> <span class="k">const</span> <span class="kt">int</span> <span class="n">mtbl</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">31</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">31</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">31</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">31</span><span class="p">,</span> <span class="mi">31</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">31</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">31</span> <span class="p">};</span>
+
+  <span class="c1">// Purely arbitrary choice; may be modified or omitted</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">year</span> <span class="o">&lt;</span> <span class="mi">1970</span> <span class="o">||</span> <span class="n">year</span> <span class="o">&gt;</span> <span class="mi">2038</span><span class="p">)</span> <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">month</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">month</span> <span class="o">&lt;</span> <span class="mi">13</span> <span class="o">&amp;&amp;</span> <span class="n">day</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">day</span> <span class="o">&lt;=</span> <span class="n">mtbl</span><span class="p">[</span><span class="n">month</span><span class="p">])</span> <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">day</span> <span class="o">==</span> <span class="mi">29</span> <span class="o">&amp;&amp;</span> <span class="n">month</span> <span class="o">==</span> <span class="mi">2</span> <span class="o">&amp;&amp;</span> <span class="n">is_leap_year</span><span class="p">(</span><span class="n">year</span><span class="p">))</span> <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+
+  <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">bool</span> <span class="n">is_valid_tm</span><span class="p">(</span><span class="k">struct</span> <span class="n">tm</span><span class="o">*</span> <span class="n">tmvptr</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">return</span>
+    <span class="n">is_valid_hms</span><span class="p">(</span><span class="n">tmvptr</span><span class="o">-&gt;</span><span class="n">tm_hour</span><span class="p">,</span> <span class="n">tmvptr</span><span class="o">-&gt;</span><span class="n">tm_min</span><span class="p">,</span> <span class="n">tmvptr</span><span class="o">-&gt;</span><span class="n">tm_sec</span><span class="p">)</span> <span class="o">&amp;&amp;</span>
+    <span class="n">is_valid_ymd</span><span class="p">(</span><span class="n">tmvptr</span><span class="o">-&gt;</span><span class="n">tm_year</span> <span class="o">+</span> <span class="mi">1900</span><span class="p">,</span> <span class="n">tmvptr</span><span class="o">-&gt;</span><span class="n">tm_mon</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">tmvptr</span><span class="o">-&gt;</span><span class="n">tm_mday</span><span class="p">)</span> <span class="o">&amp;&amp;</span>
+    <span class="n">mktime</span><span class="p">(</span><span class="n">tmvptr</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="c1">// ----</span>
+
+<span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">mk_fmt_date</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">fmt</span><span class="p">,</span> <span class="k">const</span> <span class="k">struct</span> <span class="n">tm</span><span class="o">*</span> <span class="n">tmvptr</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">static</span> <span class="kt">char</span> <span class="n">datebuf</span><span class="p">[</span><span class="mi">64</span><span class="p">];</span>
+  <span class="k">return</span> <span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="n">datebuf</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">datebuf</span><span class="p">),</span> <span class="n">fmt</span><span class="p">,</span> <span class="n">tmvptr</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="o">?</span> <span class="nb">NULL</span> <span class="o">:</span> <span class="n">datebuf</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">double</span> <span class="n">hms_to_frac</span><span class="p">(</span><span class="kt">int</span> <span class="n">hour</span><span class="p">,</span> <span class="kt">int</span> <span class="n">min</span><span class="p">,</span> <span class="kt">int</span> <span class="n">sec</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">return</span> <span class="p">(</span><span class="n">hour</span> <span class="o">*</span> <span class="mi">3600</span> <span class="o">+</span> <span class="n">min</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">+</span> <span class="n">sec</span><span class="p">)</span> <span class="o">/</span> <span class="mf">86400.</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="n">frac_to_hms</span><span class="p">(</span><span class="kt">double</span> <span class="n">frac</span><span class="p">,</span> <span class="kt">int</span><span class="o">*</span> <span class="n">hour</span><span class="p">,</span> <span class="kt">int</span><span class="o">*</span> <span class="n">min</span><span class="p">,</span> <span class="kt">int</span><span class="o">*</span> <span class="n">sec</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="kt">int</span> <span class="n">seconds</span> <span class="o">=</span> <span class="n">floor</span><span class="p">(</span><span class="n">frac</span> <span class="o">*</span> <span class="mf">86400.</span><span class="p">);</span>
+
+  <span class="o">*</span><span class="n">hour</span> <span class="o">=</span> <span class="n">seconds</span> <span class="o">/</span> <span class="mi">3600</span><span class="p">;</span>
+  <span class="o">*</span><span class="n">min</span> <span class="o">=</span> <span class="p">(</span><span class="n">seconds</span> <span class="o">-</span> <span class="o">*</span><span class="n">hour</span> <span class="o">*</span> <span class="mi">3600</span><span class="p">)</span> <span class="o">/</span> <span class="mi">60</span><span class="p">;</span>
+  <span class="o">*</span><span class="n">sec</span> <span class="o">=</span> <span class="p">(</span><span class="n">seconds</span> <span class="o">-</span> <span class="p">(</span><span class="o">*</span><span class="n">hour</span> <span class="o">*</span> <span class="mi">3600</span> <span class="o">+</span> <span class="o">*</span><span class="n">min</span> <span class="o">*</span> <span class="mi">60</span><span class="p">));</span>
+<span class="p">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN135"
+>Finding Today's Date</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// The current date may be obtained by two means:</span>
+<span class="c1">// * &#39;time&#39; library function call; this is the standard, cross-platform approach, which</span>
+<span class="c1">//   returns a value in Epoch Seconds [elapsed seconds since Jan 1, 1970]</span>
+<span class="c1">// * &#39;gettimeofday&#39; library function; *NIX-specific approach which is similar to &#39;time&#39;</span>
+<span class="c1">//   function, but also allows values retrieveable to microsecond resolution</span>
+<span class="c1">//</span>
+<span class="c1">// Once an epoch second value is so obtained it is usual to convert it to a broken-down time</span>
+<span class="c1">// representation for subsequent manipulation, particularly conversion to string form for</span>
+<span class="c1">// output. If however, date arithmetic is to be performed, it is more common to see it done</span>
+<span class="c1">// directly in epoch second form</span>
+
+<span class="cp">#include &lt;time.h&gt;</span>
+
+<span class="kt">int</span> <span class="n">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="c1">// Current time: epoch seconds</span>
+  <span class="kt">time_t</span> <span class="n">curtime</span> <span class="o">=</span> <span class="n">time</span><span class="p">(</span><span class="nb">NULL</span><span class="p">);</span>
+
+  <span class="c1">// Current time: broken-down time</span>
+  <span class="k">struct</span> <span class="n">tm</span><span class="o">*</span> <span class="n">locptr</span> <span class="o">=</span> <span class="n">localtime</span><span class="p">(</span><span class="o">&amp;</span><span class="n">curtime</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ------------</span>
+
+<span class="cp">#include &lt;time.h&gt;</span>
+<span class="cp">#include &lt;sys/time.h&gt;</span>
+
+<span class="kt">int</span> <span class="n">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="c1">// Current time: epoch seconds</span>
+  <span class="kt">time_t</span> <span class="n">curtime</span> <span class="o">=</span> <span class="p">({</span> <span class="k">struct</span> <span class="n">timeval</span> <span class="n">timev</span><span class="p">;</span> <span class="n">gettimeofday</span><span class="p">(</span><span class="o">&amp;</span><span class="n">timev</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span> <span class="n">timev</span><span class="p">.</span><span class="n">tv_sec</span><span class="p">;</span> <span class="p">});</span>
+
+  <span class="c1">// Current time: broken-down time</span>
+  <span class="k">struct</span> <span class="n">tm</span><span class="o">*</span> <span class="n">locptr</span> <span class="o">=</span> <span class="n">localtime</span><span class="p">(</span><span class="o">&amp;</span><span class="n">curtime</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ----------------------------</span>
+
+<span class="cp">#include &lt;stdio.h&gt;</span>
+<span class="cp">#include &lt;time.h&gt;</span>
+
+<span class="kt">int</span> <span class="n">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="kt">time_t</span> <span class="n">curtime</span> <span class="o">=</span> <span class="n">time</span><span class="p">(</span><span class="nb">NULL</span><span class="p">);</span>
+
+  <span class="c1">// Print standard format date string generated from a simple-time value</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;today is %s&quot;</span><span class="p">,</span> <span class="n">ctime</span><span class="p">(</span><span class="o">&amp;</span><span class="n">curtime</span><span class="p">));</span> <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+
+  <span class="k">struct</span> <span class="n">tm</span><span class="o">*</span> <span class="n">locptr</span> <span class="o">=</span> <span class="n">localtime</span><span class="p">(</span><span class="o">&amp;</span><span class="n">curtime</span><span class="p">);</span>
+
+  <span class="c1">// Print standard format date string generated from a broken-time value</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;today is %s&quot;</span><span class="p">,</span> <span class="n">asctime</span><span class="p">(</span><span class="n">locptr</span><span class="p">));</span> <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+
+  <span class="c1">// Use &#39;strftime&#39; and date format specification to generate date string</span>
+  <span class="kt">char</span> <span class="n">datebuf</span><span class="p">[</span><span class="mi">32</span><span class="p">];</span>
+  <span class="n">strftime</span><span class="p">(</span><span class="n">datebuf</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">datebuf</span><span class="p">),</span> <span class="s">&quot;%Y-%m-%d&quot;</span><span class="p">,</span> <span class="n">locptr</span><span class="p">);</span>
+
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;today is %s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">datebuf</span><span class="p">);</span> <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+
+  <span class="c1">// Extract broken-down time components, and format string using &#39;printf&#39;</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;today is %04d-%02d-%02d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span>
+    <span class="n">locptr</span><span class="o">-&gt;</span><span class="n">tm_year</span> <span class="o">+</span> <span class="mi">1900</span><span class="p">,</span>
+    <span class="n">locptr</span><span class="o">-&gt;</span><span class="n">tm_mon</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">locptr</span><span class="o">-&gt;</span><span class="n">tm_mday</span><span class="p">);</span>
+  <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+<span class="p">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN138"
+>Converting DMYHMS to Epoch Seconds</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// The &#39;mktime&#39; library function fulfils this role by converting a broken-down time value to</span>
+<span class="c1">// the required epoch seconds. By default the generated value is local time based; a custom</span>
+<span class="c1">// function is provided for UTC-based time</span>
+
+<span class="cp">#include &lt;time.h&gt;</span>
+<span class="cp">#include &lt;stdlib.h&gt;</span>
+<span class="cp">#include &lt;string.h&gt;</span>
+
+<span class="k">struct</span> <span class="n">tm</span> <span class="n">mk_tm</span><span class="p">(</span><span class="kt">int</span> <span class="n">year</span><span class="p">,</span> <span class="kt">int</span> <span class="n">month</span><span class="p">,</span> <span class="kt">int</span> <span class="n">day</span><span class="p">,</span> <span class="kt">int</span> <span class="n">hour</span><span class="p">,</span> <span class="kt">int</span> <span class="n">minute</span><span class="p">,</span> <span class="kt">int</span> <span class="n">second</span><span class="p">);</span>
+<span class="kt">time_t</span> <span class="nf">mktime_utc</span><span class="p">(</span><span class="k">struct</span> <span class="n">tm</span><span class="o">*</span> <span class="n">tmvptr</span><span class="p">);</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="c1">// Create a broken-down time value from arbitrary component values [Y,M,D,H,M,S]</span>
+  <span class="k">struct</span> <span class="n">tm</span> <span class="n">tmv</span> <span class="o">=</span> <span class="n">mk_tm</span><span class="p">(</span><span class="mi">2007</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+
+  <span class="c1">// Convert a broken-down time value to epoch seconds [local time assumed]</span>
+  <span class="kt">time_t</span> <span class="n">epoch_seconds_local</span> <span class="o">=</span> <span class="n">mktime</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tmv</span><span class="p">);</span>
+
+  <span class="c1">// Convert a broken-down time value to epoch seconds [UTC time]</span>
+  <span class="kt">time_t</span> <span class="n">epoch_seconds_utc</span> <span class="o">=</span> <span class="n">mktime_utc</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tmv</span><span class="p">);</span>
+<span class="p">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN141"
+>Converting Epoch Seconds to DMYHMS</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// Two library functions fulfil this role:</span>
+<span class="c1">// * &#39;localtime&#39;, generates a local time-based value</span>
+<span class="c1">// * &#39;gmtime&#39;, as above, except generated value is UTC-based</span>
+
+<span class="cp">#include &lt;time.h&gt;</span>
+<span class="cp">#include &lt;stdio.h&gt;</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="c1">// Current time: epoch seconds</span>
+  <span class="kt">time_t</span> <span class="n">curtime</span> <span class="o">=</span> <span class="n">time</span><span class="p">(</span><span class="nb">NULL</span><span class="p">);</span>
+
+  <span class="c1">// Current time: broken-down time [local time-based]</span>
+  <span class="k">struct</span> <span class="n">tm</span><span class="o">*</span> <span class="n">locptr</span> <span class="o">=</span> <span class="n">localtime</span><span class="p">(</span><span class="o">&amp;</span><span class="n">curtime</span><span class="p">);</span>
+
+  <span class="c1">// Current time: broken-down time [UTC-based]</span>
+  <span class="k">struct</span> <span class="n">tm</span><span class="o">*</span> <span class="n">utcptr</span> <span class="o">=</span> <span class="n">gmtime</span><span class="p">(</span><span class="o">&amp;</span><span class="n">curtime</span><span class="p">);</span>
+
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Dateline: %02d:%02d:%02d-%04d/%02d/%02d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span>
+    <span class="n">locptr</span><span class="o">-&gt;</span><span class="n">tm_hour</span><span class="p">,</span> <span class="n">locptr</span><span class="o">-&gt;</span><span class="n">tm_min</span><span class="p">,</span> <span class="n">locptr</span><span class="o">-&gt;</span><span class="n">tm_sec</span><span class="p">,</span>
+    <span class="n">locptr</span><span class="o">-&gt;</span><span class="n">tm_year</span> <span class="o">+</span> <span class="mi">1900</span><span class="p">,</span> <span class="n">locptr</span><span class="o">-&gt;</span><span class="n">tm_mon</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">locptr</span><span class="o">-&gt;</span><span class="n">tm_mday</span><span class="p">);</span>
+
+  <span class="k">struct</span> <span class="n">tm</span> <span class="n">loct</span> <span class="o">=</span> <span class="o">*</span><span class="n">locptr</span><span class="p">;</span>
+
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Dateline: %02d:%02d:%02d-%04d/%02d/%02d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span>
+    <span class="n">loct</span><span class="p">.</span><span class="n">tm_hour</span><span class="p">,</span> <span class="n">loct</span><span class="p">.</span><span class="n">tm_min</span><span class="p">,</span> <span class="n">loct</span><span class="p">.</span><span class="n">tm_sec</span><span class="p">,</span>
+    <span class="n">loct</span><span class="p">.</span><span class="n">tm_year</span> <span class="o">+</span> <span class="mi">1900</span><span class="p">,</span> <span class="n">loct</span><span class="p">.</span><span class="n">tm_mon</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">loct</span><span class="p">.</span><span class="n">tm_mday</span><span class="p">);</span>
+
+  <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+<span class="p">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN144"
+>Adding to or Subtracting from a Date</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// This task entails the conversion of all dates to be so treated to epoch seconds, which can</span>
+<span class="c1">// then be arithmetically manipulated. A number of helper functions are included:</span>
+<span class="c1">// * &#39;to_epoch&#39;, &#39;from_epoch&#39;; convert a time interval e.g. day, week etc to / from epoch second</span>
+<span class="c1">//   intervals</span>
+<span class="c1">// * &#39;mk_date_interval&#39;, creates an epoch second interval from a set of disparate time intervals</span>
+<span class="c1">// * &#39;frac_to_hms&#39; and &#39;hms_to_frac&#39; convert fractional days to / from H:M:S values</span>
+<span class="c1">//</span>
+<span class="c1">// In general, arithmetic manipulation of &#39;time_t&#39; values is safe, but on platforms where it</span>
+<span class="c1">// may not be implemented as an &#39;int&#39; or related type, the &#39;difftime&#39; library function should</span>
+<span class="c1">// used</span>
+
+<span class="cp">#include &lt;stdio.h&gt;</span>
+<span class="cp">#include &lt;stdarg.h&gt;</span>
+<span class="cp">#include &lt;string.h&gt;</span>
+<span class="cp">#include &lt;math.h&gt;</span>
+<span class="cp">#include &lt;time.h&gt;</span>
+
+<span class="kt">time_t</span> <span class="nf">mk_date_interval</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">arg1</span><span class="p">,</span> <span class="p">...);</span>
+<span class="kt">double</span> <span class="nf">get_date_interval_value</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">intvltype</span><span class="p">);</span>
+
+<span class="kt">time_t</span> <span class="nf">to_epoch</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">intvltype</span><span class="p">,</span> <span class="kt">double</span> <span class="n">multiple</span><span class="p">);</span>
+<span class="kt">double</span> <span class="nf">from_epoch</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">intvltype</span><span class="p">,</span> <span class="kt">time_t</span> <span class="n">tv</span><span class="p">);</span>
+
+<span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="nf">mk_fmt_date</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">fmt</span><span class="p">,</span> <span class="k">const</span> <span class="k">struct</span> <span class="n">tm</span><span class="o">*</span> <span class="n">tmvptr</span><span class="p">);</span>
+<span class="k">struct</span> <span class="n">tm</span> <span class="nf">mk_tm</span><span class="p">(</span><span class="kt">int</span> <span class="n">year</span><span class="p">,</span> <span class="kt">int</span> <span class="n">month</span><span class="p">,</span> <span class="kt">int</span> <span class="n">day</span><span class="p">,</span> <span class="kt">int</span> <span class="n">hour</span><span class="p">,</span> <span class="kt">int</span> <span class="n">minute</span><span class="p">,</span> <span class="kt">int</span> <span class="n">second</span><span class="p">);</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="kt">time_t</span> <span class="n">now</span><span class="p">,</span> <span class="n">difference</span><span class="p">;</span>
+
+  <span class="kt">time_t</span> <span class="n">when</span> <span class="o">=</span> <span class="n">now</span> <span class="o">+</span> <span class="n">difference</span><span class="p">;</span>     <span class="c1">// &#39;difference&#39; epoch seconds in the future</span>
+  <span class="kt">time_t</span> <span class="n">then</span> <span class="o">=</span> <span class="n">now</span> <span class="o">-</span> <span class="n">difference</span><span class="p">;</span>     <span class="c1">// &#39;difference&#39; epoch seconds in the past</span>
+
+  <span class="c1">// ------------</span>
+
+  <span class="n">now</span> <span class="o">=</span> <span class="n">time</span><span class="p">(</span><span class="nb">NULL</span><span class="p">);</span>
+
+  <span class="kt">time_t</span> <span class="n">diff1</span> <span class="o">=</span> <span class="n">to_epoch</span><span class="p">(</span><span class="s">&quot;day&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+         <span class="n">diff2</span> <span class="o">=</span> <span class="n">to_epoch</span><span class="p">(</span><span class="s">&quot;week&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">);</span>
+
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Today is:                  %s&quot;</span><span class="p">,</span> <span class="n">ctime</span><span class="p">(</span><span class="o">&amp;</span><span class="n">now</span><span class="p">));</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Two days in the future is: %s&quot;</span><span class="p">,</span> <span class="p">({</span> <span class="kt">time_t</span> <span class="n">tv</span> <span class="o">=</span> <span class="n">now</span> <span class="o">+</span> <span class="n">diff1</span><span class="p">;</span> <span class="n">ctime</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tv</span><span class="p">);</span> <span class="p">}));</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Two weeks in the past is:  %s&quot;</span><span class="p">,</span> <span class="p">({</span> <span class="kt">time_t</span> <span class="n">tv</span> <span class="o">=</span> <span class="n">now</span> <span class="o">-</span> <span class="n">diff2</span><span class="p">;</span> <span class="n">ctime</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tv</span><span class="p">);</span> <span class="p">}));</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span> <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Today is:                  %s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">mk_fmt_date</span><span class="p">(</span><span class="s">&quot;%Y-%m-%d&quot;</span><span class="p">,</span> <span class="n">localtime</span><span class="p">(</span><span class="o">&amp;</span><span class="n">now</span><span class="p">)));</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Two days in the future is: %s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span>
+    <span class="p">({</span> <span class="kt">time_t</span> <span class="n">tv</span> <span class="o">=</span> <span class="n">now</span> <span class="o">+</span> <span class="n">diff1</span><span class="p">;</span> <span class="n">mk_fmt_date</span><span class="p">(</span><span class="s">&quot;%Y-%m-%d&quot;</span><span class="p">,</span> <span class="n">localtime</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tv</span><span class="p">));</span> <span class="p">}));</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Two weeks in the past is:  %s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span>
+    <span class="p">({</span> <span class="kt">time_t</span> <span class="n">tv</span> <span class="o">=</span> <span class="n">now</span> <span class="o">-</span> <span class="n">diff2</span><span class="p">;</span> <span class="n">mk_fmt_date</span><span class="p">(</span><span class="s">&quot;%Y-%m-%d&quot;</span><span class="p">,</span> <span class="n">localtime</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tv</span><span class="p">));</span> <span class="p">}));</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span> <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+
+  <span class="c1">// ------------</span>
+
+  <span class="kt">time_t</span> <span class="n">birthtime</span> <span class="o">=</span> <span class="mi">96176750</span><span class="p">;</span>                  <span class="c1">// 18/Jan/1973, 3:45:50 am</span>
+
+  <span class="kt">time_t</span> <span class="n">interval</span> <span class="o">=</span> <span class="mi">5</span> <span class="o">+</span>                         <span class="c1">// 5 seconds</span>
+                    <span class="mi">17</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">+</span>                   <span class="c1">// 17 minutes</span>
+                    <span class="mi">2</span>  <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">+</span>              <span class="c1">// 2 hours</span>
+                    <span class="mi">55</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">24</span><span class="p">;</span>          <span class="c1">// and 55 days</span>
+
+  <span class="n">then</span> <span class="o">=</span> <span class="n">birthtime</span> <span class="o">+</span> <span class="n">interval</span><span class="p">;</span>
+
+  <span class="c1">// Then is Wed Mar 14 06:02:55 1973</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Then is %s&quot;</span><span class="p">,</span> <span class="n">ctime</span><span class="p">(</span><span class="o">&amp;</span><span class="n">then</span><span class="p">));</span> <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+
+  <span class="c1">// ------------</span>
+
+  <span class="n">birthtime</span> <span class="o">=</span> <span class="p">({</span> <span class="k">struct</span> <span class="n">tm</span> <span class="n">tmv</span> <span class="o">=</span> <span class="n">mk_tm</span><span class="p">(</span><span class="mi">1973</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">18</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">45</span><span class="p">,</span> <span class="mi">50</span><span class="p">);</span> <span class="n">mktime</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tmv</span><span class="p">);</span> <span class="p">});</span>
+
+  <span class="n">interval</span> <span class="o">=</span> <span class="n">mk_date_interval</span><span class="p">(</span><span class="s">&quot;day=55&quot;</span><span class="p">,</span> <span class="s">&quot;hou=2&quot;</span><span class="p">,</span> <span class="s">&quot;min=17&quot;</span><span class="p">,</span> <span class="s">&quot;sec=5&quot;</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+
+  <span class="n">then</span> <span class="o">=</span> <span class="n">birthtime</span> <span class="o">+</span> <span class="n">interval</span><span class="p">;</span>
+
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;To be precise: %s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">mk_fmt_date</span><span class="p">(</span><span class="s">&quot;%H:%M:%S, %Y-%m-%d&quot;</span><span class="p">,</span> <span class="n">localtime</span><span class="p">(</span><span class="o">&amp;</span><span class="n">then</span><span class="p">)));</span>
+  <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+<span class="p">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN147"
+>Difference of Two Dates</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// Refer to explanation in previous section</span>
+
+<span class="cp">#include &lt;stdio.h&gt;</span>
+<span class="cp">#include &lt;string.h&gt;</span>
+<span class="cp">#include &lt;math.h&gt;</span>
+<span class="cp">#include &lt;time.h&gt;</span>
+
+<span class="kt">double</span> <span class="nf">get_date_interval_value</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">intvltype</span><span class="p">);</span>
+
+<span class="kt">time_t</span> <span class="nf">to_epoch</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">intvltype</span><span class="p">,</span> <span class="kt">double</span> <span class="n">multiple</span><span class="p">);</span>
+<span class="kt">double</span> <span class="nf">from_epoch</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">intvltype</span><span class="p">,</span> <span class="kt">time_t</span> <span class="n">tv</span><span class="p">);</span>
+
+<span class="kt">double</span> <span class="nf">hms_to_frac</span><span class="p">(</span><span class="kt">int</span> <span class="n">hour</span><span class="p">,</span> <span class="kt">int</span> <span class="n">min</span><span class="p">,</span> <span class="kt">int</span> <span class="n">sec</span><span class="p">);</span>
+<span class="kt">void</span> <span class="nf">frac_to_hms</span><span class="p">(</span><span class="kt">double</span> <span class="n">frac</span><span class="p">,</span> <span class="kt">int</span><span class="o">*</span> <span class="n">hour</span><span class="p">,</span> <span class="kt">int</span><span class="o">*</span> <span class="n">min</span><span class="p">,</span> <span class="kt">int</span><span class="o">*</span> <span class="n">sec</span><span class="p">);</span>
+
+<span class="k">struct</span> <span class="n">tm</span> <span class="nf">mk_tm</span><span class="p">(</span><span class="kt">int</span> <span class="n">year</span><span class="p">,</span> <span class="kt">int</span> <span class="n">month</span><span class="p">,</span> <span class="kt">int</span> <span class="n">day</span><span class="p">,</span> <span class="kt">int</span> <span class="n">hour</span><span class="p">,</span> <span class="kt">int</span> <span class="n">minute</span><span class="p">,</span> <span class="kt">int</span> <span class="n">second</span><span class="p">);</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="kt">time_t</span> <span class="n">recent</span><span class="p">,</span> <span class="n">earlier</span><span class="p">;</span>
+
+  <span class="kt">time_t</span> <span class="n">seconds</span> <span class="o">=</span> <span class="n">recent</span> <span class="o">-</span> <span class="n">earlier</span><span class="p">;</span>  <span class="c1">// &#39;seconds&#39; is epoch seconds interval</span>
+
+  <span class="c1">// ------------</span>
+
+  <span class="k">struct</span> <span class="n">tm</span> <span class="n">tmv1</span> <span class="o">=</span> <span class="n">mk_tm</span><span class="p">(</span><span class="mi">1982</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="n">tmv2</span> <span class="o">=</span> <span class="n">mk_tm</span><span class="p">(</span><span class="mi">1981</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+
+  <span class="kt">time_t</span> <span class="n">interval</span> <span class="o">=</span> <span class="n">mktime</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tmv1</span><span class="p">)</span> <span class="o">-</span> <span class="n">mktime</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tmv2</span><span class="p">);</span>
+
+  <span class="kt">double</span> <span class="n">days</span> <span class="o">=</span> <span class="n">from_epoch</span><span class="p">(</span><span class="s">&quot;day&quot;</span><span class="p">,</span> <span class="n">interval</span><span class="p">);</span>
+
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;An interval of %d epoch seconds is %.3f days</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">interval</span><span class="p">,</span> <span class="n">days</span><span class="p">);</span>
+
+  <span class="c1">// ------------</span>
+
+  <span class="kt">time_t</span> <span class="n">bree</span> <span class="o">=</span> <span class="mi">361535725</span><span class="p">;</span>            <span class="c1">// 16 Jun 1981, 4:35:25 [actually: 20:35:25]</span>
+  <span class="kt">time_t</span> <span class="n">nat</span> <span class="o">=</span> <span class="mi">96201950</span><span class="p">;</span>              <span class="c1">// 18 Jan 1973, 3:45:50 [actually: 21:45:50]</span>
+
+  <span class="kt">time_t</span> <span class="n">difference</span> <span class="o">=</span> <span class="n">bree</span> <span class="o">-</span> <span class="n">nat</span><span class="p">;</span>     <span class="c1">// Or do: difference = difftime(bree, nat);</span>
+
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;There were %d seconds between Nat and Bree</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">difference</span><span class="p">);</span> <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+
+  <span class="c1">// ----</span>
+
+  <span class="c1">// Or do following to ensure correctly adjusted intervals are generated:</span>
+  <span class="n">bree</span> <span class="o">=</span> <span class="p">({</span> <span class="k">struct</span> <span class="n">tm</span> <span class="n">tmv</span> <span class="o">=</span> <span class="n">mk_tm</span><span class="p">(</span><span class="mi">1981</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">35</span><span class="p">,</span> <span class="mi">25</span><span class="p">);</span> <span class="n">mktime</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tmv</span><span class="p">);</span> <span class="p">});</span>
+  <span class="n">nat</span> <span class="o">=</span> <span class="p">({</span> <span class="k">struct</span> <span class="n">tm</span> <span class="n">tmv</span> <span class="o">=</span> <span class="n">mk_tm</span><span class="p">(</span><span class="mi">1973</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">18</span><span class="p">,</span> <span class="mi">21</span><span class="p">,</span> <span class="mi">45</span><span class="p">,</span> <span class="mi">50</span><span class="p">);</span> <span class="n">mktime</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tmv</span><span class="p">);</span> <span class="p">});</span>
+
+  <span class="n">difference</span> <span class="o">=</span> <span class="n">bree</span> <span class="o">-</span> <span class="n">nat</span><span class="p">;</span>
+
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;There were %d seconds between Nat and Bree</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">difference</span><span class="p">);</span> <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+
+  <span class="c1">// ------------</span>
+
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;There were %.3f seconds between Nat and Bree</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">from_epoch</span><span class="p">(</span><span class="s">&quot;sec&quot;</span><span class="p">,</span> <span class="n">difference</span><span class="p">));</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;There were %.3f minutes between Nat and Bree</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">from_epoch</span><span class="p">(</span><span class="s">&quot;min&quot;</span><span class="p">,</span> <span class="n">difference</span><span class="p">));</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;There were %.3f hours between Nat and Bree</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">from_epoch</span><span class="p">(</span><span class="s">&quot;hour&quot;</span><span class="p">,</span> <span class="n">difference</span><span class="p">));</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;There were %.3f days between Nat and Bree</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">from_epoch</span><span class="p">(</span><span class="s">&quot;day&quot;</span><span class="p">,</span> <span class="n">difference</span><span class="p">));</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;There were %.3f weeks between Nat and Bree</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">from_epoch</span><span class="p">(</span><span class="s">&quot;week&quot;</span><span class="p">,</span> <span class="n">difference</span><span class="p">));</span>
+  <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+
+  <span class="c1">// ------------</span>
+
+  <span class="kt">double</span> <span class="n">frac</span> <span class="o">=</span> <span class="p">({</span> <span class="kt">double</span> <span class="n">days</span> <span class="o">=</span> <span class="n">from_epoch</span><span class="p">(</span><span class="s">&quot;day&quot;</span><span class="p">,</span> <span class="n">difference</span><span class="p">);</span> <span class="n">days</span> <span class="o">-</span> <span class="n">floor</span><span class="p">(</span><span class="n">days</span><span class="p">);</span> <span class="p">});</span>
+  <span class="kt">int</span> <span class="n">hour</span><span class="p">,</span> <span class="n">min</span><span class="p">,</span> <span class="n">sec</span><span class="p">;</span>
+
+  <span class="n">frac_to_hms</span><span class="p">(</span><span class="n">frac</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">hour</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">min</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">sec</span><span class="p">);</span>
+
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Bree came %d days, %d:%d:%d after Nat</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span>
+    <span class="p">(</span><span class="kt">int</span><span class="p">)</span> <span class="n">from_epoch</span><span class="p">(</span><span class="s">&quot;day&quot;</span><span class="p">,</span> <span class="n">difference</span><span class="p">),</span>
+    <span class="n">hour</span><span class="p">,</span> <span class="n">min</span><span class="p">,</span> <span class="n">sec</span><span class="p">);</span>
+  <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+<span class="p">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN150"
+>Day in a Week/Month/Year or Week Number</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// These are obtainable by generating a broken-down time value, and either:</span>
+<span class="c1">// * Computing the required item using data from the relevant &#39;tm_&#39; fields</span>
+<span class="c1">// * Calling the &#39;strftime&#39; library function with the broken-down time value, and</span>
+<span class="c1">//   appropriate format specification. Examples use &#39;mk_fmt_date&#39; which makes use of</span>
+<span class="c1">//   &#39;strftime&#39;</span>
+<span class="c1">// It should be noted that each item may have several possible values, so care is needed</span>
+<span class="c1">// in interpreting results</span>
+
+<span class="cp">#include &lt;stdbool.h&gt;</span>
+<span class="cp">#include &lt;time.h&gt;</span>
+<span class="cp">#include &lt;stdio.h&gt;</span>
+
+<span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="nf">mk_fmt_date</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">fmt</span><span class="p">,</span> <span class="k">const</span> <span class="k">struct</span> <span class="n">tm</span><span class="o">*</span> <span class="n">tmvptr</span><span class="p">);</span>
+
+<span class="k">struct</span> <span class="n">tm</span> <span class="nf">mk_tm</span><span class="p">(</span><span class="kt">int</span> <span class="n">year</span><span class="p">,</span> <span class="kt">int</span> <span class="n">month</span><span class="p">,</span> <span class="kt">int</span> <span class="n">day</span><span class="p">,</span> <span class="kt">int</span> <span class="n">hour</span><span class="p">,</span> <span class="kt">int</span> <span class="n">minute</span><span class="p">,</span> <span class="kt">int</span> <span class="n">second</span><span class="p">);</span>
+<span class="kt">bool</span> <span class="nf">is_leap_year</span><span class="p">(</span><span class="kt">int</span> <span class="n">year</span><span class="p">);</span>
+
+<span class="kt">int</span> <span class="nf">doy</span><span class="p">(</span><span class="kt">int</span> <span class="n">year</span><span class="p">,</span> <span class="kt">int</span> <span class="n">month</span><span class="p">,</span> <span class="kt">int</span> <span class="n">day</span><span class="p">);</span>
+<span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="nf">dayname</span><span class="p">(</span><span class="kt">int</span> <span class="n">day</span><span class="p">);</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="c1">// Current time in broken-down time form</span>
+  <span class="k">struct</span> <span class="n">tm</span><span class="o">*</span> <span class="n">locptr</span> <span class="o">=</span> <span class="p">({</span> <span class="kt">time_t</span> <span class="n">curtime</span> <span class="o">=</span> <span class="n">time</span><span class="p">(</span><span class="nb">NULL</span><span class="p">);</span> <span class="n">localtime</span><span class="p">(</span><span class="o">&amp;</span><span class="n">curtime</span><span class="p">);</span> <span class="p">});</span>
+
+  <span class="kt">int</span> <span class="n">day_of_week</span><span class="p">,</span> <span class="n">day_of_year</span><span class="p">,</span> <span class="n">week_of_year</span><span class="p">;</span>
+
+  <span class="n">day_of_week</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">mk_fmt_date</span><span class="p">(</span><span class="s">&quot;%w&quot;</span><span class="p">,</span> <span class="n">locptr</span><span class="p">));</span>   <span class="c1">// 1st DOW: sun=0 -&gt; sat=6</span>
+
+  <span class="n">day_of_week</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">mk_fmt_date</span><span class="p">(</span><span class="s">&quot;%u&quot;</span><span class="p">,</span> <span class="n">locptr</span><span class="p">));</span>   <span class="c1">// 1st DOW: mon=1 -&gt; sun=7</span>
+  <span class="n">day_of_week</span> <span class="o">=</span> <span class="n">locptr</span><span class="o">-&gt;</span><span class="n">tm_wday</span><span class="p">;</span>                   <span class="c1">// &quot;   &quot;    &quot;</span>
+
+  <span class="n">day_of_year</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">mk_fmt_date</span><span class="p">(</span><span class="s">&quot;%j&quot;</span><span class="p">,</span> <span class="n">locptr</span><span class="p">));</span>   <span class="c1">// 1 -&gt; 366</span>
+  <span class="n">day_of_year</span> <span class="o">=</span> <span class="n">locptr</span><span class="o">-&gt;</span><span class="n">tm_yday</span><span class="p">;</span>                   <span class="c1">// 0 -&gt; 365</span>
+  <span class="n">day_of_year</span> <span class="o">=</span> <span class="n">doy</span><span class="p">(</span><span class="mi">2007</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">12</span><span class="p">);</span>                  <span class="c1">// &quot; -&gt; &quot;</span>
+
+  <span class="n">week_of_year</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">mk_fmt_date</span><span class="p">(</span><span class="s">&quot;%U&quot;</span><span class="p">,</span> <span class="n">locptr</span><span class="p">));</span>  <span class="c1">// 0 -&gt; 53; sun 1st day of week 1;</span>
+                                                   <span class="c1">//          preceding days week 0</span>
+  <span class="n">week_of_year</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">mk_fmt_date</span><span class="p">(</span><span class="s">&quot;%V&quot;</span><span class="p">,</span> <span class="n">locptr</span><span class="p">));</span>  <span class="c1">// 1 -&gt; 53; ISO</span>
+  <span class="n">week_of_year</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">mk_fmt_date</span><span class="p">(</span><span class="s">&quot;%W&quot;</span><span class="p">,</span> <span class="n">locptr</span><span class="p">));</span>  <span class="c1">// 0 -&gt; 53; mon 1st day of week 1;</span>
+                                                   <span class="c1">//          preceding days week 0</span>
+
+  <span class="c1">// ------------</span>
+
+  <span class="kt">int</span> <span class="n">year</span> <span class="o">=</span> <span class="mi">1981</span><span class="p">,</span> <span class="n">month</span> <span class="o">=</span> <span class="mi">6</span><span class="p">,</span> <span class="n">day</span> <span class="o">=</span> <span class="mi">16</span><span class="p">;</span>
+
+  <span class="k">struct</span> <span class="n">tm</span> <span class="n">tmv</span> <span class="o">=</span> <span class="n">mk_tm</span><span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="n">month</span><span class="p">,</span> <span class="n">day</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;%d/%d/%d was a %s in week %s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span>
+    <span class="n">month</span><span class="p">,</span> <span class="n">day</span><span class="p">,</span> <span class="n">year</span><span class="p">,</span> <span class="n">dayname</span><span class="p">(</span><span class="n">tmv</span><span class="p">.</span><span class="n">tm_wday</span><span class="p">),</span> <span class="n">mk_fmt_date</span><span class="p">(</span><span class="s">&quot;%V&quot;</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">tmv</span><span class="p">));</span>
+<span class="p">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN153"
+>Parsing Dates and Times from Strings</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// Parsing date / time values from strings generally sees:</span>
+<span class="c1">// * Use of the &#39;strptime&#39; / &#39;getdate&#39; functions on *NIX platforms</span>
+<span class="c1">// * Use of &#39;sscanf&#39;</span>
+<span class="c1">// * Custom routines [e.g. strtok&#39;-based, regex-based, raw pointer manipulations]</span>
+<span class="c1">//</span>
+<span class="c1">// to extract date / time components and create broken-down time values from them. The first</span>
+<span class="c1">// approach is probably the simplest, but is not possible on all platforms. It is also</span>
+<span class="c1">// interesting that it includes only minimal validation capability, that is, while format and</span>
+<span class="c1">// type violations are readily detected [e.g. supplying either 2007-12-12, or aaaa/bb/cc, when</span>
+<span class="c1">// something like 2007/12/12 is expected], date validity is only minimally checked [e.g.</span>
+<span class="c1">// invalid day-month combinations are allowed, as are unrepresentable years (like 1111)], so</span>
+<span class="c1">// must be manually implemented. A small set of validation and helper functions is implemented</span>
+<span class="c1">// below.</span>
+<span class="c1">//</span>
+<span class="c1">// Note: &#39;getdate&#39; is a high-level function built using top of &#39;strptime&#39;. It will not be</span>
+<span class="c1">// discussed here, so refer to GNU C Library documentation for details.</span>
+
+<span class="c1">// 1. &#39;strptime&#39; Example [conventional use of &#39;strptime&#39;]</span>
+
+<span class="cp">#include &lt;stdio.h&gt;</span>
+<span class="cp">#include &lt;stdlib.h&gt;</span>
+<span class="cp">#include &lt;time.h&gt;</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">date</span> <span class="o">=</span> <span class="s">&quot;1998-06-03&quot;</span><span class="p">;</span>
+
+  <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">FMT</span> <span class="o">=</span> <span class="s">&quot;%Y-%m-%d&quot;</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">strptime</span><span class="p">(</span><span class="n">date</span><span class="p">,</span> <span class="n">FMT</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">tmv</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="n">fputs</span><span class="p">(</span><span class="s">&quot;Date parse error ...</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">stderr</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">EXIT_FAILURE</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="k">struct</span> <span class="n">tm</span> <span class="n">tmv</span> <span class="o">=</span> <span class="p">{</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span> <span class="p">};</span>
+
+  <span class="kt">time_t</span> <span class="n">epoch_seconds</span> <span class="o">=</span> <span class="n">mktime</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tmv</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ------------</span>
+
+<span class="c1">// 2. &#39;sscanf&#39; Example [conventional use of &#39;sscanf&#39;]</span>
+
+<span class="cp">#include &lt;stdio.h&gt;</span>
+<span class="cp">#include &lt;stdlib.h&gt;</span>
+<span class="cp">#include &lt;time.h&gt;</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">date</span> <span class="o">=</span> <span class="s">&quot;1998-06-03&quot;</span><span class="p">;</span>
+
+  <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">FMT</span> <span class="o">=</span> <span class="s">&quot;%04d-%02d-%02d&quot;</span><span class="p">;</span>
+
+  <span class="kt">int</span> <span class="n">year</span><span class="p">,</span> <span class="n">month</span><span class="p">,</span> <span class="n">day</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">result</span> <span class="o">=</span> <span class="n">sscanf</span><span class="p">(</span><span class="n">date</span><span class="p">,</span> <span class="n">FMT</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">year</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">month</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">day</span><span class="p">);</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">result</span> <span class="o">==</span> <span class="mi">0</span> <span class="o">||</span> <span class="n">result</span> <span class="o">==</span> <span class="n">EOF</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="n">fputs</span><span class="p">(</span><span class="s">&quot;Date parse error ...</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">stderr</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">EXIT_FAILURE</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="k">struct</span> <span class="n">tm</span> <span class="n">tmv</span> <span class="o">=</span> <span class="p">{</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">day</span><span class="p">,</span> <span class="n">month</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">year</span> <span class="o">-</span> <span class="mi">1900</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span> <span class="p">};</span>
+
+  <span class="kt">time_t</span> <span class="n">epoch_seconds</span> <span class="o">=</span> <span class="n">mktime</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tmv</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ------------</span>
+
+<span class="c1">// 3. &#39;strtok&#39; Example [hardcoded, minimal error checking, assumes date string will not be used</span>
+<span class="c1">//    elsewhere, hence may have its contents altered]</span>
+
+<span class="cp">#include &lt;stdio.h&gt;</span>
+<span class="cp">#include &lt;stdlib.h&gt;</span>
+<span class="cp">#include &lt;time.h&gt;</span>
+
+<span class="cp">#include &lt;string.h&gt;</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="kt">char</span> <span class="n">date</span><span class="p">[]</span> <span class="o">=</span> <span class="s">&quot;1998-06-03&quot;</span><span class="p">;</span>
+
+  <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">SEP</span> <span class="o">=</span> <span class="s">&quot;-&quot;</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">ymd</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+  <span class="kt">char</span><span class="o">*</span> <span class="n">p</span> <span class="o">=</span> <span class="n">strtok</span><span class="p">(</span><span class="n">date</span><span class="p">,</span> <span class="n">SEP</span><span class="p">);</span>
+
+  <span class="k">while</span> <span class="p">(</span><span class="n">p</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">i</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="p">{</span>
+      <span class="n">fputs</span><span class="p">(</span><span class="s">&quot;Date parse error ...</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">stderr</span><span class="p">);</span>
+      <span class="k">return</span> <span class="n">EXIT_FAILURE</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="n">ymd</span><span class="p">[</span><span class="n">i</span><span class="o">++</span><span class="p">]</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">p</span><span class="p">);</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="n">strtok</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="n">SEP</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="k">struct</span> <span class="n">tm</span> <span class="n">tmv</span> <span class="o">=</span> <span class="p">{</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">ymd</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">ymd</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ymd</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1900</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span> <span class="p">};</span>
+
+  <span class="kt">time_t</span> <span class="n">epoch_seconds</span> <span class="o">=</span> <span class="n">mktime</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tmv</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ------------</span>
+
+<span class="c1">// 4. Regex Example [hardcoded, minimal error checking. Assumes date string will not be used</span>
+<span class="c1">//    elsewhere, hence may have its contents altered]</span>
+
+<span class="cp">#include &lt;stdio.h&gt;</span>
+<span class="cp">#include &lt;stdlib.h&gt;</span>
+<span class="cp">#include &lt;time.h&gt;</span>
+
+<span class="cp">#include &lt;regex.h&gt;</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="kt">char</span> <span class="n">date</span><span class="p">[]</span> <span class="o">=</span> <span class="s">&quot;1998-06-03&quot;</span><span class="p">;</span>
+
+  <span class="c1">// Setup regex pattern, and compile; bail out if problem detected</span>
+  <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">PATTERN</span> <span class="o">=</span> <span class="s">&quot;([[:digit:]]{4})-([[:digit:]]{1,2})-([[:digit:]]{1,2})&quot;</span><span class="p">;</span>
+  <span class="kt">regex_t</span> <span class="n">rx</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">regcomp</span><span class="p">(</span><span class="o">&amp;</span><span class="n">rx</span><span class="p">,</span> <span class="n">PATTERN</span><span class="p">,</span> <span class="n">REG_EXTENDED</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="n">fputs</span><span class="p">(</span><span class="s">&quot;Date parse error [regex compilation failure] ...</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">stderr</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">EXIT_FAILURE</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="c1">// Hardcoded for 3 [subexpreesion] matches. Match buffer needs to be one larger to</span>
+  <span class="c1">// accomodate whole-expression match]</span>
+  <span class="k">const</span> <span class="kt">size_t</span> <span class="n">nmatch</span> <span class="o">=</span> <span class="mi">4</span><span class="p">;</span>
+  <span class="kt">regmatch_t</span> <span class="n">match</span><span class="p">[</span><span class="n">nmatch</span><span class="p">];</span>
+
+  <span class="c1">// Perform regex match</span>
+  <span class="kt">int</span> <span class="n">match_result</span> <span class="o">=</span> <span class="n">regexec</span><span class="p">(</span><span class="o">&amp;</span><span class="n">rx</span><span class="p">,</span> <span class="n">date</span><span class="p">,</span> <span class="n">nmatch</span><span class="p">,</span> <span class="n">match</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+
+  <span class="c1">// Regex resources no longer required [only match buffer results required], so free them</span>
+  <span class="n">regfree</span><span class="p">(</span><span class="o">&amp;</span><span class="n">rx</span><span class="p">);</span>
+
+  <span class="c1">// In the current case, a mismatch indicates an ill-formatted date string was supplied,</span>
+  <span class="c1">// so bail out</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">match_result</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="n">fputs</span><span class="p">(</span><span class="s">&quot;Date parse error [regex mismatch] ...</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">stderr</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">EXIT_FAILURE</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="c1">// NUL-terminate subexpression match areas for easy extraction</span>
+  <span class="k">const</span> <span class="kt">char</span> <span class="n">NUL</span> <span class="o">=</span> <span class="sc">&#39;\0&#39;</span><span class="p">;</span>
+
+  <span class="n">date</span><span class="p">[</span><span class="n">match</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="n">rm_eo</span><span class="p">]</span> <span class="o">=</span> <span class="n">NUL</span><span class="p">;</span>
+  <span class="n">date</span><span class="p">[</span><span class="n">match</span><span class="p">[</span><span class="mi">2</span><span class="p">].</span><span class="n">rm_eo</span><span class="p">]</span> <span class="o">=</span> <span class="n">NUL</span><span class="p">;</span>
+  <span class="n">date</span><span class="p">[</span><span class="n">match</span><span class="p">[</span><span class="mi">3</span><span class="p">].</span><span class="n">rm_eo</span><span class="p">]</span> <span class="o">=</span> <span class="n">NUL</span><span class="p">;</span>
+
+  <span class="c1">// Convert each subexpression match to required value</span>
+  <span class="kt">int</span> <span class="n">year</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">((</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span> <span class="n">date</span> <span class="o">+</span> <span class="n">match</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="n">rm_so</span><span class="p">);</span>
+  <span class="kt">int</span> <span class="n">month</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">((</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span> <span class="n">date</span> <span class="o">+</span> <span class="n">match</span><span class="p">[</span><span class="mi">2</span><span class="p">].</span><span class="n">rm_so</span><span class="p">);</span>
+  <span class="kt">int</span> <span class="n">day</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">((</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span> <span class="n">date</span> <span class="o">+</span> <span class="n">match</span><span class="p">[</span><span class="mi">3</span><span class="p">].</span><span class="n">rm_so</span><span class="p">);</span>
+
+  <span class="k">struct</span> <span class="n">tm</span> <span class="n">tmv</span> <span class="o">=</span> <span class="p">{</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">day</span><span class="p">,</span> <span class="n">month</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">year</span> <span class="o">-</span> <span class="mi">1900</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span> <span class="p">};</span>
+
+  <span class="kt">time_t</span> <span class="n">epoch_seconds</span> <span class="o">=</span> <span class="n">mktime</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tmv</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ------------</span>
+
+<span class="c1">// 5. Raw Pointer Example [hardcoded, no error checking, assumes date string is in the</span>
+<span class="c1">//    correct format, and that it will not be used elsewhere, hence may have its contents</span>
+<span class="c1">//    altered]</span>
+
+<span class="cp">#include &lt;stdio.h&gt;</span>
+<span class="cp">#include &lt;stdlib.h&gt;</span>
+<span class="cp">#include &lt;time.h&gt;</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="kt">char</span> <span class="n">date</span><span class="p">[]</span> <span class="o">=</span> <span class="s">&quot;1998-06-03&quot;</span><span class="p">;</span>
+
+  <span class="k">const</span> <span class="kt">char</span> <span class="n">NUL</span> <span class="o">=</span> <span class="sc">&#39;\0&#39;</span><span class="p">,</span> <span class="n">SEP</span> <span class="o">=</span> <span class="sc">&#39;-&#39;</span><span class="p">;</span>
+  <span class="kt">char</span> <span class="o">*</span><span class="n">p</span> <span class="o">=</span> <span class="n">date</span><span class="p">,</span> <span class="o">*</span><span class="n">q</span> <span class="o">=</span> <span class="n">date</span><span class="p">;</span>
+
+  <span class="kt">int</span> <span class="n">year</span><span class="p">,</span> <span class="n">month</span><span class="p">,</span> <span class="n">day</span><span class="p">;</span>
+
+  <span class="c1">// Traverse date buffer, NUL-terminating each required substring in turn for easy conversion</span>
+  <span class="k">while</span> <span class="p">(</span><span class="o">*</span><span class="n">p</span><span class="o">++</span> <span class="o">!=</span> <span class="n">SEP</span><span class="p">)</span> <span class="p">;</span> <span class="o">*</span><span class="n">p</span> <span class="o">=</span> <span class="n">NUL</span><span class="p">;</span> <span class="n">year</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">q</span><span class="p">);</span> <span class="n">q</span> <span class="o">=</span> <span class="o">++</span><span class="n">p</span><span class="p">;</span>
+  <span class="k">while</span> <span class="p">(</span><span class="o">*</span><span class="n">p</span><span class="o">++</span> <span class="o">!=</span> <span class="n">SEP</span><span class="p">)</span> <span class="p">;</span> <span class="o">*</span><span class="n">p</span> <span class="o">=</span> <span class="n">NUL</span><span class="p">;</span> <span class="n">month</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">q</span><span class="p">);</span> <span class="n">q</span> <span class="o">=</span> <span class="o">++</span><span class="n">p</span><span class="p">;</span>
+  <span class="k">while</span> <span class="p">(</span><span class="o">*</span><span class="n">p</span><span class="o">++</span> <span class="o">!=</span> <span class="n">NUL</span><span class="p">)</span> <span class="p">;</span> <span class="n">day</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
+
+  <span class="k">struct</span> <span class="n">tm</span> <span class="n">tmv</span> <span class="o">=</span> <span class="p">{</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">day</span><span class="p">,</span> <span class="n">month</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">year</span> <span class="o">-</span> <span class="mi">1900</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span> <span class="p">};</span>
+
+  <span class="kt">time_t</span> <span class="n">epoch_seconds</span> <span class="o">=</span> <span class="n">mktime</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tmv</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ----------------------------</span>
+
+<span class="cp">#include &lt;stdbool.h&gt;</span>
+<span class="cp">#include &lt;stdio.h&gt;</span>
+<span class="cp">#include &lt;string.h&gt;</span>
+<span class="cp">#include &lt;time.h&gt;</span>
+
+<span class="k">struct</span> <span class="n">tm</span> <span class="nf">mk_tm</span><span class="p">(</span><span class="kt">int</span> <span class="n">year</span><span class="p">,</span> <span class="kt">int</span> <span class="n">month</span><span class="p">,</span> <span class="kt">int</span> <span class="n">day</span><span class="p">,</span> <span class="kt">int</span> <span class="n">hour</span><span class="p">,</span> <span class="kt">int</span> <span class="n">minute</span><span class="p">,</span> <span class="kt">int</span> <span class="n">second</span><span class="p">);</span>
+<span class="k">struct</span> <span class="n">tm</span> <span class="nf">mk_tm_unfilled</span><span class="p">(</span><span class="kt">void</span><span class="p">);</span>
+<span class="k">struct</span> <span class="n">tm</span> <span class="nf">mk_tm_zero</span><span class="p">(</span><span class="kt">void</span><span class="p">);</span>
+<span class="kt">void</span> <span class="nf">show_tm</span><span class="p">(</span><span class="k">const</span> <span class="k">struct</span> <span class="n">tm</span><span class="o">*</span> <span class="n">tmvptr</span><span class="p">);</span>
+
+<span class="kt">bool</span> <span class="nf">is_parseable_date</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">date</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">fmt</span><span class="p">,</span> <span class="k">struct</span> <span class="n">tm</span><span class="o">*</span> <span class="n">tmvptr</span><span class="p">);</span>
+
+<span class="kt">bool</span> <span class="nf">is_leap_year</span><span class="p">(</span><span class="kt">int</span> <span class="n">year</span><span class="p">);</span>
+<span class="kt">bool</span> <span class="nf">is_valid_hms</span><span class="p">(</span><span class="kt">int</span> <span class="n">hour</span><span class="p">,</span> <span class="kt">int</span> <span class="n">minute</span><span class="p">,</span> <span class="kt">int</span> <span class="n">second</span><span class="p">);</span>
+<span class="kt">bool</span> <span class="nf">is_valid_ymd</span><span class="p">(</span><span class="kt">int</span> <span class="n">year</span><span class="p">,</span> <span class="kt">int</span> <span class="n">month</span><span class="p">,</span> <span class="kt">int</span> <span class="n">day</span><span class="p">);</span>
+<span class="kt">bool</span> <span class="nf">is_valid_tm</span><span class="p">(</span><span class="k">struct</span> <span class="n">tm</span><span class="o">*</span> <span class="n">tmvptr</span><span class="p">);</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="c1">// Format specification</span>
+  <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">FMT</span> <span class="o">=</span> <span class="s">&quot;%Y/%m/%d&quot;</span><span class="p">;</span>
+
+  <span class="c1">// Initialise &#39;struct tm&#39; object</span>
+  <span class="k">struct</span> <span class="n">tm</span> <span class="n">tmv</span> <span class="o">=</span> <span class="n">mk_tm_zero</span><span class="p">();</span>
+
+  <span class="c1">// Use a generously-sized input buffer</span>
+  <span class="kt">char</span> <span class="n">datebuf</span><span class="p">[</span><span class="mi">128</span><span class="p">];</span>
+
+  <span class="k">do</span>
+  <span class="p">{</span>
+    <span class="c1">// Prompt and get a date string from the user</span>
+    <span class="n">fputs</span><span class="p">(</span><span class="s">&quot;Enter a date in YYYY/MM/DD form: &quot;</span><span class="p">,</span> <span class="n">stdout</span><span class="p">);</span> <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+    <span class="n">fgets</span><span class="p">(</span><span class="n">datebuf</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">datebuf</span><span class="p">),</span> <span class="n">stdin</span><span class="p">);</span>
+
+    <span class="c1">// Two stage validation:</span>
+    <span class="c1">// * Check that input at least matches &#39;date&#39; form / structure</span>
+    <span class="c1">// * Ensure generated date / time components comprise a &#39;sensible&#39; value</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">is_parseable_date</span><span class="p">(</span><span class="n">datebuf</span><span class="p">,</span> <span class="n">FMT</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">tmv</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="n">is_valid_tm</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tmv</span><span class="p">))</span>
+      <span class="k">break</span><span class="p">;</span>
+
+    <span class="c1">// Oops !</span>
+    <span class="n">fputs</span><span class="p">(</span><span class="s">&quot;Bad date string - try again</span><span class="se">\n\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">stdout</span><span class="p">);</span> <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+
+  <span class="p">}</span> <span class="k">while</span> <span class="p">(</span><span class="nb">true</span><span class="p">);</span>
+
+  <span class="c1">// Let&#39;s look at the generated date / time components</span>
+  <span class="n">show_tm</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tmv</span><span class="p">);</span>
+<span class="p">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN156"
+>Printing a Date</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// Printing a date usually sees a broken-down time object either supplied or generated, then</span>
+<span class="c1">// date components extracted and formatted. This may be accomplished:</span>
+<span class="c1">// * Manually; extracting broken-down time components and formatting via a &#39;printf&#39; family</span>
+<span class="c1">//   function</span>
+<span class="c1">// * Via &#39;strftime&#39; library function, a &#39;printf&#39;-like function that uses a host of date / time</span>
+<span class="c1">//   specific format specifications</span>
+<span class="c1">//</span>
+<span class="c1">// &#39;ctime&#39; and &#39;asctime&#39; library functions are available where only a default string</span>
+<span class="c1">// representation is needed.</span>
+<span class="c1">//</span>
+<span class="c1">// In the final part of this section is a self-contained example illustarting, and discussing</span>
+<span class="c1">// in detail, several implementations of a custom function, &#39;mk_fmt_date&#39;, which makes use of</span>
+<span class="c1">// &#39;strftime&#39; to generate a formatted date string</span>
+
+<span class="cp">#include &lt;stdio.h&gt;</span>
+<span class="cp">#include &lt;time.h&gt;</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="kt">time_t</span> <span class="n">curtime</span> <span class="o">=</span> <span class="n">time</span><span class="p">(</span><span class="nb">NULL</span><span class="p">);</span>
+
+  <span class="c1">// &#39;ctime&#39; accepts a &#39;time_t&#39; pointer, and creates a date string in the form:</span>
+  <span class="c1">//     &quot;Fri May  4 10:38:03 2007\n&quot;</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;%s&quot;</span><span class="p">,</span> <span class="n">ctime</span><span class="p">(</span><span class="o">&amp;</span><span class="n">curtime</span><span class="p">));</span> <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ------------</span>
+
+<span class="cp">#include &lt;stdio.h&gt;</span>
+<span class="cp">#include &lt;time.h&gt;</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">struct</span> <span class="n">tm</span><span class="o">*</span> <span class="n">curtmptr</span> <span class="o">=</span> <span class="p">({</span> <span class="kt">time_t</span> <span class="n">curtime</span> <span class="o">=</span> <span class="n">time</span><span class="p">(</span><span class="nb">NULL</span><span class="p">);</span> <span class="n">localtime</span><span class="p">(</span><span class="o">&amp;</span><span class="n">curtime</span><span class="p">);</span> <span class="p">});</span>
+
+  <span class="c1">// &#39;asctime&#39; accepts a &#39;struct tm&#39; pointer and creates a date string in the form:</span>
+  <span class="c1">// &quot;Fri May  4 10:38:03 2007\n&quot;</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;%s&quot;</span><span class="p">,</span> <span class="n">asctime</span><span class="p">(</span><span class="n">curtmptr</span><span class="p">));</span> <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ------------</span>
+
+<span class="cp">#include &lt;stdio.h&gt;</span>
+<span class="cp">#include &lt;time.h&gt;</span>
+
+<span class="k">struct</span> <span class="n">tm</span> <span class="nf">mk_tm</span><span class="p">(</span><span class="kt">int</span> <span class="n">year</span><span class="p">,</span> <span class="kt">int</span> <span class="n">month</span><span class="p">,</span> <span class="kt">int</span> <span class="n">day</span><span class="p">,</span> <span class="kt">int</span> <span class="n">hour</span><span class="p">,</span> <span class="kt">int</span> <span class="n">minute</span><span class="p">,</span> <span class="kt">int</span> <span class="n">second</span><span class="p">);</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">struct</span> <span class="n">tm</span><span class="o">*</span> <span class="n">curtmptr</span> <span class="o">=</span> <span class="p">({</span> <span class="kt">time_t</span> <span class="n">curtime</span> <span class="o">=</span> <span class="n">time</span><span class="p">(</span><span class="nb">NULL</span><span class="p">);</span> <span class="n">localtime</span><span class="p">(</span><span class="o">&amp;</span><span class="n">curtime</span><span class="p">);</span> <span class="p">});</span>
+  <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">fmt</span> <span class="o">=</span> <span class="s">&quot;%Y/%m/%d&quot;</span><span class="p">;</span> <span class="c1">// format: YYYY/MM/DD</span>
+
+  <span class="c1">// &#39;strftime&#39; accepts a &#39;struct tm&#39; pointer and creates a date string in the form specified</span>
+  <span class="c1">// by a format string, one which is similar to that used by the &#39;printf&#39; function family,</span>
+  <span class="c1">// but specialised for date / time formatting. Example below assumes the generated string</span>
+  <span class="c1">// will fit within a 32 byte buffer. It is possible to determine the actual buffer size</span>
+  <span class="c1">// needed to accomodate the generated string by making an initial call to &#39;strftime&#39;, as</span>
+  <span class="c1">// follows:</span>
+  <span class="c1">//</span>
+  <span class="c1">//    #include &lt;limits.h&gt;</span>
+  <span class="c1">//    ...</span>
+  <span class="c1">//    int DATESIZE = strftime(NULL, _POSIX_SSIZE_MAX, fmt, curtmptr);</span>
+  <span class="c1">//    ...</span>
+  <span class="c1">//    char datebuf[DATESIZE + 1];</span>
+  <span class="c1">//    ...</span>
+  <span class="c1">//    strftime(datebuf, DATESIZE + 1, fmt, curtmptr);</span>
+  <span class="c1">//</span>
+  <span class="kt">char</span> <span class="n">datebuf</span><span class="p">[</span><span class="mi">32</span><span class="p">];</span>
+
+  <span class="n">strftime</span><span class="p">(</span><span class="n">datebuf</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">datebuf</span><span class="p">),</span> <span class="n">fmt</span><span class="p">,</span> <span class="n">curtmptr</span><span class="p">);</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">datebuf</span><span class="p">);</span> <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+
+  <span class="c1">// As above, except that a custom helper function is used to create a &#39;struct tm&#39; object</span>
+  <span class="k">struct</span> <span class="n">tm</span> <span class="n">curtm</span> <span class="o">=</span> <span class="n">mk_tm</span><span class="p">(</span><span class="mi">2007</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+
+  <span class="n">strftime</span><span class="p">(</span><span class="n">datebuf</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">datebuf</span><span class="p">),</span> <span class="n">fmt</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">curtm</span><span class="p">);</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">datebuf</span><span class="p">);</span> <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+
+  <span class="c1">// As above, except that &#39;printf&#39; is used to perform date string formatting</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;%04d/%02d/%02d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">curtmptr</span><span class="o">-&gt;</span><span class="n">tm_year</span> <span class="o">+</span> <span class="mi">1900</span><span class="p">,</span> <span class="n">curtmptr</span><span class="o">-&gt;</span><span class="n">tm_mon</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">curtmptr</span><span class="o">-&gt;</span><span class="n">tm_mday</span><span class="p">);</span>
+  <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ----------------------------</span>
+
+<span class="cp">#include &lt;stdio.h&gt;</span>
+<span class="cp">#include &lt;stdlib.h&gt;</span>
+<span class="cp">#include &lt;time.h&gt;</span>
+
+<span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="nf">mk_fmt_date</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">fmt</span><span class="p">,</span> <span class="k">const</span> <span class="k">struct</span> <span class="n">tm</span><span class="o">*</span> <span class="n">tmvptr</span><span class="p">);</span>
+<span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="nf">mk_fmt_date_r</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">fmt</span><span class="p">,</span> <span class="k">const</span> <span class="k">struct</span> <span class="n">tm</span><span class="o">*</span> <span class="n">tmvptr</span><span class="p">,</span> <span class="kt">char</span><span class="o">*</span> <span class="n">datebuf</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">bufsize</span><span class="p">);</span>
+<span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="nf">mk_fmt_date_a</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">fmt</span><span class="p">,</span> <span class="k">const</span> <span class="k">struct</span> <span class="n">tm</span><span class="o">*</span> <span class="n">tmvptr</span><span class="p">);</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">struct</span> <span class="n">tm</span><span class="o">*</span> <span class="n">locptr</span> <span class="o">=</span> <span class="p">({</span> <span class="kt">time_t</span> <span class="n">curtime</span> <span class="o">=</span> <span class="n">time</span><span class="p">(</span><span class="nb">NULL</span><span class="p">);</span> <span class="n">localtime</span><span class="p">(</span><span class="o">&amp;</span><span class="n">curtime</span><span class="p">);</span> <span class="p">});</span>
+
+  <span class="c1">// 1. Return pointer to static local storage</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">mk_fmt_date</span><span class="p">(</span><span class="s">&quot;%Y/%m/%d&quot;</span><span class="p">,</span> <span class="n">locptr</span><span class="p">));</span> <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+
+  <span class="c1">// 2. Return pointer to supplied buffer</span>
+  <span class="k">const</span> <span class="kt">size_t</span> <span class="n">BUFSIZE</span> <span class="o">=</span> <span class="mi">32</span><span class="p">;</span> <span class="kt">char</span> <span class="n">buffer</span><span class="p">[</span><span class="n">BUFSIZE</span><span class="p">];</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">mk_fmt_date_r</span><span class="p">(</span><span class="s">&quot;%Y/%m/%d&quot;</span><span class="p">,</span> <span class="n">locptr</span><span class="p">,</span> <span class="n">buffer</span><span class="p">,</span> <span class="n">BUFSIZE</span><span class="p">));</span> <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+
+  <span class="c1">// 3. Return dynamically allocated memory pointer</span>
+
+  <span class="c1">// a) Typical use where pointer is captured, used, and finally freed</span>
+  <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">bptr</span> <span class="o">=</span> <span class="n">mk_fmt_date_a</span><span class="p">(</span><span class="s">&quot;%Y/%m/%d&quot;</span><span class="p">,</span> <span class="n">locptr</span><span class="p">);</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">bptr</span><span class="p">);</span> <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+  <span class="n">free</span><span class="p">(</span><span class="n">bptr</span><span class="p">);</span> <span class="n">bptr</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+
+  <span class="c1">// b) Or, for a slightly more compact solution, use the comma operator</span>
+  <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">bptrf</span><span class="p">;</span>
+  <span class="n">free</span><span class="p">(((</span><span class="n">bptrf</span> <span class="o">=</span> <span class="n">mk_fmt_date_a</span><span class="p">(</span><span class="s">&quot;%Y/%m/%d&quot;</span><span class="p">,</span> <span class="n">locptr</span><span class="p">)),</span> <span class="n">printf</span><span class="p">(</span><span class="s">&quot;%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">bptrf</span><span class="p">),</span> <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">),</span> <span class="n">bptrf</span><span class="p">));</span>
+  <span class="n">bptrf</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+
+  <span class="c1">// c) Or, for the most compact solution, use a statement expression</span>
+  <span class="p">({</span> <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">bptr</span> <span class="o">=</span> <span class="n">mk_fmt_date_a</span><span class="p">(</span><span class="s">&quot;%Y/%m/%d&quot;</span><span class="p">,</span> <span class="n">locptr</span><span class="p">);</span> <span class="n">printf</span><span class="p">(</span><span class="s">&quot;%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">bptr</span><span class="p">);</span> <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span> <span class="n">free</span><span class="p">(</span><span class="n">bptr</span><span class="p">);</span> <span class="p">});</span>
+<span class="p">}</span>
+
+<span class="c1">// ----</span>
+
+<span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="nf">mk_fmt_date</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">fmt</span><span class="p">,</span> <span class="k">const</span> <span class="k">struct</span> <span class="n">tm</span><span class="o">*</span> <span class="n">tmvptr</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="c1">// Use of static local storage makes the function self-contained, and keeps the interface</span>
+  <span class="c1">// uncluttered; an approach adopted, incidentally, in many of the string-handling library</span>
+  <span class="c1">// functions. However, since each invocation of the function updates the same buffer, it is</span>
+  <span class="c1">// possible, for example, to inadvertantly use a value generated by a call of this function</span>
+  <span class="c1">// in another thread, which is why the use of static local storage is not considered &#39;thread</span>
+  <span class="c1">// safe&#39; [even use of &#39;buffer locking&#39; code cannot prevent this type of problem]</span>
+  <span class="k">static</span> <span class="kt">char</span> <span class="n">datebuf</span><span class="p">[</span><span class="mi">64</span><span class="p">];</span>
+  <span class="k">return</span> <span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="n">datebuf</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">datebuf</span><span class="p">),</span> <span class="n">fmt</span><span class="p">,</span> <span class="n">tmvptr</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="o">?</span> <span class="nb">NULL</span> <span class="o">:</span> <span class="n">datebuf</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="nf">mk_fmt_date_r</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">fmt</span><span class="p">,</span> <span class="k">const</span> <span class="k">struct</span> <span class="n">tm</span><span class="o">*</span> <span class="n">tmvptr</span><span class="p">,</span> <span class="kt">char</span><span class="o">*</span> <span class="n">datebuf</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">bufsize</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="c1">// The canonical C approach: supply the function a buffer, and associated buffer size</span>
+  <span class="c1">// information, and return the buffer&#39;s address. This approach clutters the function interface,</span>
+  <span class="c1">// as well as making function calls more &#39;noisy&#39; since storage for the call needs to be</span>
+  <span class="c1">// supplied / allocated, and size information obtained. Its advantage, though, is that thread</span>
+  <span class="c1">// safety is assured since each call of the function updates a different memory area</span>
+  <span class="k">return</span> <span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="n">datebuf</span><span class="p">,</span> <span class="n">bufsize</span><span class="p">,</span> <span class="n">fmt</span><span class="p">,</span> <span class="n">tmvptr</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="o">?</span> <span class="nb">NULL</span> <span class="o">:</span> <span class="n">datebuf</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="nf">mk_fmt_date_a</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">fmt</span><span class="p">,</span> <span class="k">const</span> <span class="k">struct</span> <span class="n">tm</span><span class="o">*</span> <span class="n">tmvptr</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="c1">// Read-only static local storage is, by definition, thread safe</span>
+  <span class="k">static</span> <span class="k">const</span> <span class="kt">size_t</span> <span class="n">MAXBUFSIZE</span> <span class="o">=</span> <span class="mi">256</span><span class="p">;</span>
+
+  <span class="c1">// Function interface is again uncluttered when using dynamic memory, and the function is</span>
+  <span class="c1">// also thread safe. However, the function is no longer self-contained in that the returned</span>
+  <span class="c1">// buffer address *must* be captured [usually by assignment to a variable], and the allocated</span>
+  <span class="c1">// memory later explicitly deallocated</span>
+  <span class="kt">size_t</span> <span class="n">bufsize</span> <span class="o">=</span> <span class="n">strftime</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="n">MAXBUFSIZE</span><span class="p">,</span> <span class="n">fmt</span><span class="p">,</span> <span class="n">tmvptr</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="kt">char</span><span class="o">*</span> <span class="n">datebuf</span> <span class="o">=</span> <span class="p">(</span><span class="n">bufsize</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="o">?</span> <span class="nb">NULL</span> <span class="o">:</span> <span class="p">(</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span> <span class="n">malloc</span><span class="p">(</span><span class="n">bufsize</span><span class="p">);</span>
+  <span class="k">return</span> <span class="p">(</span><span class="n">datebuf</span> <span class="o">!=</span> <span class="nb">NULL</span> <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="n">strftime</span><span class="p">(</span><span class="n">datebuf</span><span class="p">,</span> <span class="n">bufsize</span><span class="p">,</span> <span class="n">fmt</span><span class="p">,</span> <span class="n">tmvptr</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">))</span> <span class="o">?</span> <span class="n">datebuf</span> <span class="o">:</span> <span class="nb">NULL</span><span class="p">;</span>
+<span class="p">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN159"
+>High-Resolution Timers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// On single-tasking platforms it can be assumed that elapsed time [i.e. the length of an interval</span>
+<span class="c1">// between two calendar times] equals processor time [i.e the total amount of time a process has</span>
+<span class="c1">// used the CPU]. Not so on multi-tasking platforms where a process relinquishes the CPU [e.g.</span>
+<span class="c1">// the scheduler gives the CPU to another process, process blocks waiting for I/O, or voluntarily</span>
+<span class="c1">// &#39;goes to sleep&#39;]. It is therefore important to be mindful of the difference, and care taken</span>
+<span class="c1">// to use / measure the appropriate one.</span>
+<span class="c1">//</span>
+<span class="c1">// Elapsed time can portably be measured by performing simple arithmetic using &#39;time_t&#39; values</span>
+<span class="c1">// obtained via the &#39;time&#39; function. However, the resolution is quite low, being second-based.</span>
+<span class="c1">// Higher resolution timing is possible via platform-specific functionality; in the case of</span>
+<span class="c1">// *NIX / GNU platforms, the &#39;gettimeofday&#39; function together with the &#39;timeval&#39; structure,</span>
+<span class="c1">// allows for microsecond-level resolution.</span>
+<span class="c1">//</span>
+<span class="c1">// Should there be a need to measure processor time, the - portable - &#39;clock_t&#39; type with &#39;clock&#39;</span>
+<span class="c1">// function is available, while on *NIX / GNU platforms there is &#39;struct tms&#39; together with</span>
+<span class="c1">// the &#39;times&#39; function.</span>
+
+<span class="cp">#include &lt;stdio.h&gt;</span>
+<span class="cp">#include &lt;time.h&gt;</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="kt">time_t</span> <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="p">(</span><span class="nb">NULL</span><span class="p">);</span>
+
+  <span class="c1">// ... do work here ...</span>
+
+  <span class="kt">time_t</span> <span class="n">finish</span> <span class="o">=</span> <span class="n">time</span><span class="p">(</span><span class="nb">NULL</span><span class="p">);</span>
+
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Elapsed time %.9f seconds</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">difftime</span><span class="p">(</span><span class="n">finish</span><span class="p">,</span> <span class="n">start</span><span class="p">));</span> <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ------------</span>
+
+<span class="cp">#include &lt;stdio.h&gt;</span>
+<span class="cp">#include &lt;sys/time.h&gt;</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">struct</span> <span class="n">timeval</span> <span class="n">start</span><span class="p">,</span> <span class="n">finish</span><span class="p">;</span>
+
+  <span class="n">gettimeofday</span><span class="p">(</span><span class="o">&amp;</span><span class="n">start</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+
+  <span class="c1">// ... do work here ...</span>
+
+  <span class="n">gettimeofday</span><span class="p">(</span><span class="o">&amp;</span><span class="n">finish</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+
+  <span class="kt">double</span> <span class="n">elapsed</span> <span class="o">=</span> <span class="n">finish</span><span class="p">.</span><span class="n">tv_sec</span> <span class="o">-</span> <span class="n">start</span><span class="p">.</span><span class="n">tv_sec</span> <span class="o">+</span> <span class="p">(</span><span class="n">finish</span><span class="p">.</span><span class="n">tv_usec</span> <span class="o">-</span> <span class="n">start</span><span class="p">.</span><span class="n">tv_usec</span><span class="p">)</span> <span class="o">/</span> <span class="mf">1.e6</span><span class="p">;</span>
+
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Elapsed time %.9f seconds</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">elapsed</span><span class="p">);</span> <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ------------</span>
+
+<span class="cp">#include &lt;stdio.h&gt;</span>
+<span class="cp">#include &lt;time.h&gt;</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="kt">clock_t</span> <span class="n">start</span> <span class="o">=</span> <span class="n">clock</span><span class="p">();</span>
+
+  <span class="c1">// ... do work here ...</span>
+
+  <span class="kt">clock_t</span> <span class="n">finish</span> <span class="o">=</span> <span class="n">clock</span><span class="p">();</span>
+
+  <span class="kt">double</span> <span class="n">proctime</span> <span class="o">=</span> <span class="p">((</span><span class="kt">double</span><span class="p">)</span> <span class="p">(</span><span class="n">finish</span> <span class="o">-</span> <span class="n">start</span><span class="p">))</span> <span class="o">/</span> <span class="n">CLOCKS_PER_SEC</span><span class="p">;</span>
+
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Processor time %.9f seconds</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">proctime</span><span class="p">);</span> <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ------------</span>
+
+<span class="cp">#include &lt;stdio.h&gt;</span>
+<span class="cp">#include &lt;unistd.h&gt;</span>
+<span class="cp">#include &lt;time.h&gt;</span>
+<span class="cp">#include &lt;sys/times.h&gt;</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">const</span> <span class="kt">long</span> <span class="n">CLOCK_TICKS</span> <span class="o">=</span> <span class="n">sysconf</span><span class="p">(</span><span class="n">_SC_CLK_TCK</span><span class="p">);</span>
+
+  <span class="k">struct</span> <span class="n">tms</span> <span class="n">st_cpu</span><span class="p">,</span> <span class="n">en_cpu</span><span class="p">;</span>
+
+  <span class="kt">clock_t</span> <span class="n">st_time</span> <span class="o">=</span> <span class="n">times</span><span class="p">(</span><span class="o">&amp;</span><span class="n">st_cpu</span><span class="p">);</span>
+
+  <span class="c1">// ... do work here ...</span>
+
+  <span class="kt">clock_t</span> <span class="n">en_time</span> <span class="o">=</span> <span class="n">times</span><span class="p">(</span><span class="o">&amp;</span><span class="n">en_cpu</span><span class="p">);</span>
+
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Processor Time (seconds):</span><span class="se">\n\t</span><span class="s">Real Time: %.9f, User Time %.9f, System Time %.9f</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span>
+    <span class="n">difftime</span><span class="p">(</span><span class="n">en_time</span><span class="p">,</span> <span class="n">st_time</span><span class="p">)</span> <span class="o">/</span> <span class="n">CLOCK_TICKS</span><span class="p">,</span>
+    <span class="n">difftime</span><span class="p">(</span><span class="n">en_cpu</span><span class="p">.</span><span class="n">tms_utime</span><span class="p">,</span> <span class="n">st_cpu</span><span class="p">.</span><span class="n">tms_utime</span><span class="p">)</span> <span class="o">/</span> <span class="n">CLOCK_TICKS</span><span class="p">,</span>
+    <span class="n">difftime</span><span class="p">(</span><span class="n">en_cpu</span><span class="p">.</span><span class="n">tms_stime</span><span class="p">,</span> <span class="n">st_cpu</span><span class="p">.</span><span class="n">tms_stime</span><span class="p">)</span> <span class="o">/</span> <span class="n">CLOCK_TICKS</span><span class="p">);</span>
+  <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ----------------------------</span>
+
+<span class="cp">#include &lt;stdio.h&gt;</span>
+<span class="cp">#include &lt;sys/time.h&gt;</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">struct</span> <span class="n">timeval</span> <span class="n">start</span><span class="p">,</span> <span class="n">finish</span><span class="p">;</span>
+
+  <span class="c1">// Start timing</span>
+  <span class="n">gettimeofday</span><span class="p">(</span><span class="o">&amp;</span><span class="n">start</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+
+  <span class="c1">// ... do work here ...</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Type in some text, press ENTER when done: &quot;</span><span class="p">);</span> <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+
+  <span class="kt">char</span> <span class="n">line</span><span class="p">[</span><span class="mi">80</span><span class="p">];</span>
+  <span class="n">fgets</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">line</span><span class="p">),</span> <span class="n">stdin</span><span class="p">);</span>
+
+  <span class="c1">// End timing</span>
+  <span class="n">gettimeofday</span><span class="p">(</span><span class="o">&amp;</span><span class="n">finish</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+
+  <span class="c1">// Compute and print elapsed [not processor] time</span>
+  <span class="kt">double</span> <span class="n">elapsed</span> <span class="o">=</span> <span class="n">finish</span><span class="p">.</span><span class="n">tv_sec</span> <span class="o">-</span> <span class="n">start</span><span class="p">.</span><span class="n">tv_sec</span> <span class="o">+</span> <span class="p">(</span><span class="n">finish</span><span class="p">.</span><span class="n">tv_usec</span> <span class="o">-</span> <span class="n">start</span><span class="p">.</span><span class="n">tv_usec</span><span class="p">)</span> <span class="o">/</span> <span class="mf">1.e6</span><span class="p">;</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;You took %.9f seconds</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">elapsed</span><span class="p">);</span> <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ------------</span>
+
+<span class="cp">#include &lt;stdio.h&gt;</span>
+<span class="cp">#include &lt;stdlib.h&gt;</span>
+<span class="cp">#include &lt;time.h&gt;</span>
+<span class="cp">#include &lt;sys/time.h&gt;</span>
+
+<span class="kt">void</span> <span class="nf">sort</span><span class="p">(</span><span class="kt">double</span> <span class="n">array</span><span class="p">[],</span> <span class="kt">int</span> <span class="n">size</span><span class="p">);</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">struct</span> <span class="n">timeval</span> <span class="n">start</span><span class="p">,</span> <span class="n">finish</span><span class="p">;</span>
+  <span class="kt">double</span> <span class="n">elapsed</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">;</span>
+
+  <span class="k">const</span> <span class="kt">int</span> <span class="n">SIZE</span> <span class="o">=</span> <span class="mi">500</span><span class="p">,</span> <span class="n">NUMBER</span> <span class="o">=</span> <span class="mi">100</span><span class="p">;</span>
+  <span class="kt">double</span> <span class="n">array</span><span class="p">[</span><span class="n">SIZE</span><span class="p">];</span>
+
+  <span class="n">srand</span><span class="p">(</span><span class="n">time</span><span class="p">(</span><span class="nb">NULL</span><span class="p">));</span>
+
+  <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">NUMBER</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">SIZE</span><span class="p">;</span> <span class="o">++</span><span class="n">j</span><span class="p">)</span> <span class="n">array</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">rand</span><span class="p">();</span>
+
+    <span class="n">gettimeofday</span><span class="p">(</span><span class="o">&amp;</span><span class="n">start</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+
+    <span class="n">sort</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">SIZE</span><span class="p">);</span>
+
+    <span class="n">gettimeofday</span><span class="p">(</span><span class="o">&amp;</span><span class="n">finish</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+    <span class="n">elapsed</span> <span class="o">=</span> <span class="n">elapsed</span> <span class="o">+</span> <span class="p">(</span><span class="n">finish</span><span class="p">.</span><span class="n">tv_sec</span> <span class="o">-</span> <span class="n">start</span><span class="p">.</span><span class="n">tv_sec</span> <span class="o">+</span> <span class="p">(</span><span class="n">finish</span><span class="p">.</span><span class="n">tv_usec</span> <span class="o">-</span> <span class="n">start</span><span class="p">.</span><span class="n">tv_usec</span><span class="p">)</span> <span class="o">/</span> <span class="mf">1.e6</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="c1">// Compute and print average elapsed [not processor] time</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;On average, sorting %d random numbers took %.9f seconds</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">SIZE</span><span class="p">,</span> <span class="n">elapsed</span> <span class="o">/</span> <span class="n">NUMBER</span><span class="p">);</span>
+  <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">void</span> <span class="nf">sort</span><span class="p">(</span><span class="kt">double</span> <span class="n">array</span><span class="p">[],</span> <span class="kt">int</span> <span class="n">size</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="kt">int</span> <span class="n">cmp</span><span class="p">(</span><span class="k">const</span> <span class="kt">void</span><span class="o">*</span> <span class="n">lp</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span><span class="o">*</span> <span class="n">rp</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="k">const</span> <span class="kt">double</span><span class="o">*</span> <span class="n">lpv</span> <span class="o">=</span> <span class="p">(</span><span class="k">const</span> <span class="kt">double</span><span class="o">*</span><span class="p">)</span> <span class="n">lp</span><span class="p">;</span>
+    <span class="k">const</span> <span class="kt">double</span><span class="o">*</span> <span class="n">rpv</span> <span class="o">=</span> <span class="p">(</span><span class="k">const</span> <span class="kt">double</span><span class="o">*</span><span class="p">)</span> <span class="n">rp</span><span class="p">;</span>
+    <span class="k">return</span> <span class="p">(</span><span class="o">*</span><span class="n">lpv</span> <span class="o">&gt;</span> <span class="o">*</span><span class="n">rpv</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="o">*</span><span class="n">lpv</span> <span class="o">&lt;</span> <span class="o">*</span><span class="n">rpv</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="n">qsort</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">array</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">cmp</span><span class="p">);</span>
+<span class="p">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN162"
+>Short Sleeps</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// Pausing a process for a designated time period may be accomplished several ways. Only one</span>
+<span class="c1">// approach is portable across platforms, but is a &#39;busy waiting&#39;-based approach which, while</span>
+<span class="c1">// it allows for sub-second pause periods, has the disadvantage of wasting CPU cycles for the</span>
+<span class="c1">// entire pause period.</span>
+
+<span class="cp">#include &lt;time.h&gt;</span>
+
+<span class="kt">void</span> <span class="nf">busywait</span><span class="p">(</span><span class="kt">double</span> <span class="n">seconds</span><span class="p">);</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="n">busywait</span><span class="p">(</span><span class="mf">0.25</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">void</span> <span class="nf">busywait</span><span class="p">(</span><span class="kt">double</span> <span class="n">seconds</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="kt">double</span> <span class="n">elapsed</span><span class="p">;</span>
+  <span class="kt">clock_t</span> <span class="n">start</span> <span class="o">=</span> <span class="n">clock</span><span class="p">();</span>
+
+  <span class="k">do</span> <span class="p">{</span> <span class="n">elapsed</span> <span class="o">=</span> <span class="p">((</span><span class="kt">double</span><span class="p">)</span> <span class="p">(</span><span class="n">clock</span><span class="p">()</span> <span class="o">-</span> <span class="n">start</span><span class="p">))</span> <span class="o">/</span> <span class="n">CLOCKS_PER_SEC</span><span class="p">;</span> <span class="p">}</span> <span class="k">while</span> <span class="p">(</span><span class="n">elapsed</span> <span class="o">&lt;</span> <span class="n">seconds</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ----------------------------</span>
+
+<span class="c1">// Approaches where a process is &#39;put to sleep&#39; i.e. suspended, with its share of the CPU</span>
+<span class="c1">// allocated to other processes, are inherently platform-specific. Under *NIX / GNU, several</span>
+<span class="c1">// library functions may be used:</span>
+<span class="c1">// * Combination of either &#39;alarm&#39; or &#39;setitimer&#39;, and &#39;pause&#39;, together with appropriate</span>
+<span class="c1">//   signal trapping and handling to avoid problems like potential race conditions. Note:</span>
+<span class="c1">//   code below is a simplistic, purely illustrative example, and does not do this [need to</span>
+<span class="c1">//   use &#39;sigprocmask&#39;, &#39;sigaction&#39; et al]</span>
+<span class="c1">// * Either &#39;sleep&#39; [second-resolution] or &#39;nanosleep&#39; [up to nanosecond-resolution if</span>
+<span class="c1">//   supported by the platform]; will terminate before pause period if process receives a</span>
+<span class="c1">//   signal</span>
+<span class="c1">// * Either &#39;select&#39;, or &#39;poll&#39;, to implement microsecond-resolution pause not interrupted by</span>
+<span class="c1">//   signal</span>
+
+<span class="cp">#include &lt;signal.h&gt;</span>
+<span class="cp">#include &lt;unistd.h&gt;</span>
+
+<span class="kt">void</span> <span class="nf">alarmSec</span><span class="p">(</span><span class="kt">long</span> <span class="n">sec</span><span class="p">);</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="c1">// Low-resolution: sleep time specified in seconds</span>
+  <span class="n">alarmSec</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">void</span> <span class="nf">alarmSec</span><span class="p">(</span><span class="kt">long</span> <span class="n">sec</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">static</span> <span class="kt">void</span> <span class="n">sig_alrm</span><span class="p">(</span><span class="kt">int</span> <span class="n">signo</span><span class="p">)</span> <span class="p">{}</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">signal</span><span class="p">(</span><span class="n">SIGALRM</span><span class="p">,</span> <span class="n">sig_alrm</span><span class="p">)</span> <span class="o">==</span> <span class="n">SIG_ERR</span><span class="p">)</span> <span class="k">return</span><span class="p">;</span>
+  <span class="n">alarm</span><span class="p">(</span><span class="n">sec</span><span class="p">);</span>
+  <span class="n">pause</span><span class="p">();</span>
+  <span class="n">alarm</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ------------</span>
+
+<span class="cp">#include &lt;unistd.h&gt;</span>
+<span class="cp">#include &lt;sys/time.h&gt;</span>
+
+<span class="kt">void</span> <span class="nf">sleepSec</span><span class="p">(</span><span class="kt">long</span> <span class="n">sec</span><span class="p">);</span>
+<span class="kt">void</span> <span class="nf">sleepMicroSec</span><span class="p">(</span><span class="kt">long</span> <span class="n">usec</span><span class="p">);</span>
+<span class="kt">void</span> <span class="nf">sleepNanoSec</span><span class="p">(</span><span class="kt">long</span> <span class="n">nsec</span><span class="p">);</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="c1">// Low-resolution: sleep time specified in seconds</span>
+  <span class="n">sleepSec</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+  <span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+
+  <span class="c1">// High-resolution: sleep time specified in microseconds</span>
+  <span class="n">sleepMicroSec</span><span class="p">(</span><span class="mi">250000</span><span class="p">);</span>
+
+  <span class="c1">// Very high resolution. However, actual resolution is hardware / platform</span>
+  <span class="c1">// dependant, and will be rounded up to level actually supported</span>
+  <span class="n">sleepNanoSec</span><span class="p">(</span><span class="mi">250000</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">void</span> <span class="nf">sleepSec</span><span class="p">(</span><span class="kt">long</span> <span class="n">sec</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="n">nanosleep</span><span class="p">(</span><span class="o">&amp;</span><span class="p">((</span><span class="k">const</span> <span class="k">struct</span> <span class="n">timespec</span><span class="p">)</span> <span class="p">{</span> <span class="n">sec</span><span class="p">,</span> <span class="mi">0</span> <span class="p">}),</span> <span class="nb">NULL</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">sleepMicroSec</span><span class="p">(</span><span class="kt">long</span> <span class="n">usec</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="n">nanosleep</span><span class="p">(</span><span class="o">&amp;</span><span class="p">((</span><span class="k">const</span> <span class="k">struct</span> <span class="n">timespec</span><span class="p">)</span> <span class="p">{</span> <span class="n">usec</span> <span class="o">/</span> <span class="mi">1000000L</span><span class="p">,</span> <span class="n">usec</span> <span class="o">%</span> <span class="mi">1000000L</span> <span class="o">*</span> <span class="mi">1000000L</span> <span class="p">}),</span> <span class="nb">NULL</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">sleepNanoSec</span><span class="p">(</span><span class="kt">long</span> <span class="n">nsec</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="n">nanosleep</span><span class="p">(</span><span class="o">&amp;</span><span class="p">((</span><span class="k">const</span> <span class="k">struct</span> <span class="n">timespec</span><span class="p">)</span> <span class="p">{</span> <span class="mi">0</span><span class="p">,</span> <span class="n">nsec</span> <span class="p">}),</span> <span class="nb">NULL</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ------------</span>
+
+<span class="cp">#include &lt;unistd.h&gt;</span>
+<span class="cp">#include &lt;sys/time.h&gt;</span>
+
+<span class="kt">void</span> <span class="nf">sleepAbsSec</span><span class="p">(</span><span class="kt">long</span> <span class="n">sec</span><span class="p">);</span>
+<span class="kt">void</span> <span class="nf">sleepAbsMicroSec</span><span class="p">(</span><span class="kt">long</span> <span class="n">usec</span><span class="p">);</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="c1">// Low-resolution: sleep time specified in seconds</span>
+  <span class="n">sleepAbsSec</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+
+  <span class="c1">// High-resolution: sleep time specified in microseconds</span>
+  <span class="n">sleepAbsMicroSec</span><span class="p">(</span><span class="mi">250000</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">void</span> <span class="nf">sleepAbsSec</span><span class="p">(</span><span class="kt">long</span> <span class="n">sec</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="n">select</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="o">&amp;</span><span class="p">((</span><span class="k">struct</span> <span class="n">timeval</span><span class="p">)</span> <span class="p">{</span> <span class="n">sec</span><span class="p">,</span> <span class="mi">0</span> <span class="p">}));</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">sleepAbsMicroSec</span><span class="p">(</span><span class="kt">long</span> <span class="n">usec</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="n">select</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="o">&amp;</span><span class="p">((</span><span class="k">struct</span> <span class="n">timeval</span><span class="p">)</span> <span class="p">{</span> <span class="n">usec</span> <span class="o">/</span> <span class="mi">1000000L</span><span class="p">,</span> <span class="n">usec</span> <span class="o">%</span> <span class="mi">1000000L</span> <span class="p">}));</span>
+<span class="p">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN165"
+>Program: hopdelta</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// @@INCOMPLETE@@</span>
+<span class="c1">// @@INCOMPLETE@@</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="numbers.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="arrays.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Numbers</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Arrays</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

@@ -1,0 +1,1040 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>File Access</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Ruby"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Pattern Matching"
+HREF="patternmatching.html"><LINK
+REL="NEXT"
+TITLE="File Contents"
+HREF="filecontents.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Ruby</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="patternmatching.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="filecontents.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="FILEACCESS"
+>7. File Access</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN359"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp"># An IO object being Enumerable, we can use &#39;each&#39; directly on it</span>
+<span class="cp">File.open(&quot;/usr/local/widgets/data&quot;).each { |line|</span>
+<span class="cp">    puts line if line =~ /blue/</span>
+<span class="cp">}</span>
+
+<span class="cp">logfile = File.new(&quot;/var/log/rubylog.txt&quot;, &quot;w&quot;)</span>
+<span class="cp">mysub($stdin, logfile)</span>
+
+<span class="cp"># The method IO#readline is similar  to IO#gets</span>
+<span class="cp"># but throws an exception when it reaches EOF</span>
+<span class="cp">f = File.new(&quot;bla.txt&quot;)</span>
+<span class="cp">begin</span>
+<span class="cp">    while (line = f.readline)</span>
+<span class="cp">        line.chomp</span>
+<span class="cp">        $stdout.print line if line =~ /blue/</span>
+<span class="cp">    end</span>
+<span class="cp">rescue EOFError</span>
+<span class="cp">    f.close</span>
+<span class="cp">end</span>
+
+<span class="cp">while $stdin.gets                        # reads from STDIN</span>
+<span class="cp">    unless (/\d/) </span>
+<span class="cp">        $stderr.puts &quot;No digit found.&quot;   # writes to STDERR</span>
+<span class="cp">    end</span>
+<span class="cp">    puts &quot;Read: #{$_}&quot;                   # writes to STDOUT</span>
+<span class="cp">end</span>
+
+<span class="cp">logfile = File.new(&quot;/tmp/log&quot;, &quot;w&quot;)</span>
+
+<span class="cp">logfile.close</span>
+
+<span class="cp"># $defout (or its synonym &#39;$&gt;&#39;) is the destination of output</span>
+<span class="cp"># for Kernel#print, Kernel#puts, and family functions</span>
+<span class="cp">logfile = File.new(&quot;log.txt&quot;, &quot;w&quot;)</span>
+<span class="cp">old = $defout</span>
+<span class="cp">$defout = logfile                 # switch to logfile for output</span>
+<span class="cp">puts &quot;Countdown initiated ...&quot;</span>
+<span class="cp">$defout = old                     # return to original output</span>
+<span class="cp">puts &quot;You have 30 seconds to reach minimum safety distance.&quot;</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN362"
+>Opening a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">source = File.new(path, &quot;r&quot;)  # open file &quot;path&quot; for reading only</span>
+<span class="cp">sink   = File.new(path, &quot;w&quot;)  # open file &quot;path&quot; for writing only</span>
+
+<span class="cp">source = File.open(path, File::RDONLY)  # open file &quot;path&quot; for reading only</span>
+<span class="cp">sink   = File.open(path, File::WRONLY)  # open file &quot;path&quot; for writing only</span>
+
+<span class="cp">file   = File.open(path, &quot;r+&quot;)  # open &quot;path&quot; for reading and writing</span>
+<span class="cp">file   = File.open(path, flags) # open &quot;path&quot; with the flags &quot;flags&quot; (see examples below for flags)</span>
+
+<span class="cp"># open file &quot;path&quot; read only</span>
+<span class="cp">file   = File.open(path, &quot;r&quot;)</span>
+<span class="cp">file   = File.open(path, File::RDONLY)</span>
+
+<span class="cp"># open file &quot;path&quot; write only, create it if it does not exist</span>
+<span class="cp"># truncate it to zero length if it exists</span>
+<span class="cp">file   = File.open(path, &quot;w&quot;)</span>
+<span class="cp">file   = File.open(path, File::WRONLY|File::TRUNC|File::CREAT) </span>
+<span class="cp">file   = File.open(path, File::WRONLY|File::TRUNC|File::CREAT, 0666)  # with permission 0666</span>
+
+<span class="cp"># open file &quot;path&quot; write only, fails if file exists</span>
+<span class="cp">file   = File.open(path, File::WRONLY|File::EXCL|File::CREAT) </span>
+<span class="cp">file   = File.open(path, File::WRONLY|File::EXCL|File::CREAT, 0666) </span>
+
+<span class="cp"># open file &quot;path&quot; for appending</span>
+<span class="cp">file   = File.open(path, &quot;a&quot;)</span>
+<span class="cp">file   = File.open(path, File::WRONLY|File::APPEND|File::CREAT) </span>
+<span class="cp">file   = File.open(path, File::WRONLY|File::APPEND|File::CREAT, 0666) </span>
+
+<span class="cp"># open file &quot;path&quot; for appending only when file exists</span>
+<span class="cp">file   = File.open(path, File::WRONLY|File::APPEND) </span>
+
+<span class="cp"># open file &quot;path&quot; for reading and writing</span>
+<span class="cp">file   = File.open(path, &quot;r+&quot;)</span>
+<span class="cp">file   = File.open(path, File::RDWR)</span>
+
+<span class="cp"># open file for reading and writing, create a new file if it does not exist</span>
+<span class="cp">file   = File.open(path, File::RDWR|File::CREAT)</span>
+<span class="cp">file   = File.open(path, File::RDWR|File::CREAT, 0600)</span>
+
+<span class="cp"># open file &quot;path&quot; reading and writing, fails if file exists</span>
+<span class="cp">file   = File.open(path, File::RDWR|File::EXCL|File::CREAT)</span>
+<span class="cp">file   = File.open(path, File::RDWR|File::EXCL|File::CREAT, 0600)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN365"
+>Opening Files with Unusual Filenames</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp"># No problem with Ruby since the filename doesn&#39;t contain characters with</span>
+<span class="cp"># special meaning; like Perl&#39;s sysopen</span>
+<span class="cp">File.open(filename, &#39;r&#39;)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN368"
+>Expanding Tildes in Filenames</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">File.expand_path(&#39;~root/tmp&#39;)</span>
+<span class="cp">#=&gt; &quot;/root/tmp&quot;</span>
+<span class="cp">File.expand_path(&#39;~rpcuser&#39;)</span>
+<span class="cp">#=&gt; &quot;/var/lib/nfs&quot;</span>
+
+<span class="cp"># To expand ~/.. it explicitely needs the environment variable HOME</span>
+<span class="cp">File.expand_path(&#39;~/tmp&#39;)</span>
+<span class="cp">#=&gt; &quot;/home/gc/tmp&quot;</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN371"
+>Making Perl Report Filenames in Errors</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp"># The exception raised in Ruby reports the filename</span>
+<span class="cp">File.open(&#39;afile&#39;)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN374"
+>Creating Temporary Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp"># Standard Ruby distribution provides the following useful extension</span>
+<span class="cp">require &#39;tempfile&#39;</span>
+<span class="cp"># With the Tempfile class, the file is automatically deleted on garbage</span>
+<span class="cp"># collection, so you won&#39;t need to remove it, later on.</span>
+<span class="cp">tf = Tempfile.new(&#39;tmp&#39;)   # a name is required to create the filename</span>
+
+<span class="cp"># If you need to pass the filename to an external program you can use</span>
+<span class="cp"># File#path, but don&#39;t forget to File#flush in order to flush anything</span>
+<span class="cp"># living in some buffer somewhere.</span>
+<span class="cp">tf.flush</span>
+<span class="cp">system(&quot;/usr/bin/dowhatever #{tf.path}&quot;)</span>
+
+<span class="cp">fh = Tempfile.new(&#39;tmp&#39;)</span>
+<span class="cp">fh.sync = true                # autoflushes</span>
+<span class="cp">10.times { |i| fh.puts i }</span>
+<span class="cp">fh.rewind</span>
+<span class="cp">puts &#39;Tmp file has: &#39;, fh.readlines</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN377"
+>Storing Files Inside Your Program Text</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">while (DATA.gets) do</span>
+<span class="cp">    # process the line  </span>
+<span class="cp">end</span>
+<span class="cp">__END__</span>
+<span class="cp"># your data goes here</span>
+
+<span class="cp"># __DATA__ doesn&#39;t exist in Ruby</span>
+
+<span class="cp"># get info about the script (size, date of last modification)</span>
+<span class="cp">kilosize = DATA.stat.size / 1024</span>
+<span class="cp">last_modif = DATA.stat.mtime</span>
+<span class="cp">puts &quot;&lt;P&gt;Script size is #{kilosize}&quot;</span>
+<span class="cp">puts &quot;&lt;P&gt;Last script update: #{last_modif}&quot;</span>
+<span class="cp">__END__</span>
+<span class="cp"># DO NOT REMOVE THE PRECEEDING LINE.</span>
+<span class="cp"># Everything else in this file will be ignored.</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN380"
+>Writing a Filter</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">while line = gets do</span>
+<span class="cp">    # do something with line.</span>
+<span class="cp">end</span>
+
+<span class="cp">#  or </span>
+<span class="cp">while gets do</span>
+<span class="cp">    # do something with $_</span>
+<span class="cp">end</span>
+
+<span class="cp"># or more rubyish</span>
+<span class="cp">$stdin.each do |line|</span>
+<span class="cp">    # do stuff with line</span>
+<span class="cp">end</span>
+
+
+<span class="cp"># ARGF may makes this more easy</span>
+<span class="cp"># this is skipped if ARGV.size==0</span>
+<span class="cp">ARGV.each do |filename| </span>
+<span class="cp">    # closing and exception handling are done by the block</span>
+<span class="cp">    open(filename) do |fd| </span>
+<span class="cp">        fd.each do |line|</span>
+<span class="cp">            # do stuff with line</span>
+<span class="cp">        end   </span>
+<span class="cp">    end rescue abort(&quot;can&#39;t open %s&quot; % filename)</span>
+<span class="cp">end</span>
+
+<span class="cp"># globbing is done in the Dir module</span>
+<span class="cp">ARGV = Dir[&quot;*.[Cch]&quot;] if ARGV.empty?</span>
+
+<span class="cp"># note: optparse is the preferred way to handle this</span>
+<span class="cp">if (ARGV[0] == &#39;-c&#39;)  </span>
+<span class="cp">    chop_first += 1</span>
+<span class="cp">    ARGV.shift</span>
+<span class="cp">end</span>
+
+
+<span class="cp"># processing numerical options</span>
+<span class="cp">if ARGV[0] =~ /^-(\d+)$/</span>
+<span class="cp">    columns = $1</span>
+<span class="cp">    ARGV.shift</span>
+<span class="cp">end</span>
+
+<span class="cp"># again, better to use optparse:</span>
+<span class="cp">require &#39;optparse&#39;</span>
+<span class="cp">nostdout = 0</span>
+<span class="cp">append = 0</span>
+<span class="cp">unbuffer = 0</span>
+<span class="cp">ignore_ints = 0</span>
+<span class="cp">ARGV.options do |opt|</span>
+<span class="cp">    opt.on(&#39;-n&#39;) { nostdout +=1 }</span>
+<span class="cp">    opt.on(&#39;-a&#39;) { append   +=1 }</span>
+<span class="cp">    opt.on(&#39;-u&#39;) { unbuffer +=1 }</span>
+<span class="cp">    opt.on(&#39;-i&#39;) { ignore_ints +=1 }</span>
+<span class="cp">    opt.parse!</span>
+<span class="cp">end or abort(&quot;usage: &quot; + __FILE__ + &quot; [-ainu] [filenames]&quot;)</span>
+
+<span class="cp"># no need to do undef $/, we have File.read</span>
+<span class="cp">str = File.read(ARGV[0])</span>
+
+<span class="cp"># again we have File.read</span>
+<span class="cp">str = File.read(ARGV[0])</span>
+
+<span class="cp"># not sure what this should do:</span>
+<span class="cp"># I believe open the file, print filename, lineno and line:</span>
+<span class="cp">ARGF.each_with_index do |line, idx|</span>
+<span class="cp">    print ARGF.filename, &quot;:&quot;, idx, &quot;;&quot;, line</span>
+<span class="cp">end</span>
+
+<span class="cp"># print all the lines in every file passed via command line that contains login</span>
+<span class="cp">ARGF.each do |line|</span>
+<span class="cp">    puts line if line =~ /login/</span>
+<span class="cp">end</span>
+<span class="cp">#</span>
+<span class="cp"># even this would fit</span>
+<span class="cp">#%ruby -ne &quot;print if /f/&quot; 2.log</span>
+<span class="cp">#</span>
+
+<span class="cp">ARGF.each { |l| puts l.downcase! }</span>
+
+<span class="cp">#------------------</span>
+<span class="cp">#!/usr/bin/ruby -p</span>
+<span class="cp"># just like perl&#39;s -p</span>
+<span class="cp">$_.downcase!</span>
+<span class="cp">#</span>
+
+<span class="cp"># I don&#39;t know who should I trust. </span>
+<span class="cp"># perl&#39;s version splits on \w+ while python&#39;s on \w.</span>
+
+<span class="cp">chunks = 0</span>
+
+<span class="cp">File.read(ARGV[0]).split.each do |word|</span>
+<span class="cp">    next if word =~ /^#/</span>
+<span class="cp">    break if [&quot;__DATA__&quot;, &quot;__END__&quot;].member? word</span>
+<span class="cp">    chunks += 1 </span>
+<span class="cp">end</span>
+
+<span class="cp">print &quot;Found &quot;, chunks, &quot; chunks\n&quot;</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN383"
+>Modifying a File in Place with Temporary File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">old = File.open(old_file)</span>
+<span class="cp">new = File.open(new_file, &quot;w&quot;)</span>
+<span class="cp">while old.gets do</span>
+<span class="cp">    # change $_, then...</span>
+<span class="cp">    new.print $_</span>
+<span class="cp">end</span>
+<span class="cp">old.close</span>
+<span class="cp">new.close</span>
+<span class="cp">File.rename(old_file, &quot;old.orig&quot;)</span>
+<span class="cp">File.rename(new_file, old_file)</span>
+
+<span class="cp">while old.gets do</span>
+<span class="cp">    if $. == 20 then # we are at the 20th line</span>
+<span class="cp">        new.puts &quot;Extra line 1&quot;</span>
+<span class="cp">        new.puts &quot;Extra line 2&quot;</span>
+<span class="cp">    end</span>
+<span class="cp">    new.print $_</span>
+<span class="cp">end</span>
+
+<span class="cp">while old.gets do</span>
+<span class="cp">    next if 20..30 # skip the 20th line to the 30th</span>
+<span class="cp">                   # Ruby (and Perl) permit to write if 20..30 </span>
+<span class="cp">                   # instead of if (20 &lt;= $.) and ($. &lt;= 30)</span>
+<span class="cp">    new.print $_</span>
+<span class="cp">end</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN386"
+>Modifying a File in Place with -i Switch</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#% ruby -i.orig -pe &#39;FILTER COMMAND&#39; file1 file2 file3 ...</span>
+<span class="cp">#</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">##!/usr/bin/ruby -i.orig -p</span>
+<span class="cp"># filter commands go here</span>
+<span class="cp">#-----------------------------</span>
+
+<span class="cp">#% ruby -pi.orig -e &#39;gsub!(/DATE/){Time.now)&#39;</span>
+
+<span class="cp"># effectively becomes:</span>
+<span class="cp">ARGV &lt;&lt; &#39;I&#39;</span>
+<span class="cp">oldfile = &quot;&quot;</span>
+<span class="cp">while gets</span>
+<span class="cp">    if ARGF.filename != oldfile</span>
+<span class="cp">        newfile = ARGF.filename</span>
+<span class="cp">        File.rename(newfile, newfile + &quot;.orig&quot;)</span>
+<span class="cp">        $stdout = File.open(newfile,&#39;w&#39;)</span>
+<span class="cp">        oldfile = newfile</span>
+<span class="cp">    end</span>
+<span class="cp">    gsub!(/DATE/){Time.now}</span>
+<span class="cp">    print </span>
+<span class="cp">end</span>
+<span class="cp">$stdout = STDOUT</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#% ruby -i.old -pe &#39;gsub!(%r{\bhisvar\b}, &#39;hervar&#39;)&#39; *.[Cchy]</span>
+
+<span class="cp">#-----------------------------</span>
+<span class="cp"># set up to iterate over the *.c files in the current directory,</span>
+<span class="cp"># editing in place and saving the old file with a .orig extension</span>
+<span class="cp">$-i = &#39;.orig&#39;                       # set up -i mode</span>
+<span class="cp">ARGV.replace(Dir[&#39;*.[Cchy]&#39;])</span>
+<span class="cp">while gets</span>
+<span class="cp">    if $. == 1</span>
+<span class="cp">        print &quot;This line should appear at the top of each file\n&quot;</span>
+<span class="cp">    end</span>
+<span class="cp">    gsub!(/\b(p)earl\b/i, &#39;\1erl&#39;)    # Correct typos, preserving case</span>
+<span class="cp">    print</span>
+<span class="cp">    ARGF.close if ARGF.eof</span>
+<span class="cp">end</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN389"
+>Modifying a File in Place Without a Temporary File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">File.open(&#39;itest&#39;, &#39;r+&#39;) do |f|   # open file for update</span>
+<span class="cp">    lines = f.readlines           # read into array of lines</span>
+<span class="cp">    lines.each do |it|            # modify lines</span>
+<span class="cp">        it.gsub!(/foo/, &#39;QQQ&#39;)</span>
+<span class="cp">    end</span>
+<span class="cp">    f.pos = 0                     # back to start</span>
+<span class="cp">    f.print lines                 # write out modified lines</span>
+<span class="cp">    f.truncate(f.pos)             # truncate to new length</span>
+<span class="cp">end                               # file is automatically closed</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">File.open(&#39;itest&#39;, &#39;r+&#39;) do |f|   </span>
+<span class="cp">    out = &quot;&quot;</span>
+<span class="cp">    f.each do |line|</span>
+<span class="cp">        out &lt;&lt; line.gsub(/DATE/) {Time.now}</span>
+<span class="cp">    end</span>
+<span class="cp">    f.pos = 0                     </span>
+<span class="cp">    f.print out</span>
+<span class="cp">    f.truncate(f.pos)             </span>
+<span class="cp">end</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN392"
+>Locking a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">File.open(&#39;infile&#39;, &#39;r+&#39;) do |f|</span>
+<span class="cp">    f.flock File::LOCK_EX</span>
+<span class="cp">    # update file</span>
+<span class="cp">end</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">File::LOCK_SH     # shared lock (for reading)</span>
+<span class="cp">File::LOCK_EX     # exclusive lock (for writing)</span>
+<span class="cp">File::LOCK_NB     # non-blocking request</span>
+<span class="cp">File::LOCK_UN     # free lock</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">unless f.flock File::LOCK_EX | File::LOCK_NB</span>
+<span class="cp">    warn &quot;can&#39;t get immediate lock: blocking ...&quot;</span>
+<span class="cp">    f.flock File::LOCK_EX </span>
+<span class="cp">end</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">File.open(&#39;numfile&#39;, File::RDWR|File::CREAT) do |f|</span>
+<span class="cp">    f.flock(File::LOCK_EX)</span>
+<span class="cp">    num = f.gets.to_i || 0</span>
+<span class="cp">    f.pos = 0</span>
+<span class="cp">    f.truncate 0</span>
+<span class="cp">    f.puts num + 1q</span>
+<span class="cp">end</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN395"
+>Flushing Output</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">output_handle.sync = true</span>
+<span class="cp"># Please note that like in Perl, $stderr is already unbuffered</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#!/usr/bin/ruby -w</span>
+<span class="cp"># seeme - demo stdio output buffering</span>
+<span class="cp">$stdout.sync = ARGV.size &gt; 0</span>
+<span class="cp">print &quot;Now you don&#39;t see it...&quot;</span>
+<span class="cp">sleep 2</span>
+<span class="cp">puts &quot;now you do&quot;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$stderr.sync = true</span>
+<span class="cp">afile.sync = false</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># assume &#39;remote_con&#39; is an interactive socket handle,</span>
+<span class="cp"># but &#39;disk_file&#39; is a handle to a regular file.</span>
+<span class="cp">remote_con.sync = true       # unbuffer for clarity</span>
+<span class="cp">disk_file.sync = false       # buffered for speed</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">require &#39;socket&#39;</span>
+<span class="cp">sock = TCPSocket.new(&#39;www.ruby-lang.org&#39;, 80)</span>
+<span class="cp">sock.sync = true</span>
+<span class="cp">sock.puts &quot;GET /en/ HTTP/1.0 \n\n&quot;</span>
+<span class="cp">resp = sock.read</span>
+<span class="cp">print &quot;DOC IS: #{resp}\n&quot;</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN398"
+>Reading from Many Filehandles Without Blocking</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp"># assumes fh1, fh2, fh2 are oen IO objects</span>
+<span class="cp">nfound = select([$stdin, fh1, fh2, fh3], nil, nil, 0)</span>
+<span class="cp">nfound[0].each do |file|</span>
+<span class="cp">    case file</span>
+<span class="cp">        when fh1</span>
+<span class="cp">            # do something with fh1</span>
+<span class="cp">        when fh2</span>
+<span class="cp">            # do something with fh2</span>
+<span class="cp">        when fh3</span>
+<span class="cp">            # do something with fh3</span>
+<span class="cp">    end</span>
+<span class="cp">end</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">input_files = []</span>
+<span class="cp"># repeat next line for all in-files to poll</span>
+<span class="cp">input_files &lt;&lt; fh1</span>
+<span class="cp">if nfound = select(input_files, nil, nil, 0)</span>
+<span class="cp">    # input ready on files in nfound[0]</span>
+<span class="cp">end</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN401"
+>Doing Non-Blocking I/O</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp"># It throws exception on EOF, instead of sysread, you can use read_nonblock(), too.</span>
+<span class="cp">begin</span>
+<span class="cp">   File.open fname, (File::RDONLY | File::NONBLOCK) do |io|</span>
+<span class="cp">     puts io.sysread(4096) # throws exception</span>
+<span class="cp">   end</span>
+<span class="cp">rescue EOFError</span>
+<span class="cp">rescue IOError =&gt; e</span>
+<span class="cp">   puts e.exception</span>
+<span class="cp">rescue Errno::ENOENT</span>
+<span class="cp">   puts &quot;no such file #{fname}&quot;</span>
+<span class="cp">end</span>
+
+<span class="cp"># return nil on EOF</span>
+<span class="cp">begin</span>
+<span class="cp">   File.open fname, (File::RDONLY | File::NONBLOCK) do |io|</span>
+<span class="cp">     puts io.read(4096) # returns nil</span>
+<span class="cp">   end</span>
+<span class="cp">rescue Errno::ENOENT</span>
+<span class="cp">   puts &quot;no such file #{fname}&quot;</span>
+<span class="cp">end</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN404"
+>Determining the Number of Bytes to Read</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN407"
+>Storing Filehandles in Variables</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp"># filehandles are normal variables, so they behave properly</span>
+<span class="cp">def subroutine(fh):</span>
+<span class="cp">  fh.print &quot;Hello, file&quot;</span>
+<span class="cp">end</span>
+
+<span class="cp">variable = fh</span>
+<span class="cp">subroutine(variable)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN410"
+>Caching Open Output Filehandles</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN413"
+>Printing to Many Filehandles Simultaneously</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#----------------------------</span>
+<span class="cp">filehandles.each do |filehandle|</span>
+<span class="cp">  filehandle.print stuff_to_print</span>
+<span class="cp">end</span>
+<span class="cp">#----------------------------</span>
+<span class="cp"># NOTE: this is unix specific</span>
+<span class="cp">IO.popen(&quot;tee file1 file2 file3 &gt;/dev/null&quot;, &quot;w&quot;) do |many|</span>
+<span class="cp">  many.puts &quot;data&quot;</span>
+<span class="cp">end</span>
+<span class="cp">#----------------------------</span>
+<span class="cp"># (really a Perl issue here, no problem in ruby)</span>
+<span class="cp">[fh1 fh2 fh3].each {|fh| fh.puts &quot;whatever&quot; }</span>
+<span class="cp">#----------------------------</span>
+<span class="cp"># redirect to stdout to use print/puts directly</span>
+<span class="cp">$stdout = IO.popen(&quot;tee file1 file2 file3&quot;, &quot;w&quot;)</span>
+<span class="cp">puts &quot;whatever&quot;</span>
+<span class="cp">$stdout.close</span>
+<span class="cp">$stdout = STDOUT   # get things back to the way they were</span>
+<span class="cp">#----------------------------</span>
+<span class="cp"># create a class/object to encapsulate the behavior in ruby</span>
+<span class="cp">class MultiDispatcher &lt; BasicObject # inherit from BasicObject in 1.9.x only</span>
+<span class="cp"> def initialize(targets)</span>
+<span class="cp">   @targets = targets</span>
+<span class="cp"> end</span>
+
+<span class="cp"> def method_missing(*a,&amp;b)</span>
+<span class="cp">   @targets.each {|tgt| tgt.send(*a,&amp;b)}</span>
+<span class="cp"> end</span>
+<span class="cp">end</span>
+
+<span class="cp">md = MultiDispatcher.new [$stdout, $stderr]</span>
+<span class="cp">4.times {|i| md.printf &quot;%3d\n&quot;, i}</span>
+<span class="cp">md.close</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN416"
+>Opening and Closing File Descriptors by Number</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN419"
+>Copying Filehandles</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN422"
+>Program: netlock</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN425"
+>Program: lockarea</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="patternmatching.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="filecontents.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Pattern Matching</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>File Contents</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

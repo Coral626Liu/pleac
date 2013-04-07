@@ -1,0 +1,962 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Numbers</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Tcl"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Strings"
+HREF="strings.html"><LINK
+REL="NEXT"
+TITLE="Dates and Times"
+HREF="datesandtimes.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Tcl</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="strings.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="datesandtimes.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="NUMBERS"
+>2. Numbers</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN73"
+>Checking Whether a String Is a Valid Number</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span>
+
+<span class="s2"># The &quot;</span>backwards conditional<span class="s2">&quot; Perl form is useful here</span>
+<span class="s2"># to demonstrate the various regexps.  Tcl doesn&#39;t have</span>
+<span class="s2"># this syntax, but it can be fudged very easily:</span>
+
+
+
+<span class="s2">proc warn {msg cond pattern {string 0}} {</span>
+<span class="s2">    if {[string equal if $cond]} {</span>
+<span class="s2">        if {[regexp $pattern $string]} {</span>
+<span class="s2">            return [format &quot;%s: %s&quot; $string $msg]</span>
+<span class="s2">        }</span>
+<span class="s2">    } elseif {[string equal unless $cond]} {</span>
+<span class="s2">        if {![regexp $pattern $string]} {</span>
+<span class="s2">            return [format &quot;%s: %s&quot; $string $msg]</span>
+<span class="s2">        }</span>
+<span class="s2">    }</span>
+<span class="s2">    return</span>
+<span class="s2">}</span>
+
+<span class="s2">warn &quot;</span>has nondigits<span class="s2">&quot; if {\D}</span>
+
+<span class="s2">warn &quot;</span>not a natural number<span class="s2">&quot; unless {^\d+$}        ;# rejects -3</span>
+
+<span class="s2">warn &quot;</span>not an integer<span class="s2">&quot; unless {^[+-]?\d+$}         ;# rejects +3</span>
+
+<span class="s2">warn &quot;</span>not a real number<span class="s2">&quot; unless {^-?\d+\.?\d*$}   ;# rejects .2</span>
+
+<span class="s2">warn &quot;</span>not a C float<span class="s2">&quot; unless {^([+-]?)(?=\d|\.\d)\d*(\.\d*)?([Ee]([+-]?\d+))?$}</span>
+
+
+<span class="s2"># Regexps like the above are sometimes necessary for making fine</span>
+<span class="s2"># distinctions among string representations of numbers.</span>
+<span class="s2"># If the only thing in questions is whether $x is a number</span>
+<span class="s2"># or not, or whether it is an integer or a real number, Tcl</span>
+<span class="s2"># can help:</span>
+
+
+
+<span class="s2">if {[string is integer $x]} {</span>
+<span class="s2">    set res &quot;</span><span class="nv">$x</span> is an integer<span class="s2">&quot;</span>
+<span class="s2">} elseif {[string is double $x]} {</span>
+<span class="s2">    set res &quot;</span><span class="nv">$x</span> is a real number<span class="s2">&quot;</span>
+<span class="s2">} else {</span>
+<span class="s2">    set res &quot;</span><span class="nv">$x</span> is not a number<span class="s2">&quot;</span>
+<span class="s2">}</span>
+<span class="s2">set res</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN76"
+>Comparing Floating-Point Numbers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span>
+
+<span class="s2"># limit number of decimals when determining equality of</span>
+<span class="s2"># floating point values to avoid rounding errors.</span>
+<span class="s2">proc floatEqual-1 {num1 num2 accuracy} {</span>
+<span class="s2">    expr {[format %.${accuracy}f $num1] == [format %.${accuracy}f $num2]}</span>
+<span class="s2">}</span>
+
+
+<span class="s2">set wage 536                  ;# $5.36/hour</span>
+<span class="s2">set week [expr {40 * $wage}]  ;# $214.40</span>
+<span class="s2">format &quot;</span>One week<span class="err">&#39;</span>s wage is: <span class="err">\$</span><span class="o">%</span>.2f<span class="s2">&quot; [expr {$week/100.0}]</span>
+<span class="s2"># =&gt; One week&#39;s wage is: $214.40</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN79"
+>Rounding Floating-Point Numbers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span>
+
+<span class="s2">set a 0.255</span>
+<span class="s2">set b [format %.2f $a]</span>
+<span class="s2">puts &quot;</span>Unrounded: <span class="nv">$a</span><span class="s2">&quot;</span>
+<span class="s2">puts &quot;</span>Rounded:   <span class="nv">$b</span><span class="s2">&quot;</span>
+<span class="s2"># =&gt; Unrounded: 0.255</span>
+<span class="s2"># =&gt; Rounded:   0.26</span>
+
+<span class="s2">set res \nnumber\tint\tfloor\tceil\n</span>
+<span class="s2">set a [list 3.3 3.5 3.7 -3.3]</span>
+<span class="s2">foreach n $a {</span>
+<span class="s2">    append res [format %.1f\t $n]</span>
+<span class="s2">    append res [format %.1f\t [expr {int($n)}]]</span>
+<span class="s2">    append res [format %.1f\t [expr {floor($n)}]]</span>
+<span class="s2">    append res [format %.1f\n [expr {ceil($n)}]]</span>
+<span class="s2">}</span>
+<span class="s2">puts $res</span>
+<span class="s2"># =&gt; </span>
+<span class="s2"># =&gt; number	int	floor	ceil</span>
+<span class="s2"># =&gt; 3.3	3.0	3.0	4.0</span>
+<span class="s2"># =&gt; 3.5	3.0	3.0	4.0</span>
+<span class="s2"># =&gt; 3.7	3.0	3.0	4.0</span>
+<span class="s2"># =&gt; -3.3	-3.0	-4.0	-3.0</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN82"
+>Converting Between Binary and Decimal</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span>
+
+<span class="s2">proc dec2bin {string} {</span>
+<span class="s2">    binary scan [binary format I $string] B32 str</span>
+<span class="s2">    return [string trimleft $str 0]</span>
+<span class="s2">}</span>
+<span class="s2">dec2bin 54</span>
+<span class="s2"># =&gt; 110110</span>
+
+
+<span class="s2">proc bin2dec {string} {</span>
+<span class="s2">    set string [format %032s $string]</span>
+<span class="s2">    binary scan [binary format B32 $string] I str</span>
+<span class="s2">    return $str</span>
+<span class="s2">}</span>
+<span class="s2">bin2dec 110110</span>
+<span class="s2"># =&gt; 54</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN85"
+>Operating on a Series of Integers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span>
+
+<span class="s2">for {set i $X} {$i &lt;= $Y} {incr i} {</span>
+<span class="s2">    # $i is set to every integer from X to Y, inclusive</span>
+<span class="s2">}</span>
+
+<span class="s2">for {set i $X} {$i &lt;= $Y} {incr i 7} {</span>
+<span class="s2">    # $i is set to every integer from X to Y, stepsize = 7</span>
+<span class="s2">}</span>
+
+<span class="s2">set res {}</span>
+<span class="s2">append res &quot;</span>Infancy is: <span class="s2">&quot;</span>
+<span class="s2">foreach i [list 0 1 2] {</span>
+<span class="s2">    append res &quot;</span><span class="nv">$i</span> <span class="s2">&quot;</span>
+<span class="s2">}</span>
+<span class="s2"> </span>
+<span class="s2">proc .. {low high} {</span>
+<span class="s2">    for {set i $low} {$i &lt;= $high} {incr i} {</span>
+<span class="s2">        lappend res $i</span>
+<span class="s2">    }</span>
+<span class="s2">    set res</span>
+<span class="s2">}</span>
+<span class="s2">append res \n</span>
+<span class="s2">append res &quot;</span>Toddling is: <span class="s2">&quot;</span>
+<span class="s2">foreach i [.. 3 4] {</span>
+<span class="s2">    append res &quot;</span><span class="nv">$i</span> <span class="s2">&quot;</span>
+<span class="s2">}</span>
+<span class="s2"> </span>
+<span class="s2">append res \n</span>
+<span class="s2">append res &quot;</span>Childhood is: <span class="s2">&quot;</span>
+<span class="s2">for {set i 5} {$i &lt;= 12} {incr i} {</span>
+<span class="s2">    append res &quot;</span><span class="nv">$i</span> <span class="s2">&quot;</span>
+<span class="s2">}</span>
+<span class="s2"> </span>
+<span class="s2">puts $res</span>
+<span class="s2"># =&gt; Infancy is: 0 1 2 </span>
+<span class="s2"># =&gt; Toddling is: 3 4 </span>
+<span class="s2"># =&gt; Childhood is: 5 6 7 8 9 10 11 12 </span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN88"
+>Working with Roman Numerals</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span>
+
+<span class="s2"># These procedures were written by Richard Suchenwirth.</span>
+<span class="s2"># See &lt;URL: http://mini.net/tcl/1749.html&gt;</span>
+
+
+
+<span class="s2">roman:number 15</span>
+<span class="s2"># =&gt; XV</span>
+
+
+<span class="s2">roman:get XV</span>
+<span class="s2"># =&gt; 15</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN91"
+>Generating Random Numbers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span>
+
+<span class="s2"># The rand function returns a floating point number from zero to</span>
+<span class="s2"># just less than one or, in mathematical notation, the range [0,1).</span>
+<span class="s2"># The seed comes from the internal clock of the machine or may be</span>
+<span class="s2"># set manually with the srand function.</span>
+<span class="s2">         </span>
+<span class="s2"># The math module of the standard distribution has a wrapper for</span>
+<span class="s2"># rand called random; it supports generation of pseudo-random</span>
+<span class="s2"># numbers in the [0,n) and [n,m) ranges.</span>
+
+
+
+<span class="s2">puts [expr {int(rand()*51)+25}]</span>
+<span class="s2"># =&gt; 32</span>
+
+<span class="s2">package require math</span>
+<span class="s2">puts [::math::random 25 76]</span>
+<span class="s2"># =&gt; 32</span>
+
+
+<span class="s2">set list [split {Demonstrate selecting a random element from a list.}]</span>
+<span class="s2">package require math</span>
+<span class="s2">puts [lindex $list [::math::random [llength $list]]]</span>
+<span class="s2"># =&gt; selecting</span>
+
+
+<span class="s2">package require math</span>
+<span class="s2">set password {}</span>
+<span class="s2">for {set i 0} {$i &lt; 8} {incr i} {</span>
+<span class="s2">    append password [lindex $chars [::math::random [llength $chars]]]</span>
+<span class="s2">}</span>
+<span class="s2">puts $password</span>
+<span class="s2"># =&gt; JhzQ!p!$</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN94"
+>Generating Different Random Numbers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span>
+
+<span class="s2">set value 1138</span>
+<span class="s2">expr {srand($value)}</span>
+<span class="s2"># =&gt; 0.00890640821723</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN97"
+>Making Numbers Even More Random</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span>
+
+<span class="s2"># There is no standard module known to me that implements better</span>
+<span class="s2"># random number generators than the one in the C library, but at</span>
+<span class="s2"># &lt;URL: http://www.elf.org/etc/randomnumbers.html&gt; there is Tcl</span>
+<span class="s2"># and C source for a ``very long period random number generator&#39;&#39;.</span>
+<span class="s2">         </span>
+<span class="s2"># Also see &lt;URL: http://mini.net/cgi-bin/wikit/1551.html&gt; for a</span>
+<span class="s2"># `post-processor&#39; that improves the randomness of the output of</span>
+<span class="s2"># rand().</span>
+
+<span class="s2"># @@INCOMPLETE@@</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN100"
+>Generating Biased Random Numbers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2"># @@INCOMPLETE@@</span>
+<span class="s2"># @@INCOMPLETE@@</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN103"
+>Doing Trigonometry in Degrees, not Radians</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span>
+
+<span class="s2"># You&#39;d typically want a variable like PI to be </span>
+<span class="s2"># contained within a namespace and not automatically</span>
+<span class="s2"># set in the global namespace.  [variable] creates</span>
+<span class="s2"># a variable in the current namespace, and [namespace</span>
+<span class="s2"># current] returns the qualified name of the current</span>
+<span class="s2"># namespace, or :: for the global namespace.</span>
+
+
+
+<span class="s2">variable PI [expr {acos(-1)}]</span>
+<span class="s2">puts [set [namespace current]::PI]</span>
+<span class="s2"># =&gt; 3.14159265359</span>
+
+
+<span class="s2">proc deg2rad {degrees} {</span>
+<span class="s2">    variable PI</span>
+<span class="s2">    return [expr {$degrees / 180.0 * $PI}]</span>
+<span class="s2">}</span>
+
+
+<span class="s2">proc rad2deg {radians} {</span>
+<span class="s2">    variable PI</span>
+<span class="s2">    return [expr {$radians / $PI * 180}]</span>
+<span class="s2">}</span>
+
+
+<span class="s2"># The core Tcl command [expr] has most of the commonly</span>
+<span class="s2"># used trigonometric functions defined, so there is</span>
+<span class="s2"># less need for a Trig module.</span>
+
+
+
+<span class="s2">proc degreeSine {degrees} {</span>
+<span class="s2">    set radians [deg2rad $degrees]</span>
+<span class="s2">    return [expr {sin($radians)}]</span>
+<span class="s2">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN106"
+>Calculating More Trigonometric Functions</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span>
+
+<span class="s2"># The tangent function is already available in the [expr]</span>
+<span class="s2"># command, as is the arcus cosine and many more.</span>
+<span class="s2">         </span>
+<span class="s2"># In some cases, the [expr] functions raise an error because</span>
+<span class="s2"># of overflow or division by zero.  To trap such errors, wrap</span>
+<span class="s2"># in [catch]:</span>
+
+
+
+<span class="s2">list [catch {expr {1/0}} msg] $msg</span>
+<span class="s2"># =&gt; 1 {divide by zero}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN109"
+>Taking Logarithms</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span>
+
+<span class="s2">set value 1138</span>
+<span class="s2">puts [expr {log($value)}]</span>
+<span class="s2"># =&gt; 7.03702761469</span>
+
+
+<span class="s2">set value 1138</span>
+<span class="s2">puts [expr {log10($value)}]</span>
+<span class="s2"># =&gt; 3.05614226206</span>
+
+
+<span class="s2">proc logN {base value} {</span>
+<span class="s2">    return [expr {log($value) / log($base)}]</span>
+<span class="s2">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN112"
+>Multiplying Matrices</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span>
+
+<span class="s2"># There are a few non-standard matrix modules available for Tcl, e.g.</span>
+<span class="s2">#  * TiM: &lt;URL: http://www-obs.univ-lyon1.fr/~thiebaut/TiM/TiM.html&gt;.</span>
+<span class="s2">#    In TiM, matrix multiplication seems to be an &quot;A * B&quot; matter.</span>
+<span class="s2">#  * La (The Hume Linear Algebra Tcl Package):</span>
+<span class="s2">#    &lt;URL: http://www.hume.com/la/index.html&gt;.  Matrix multiplication</span>
+<span class="s2">#    in La looks like this: mmult A B.</span>
+
+
+
+<span class="s2"># There is also a matrix module in the standard distribution library,</span>
+<span class="s2"># but it does not contain arithmetic.  I have used it anyway, with</span>
+<span class="s2"># an adaptation of the mmult subroutine in the Perl Cookbook.</span>
+
+
+
+<span class="s2">package require struct 1.1.1</span>
+<span class="s2">proc mmult {m1 m2} {</span>
+<span class="s2">   set m1rows [$m1 rows]</span>
+<span class="s2">   set m1cols [$m1 columns]</span>
+<span class="s2">   set m2rows [$m2 rows]</span>
+<span class="s2">   set m2cols [$m2 columns]</span>
+<span class="s2">   if {$m1cols != $m2rows} {</span>
+<span class="s2">       error &quot;IndexError: matrices don&#39;t match: $m1cols != $m2rows&quot;</span>
+<span class="s2">   }</span>
+<span class="s2">   </span>
+<span class="s2">   ::struct::matrix result</span>
+<span class="s2">   result add rows $m1rows</span>
+<span class="s2">   result add columns $m2cols</span>
+<span class="s2">   for {set i 0} {$i &lt; $m1rows} {incr i} {</span>
+<span class="s2">       for {set j 0} {$j &lt; $m2cols} {incr j} {</span>
+<span class="s2">           set v 0</span>
+<span class="s2">           for {set k 0} {$k &lt; $m1cols} {incr k} {</span>
+<span class="s2">               incr v [expr {[$m1 get cell $k $i] * [$m2 get cell $j $k]}]</span>
+<span class="s2">           }</span>
+<span class="s2">           result set cell $j $i $v</span>
+<span class="s2">       }</span>
+<span class="s2">   }</span>
+<span class="s2">   return result</span>
+<span class="s2">}</span>
+
+<span class="s2">::struct::matrix x</span>
+<span class="s2">x add columns 3</span>
+<span class="s2">x add row [list 3 2 3]</span>
+<span class="s2">x add row [list 5 9 8]</span>
+<span class="s2">::struct::matrix y</span>
+<span class="s2">y add rows 3</span>
+<span class="s2">y add column [list 4 9 3]</span>
+<span class="s2">y add column [list 7 3 1]</span>
+<span class="s2">set res [mmult x y]</span>
+<span class="s2">$res get rect 0 0 end end</span>
+<span class="s2"># =&gt; {39 30} {125 70}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN115"
+>Using Complex Numbers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span>
+
+<span class="s2"># See &lt;URL: http://www.mini.net/tcl/Complex&gt; for complex</span>
+<span class="s2"># arithmetic routines by Richard Suchenwirth.</span>
+
+
+
+<span class="s2">complex::* 3+5i 2-2i</span>
+<span class="s2"># =&gt; 16+4i</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN118"
+>Converting Between Octal and Hexadecimal</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span>
+
+<span class="s2"># Tcl does not have hex/oct functions, but</span>
+<span class="s2"># they are easy to implement.  If [expr]</span>
+<span class="s2"># gets handed an invalid octal/hex number,</span>
+<span class="s2"># it raises an error instead of returning</span>
+<span class="s2"># 0 as the Perl functions do.</span>
+
+
+
+<span class="s2">proc hex {string} {</span>
+<span class="s2">    if {[regexp -nocase {^0x} $string]} {</span>
+<span class="s2">        return [expr $string]</span>
+<span class="s2">    } else {</span>
+<span class="s2">        return [expr 0x$string]</span>
+<span class="s2">    }</span>
+<span class="s2">}</span>
+
+
+<span class="s2"># This simpler version does not raise errors for invalid input:</span>
+<span class="s2">#     proc hex {string} {</span>
+<span class="s2">#         scan $string %x</span>
+<span class="s2">#     }</span>
+
+
+
+<span class="s2">proc oct {string} {</span>
+<span class="s2">    if {[regexp -nocase {^0x} $string]} {</span>
+<span class="s2">        return [hex $string]</span>
+<span class="s2">    } else {</span>
+<span class="s2">        return [expr 0$string]</span>
+<span class="s2">    }</span>
+<span class="s2">}</span>
+
+
+<span class="s2"># This simpler version does not raise errors for invalid input:</span>
+<span class="s2">#     proc oct {string} {</span>
+<span class="s2">#         scan $string %o</span>
+<span class="s2">#     }</span>
+
+
+
+<span class="s2">if {[string match *.test [info script]]} {</span>
+<span class="s2">    # we are testing, supply known value</span>
+<span class="s2">    set num 0x39a</span>
+<span class="s2">} else {</span>
+<span class="s2">    puts &quot;Gimme a number in decimal, octal, or hex: &quot;</span>
+<span class="s2">    set num [gets stdin]</span>
+<span class="s2">}</span>
+<span class="s2">if {[string length $num]} {</span>
+<span class="s2">    if {[regexp ^0 $num]} {</span>
+<span class="s2">        set num [oct $num]</span>
+<span class="s2">    }</span>
+<span class="s2">    format &quot;%d %x %o&quot; $num $num $num</span>
+<span class="s2">}</span>
+<span class="s2"># =&gt; 922 39a 1632</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN121"
+>Putting Commas in Numbers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span>
+
+<span class="s2"># This procedure is written by Keith Vetter and is part of the Tcl</span>
+<span class="s2"># Cookbook (&lt;URL: #http://aspn.activestate.com/ASPN/Cookbook/Tcl/Recipe/68381&gt;)</span>
+<span class="s2">proc comma {num {sep ,}} {</span>
+<span class="s2">    while {[regsub {^([-+]?\d+)(\d\d\d)} $num &quot;\\1$sep\\2&quot; num]} {}</span>
+<span class="s2">    return $num</span>
+<span class="s2">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN124"
+>Printing Correct Plurals</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span>
+
+<span class="s2"># See &lt;URL: http://mini.net/tcl/EnglishPlurals&gt; for an</span>
+<span class="s2"># English pluralization function by Richard Suchenwirth.</span>
+
+
+
+<span class="s2">set data [join {fish fly ox</span>
+<span class="s2">species genus phylum</span>
+<span class="s2">cherub radius jockey</span>
+<span class="s2">index matrix mythos</span>
+<span class="s2">phenomenon formula}]</span>
+<span class="s2">set res {}</span>
+<span class="s2">foreach word $data {</span>
+<span class="s2">    append res &quot;One $word, two [en:pl $word]\n&quot;</span>
+<span class="s2">}</span>
+<span class="s2">puts $res</span>
+<span class="s2"># =&gt; One fish, two fish</span>
+<span class="s2"># =&gt; One fly, two flies</span>
+<span class="s2"># =&gt; One ox, two oxen</span>
+<span class="s2"># =&gt; One species, two species</span>
+<span class="s2"># =&gt; One genus, two genera</span>
+<span class="s2"># =&gt; One phylum, two phyla</span>
+<span class="s2"># =&gt; One cherub, two cherubim</span>
+<span class="s2"># =&gt; One radius, two radii</span>
+<span class="s2"># =&gt; One jockey, two jockeys</span>
+<span class="s2"># =&gt; One index, two indices</span>
+<span class="s2"># =&gt; One matrix, two matrices</span>
+<span class="s2"># =&gt; One mythos, two mythoi</span>
+<span class="s2"># =&gt; One phenomenon, two phenomena</span>
+<span class="s2"># =&gt; One formula, two formulae</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN127"
+>Program: Calculating Prime Factors</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span>
+
+<span class="s2"># See &lt;URL: http://www.mini.net/tcl/AdditionalMath&gt;:</span>
+<span class="s2"># the primefactors function by Richard Suchenwirth.</span>
+
+
+
+<span class="s2">primefactors 2178</span>
+<span class="s2"># =&gt; 2 3 3 11 11</span>
+
+<span class="s2">primefactors 2099999990</span>
+<span class="s2"># =&gt; 2 5 11 19090909</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="strings.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="datesandtimes.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Strings</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Dates and Times</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

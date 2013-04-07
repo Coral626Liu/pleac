@@ -1,0 +1,1828 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Subroutines</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-C/Posix/GNU"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Directories"
+HREF="directories.html"><LINK
+REL="NEXT"
+TITLE="References and Records"
+HREF="referencesandrecords.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-C/Posix/GNU</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="directories.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="referencesandrecords.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="SUBROUTINES"
+>10. Subroutines</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN536"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// NOTE: In order to keep the size / verbosity of code examples to a minimum, library function</span>
+<span class="c1">// calls will generally not include error checking and handling. Example:</span>
+<span class="c1">//</span>
+<span class="c1">//     p = malloc(...);                if ((p = malloc(...)) == NULL)</span>
+<span class="c1">//                                     {</span>
+<span class="c1">//                                       ... handle error ...</span>
+<span class="c1">//                                     }</span>
+<span class="c1">//</span>
+<span class="c1">// However, any necessary, application-specific error-related code, will still be used. Code</span>
+<span class="c1">// examples will endeavour, wherever possible, to make use of:</span>
+<span class="c1">//</span>
+<span class="c1">// * C99 Features e.g. variable-length arrays, non-const aggregate initialisers</span>
+<span class="c1">// * GNU Extensions e.g. nested functions, statement expressions</span>
+<span class="c1">//</span>
+<span class="c1">// The aim of doing so is to reduce redundancy [i.e. copious examples of older / standard C</span>
+<span class="c1">// already exist] as well as enhance the information value of each PLEAC example.</span>
+<span class="c1">//</span>
+<span class="c1">// Another item worthy of note is the use of writeable &#39;static local storage&#39; in many custom</span>
+<span class="c1">// functions. Whilst a commonly-used technique that makes functions self-contained, and easier</span>
+<span class="c1">// to use [which is precisely why it is used here], it is not viable in multi-threaded code;</span>
+<span class="c1">// examples need to be suitably modified to work in such code. The section, &#39;Printing a Date&#39;,</span>
+<span class="c1">// in Chapter 3: Dates and Times, discusses this issue, and provides illustrative examples.</span>
+
+<span class="cp">#include &lt;stdio.h&gt;</span>
+
+<span class="c1">// Declaring the variable as &#39;static&#39; ensures it has &#39;file scope&#39;, that is:</span>
+<span class="c1">// * It may be considered globally accessable within the current source file</span>
+<span class="c1">// * Is not visible to code defined outside the current file</span>
+<span class="k">static</span> <span class="kt">int</span> <span class="n">greeted</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+<span class="kt">int</span> <span class="nf">howManyGreetings</span><span class="p">(</span><span class="kt">void</span><span class="p">);</span>
+<span class="kt">void</span> <span class="nf">hello</span><span class="p">(</span><span class="kt">void</span><span class="p">);</span>
+
+<span class="c1">// ------------</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="n">hello</span><span class="p">();</span>
+
+  <span class="kt">int</span> <span class="n">greetings</span> <span class="o">=</span> <span class="n">howManyGreetings</span><span class="p">();</span>
+
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;bye there!, there have been %d greetings so far</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">greetings</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ------------</span>
+
+<span class="kt">int</span> <span class="nf">howManyGreetings</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">return</span> <span class="n">greeted</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">hello</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;high there!, this function has been called %d times</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="o">++</span><span class="n">greeted</span><span class="p">);</span>
+<span class="p">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN539"
+>Accessing Subroutine Arguments</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// Standard C requires that a function be prototyped, hence the name and type of parameters</span>
+<span class="c1">// must be specified, and the argumemt list in any calls to that function must match the</span>
+<span class="c1">// parameter list, as illustrated here.</span>
+
+<span class="cp">#include &lt;math.h&gt;</span>
+
+<span class="kt">double</span> <span class="nf">hypotenuse</span><span class="p">(</span><span class="kt">double</span> <span class="n">side1</span><span class="p">,</span> <span class="kt">double</span> <span class="n">side2</span><span class="p">);</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="kt">double</span> <span class="n">diag</span> <span class="o">=</span> <span class="n">hypotenuse</span><span class="p">(</span><span class="mf">3.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">double</span> <span class="nf">hypotenuse</span><span class="p">(</span><span class="kt">double</span> <span class="n">side1</span><span class="p">,</span> <span class="kt">double</span> <span class="n">side2</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">return</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">pow</span><span class="p">(</span><span class="n">side1</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">)</span> <span class="o">+</span> <span class="n">pow</span><span class="p">(</span><span class="n">side2</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">));</span>
+<span class="p">}</span>
+
+<span class="c1">// ----------------------------</span>
+
+<span class="c1">// Standard C does not support the dynamic packaging / unpackaging of arguments, thus it is</span>
+<span class="c1">// *not* possible to call a function which has, for example, been declared to expect two</span>
+<span class="c1">// parameters, with a single argument, to to pass it its arguments packed as elements in</span>
+<span class="c1">// a single array and expect those elements to be &#39;unpacked&#39; from the array. If the function</span>
+<span class="c1">// is to be passed an array when called, then it must be declared to expect an array. Put</span>
+<span class="c1">// simply, the function call must conform to the function declaration and definition</span>
+
+<span class="cp">#include &lt;math.h&gt;</span>
+
+<span class="kt">double</span> <span class="nf">hypotenuse</span><span class="p">(</span><span class="kt">double</span> <span class="n">sidearr</span><span class="p">[]);</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="kt">double</span> <span class="n">sidearr</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span><span class="mf">3.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">};</span>
+  <span class="kt">double</span> <span class="n">diag</span> <span class="o">=</span> <span class="n">hypotenuse</span><span class="p">(</span><span class="n">sidearr</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">double</span> <span class="nf">hypotenuse</span><span class="p">(</span><span class="kt">double</span> <span class="n">sidearr</span><span class="p">[])</span>
+<span class="p">{</span>
+  <span class="k">return</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">pow</span><span class="p">(</span><span class="n">sidearr</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mf">2.0</span><span class="p">)</span> <span class="o">+</span> <span class="n">pow</span><span class="p">(</span><span class="n">sidearr</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mf">2.0</span><span class="p">));</span>
+<span class="p">}</span>
+
+<span class="c1">// ----------------------------</span>
+
+<span class="c1">// Scope does exist to implement functions that may be passed a variable number of parameters.</span>
+<span class="c1">// However, such functions have to be especially written to determine the number and type of</span>
+<span class="c1">// arguments passed, a task that is generally quite precarious because there is little system</span>
+<span class="c1">// support for it, and it is strongly reliant on the programmer adhering to certain conventions.</span>
+<span class="c1">// For instance, it is not possible to determine the type of the arguments passed. Instead, this</span>
+<span class="c1">// must be determined by &#39;hints&#39; [e.g. &#39;printf&#39; uses the format specifiers in the format</span>
+<span class="c1">// string to determine argument type], or by strictly adhering to other conventions [e.g.</span>
+<span class="c1">// assuming a specific number of arguments, or using a value to indicate the &#39;last&#39; argument</span>
+
+<span class="cp">#include &lt;math.h&gt;</span>
+<span class="cp">#include &lt;stdarg.h&gt;</span>
+
+<span class="c1">// Note: at least one parameter must be specified, the rest may then be unspecified i.e. a</span>
+<span class="c1">// variable number</span>
+<span class="kt">double</span> <span class="nf">hypotenuse</span><span class="p">(</span><span class="kt">double</span> <span class="n">side1</span><span class="p">,</span> <span class="p">...);</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="kt">double</span> <span class="n">diag</span> <span class="o">=</span> <span class="n">hypotenuse</span><span class="p">(</span><span class="mf">3.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ----</span>
+
+<span class="c1">// Note: at least one parameter must be specified, the rest may then be unspecified i.e. a</span>
+<span class="c1">// variable number</span>
+<span class="kt">double</span> <span class="nf">hypotenuse</span><span class="p">(</span><span class="kt">double</span> <span class="n">side1</span><span class="p">,</span> <span class="p">...)</span>
+<span class="p">{</span>
+  <span class="kt">va_list</span> <span class="n">ap</span><span class="p">;</span>
+
+  <span class="n">va_start</span><span class="p">(</span><span class="n">ap</span><span class="p">,</span> <span class="n">side1</span><span class="p">);</span>
+
+  <span class="c1">// Here we&#39;re assuming exactly two arguments are passed: the first argument is &#39;side1&#39;</span>
+  <span class="c1">// and the first [and only] variable argument is extracted into &#39;side2&#39;. Any additional</span>
+  <span class="c1">// arguments ar simply ignored. Normally, however, &#39;va_arg&#39; is placed in a loop, and</span>
+  <span class="c1">// each argument extracted in turn</span>
+  <span class="kt">double</span> <span class="n">side2</span> <span class="o">=</span> <span class="n">va_arg</span><span class="p">(</span><span class="n">ap</span><span class="p">,</span> <span class="kt">double</span><span class="p">);</span>
+
+  <span class="n">va_end</span><span class="p">(</span><span class="n">ap</span><span class="p">);</span>
+
+  <span class="k">return</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">pow</span><span class="p">(</span><span class="n">side1</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">)</span> <span class="o">+</span> <span class="n">pow</span><span class="p">(</span><span class="n">side2</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">));</span>
+<span class="p">}</span>
+
+<span class="c1">// ----------------------------</span>
+
+<span class="cp">#include &lt;stddef.h&gt;</span>
+
+<span class="kt">void</span> <span class="nf">int_all</span><span class="p">(</span><span class="k">const</span> <span class="kt">double</span> <span class="n">arr</span><span class="p">[],</span> <span class="kt">int</span> <span class="n">retarr</span><span class="p">[],</span> <span class="kt">size_t</span> <span class="n">arrsize</span><span class="p">);</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">const</span> <span class="kt">double</span> <span class="n">nums</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span><span class="mf">1.4</span><span class="p">,</span> <span class="mf">3.5</span><span class="p">,</span> <span class="mf">6.7</span><span class="p">};</span>
+
+  <span class="k">const</span> <span class="kt">size_t</span> <span class="n">ARRSIZE</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">nums</span><span class="p">)</span> <span class="o">/</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">double</span><span class="p">);</span>
+  <span class="kt">int</span> <span class="n">ints</span><span class="p">[</span><span class="n">ARRSIZE</span><span class="p">];</span>
+
+  <span class="n">int_all</span><span class="p">(</span><span class="n">nums</span><span class="p">,</span> <span class="n">ints</span><span class="p">,</span> <span class="n">ARRSIZE</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">void</span> <span class="nf">int_all</span><span class="p">(</span><span class="k">const</span> <span class="kt">double</span> <span class="n">arr</span><span class="p">[],</span> <span class="kt">int</span> <span class="n">retarr</span><span class="p">[],</span> <span class="kt">size_t</span> <span class="n">arrsize</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">arrsize</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="c1">// Since &#39;retarr&#39; is type &#39;int&#39;, implicit data conversion occurs, but data could</span>
+    <span class="c1">// be lost; &#39;arr&#39; is untouched, and is protected since it is &#39;const&#39; qualified</span>
+    <span class="n">retarr</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">arr</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="c1">// ----------------------------</span>
+
+<span class="cp">#include &lt;stddef.h&gt;</span>
+<span class="cp">#include &lt;math.h&gt;</span>
+
+<span class="kt">void</span> <span class="nf">trunc_em</span><span class="p">(</span><span class="kt">double</span> <span class="n">arr</span><span class="p">[],</span> <span class="kt">size_t</span> <span class="n">arrsize</span><span class="p">);</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="kt">double</span> <span class="n">nums</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span><span class="mf">1.4</span><span class="p">,</span> <span class="mf">3.5</span><span class="p">,</span> <span class="mf">6.7</span><span class="p">};</span>
+  <span class="n">trunc_em</span><span class="p">(</span><span class="n">nums</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">nums</span><span class="p">)</span> <span class="o">/</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">double</span><span class="p">));</span>
+<span class="p">}</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">void</span> <span class="nf">trunc_em</span><span class="p">(</span><span class="kt">double</span> <span class="n">arr</span><span class="p">[],</span> <span class="kt">size_t</span> <span class="n">arrsize</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">arrsize</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="c1">// Safer to use &#39;floor&#39; instead of casting</span>
+    <span class="n">arr</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">floor</span><span class="p">(</span><span class="n">arr</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+  <span class="p">}</span>
+<span class="p">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN542"
+>Making Variables Private to a Function</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// Variables declared within a function body are local to that function, and those declared</span>
+<span class="c1">// outside a function body are global, that is, are visible throughout the executable</span>
+<span class="c1">// unless their visibility has been restricted to the source file in which they are defined</span>
+<span class="c1">// via the &#39;static&#39; keyword</span>
+
+<span class="kt">void</span> <span class="nf">somefunc</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="c1">// All these variables are local to this function</span>
+  <span class="kt">int</span> <span class="n">variable</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">another</span><span class="p">,</span> <span class="n">an_array</span><span class="p">[</span><span class="mi">5</span><span class="p">];</span>
+
+  <span class="p">;</span> <span class="c1">// ...</span>
+<span class="p">}</span>
+
+<span class="c1">// ----------------------------</span>
+
+<span class="cp">#include &lt;stddef.h&gt;</span>
+<span class="cp">#include &lt;stdlib.h&gt;</span>
+<span class="cp">#include &lt;string.h&gt;</span>
+
+<span class="c1">// File scope variables</span>
+<span class="k">static</span> <span class="kt">char</span><span class="o">*</span> <span class="n">name</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+<span class="k">static</span> <span class="kt">int</span> <span class="n">age</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="k">static</span> <span class="kt">int</span> <span class="n">c</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="k">static</span> <span class="kt">int</span> <span class="n">condition</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+<span class="kt">void</span> <span class="nf">run_check</span><span class="p">(</span><span class="kt">void</span><span class="p">);</span>
+<span class="kt">void</span> <span class="nf">check_x</span><span class="p">(</span><span class="kt">int</span> <span class="n">x</span><span class="p">);</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span><span class="o">**</span> <span class="n">argv</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="n">name</span> <span class="o">=</span> <span class="n">strcpy</span><span class="p">(</span><span class="n">malloc</span><span class="p">(</span><span class="n">strlen</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+  <span class="n">age</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
+
+  <span class="n">check_x</span><span class="p">(</span><span class="n">age</span><span class="p">);</span>
+
+  <span class="n">free</span><span class="p">(</span><span class="n">name</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ------------</span>
+
+<span class="kt">void</span> <span class="nf">run_check</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="c1">// Full access to file scope variables</span>
+  <span class="n">condition</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="c1">// ...</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">check_x</span><span class="p">(</span><span class="kt">int</span> <span class="n">x</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="c1">// Full access to file scope variables</span>
+  <span class="k">const</span> <span class="kt">char</span> <span class="n">y</span><span class="p">[]</span> <span class="o">=</span> <span class="s">&quot;whatever&quot;</span><span class="p">;</span>
+
+  <span class="n">run_check</span><span class="p">();</span>
+
+  <span class="c1">// &#39;condition&#39; updated by &#39;run_check&#39;</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">condition</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="p">;</span> <span class="c1">// ...</span>
+  <span class="p">}</span>
+<span class="p">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN545"
+>Creating Persistent Private Variables</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// Through use of the &#39;static&#39; keyword it is possible to create &#39;persistent private variables&#39;,</span>
+<span class="c1">// that is, variables that are accessable only by a select set of functions, and that retain</span>
+<span class="c1">// their value in between function calls. In Standard C these may be implemented in two ways:</span>
+<span class="c1">// * File Scope Variables. Here a source file contains global variable(s) [those residing</span>
+<span class="c1">//   outside any function body] declared as &#39;static&#39;. Only the set of function defined within</span>
+<span class="c1">//   that file has access those variables, thus they may be considered &#39;private&#39;, and since</span>
+<span class="c1">//   they retain their value in between function calls, are also &#39;persistent&#39;</span>
+
+<span class="c1">// File: &#39;mysubs.h&#39;</span>
+<span class="kt">void</span> <span class="nf">mysub</span><span class="p">(</span><span class="kt">void</span><span class="p">);</span>
+<span class="kt">void</span> <span class="nf">reset</span><span class="p">(</span><span class="kt">void</span><span class="p">);</span>
+
+<span class="c1">// ----</span>
+
+<span class="c1">// File: &#39;mysubs.c&#39;</span>
+<span class="k">static</span> <span class="kt">int</span> <span class="n">variable</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+
+<span class="kt">void</span> <span class="nf">mysub</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="p">;</span> <span class="c1">// ... do something with &#39;variable&#39; ...</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">reset</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span> <span class="p">{</span> <span class="n">variable</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="p">}</span>
+
+<span class="c1">// ----</span>
+
+<span class="c1">// File: &#39;test.c&#39;</span>
+<span class="cp">#include &quot;mysubs.h&quot;</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="c1">// &#39;variable&#39; is not accessable here</span>
+
+  <span class="c1">// Call &#39;mysub&#39;, which can access &#39;variable&#39;</span>
+  <span class="n">mysub</span><span class="p">();</span>
+
+  <span class="c1">// Call &#39;reset&#39; which sets &#39;variable&#39; to 1</span>
+  <span class="n">reset</span><span class="p">();</span>
+<span class="p">}</span>
+
+<span class="c1">// ------------</span>
+
+<span class="c1">// File: &#39;counter.h&#39;</span>
+<span class="kt">int</span> <span class="nf">increment</span><span class="p">(</span><span class="kt">void</span><span class="p">);</span>
+<span class="kt">int</span> <span class="nf">decrement</span><span class="p">(</span><span class="kt">void</span><span class="p">);</span>
+
+<span class="c1">// File: &#39;counter.c&#39;</span>
+<span class="k">static</span> <span class="kt">int</span> <span class="n">counter</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+<span class="kt">int</span> <span class="nf">increment</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="o">++</span><span class="n">counter</span><span class="p">;</span> <span class="p">}</span>
+<span class="kt">int</span> <span class="nf">decrement</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="o">--</span><span class="n">counter</span><span class="p">;</span> <span class="p">}</span>
+
+<span class="c1">// File: &#39;test.c&#39;</span>
+<span class="cp">#include &lt;stdio.h&gt;</span>
+<span class="cp">#include &quot;counter.h&quot;</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="kt">int</span> <span class="n">a</span> <span class="o">=</span> <span class="n">increment</span><span class="p">();</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;%d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">a</span><span class="p">);</span>
+
+  <span class="n">a</span> <span class="o">=</span> <span class="n">decrement</span><span class="p">();</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;%d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">a</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// * Function Scope Variables. These are local variables declared &#39;static&#39;; they are visible</span>
+<span class="c1">//   only within the function body [hence are &#39;private&#39;], and persist in between calls of that</span>
+<span class="c1">//   function</span>
+
+<span class="cp">#include &lt;stdio.h&gt;</span>
+
+<span class="k">enum</span> <span class="n">CMD_TYPE</span> <span class="p">{</span><span class="n">INC_CMD</span><span class="p">,</span> <span class="n">DEC_CMD</span><span class="p">};</span>
+
+<span class="kt">int</span> <span class="nf">Counter</span><span class="p">(</span><span class="k">enum</span> <span class="n">CMD_TYPE</span> <span class="n">cmd_type</span><span class="p">);</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="kt">int</span> <span class="n">a</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">(</span><span class="n">INC_CMD</span><span class="p">);</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;%d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">a</span><span class="p">);</span>
+
+  <span class="n">a</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">(</span><span class="n">DEC_CMD</span><span class="p">);</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;%d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">a</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">int</span> <span class="nf">Counter</span><span class="p">(</span><span class="k">enum</span> <span class="n">CMD_TYPE</span> <span class="n">cmd_type</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">static</span> <span class="kt">int</span> <span class="n">counter</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+  <span class="c1">// GNU Extension: nested functions, have direct access to &#39;counter&#39;</span>
+  <span class="kt">int</span> <span class="n">increment</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="o">++</span><span class="n">counter</span><span class="p">;</span> <span class="p">}</span>
+  <span class="kt">int</span> <span class="n">decrement</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="o">--</span><span class="n">counter</span><span class="p">;</span> <span class="p">}</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">cmd_type</span> <span class="o">==</span> <span class="n">INC_CMD</span><span class="p">)</span> <span class="n">increment</span><span class="p">();</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">cmd_type</span> <span class="o">==</span> <span class="n">DEC_CMD</span><span class="p">)</span> <span class="n">decrement</span><span class="p">();</span>
+
+  <span class="k">return</span> <span class="n">counter</span><span class="p">;</span>
+<span class="p">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN548"
+>Determining Current Function Name</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// Standard C offers no facility for performing ad-hoc, runtime stack inspection; therefore,</span>
+<span class="c1">// information such as the currently-executing function name, cannot be obtained. However,</span>
+<span class="c1">// there is a GNU extension which allows the embedding of the function name within the</span>
+<span class="c1">// function body, and code may be written to somehow utilise this information. Two additional</span>
+<span class="c1">// GNU extension functions - &#39;__builtin_return_address&#39; and &#39;__builtin_frame_address&#39; - *do*</span>
+<span class="c1">// allow runtime stack inspection. However, this does not include access to information such</span>
+<span class="c1">// as the function name.</span>
+
+<span class="kt">void</span> <span class="nf">whoami</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="c1">// A Standard C facility, &#39;__func__&#39;, performs a similar role</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;I am function: %s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">__FUNCTION__</span><span class="p">);</span>
+<span class="p">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN551"
+>Passing Arrays and Hashes by Reference</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// Standard C supports only &#39;pass-by-value&#39;, that is, a copy of each argument is passed when</span>
+<span class="c1">// calling a function. The approach is the same whether the argument is a primitive type such</span>
+<span class="c1">// as an &#39;int&#39;, an aggregate type such as a struct, or an array, or, a specialised type like</span>
+<span class="c1">// a pointer. Despite this, &#39;pass-by-reference&#39; is possible, though it is performed indirectly</span>
+<span class="c1">// via pointers. Put simply, when an argument needs to be modified, or to avoid the overhead</span>
+<span class="c1">// of copying a potentially &#39;large&#39; argument, its address [i.e. pointer] is passed in its</span>
+<span class="c1">// place. The pointer is then used to refer to the actual item [hence &#39;reference&#39;].</span>
+<span class="c1">// In all such cases, bar one, the address of the referred item must be specifically obtained.</span>
+<span class="c1">// The exception is when passing arrays; the system automatically passes a pointer rather than</span>
+<span class="c1">// copying the array: the address of the first array element from which all other element</span>
+<span class="c1">// locations can be computed.</span>
+
+<span class="kt">void</span> <span class="nf">array_diff</span><span class="p">(</span><span class="kt">int</span> <span class="n">arr1</span><span class="p">[],</span> <span class="kt">int</span> <span class="n">arr2</span><span class="p">[]);</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="kt">int</span> <span class="n">arr1</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">},</span> <span class="n">arr2</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">};</span>
+
+  <span class="c1">// Call &#39;array_diff&#39; with &#39;arr1&#39; and &#39;arr2&#39; as arguments. Although each argument is</span>
+  <span class="c1">// passed-by-value, because they are arrays, only the address of the first element</span>
+  <span class="c1">// is passed. Effectively, &#39;references&#39; to these arrays are passed, and the overhead</span>
+  <span class="c1">// of copying is avoided</span>
+  <span class="n">array_diff</span><span class="p">(</span><span class="n">arr1</span><span class="p">,</span> <span class="n">arr2</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">void</span> <span class="nf">array_diff</span><span class="p">(</span><span class="kt">int</span> <span class="n">arr1</span><span class="p">[],</span> <span class="kt">int</span> <span class="n">arr2</span><span class="p">[])</span>
+<span class="p">{</span>
+  <span class="p">;</span> <span class="c1">// ...</span>
+<span class="p">}</span>
+
+<span class="c1">// ----------------------------</span>
+
+<span class="cp">#include &lt;stdlib.h&gt;</span>
+
+<span class="kt">int</span><span class="o">*</span> <span class="nf">add_vecpair</span><span class="p">(</span><span class="k">const</span> <span class="kt">int</span><span class="o">*</span> <span class="n">vec1</span><span class="p">,</span> <span class="k">const</span> <span class="kt">int</span><span class="o">*</span> <span class="n">vec2</span><span class="p">,</span> <span class="kt">int</span> <span class="n">size</span><span class="p">);</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="kt">int</span> <span class="n">a</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">},</span> <span class="n">b</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">5</span><span class="p">,</span> <span class="mi">8</span><span class="p">};</span>
+
+  <span class="kt">int</span><span class="o">*</span> <span class="n">c</span> <span class="o">=</span> <span class="n">add_vecpair</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="mi">2</span><span class="p">);</span>
+
+  <span class="n">free</span><span class="p">(</span><span class="n">c</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">int</span><span class="o">*</span> <span class="nf">add_vecpair</span><span class="p">(</span><span class="k">const</span> <span class="kt">int</span><span class="o">*</span> <span class="n">vec1</span><span class="p">,</span> <span class="k">const</span> <span class="kt">int</span><span class="o">*</span> <span class="n">vec2</span><span class="p">,</span> <span class="kt">int</span> <span class="n">size</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="kt">int</span><span class="o">*</span> <span class="n">retvec</span> <span class="o">=</span> <span class="n">malloc</span><span class="p">(</span><span class="n">size</span> <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">int</span><span class="p">));</span>
+
+  <span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">size</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="n">retvec</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">vec1</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">vec2</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+  <span class="p">}</span>
+
+  <span class="k">return</span> <span class="n">retvec</span><span class="p">;</span>
+<span class="p">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN554"
+>Detecting Return Context</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// Standard C is a statically-typed language based on type declarations. This means that:</span>
+<span class="c1">// * Each variable, as well each function&#39;s parameters and return value, is declared to have</span>
+<span class="c1">//   a type; this is a permanent attribute which cannot be altered [except through &#39;casting&#39;</span>
+<span class="c1">//   which may be seen as selective circumvention of the type system]. Put simply, a variable</span>
+<span class="c1">//   declared to be of type &#39;X&#39; can only be assigned such types; a function declared to return</span>
+<span class="c1">//   type &#39;X&#39; must return such a type</span>
+<span class="c1">// * Type checking is done at compilation time, so it should not be possible [except through</span>
+<span class="c1">//   casting] to generate code that is not type conformant e.g. attempts to assign type &#39;Y&#39;</span>
+<span class="c1">//   where a type &#39;X&#39; is expected, or to return an array instead of a struct from a function,</span>
+<span class="c1">//   should fail as compilation errors</span>
+<span class="c1">//</span>
+<span class="c1">// The short of it is that, in Standard C, &#39;return context&#39; is something that is determined at</span>
+<span class="c1">// compilation time, therefore is not something that can be altered. Runtime-determined</span>
+<span class="c1">// &#39;return context&#39; is really only something meaningful in dynamically-typed, interpreted</span>
+<span class="c1">// languages.</span>
+<span class="c1">//</span>
+<span class="c1">// That being said, it *is* possible to implement a crude, very limited, form of</span>
+<span class="c1">// runtime-determined &#39;return context&#39; via the use of &#39;void*&#39;. The Perl &#39;mysub&#39; example, below,</span>
+<span class="c1">// will use this approach. Please note the intent here is to show possibilities; the approach is</span>
+<span class="c1">// an example of &#39;selective type system circumvention&#39;, and is not generally a recommended one</span>
+<span class="c1">// unless it is part of a larger library specifcally designed for this purpose</span>
+
+<span class="cp">#include &lt;stdio.h&gt;</span>
+
+<span class="k">enum</span> <span class="n">ret_type</span> <span class="p">{</span> <span class="n">WANT_NULL</span><span class="p">,</span> <span class="n">WANT_INT</span><span class="p">,</span> <span class="n">WANT_INT_ARRAY</span> <span class="p">}</span> <span class="n">RET_TYPE</span><span class="p">;</span>
+
+<span class="kt">void</span><span class="o">*</span> <span class="nf">mysub</span><span class="p">(</span><span class="kt">void</span><span class="o">*</span> <span class="n">arg</span><span class="p">);</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="n">mysub</span><span class="p">(</span><span class="nb">NULL</span><span class="p">);</span>
+
+  <span class="n">RET_TYPE</span> <span class="o">=</span> <span class="n">WANT_INT</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">a</span> <span class="o">=</span> <span class="n">mysub</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;%d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">a</span><span class="p">);</span>
+
+  <span class="n">RET_TYPE</span> <span class="o">=</span> <span class="n">WANT_INT_ARRAY</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">arr</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">};</span>
+  <span class="kt">int</span><span class="o">*</span> <span class="n">retarr</span> <span class="o">=</span> <span class="n">mysub</span><span class="p">(</span><span class="n">arr</span><span class="p">);</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;%d:%d:%d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">arr</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">arr</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">arr</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
+<span class="p">}</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">void</span><span class="o">*</span> <span class="nf">mysub</span><span class="p">(</span><span class="kt">void</span><span class="o">*</span> <span class="n">arg</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">RET_TYPE</span> <span class="o">==</span> <span class="n">WANT_INT</span><span class="p">)</span> <span class="k">return</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span> <span class="n">arg</span><span class="p">;</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">RET_TYPE</span> <span class="o">==</span> <span class="n">WANT_INT_ARRAY</span><span class="p">)</span> <span class="k">return</span> <span class="p">(</span><span class="kt">int</span><span class="o">*</span><span class="p">)</span> <span class="n">arg</span><span class="p">;</span>
+  <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+<span class="p">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN557"
+>Passing by Named Parameter</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// Standard C offers no support for named / keyword parameters. It is of course possible to</span>
+<span class="c1">// mimic such functionality in several ways:</span>
+<span class="c1">// * Adopt a convention of passing arguments as hash table entries, or as list nodes, as</span>
+<span class="c1">//   an array of entries</span>
+<span class="c1">// * Bury key=value pairs in a string, and pass string as single argument</span>
+<span class="c1">// * Use variable argument functions with structs of key / value pairs [or, as a variation</span>
+<span class="c1">//   on the second suggestion, key=value strings]</span>
+<span class="c1">//</span>
+<span class="c1">// In all cases argument unpacking must be performed within the function body, so the</span>
+<span class="c1">// approach can hardly be called transparent. Additionally, a fair amount of code would be</span>
+<span class="c1">// needed to build a usable, flexible and robust facility. Examples of each approach are</span>
+<span class="c1">// shown.</span>
+
+<span class="c1">// 1. Array of struct named_parm_t [For simplicity, &#39;value&#39; is assumed to be a &#39;char*&#39;,</span>
+<span class="c1">//    but could instead use a &#39;type tagging&#39; approach [i.e. a field identifying type of</span>
+<span class="c1">//    data being stored, and either a void* or a union, for storing the various types]</span>
+
+<span class="cp">#include &lt;stdio.h&gt;</span>
+<span class="cp">#include &lt;stdlib.h&gt;</span>
+<span class="cp">#include &lt;string.h&gt;</span>
+
+<span class="k">struct</span> <span class="kt">named_parm_t</span>
+<span class="p">{</span>
+  <span class="kt">char</span><span class="o">*</span> <span class="n">key</span><span class="p">;</span>
+  <span class="kt">char</span><span class="o">*</span> <span class="n">value</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="kt">void</span> <span class="nf">named_parms_as_array_of_struct</span><span class="p">(</span><span class="k">const</span> <span class="k">struct</span> <span class="kt">named_parm_t</span> <span class="n">parms</span><span class="p">[],</span> <span class="kt">size_t</span> <span class="n">num_parms</span><span class="p">);</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="c1">// a=1, b=2, c=cat</span>
+  <span class="n">named_parms_as_array_of_struct</span><span class="p">((</span><span class="k">struct</span> <span class="kt">named_parm_t</span><span class="p">[]){{</span><span class="s">&quot;a&quot;</span><span class="p">,</span> <span class="s">&quot;1&quot;</span><span class="p">},</span> <span class="p">{</span><span class="s">&quot;b&quot;</span><span class="p">,</span> <span class="s">&quot;2&quot;</span><span class="p">},</span> <span class="p">{</span><span class="s">&quot;c&quot;</span><span class="p">,</span> <span class="s">&quot;cat&quot;</span><span class="p">}},</span> <span class="mi">3</span><span class="p">);</span>
+
+  <span class="c1">// b=12 [a and c have default values]</span>
+  <span class="n">named_parms_as_array_of_struct</span><span class="p">((</span><span class="k">struct</span> <span class="kt">named_parm_t</span><span class="p">[]){{</span><span class="s">&quot;b&quot;</span><span class="p">,</span> <span class="s">&quot;12&quot;</span><span class="p">}},</span> <span class="mi">1</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">void</span> <span class="nf">named_parms_as_array_of_struct</span><span class="p">(</span><span class="k">const</span> <span class="k">struct</span> <span class="kt">named_parm_t</span> <span class="n">parms</span><span class="p">[],</span> <span class="kt">size_t</span> <span class="n">num_parms</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="c1">// Ensure local variables are initialised to sensible default values</span>
+  <span class="kt">int</span> <span class="n">a</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">c</span> <span class="o">=</span> <span class="s">&quot;default&quot;</span><span class="p">;</span>
+
+  <span class="c1">// Extract named parameter values, and assign to corresponding local variable(s)</span>
+  <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">num_parms</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">strcmp</span><span class="p">(</span><span class="n">parms</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">key</span><span class="p">,</span> <span class="s">&quot;a&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span> <span class="n">a</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">parms</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">value</span><span class="p">);</span> <span class="k">continue</span><span class="p">;</span> <span class="p">}</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">strcmp</span><span class="p">(</span><span class="n">parms</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">key</span><span class="p">,</span> <span class="s">&quot;b&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span> <span class="n">b</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">parms</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">value</span><span class="p">);</span> <span class="k">continue</span><span class="p">;</span> <span class="p">}</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">strcmp</span><span class="p">(</span><span class="n">parms</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">key</span><span class="p">,</span> <span class="s">&quot;c&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="n">c</span> <span class="o">=</span> <span class="n">parms</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">value</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Value of a is %d, b is %d, and c is %s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">);</span> <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ------------</span>
+
+<span class="c1">// 2. Delimited string of key=value substrings</span>
+
+<span class="cp">#include &lt;stdbool.h&gt;</span>
+<span class="cp">#include &lt;stdio.h&gt;</span>
+<span class="cp">#include &lt;stdlib.h&gt;</span>
+<span class="cp">#include &lt;string.h&gt;</span>
+
+<span class="kt">void</span> <span class="nf">named_parms_as_string</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">parms</span><span class="p">);</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="c1">// &quot;a=1,b=2,c=cat&quot;</span>
+  <span class="n">named_parms_as_string</span><span class="p">(</span><span class="s">&quot;a=1,b=2,c=cat&quot;</span><span class="p">);</span>
+
+  <span class="c1">// &quot;b=12&quot; [a and c have default values]</span>
+  <span class="n">named_parms_as_string</span><span class="p">(</span><span class="s">&quot;b=2&quot;</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">void</span> <span class="nf">named_parms_as_string</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">parms</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">const</span> <span class="kt">char</span> <span class="n">COMMA</span> <span class="o">=</span> <span class="sc">&#39;,&#39;</span><span class="p">,</span> <span class="n">EQ</span> <span class="o">=</span> <span class="sc">&#39;=&#39;</span><span class="p">,</span> <span class="n">NUL</span> <span class="o">=</span> <span class="sc">&#39;\0&#39;</span><span class="p">;</span>
+
+  <span class="kt">bool</span> <span class="n">parse_entry</span><span class="p">(</span><span class="kt">char</span><span class="o">*</span> <span class="n">entry</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="n">sep</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span><span class="o">**</span> <span class="n">key</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span><span class="o">**</span> <span class="n">value</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="kt">char</span> <span class="o">*</span><span class="n">p</span> <span class="o">=</span> <span class="n">entry</span><span class="p">,</span> <span class="o">*</span><span class="n">q</span><span class="p">;</span>
+    <span class="k">return</span> <span class="p">((</span><span class="n">q</span> <span class="o">=</span> <span class="n">strchr</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">EQ</span><span class="p">))</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="o">?</span> <span class="p">({</span> <span class="o">*</span><span class="n">key</span> <span class="o">=</span> <span class="n">p</span><span class="p">;</span> <span class="o">*</span><span class="n">q</span> <span class="o">=</span> <span class="n">NUL</span><span class="p">;</span> <span class="o">*</span><span class="n">value</span> <span class="o">=</span> <span class="o">++</span><span class="n">q</span><span class="p">;</span> <span class="nb">true</span><span class="p">;</span> <span class="p">})</span> <span class="o">:</span> <span class="nb">false</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="c1">// Ensure local variables are initialised to sensible default values</span>
+  <span class="kt">int</span> <span class="n">a</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">c</span> <span class="o">=</span> <span class="s">&quot;default&quot;</span><span class="p">;</span>
+
+  <span class="c1">// Parse string of key=value entries ...</span>
+  <span class="kt">char</span> <span class="n">entry</span><span class="p">[</span><span class="mi">64</span><span class="p">];</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">key</span><span class="p">,</span> <span class="o">*</span><span class="n">value</span><span class="p">;</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">p</span> <span class="o">=</span> <span class="n">parms</span><span class="p">,</span> <span class="o">*</span><span class="n">q</span><span class="p">;</span>
+
+  <span class="k">while</span> <span class="p">(</span><span class="n">p</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="k">if</span> <span class="p">((</span><span class="n">q</span> <span class="o">=</span> <span class="n">strchr</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">COMMA</span><span class="p">))</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="n">q</span> <span class="o">=</span> <span class="n">strchr</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">NUL</span><span class="p">);</span>
+
+    <span class="n">memcpy</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span> <span class="o">-</span> <span class="n">p</span><span class="p">);</span> <span class="o">*</span><span class="p">(</span><span class="n">entry</span> <span class="o">+</span> <span class="p">(</span><span class="n">q</span> <span class="o">-</span> <span class="n">p</span><span class="p">))</span> <span class="o">=</span> <span class="n">NUL</span><span class="p">;</span>
+
+    <span class="c1">// Parse each entry, assign to corresponding variable</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">parse_entry</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="n">EQ</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">key</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">value</span><span class="p">))</span>
+    <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">strcmp</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="s">&quot;a&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="n">a</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">value</span><span class="p">);</span>
+      <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">strcmp</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="s">&quot;b&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="n">b</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">value</span><span class="p">);</span>
+      <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">strcmp</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="s">&quot;c&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="n">c</span> <span class="o">=</span> <span class="n">value</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">q</span><span class="p">)</span> <span class="o">?</span> <span class="o">++</span><span class="n">q</span> <span class="o">:</span> <span class="nb">NULL</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Value of a is %d, b is %d, and c is %s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">);</span> <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ----------------------------</span>
+
+<span class="c1">// 3. Variable arguments of key=value strings</span>
+<span class="c1">//</span>
+<span class="c1">//    The example from Perl Cookbook is implemented using this approach . Note that the code</span>
+<span class="c1">//    here does not perform exactly the same task as the original. Instead, emphasis is placed</span>
+<span class="c1">//    on illustrating string parsing and argument handling techniques</span>
+
+<span class="cp">#include &lt;stdbool.h&gt;</span>
+<span class="cp">#include &lt;stdio.h&gt;</span>
+<span class="cp">#include &lt;stdarg.h&gt;</span>
+<span class="cp">#include &lt;stdlib.h&gt;</span>
+<span class="cp">#include &lt;ctype.h&gt;</span>
+<span class="cp">#include &lt;string.h&gt;</span>
+
+<span class="kt">void</span> <span class="nf">the_func</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">arg1</span><span class="p">,</span> <span class="p">...);</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="n">the_func</span><span class="p">(</span><span class="s">&quot;increment=20s&quot;</span><span class="p">,</span> <span class="s">&quot;start=+5m&quot;</span><span class="p">,</span> <span class="s">&quot;finish=+30m&quot;</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+
+  <span class="n">the_func</span><span class="p">(</span><span class="s">&quot;start=+5m&quot;</span><span class="p">,</span> <span class="s">&quot;finish=+30m&quot;</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+
+  <span class="n">the_func</span><span class="p">(</span><span class="s">&quot;finish=+30m&quot;</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+
+  <span class="n">the_func</span><span class="p">(</span><span class="s">&quot;start=+5m&quot;</span><span class="p">,</span> <span class="s">&quot;increment=15s&quot;</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">void</span> <span class="nf">the_func</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">arg1</span><span class="p">,</span> <span class="p">...)</span>
+<span class="p">{</span>
+  <span class="k">const</span> <span class="kt">char</span> <span class="n">COMMA</span> <span class="o">=</span> <span class="sc">&#39;,&#39;</span><span class="p">,</span> <span class="n">EQ</span> <span class="o">=</span> <span class="sc">&#39;=&#39;</span><span class="p">,</span> <span class="n">NUL</span> <span class="o">=</span> <span class="sc">&#39;\0&#39;</span><span class="p">;</span>
+
+  <span class="kt">bool</span> <span class="n">parse_entry</span><span class="p">(</span><span class="kt">char</span><span class="o">*</span> <span class="n">entry</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="n">sep</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span><span class="o">**</span> <span class="n">key</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span><span class="o">**</span> <span class="n">value</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="kt">char</span> <span class="o">*</span><span class="n">p</span> <span class="o">=</span> <span class="n">entry</span><span class="p">,</span> <span class="o">*</span><span class="n">q</span><span class="p">;</span>
+    <span class="k">return</span> <span class="p">((</span><span class="n">q</span> <span class="o">=</span> <span class="n">strchr</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">EQ</span><span class="p">))</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="o">?</span> <span class="p">({</span> <span class="o">*</span><span class="n">key</span> <span class="o">=</span> <span class="n">p</span><span class="p">;</span> <span class="o">*</span><span class="n">q</span> <span class="o">=</span> <span class="n">NUL</span><span class="p">;</span> <span class="o">*</span><span class="n">value</span> <span class="o">=</span> <span class="o">++</span><span class="n">q</span><span class="p">;</span> <span class="nb">true</span><span class="p">;</span> <span class="p">})</span> <span class="o">:</span> <span class="nb">false</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="kt">int</span> <span class="n">inc_secs</span><span class="p">(</span><span class="kt">char</span><span class="o">*</span> <span class="n">inc_tok</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="kt">char</span><span class="o">*</span> <span class="n">lp</span> <span class="o">=</span> <span class="n">strchr</span><span class="p">(</span><span class="n">inc_tok</span><span class="p">,</span> <span class="n">NUL</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span> <span class="kt">char</span> <span class="n">inc_mul</span> <span class="o">=</span> <span class="n">tolower</span><span class="p">(</span><span class="o">*</span><span class="n">lp</span><span class="p">);</span> <span class="o">*</span><span class="n">lp</span> <span class="o">=</span> <span class="n">NUL</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">inc_mul</span> <span class="o">==</span> <span class="sc">&#39;s&#39;</span><span class="p">)</span> <span class="k">return</span> <span class="n">atoi</span><span class="p">(</span><span class="n">inc_tok</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">inc_mul</span> <span class="o">==</span> <span class="sc">&#39;m&#39;</span><span class="p">)</span> <span class="k">return</span> <span class="n">atoi</span><span class="p">(</span><span class="n">inc_tok</span><span class="p">)</span> <span class="o">*</span> <span class="mi">60</span><span class="p">;</span>
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="c1">// Ensure local variables are initialised to sensible default values</span>
+  <span class="kt">int</span> <span class="n">finish</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">start</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="kt">char</span> <span class="n">increment</span><span class="p">[</span><span class="mi">32</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;10s&quot;</span><span class="p">;</span>
+
+  <span class="c1">// Storage for parsing ...</span>
+  <span class="kt">char</span> <span class="n">entry</span><span class="p">[</span><span class="mi">64</span><span class="p">];</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">key</span><span class="p">,</span> <span class="o">*</span><span class="n">value</span><span class="p">;</span>
+
+  <span class="c1">// Extract values from 1st argument</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">parse_entry</span><span class="p">(</span><span class="n">strcpy</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="n">arg1</span><span class="p">),</span> <span class="n">EQ</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">key</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">value</span><span class="p">))</span>
+  <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">strcmp</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="s">&quot;start&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="n">start</span> <span class="o">=</span> <span class="n">inc_secs</span><span class="p">(</span><span class="n">value</span><span class="p">);</span>
+    <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">strcmp</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="s">&quot;finish&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="n">finish</span> <span class="o">=</span> <span class="n">inc_secs</span><span class="p">(</span><span class="n">value</span><span class="p">);</span>
+    <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">strcmp</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="s">&quot;increment&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="n">strcpy</span><span class="p">(</span><span class="n">increment</span><span class="p">,</span> <span class="n">value</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="c1">// Setup for variable argument handling, and extract values from each of these</span>
+  <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">arg</span><span class="p">;</span> <span class="kt">va_list</span> <span class="n">ap</span><span class="p">;</span>
+
+  <span class="n">va_start</span><span class="p">(</span><span class="n">ap</span><span class="p">,</span> <span class="n">arg1</span><span class="p">);</span>
+
+  <span class="k">while</span> <span class="p">((</span><span class="n">arg</span> <span class="o">=</span> <span class="n">va_arg</span><span class="p">(</span><span class="n">ap</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span><span class="o">*</span><span class="p">))</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="c1">// Parse each entry, assign to corresponding variable</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">parse_entry</span><span class="p">(</span><span class="n">strcpy</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="n">arg</span><span class="p">),</span> <span class="n">EQ</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">key</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">value</span><span class="p">))</span>
+    <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">strcmp</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="s">&quot;start&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="n">start</span> <span class="o">=</span> <span class="n">inc_secs</span><span class="p">(</span><span class="n">value</span><span class="p">);</span>
+      <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">strcmp</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="s">&quot;finish&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="n">finish</span> <span class="o">=</span> <span class="n">inc_secs</span><span class="p">(</span><span class="n">value</span><span class="p">);</span>
+      <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">strcmp</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="s">&quot;increment&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="n">strcpy</span><span class="p">(</span><span class="n">increment</span><span class="p">,</span> <span class="n">value</span><span class="p">);</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+
+  <span class="n">va_end</span><span class="p">(</span><span class="n">ap</span><span class="p">);</span>
+
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;start -&gt; %d : finish -&gt; %d : increment -&gt; %s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">finish</span><span class="p">,</span> <span class="n">increment</span><span class="p">);</span>
+  <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+<span class="p">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN560"
+>Skipping Selected Return Values</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// It&#39;s generally only interpreted languages, or those supporting some sort of pattern</span>
+<span class="c1">// matching that implement such a facility. In Standard C a function must return a value in</span>
+<span class="c1">// conformance with its return type specification [returning nothing - &#39;void&#39; - may still be</span>
+<span class="c1">// seen as returning a value]. Where the return value is an aggregate - struct or array - it</span>
+<span class="c1">// is not possible to perform selective &#39;masking out&#39; of it&#39;s contents; the entire item is</span>
+<span class="c1">// captured then processed as needs be. Therefore the examples in this section could not be</span>
+<span class="c1">// implemented</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN563"
+>Returning More Than One Array or Hash</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// Standard C allows only the return of a single value. The return of multiple values *can*,</span>
+<span class="c1">// however, be simulated by packaging them within an aggregate type: a struct or an array.</span>
+<span class="c1">// The catch is, however, that the return value must be manually &#39;unpacked&#39;, thus using</span>
+<span class="c1">// this approach is a deliberate design decision rather than the use of an ad-hoc facility</span>
+
+<span class="cp">#include &lt;stdlib.h&gt;</span>
+<span class="cp">#include &lt;stdio.h&gt;</span>
+
+<span class="k">typedef</span> <span class="k">struct</span> <span class="n">HASH_</span>
+<span class="p">{</span>
+  <span class="kt">char</span><span class="o">*</span> <span class="n">key</span><span class="p">;</span>
+  <span class="kt">char</span><span class="o">*</span> <span class="n">value</span><span class="p">;</span>
+<span class="p">}</span> <span class="n">HASH</span><span class="p">;</span>
+
+<span class="k">typedef</span> <span class="k">struct</span> <span class="n">ARRAY_HASH_</span>
+<span class="p">{</span>
+  <span class="kt">char</span><span class="o">*</span> <span class="n">array</span><span class="p">;</span>
+  <span class="n">HASH</span><span class="o">*</span> <span class="n">hash</span><span class="p">;</span>
+<span class="p">}</span> <span class="n">ARRAY_HASH</span><span class="p">;</span>
+
+<span class="n">ARRAY_HASH</span> <span class="nf">some_func</span><span class="p">(</span><span class="kt">char</span> <span class="n">array</span><span class="p">[],</span> <span class="n">HASH</span> <span class="n">hash</span><span class="p">[]);</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="c1">// GNU Extensions: compound literals</span>
+  <span class="n">ARRAY_HASH</span> <span class="n">refs</span> <span class="o">=</span> <span class="n">some_func</span><span class="p">((</span><span class="kt">char</span><span class="p">[])</span> <span class="p">{</span><span class="sc">&#39;a&#39;</span><span class="p">,</span> <span class="sc">&#39;b&#39;</span><span class="p">,</span> <span class="sc">&#39;c&#39;</span><span class="p">},</span> <span class="p">(</span><span class="n">HASH</span><span class="p">[])</span> <span class="p">{{</span><span class="s">&quot;k1&quot;</span><span class="p">,</span> <span class="s">&quot;v1&quot;</span><span class="p">},</span> <span class="p">{</span><span class="s">&quot;k2&quot;</span><span class="p">,</span> <span class="s">&quot;v2&quot;</span><span class="p">}});</span>
+
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;%c</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">refs</span><span class="p">.</span><span class="n">array</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;%s:%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">refs</span><span class="p">.</span><span class="n">hash</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="n">key</span><span class="p">,</span> <span class="n">refs</span><span class="p">.</span><span class="n">hash</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="n">value</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ----</span>
+
+<span class="n">ARRAY_HASH</span> <span class="nf">some_func</span><span class="p">(</span><span class="kt">char</span> <span class="n">array</span><span class="p">[],</span> <span class="n">HASH</span> <span class="n">hash</span><span class="p">[])</span>
+<span class="p">{</span>
+  <span class="p">;</span> <span class="c1">// ... do something with &#39;array&#39; and &#39;hash&#39;</span>
+
+  <span class="c1">// GNU Extensions: compound literals</span>
+  <span class="k">return</span> <span class="p">(</span><span class="n">ARRAY_HASH</span><span class="p">)</span> <span class="p">{</span><span class="n">array</span><span class="p">,</span> <span class="n">hash</span><span class="p">};</span>
+<span class="p">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN566"
+>Returning Failure</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// Unlike in Perl, it is not possible for a function to selectively return / not return a</span>
+<span class="c1">// value; a function is defined to either return a specific type, or to return no value at</span>
+<span class="c1">// all [i.e. to return &#39;void&#39;]. Thus, this approach cannot be used to &#39;return failure&#39;.</span>
+<span class="c1">// Conventions used in Standard C to indicate function failure include:</span>
+<span class="c1">// * Return a pointer; the return of a NULL-valued pointer may indicate &#39;failure&#39; such as,</span>
+<span class="c1">//   for example, the inability to allocate dynamic memory, or, in the case of the &#39;fopen&#39;</span>
+<span class="c1">//   library function, the failure to open a file</span>
+<span class="c1">// * Return an &#39;int&#39; value where a 0 or positive value indicates success, and a -1 value</span>
+<span class="c1">//   indicates failure. Some library functions also set the &#39;errno&#39; global variable to a</span>
+<span class="c1">//   known error code for further diagnostic information</span>
+
+<span class="cp">#include &lt;stdlib.h&gt;</span>
+
+<span class="kt">char</span><span class="o">*</span> <span class="nf">func</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="kt">int</span> <span class="n">error_detected</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="kt">char</span><span class="o">*</span> <span class="n">valid_char_pointer</span><span class="p">;</span>
+
+  <span class="p">;</span> <span class="c1">// ...</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">error_detected</span><span class="p">)</span> <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+
+  <span class="p">;</span> <span class="c1">// ...</span>
+
+  <span class="k">return</span> <span class="n">valid_char_pointer</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="c1">// ----------------------------</span>
+
+<span class="cp">#include &lt;stdlib.h&gt;</span>
+<span class="cp">#include &lt;stdio.h&gt;</span>
+
+<span class="kt">void</span> <span class="nf">die</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">msg</span><span class="p">);</span>
+
+<span class="kt">int</span> <span class="nf">sfunc</span><span class="p">(</span><span class="kt">void</span><span class="p">);</span>
+<span class="kt">char</span><span class="o">*</span> <span class="nf">afunc</span><span class="p">(</span><span class="kt">void</span><span class="p">);</span>
+<span class="kt">char</span><span class="o">*</span> <span class="nf">hfunc</span><span class="p">(</span><span class="kt">void</span><span class="p">);</span>
+
+<span class="c1">// ------------</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="kt">int</span> <span class="n">s</span><span class="p">;</span> <span class="kt">char</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">*</span><span class="n">h</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">((</span><span class="n">s</span> <span class="o">=</span> <span class="n">sfunc</span><span class="p">())</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="n">die</span><span class="p">(</span><span class="s">&quot;&#39;sfunc&#39; failed</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+  <span class="k">if</span> <span class="p">((</span><span class="n">a</span> <span class="o">=</span> <span class="n">afunc</span><span class="p">())</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="n">die</span><span class="p">(</span><span class="s">&quot;&#39;afunc&#39; failed</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+  <span class="k">if</span> <span class="p">((</span><span class="n">h</span> <span class="o">=</span> <span class="n">hfunc</span><span class="p">())</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="n">die</span><span class="p">(</span><span class="s">&quot;&#39;hfunc&#39; failed</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ------------</span>
+
+<span class="kt">void</span> <span class="nf">die</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">msg</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="n">fputs</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">stderr</span><span class="p">);</span>
+  <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">int</span> <span class="nf">sfunc</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="kt">int</span> <span class="n">error_detected</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">valid_int_value</span><span class="p">;</span>
+
+  <span class="p">;</span> <span class="c1">// ...</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">error_detected</span><span class="p">)</span> <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+
+  <span class="p">;</span> <span class="c1">// ...</span>
+
+  <span class="k">return</span> <span class="n">valid_int_value</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">char</span><span class="o">*</span> <span class="nf">afunc</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="kt">int</span> <span class="n">error_detected</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="kt">char</span><span class="o">*</span> <span class="n">valid_char_pointer</span><span class="p">;</span>
+
+  <span class="p">;</span> <span class="c1">// ...</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">error_detected</span><span class="p">)</span> <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+
+  <span class="p">;</span> <span class="c1">// ...</span>
+
+  <span class="k">return</span> <span class="n">valid_char_pointer</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">char</span><span class="o">*</span> <span class="nf">hfunc</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="kt">int</span> <span class="n">error_detected</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="kt">char</span><span class="o">*</span> <span class="n">valid_char_pointer</span><span class="p">;</span>
+
+  <span class="p">;</span> <span class="c1">// ...</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">error_detected</span><span class="p">)</span> <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+
+  <span class="p">;</span> <span class="c1">// ...</span>
+
+  <span class="k">return</span> <span class="n">valid_char_pointer</span><span class="p">;</span>
+<span class="p">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN569"
+>Prototyping Functions</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// Whilst in Perl function prototyping is optional, this is not the case in C, where it is</span>
+<span class="c1">// necessary to:</span>
+<span class="c1">// * Declare a function before use; this could either be a function declaration separate from</span>
+<span class="c1">//   the function definition, or the function definition itself which serves as its own</span>
+<span class="c1">//   declaration</span>
+<span class="c1">// * Specify both parameter positional and type information; parameter names are optional in</span>
+<span class="c1">//   declarations, mandatory in definitions</span>
+<span class="c1">// * Specify return type; in the past this was optional, but now this is mandatory</span>
+
+<span class="cp">#include &lt;stdlib.h&gt;</span>
+<span class="cp">#include &lt;stdio.h&gt;</span>
+
+<span class="c1">// Function Declaration</span>
+<span class="kt">int</span><span class="o">*</span> <span class="nf">myfunc</span><span class="p">(</span><span class="kt">int</span> <span class="n">arg1</span><span class="p">,</span> <span class="kt">int</span> <span class="n">arg2</span><span class="p">);</span> <span class="c1">// Also possible: int* myfunc(int, int);</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="c1">// Call function with all required arguments; this is the only calling method</span>
+  <span class="c1">// [except for calling via function pointer which still needs all arguments supplied]</span>
+  <span class="kt">int</span><span class="o">*</span> <span class="n">results</span> <span class="o">=</span> <span class="n">myfunc</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">);</span>
+
+  <span class="c1">// Let&#39;s look at our return array&#39;s contents</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;%d:%d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">results</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+
+  <span class="n">free</span><span class="p">(</span><span class="n">results</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ----</span>
+
+<span class="c1">// Function Definition</span>
+<span class="kt">int</span><span class="o">*</span> <span class="nf">myfunc</span><span class="p">(</span><span class="kt">int</span> <span class="n">arg1</span><span class="p">,</span> <span class="kt">int</span> <span class="n">arg2</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="c1">// Allocate some memory, pack arguments into array for return</span>
+  <span class="kt">int</span><span class="o">*</span> <span class="n">results</span> <span class="o">=</span> <span class="n">malloc</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">int</span><span class="p">));</span>
+
+  <span class="o">*</span><span class="p">(</span><span class="n">results</span> <span class="o">+</span> <span class="mi">0</span><span class="p">)</span> <span class="o">=</span> <span class="n">arg1</span><span class="p">;</span>
+  <span class="o">*</span><span class="p">(</span><span class="n">results</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="n">arg2</span><span class="p">;</span>
+
+  <span class="k">return</span> <span class="n">results</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="c1">// ------------</span>
+
+<span class="c1">// Other Perl examples are omitted since there is no variation in C function calling or</span>
+<span class="c1">// parameter handling</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN572"
+>Handling Exceptions</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// Though perhaps not a widely used idiom in Standard C the language does offer exception</span>
+<span class="c1">// handling support. Some pertinent reading:</span>
+<span class="c1">//</span>
+<span class="c1">// * http://en.wikipedia.org/wiki/Exception_handling</span>
+<span class="c1">// * http://portal.acm.org/citation.cfm?coll=GUIDE&amp;dl=GUIDE&amp;id=512997</span>
+<span class="c1">//</span>
+<span class="c1">// The example in this section doesn&#39;t strctly follow the Perl code, but merely shows how</span>
+<span class="c1">// an exception can be thrown, and handled. The approach used is based on code from:</span>
+<span class="c1">//</span>
+<span class="c1">// * http://ldeniau.home.cern.ch/ldeniau/html/exception/exception.html</span>
+<span class="c1">//</span>
+<span class="c1">// It is worth mentioning that &#39;exception handling support&#39; consists of the provision, in</span>
+<span class="c1">// the Standard C library, of the &#39;setjmp&#39; and &#39;longjmp&#39; functions. Exception handling</span>
+<span class="c1">// code such as that used here is essentially an infrastrucure built around these two</span>
+<span class="c1">// functions with &#39;setjmp&#39; being used to create a destination for a later invocation of</span>
+<span class="c1">// &#39;longjmp&#39; to &#39;goto&#39; [a.k.a. perform a non-local exit], and in the process, ensuring</span>
+<span class="c1">// the &#39;program state&#39; is wound back to the time the &#39;setjmp&#39; call was made. Further</span>
+<span class="c1">// details are obtainable by referencing the relevant documentation.</span>
+
+<span class="cp">#include &lt;stdio.h&gt;</span>
+<span class="cp">#include &quot;exception.h&quot;</span>
+
+<span class="k">enum</span>
+<span class="p">{</span>
+  <span class="n">E_invalid</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>     <span class="c1">// This exception can never be thrown</span>
+
+  <span class="n">E_bad_exit</span><span class="p">,</span>        <span class="c1">// &#39;standard&#39; exceptions</span>
+  <span class="n">E_bad_alloc</span><span class="p">,</span>
+  <span class="n">E_bad_cast</span><span class="p">,</span>
+  <span class="n">E_bad_typeid</span><span class="p">,</span>
+
+  <span class="n">E_usr_fullmoon</span><span class="p">,</span>    <span class="c1">// User-defined exceptions</span>
+
+  <span class="n">E_last_exception</span>   <span class="c1">// Last exception id</span>
+<span class="p">};</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;main - entry</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+
+  <span class="n">try</span>
+  <span class="p">{</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;try block - entry</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;... doing stuff ...</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+
+    <span class="c1">// if (... error condition detected ...)</span>
+         <span class="n">throw</span><span class="p">(</span><span class="n">E_usr_fullmoon</span><span class="p">);</span>
+
+    <span class="c1">// Control never gets here ...</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;try block - end</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="n">catch</span> <span class="p">(</span><span class="n">E_usr_fullmoon</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Caught a &#39;fullmoon&#39; exception</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="n">catch_any</span>
+  <span class="p">{</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Caught an unknown exception, error code: %d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">exception</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="n">endtry</span><span class="p">;</span>
+
+  <span class="c1">// Control gets here regardless of whether an exception is thrown or not</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;main - end</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// Include here, or separately compile and link with your executable</span>
+<span class="cp">#include &quot;exception.c&quot;</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN575"
+>Saving Global Values</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// In Standard C it *isn&#39;t possible* to access a global variable that has been shadowed by a</span>
+<span class="c1">// local variable of the same name, thus there is no need to save / restore such variables. If</span>
+<span class="c1">// both global and local variable need to be accessable, consider renaming one of them. An</span>
+<span class="c1">// oft used convention is to name global variables using capitals; thus the same name may be</span>
+<span class="c1">// used to indicate the variables are related, but the different case ensures that each remains</span>
+<span class="c1">// visible</span>
+
+<span class="cp">#include &lt;stdio.h&gt;</span>
+
+<span class="c1">// Global variable</span>
+<span class="k">static</span> <span class="kt">int</span> <span class="n">age</span> <span class="o">=</span> <span class="mi">18</span><span class="p">;</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">void</span> <span class="nf">print_age</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="c1">// Global value, &#39;age&#39;, is accessed</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Age is %d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">age</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ------------</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="c1">// A local variable named, &#39;age&#39; will act to &#39;shadow&#39; the globally</span>
+  <span class="c1">// defined version, thus any changes to, &#39;age&#39;, will not affect</span>
+  <span class="c1">// the global version</span>
+  <span class="kt">int</span> <span class="n">age</span> <span class="o">=</span> <span class="mi">5</span><span class="p">;</span>
+
+  <span class="c1">// Prints 18, the current value of the global version</span>
+  <span class="n">print_age</span><span class="p">();</span>
+
+  <span class="c1">// Local version is altered, *not* global version</span>
+  <span class="n">age</span> <span class="o">=</span> <span class="mi">23</span><span class="p">;</span>
+
+  <span class="c1">// Prints 18, the current value of the global version</span>
+  <span class="n">print_age</span><span class="p">();</span>
+<span class="p">}</span>
+
+<span class="c1">// ----------------------------</span>
+
+<span class="cp">#include &lt;stdio.h&gt;</span>
+
+<span class="c1">// Global variable</span>
+<span class="k">static</span> <span class="kt">int</span> <span class="n">age</span> <span class="o">=</span> <span class="mi">18</span><span class="p">;</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">void</span> <span class="nf">print_age</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="c1">// Global value, &#39;age&#39;, is accessed</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Age is %d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">age</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ------------</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="c1">// Here no local version declared: any changes affect global version</span>
+  <span class="n">age</span> <span class="o">=</span> <span class="mi">5</span><span class="p">;</span>
+
+  <span class="c1">// Prints 5, the new value of the global version</span>
+  <span class="n">print_age</span><span class="p">();</span>
+
+  <span class="c1">// Global version again altered</span>
+  <span class="n">age</span> <span class="o">=</span> <span class="mi">23</span><span class="p">;</span>
+
+  <span class="c1">// Prints 23, the new value of the global version</span>
+  <span class="n">print_age</span><span class="p">();</span>
+<span class="p">}</span>
+
+<span class="c1">// ----------------------------</span>
+
+<span class="cp">#include &lt;stdio.h&gt;</span>
+
+<span class="c1">// Global variable</span>
+<span class="kt">int</span> <span class="n">AGE</span> <span class="o">=</span> <span class="mi">18</span><span class="p">;</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">void</span> <span class="nf">print_age</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="c1">// Global value, &#39;AGE&#39;, is accessed</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Age is %d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">AGE</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ------------</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="kt">int</span> <span class="n">age</span> <span class="o">=</span> <span class="n">AGE</span><span class="p">;</span>
+
+  <span class="c1">// Prints 18, the new value of &#39;AGE&#39;</span>
+  <span class="n">print_age</span><span class="p">();</span>
+
+  <span class="c1">// Global variable is altered</span>
+  <span class="n">AGE</span> <span class="o">=</span> <span class="mi">23</span><span class="p">;</span>
+
+  <span class="c1">// Prints 23, the new value of &#39;AGE&#39;</span>
+  <span class="n">print_age</span><span class="p">();</span>
+
+  <span class="c1">// &#39;AGE&#39; restored from saved local version</span>
+  <span class="n">AGE</span> <span class="o">=</span> <span class="n">age</span><span class="p">;</span>
+
+  <span class="c1">// Prints 18, the restored value of &#39;AGE&#39;</span>
+  <span class="n">print_age</span><span class="p">();</span>
+<span class="p">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN578"
+>Redefining a Function</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// Standard C does not allow the redefinition of a function at runtime. A function&#39;s name</span>
+<span class="c1">// [as seen in source code] is, at runtime, actually an unalterable value: the address of</span>
+<span class="c1">// a chunk of code. Therefore, a function named &#39;f&#39; will, for as long as the executable</span>
+<span class="c1">// exists, be associated with a particular chunk of code.</span>
+
+<span class="kt">void</span> <span class="nf">f</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="p">;</span> <span class="c1">// ...</span>
+<span class="p">}</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="n">f</span><span class="p">();</span>                   <span class="c1">// Call function &#39;f&#39;</span>
+
+  <span class="kt">void</span> <span class="p">(</span><span class="o">*</span><span class="n">fp</span><span class="p">)(</span><span class="kt">void</span><span class="p">)</span> <span class="o">=</span> <span class="n">f</span><span class="p">;</span>  <span class="c1">// Get address of function &#39;f&#39;; place in function pointer variable</span>
+  <span class="n">fp</span><span class="p">();</span>                  <span class="c1">// Call function &#39;f&#39; using its address</span>
+<span class="p">}</span>
+
+<span class="c1">// However, if the convention of using a function pointer variable to call a function, is</span>
+<span class="c1">// adopted, then it becomes possible to call one of possibly several same-signature [i.e.</span>
+<span class="c1">// same parameter list and return type] functions by simply assigning a different address</span>
+<span class="c1">// to the variable. In this way it is possible to not only execute other available functions,</span>
+<span class="c1">// but also those residing in external libraries [i.e. shared libraries / DLL&#39;s]</span>
+
+<span class="c1">// Perl &#39;grow / expand&#39; combined example</span>
+<span class="cp">#include &lt;stdio.h&gt;</span>
+
+<span class="k">typedef</span> <span class="nf">void</span> <span class="p">(</span><span class="o">*</span><span class="n">FPTR</span><span class="p">)(</span><span class="kt">void</span><span class="p">);</span>
+
+<span class="kt">void</span> <span class="nf">grow</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span> <span class="p">{</span> <span class="n">printf</span><span class="p">(</span><span class="s">&quot;grow</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span> <span class="p">}</span>
+<span class="kt">void</span> <span class="nf">expand</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span> <span class="p">{</span> <span class="n">printf</span><span class="p">(</span><span class="s">&quot;expand</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span> <span class="p">}</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="c1">// Display addresses of each function; each should be a different value</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;grow -&gt; %x | expand -&gt; %x</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">grow</span><span class="p">,</span> <span class="n">expand</span><span class="p">);</span>
+
+  <span class="c1">// Call functions directly by name</span>
+  <span class="n">grow</span><span class="p">();</span>
+  <span class="n">expand</span><span class="p">();</span>
+
+  <span class="c1">// Call functions indirectly using function pointer variable</span>
+  <span class="n">FPTR</span> <span class="n">fp</span> <span class="o">=</span> <span class="n">grow</span><span class="p">;</span>
+  <span class="n">fp</span><span class="p">();</span>
+
+  <span class="n">fp</span> <span class="o">=</span> <span class="n">expand</span><span class="p">;</span>
+  <span class="n">fp</span><span class="p">();</span>
+
+  <span class="c1">// Local scope</span>
+  <span class="p">{</span>
+    <span class="c1">// Current version of &#39;fp&#39; will shadow outer scope version</span>
+    <span class="n">FPTR</span> <span class="n">fp</span> <span class="o">=</span> <span class="n">grow</span><span class="p">;</span>
+
+    <span class="c1">// Should now be &#39;grow&#39;</span>
+    <span class="n">fp</span><span class="p">();</span>
+  <span class="p">}</span>
+
+  <span class="c1">// Should still be &#39;expand&#39; since the &#39;fp&#39; at this scope was untouched</span>
+  <span class="n">fp</span><span class="p">();</span>
+<span class="p">}</span>
+
+<span class="c1">// ----------------------------</span>
+
+<span class="cp">#include &lt;stdio.h&gt;</span>
+
+<span class="k">typedef</span> <span class="nf">void</span> <span class="p">(</span><span class="o">*</span><span class="n">FPTR</span><span class="p">)(</span><span class="kt">void</span><span class="p">);</span>
+
+<span class="kt">void</span> <span class="nf">fred_func</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span> <span class="p">{</span> <span class="n">printf</span><span class="p">(</span><span class="s">&quot;fred</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span> <span class="p">}</span>
+<span class="kt">void</span> <span class="nf">barney_func</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span> <span class="p">{</span> <span class="n">printf</span><span class="p">(</span><span class="s">&quot;barney</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span> <span class="p">}</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="c1">// Note: &#39;fred&#39; is the pointer variable name. It is *not* possible to redefine function</span>
+  <span class="c1">// names</span>
+  <span class="n">FPTR</span> <span class="n">fred</span> <span class="o">=</span> <span class="n">fred_func</span><span class="p">;</span>
+  <span class="n">fred</span><span class="p">();</span>
+
+  <span class="n">fred</span> <span class="o">=</span> <span class="n">barney_func</span><span class="p">;</span>
+  <span class="n">fred</span><span class="p">();</span>
+<span class="p">}</span>
+
+<span class="c1">// ----------------------------</span>
+
+<span class="cp">#include &lt;stdio.h&gt;</span>
+<span class="cp">#include &lt;stdlib.h&gt;</span>
+<span class="cp">#include &lt;string.h&gt;</span>
+
+<span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="nf">red</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">text</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">return</span> <span class="n">strcat</span><span class="p">(</span><span class="n">strcat</span><span class="p">(</span><span class="n">strcpy</span><span class="p">(</span><span class="n">malloc</span><span class="p">(</span><span class="mi">64</span><span class="p">),</span> <span class="s">&quot;&lt;FONT COLOR=&#39;red&#39;&gt;&quot;</span><span class="p">),</span> <span class="n">text</span><span class="p">),</span> <span class="s">&quot;&lt;/FONT&gt;&quot;</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">color_tag</span> <span class="o">=</span> <span class="n">red</span><span class="p">(</span><span class="s">&quot;careful here&quot;</span><span class="p">);</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">color_tag</span><span class="p">);</span>
+  <span class="n">free</span><span class="p">(</span><span class="n">color_tag</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ----------------------------</span>
+
+<span class="cp">#include &lt;stdio.h&gt;</span>
+<span class="cp">#include &lt;stdlib.h&gt;</span>
+<span class="cp">#include &lt;string.h&gt;</span>
+
+<span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="nf">color_font</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">color</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">text</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">return</span> <span class="n">strcat</span><span class="p">(</span><span class="n">strcat</span><span class="p">(</span><span class="n">strcat</span><span class="p">(</span><span class="n">strcat</span><span class="p">(</span><span class="n">strcpy</span><span class="p">(</span><span class="n">malloc</span><span class="p">(</span><span class="mi">128</span><span class="p">),</span> <span class="s">&quot;&lt;FONT COLOR=&#39;&quot;</span><span class="p">),</span> <span class="n">color</span><span class="p">),</span> <span class="s">&quot;&#39;&gt;&quot;</span><span class="p">),</span> <span class="n">text</span><span class="p">),</span> <span class="s">&quot;&lt;/FONT&gt;&quot;</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="nf">red</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">text</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="n">color_font</span><span class="p">(</span><span class="s">&quot;red&quot;</span><span class="p">,</span> <span class="n">text</span><span class="p">);</span> <span class="p">}</span>
+<span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="nf">blue</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">text</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="n">color_font</span><span class="p">(</span><span class="s">&quot;blue&quot;</span><span class="p">,</span> <span class="n">text</span><span class="p">);</span> <span class="p">}</span>
+<span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="nf">green</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">text</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="n">color_font</span><span class="p">(</span><span class="s">&quot;green&quot;</span><span class="p">,</span> <span class="n">text</span><span class="p">);</span> <span class="p">}</span>
+
+<span class="c1">// ----</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">color_tag</span> <span class="o">=</span> <span class="n">red</span><span class="p">(</span><span class="s">&quot;careful here&quot;</span><span class="p">);</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">color_tag</span><span class="p">);</span>
+  <span class="n">free</span><span class="p">(</span><span class="n">color_tag</span><span class="p">);</span>
+
+  <span class="n">color_tag</span> <span class="o">=</span> <span class="n">blue</span><span class="p">(</span><span class="s">&quot;careful here&quot;</span><span class="p">);</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">color_tag</span><span class="p">);</span>
+  <span class="n">free</span><span class="p">(</span><span class="n">color_tag</span><span class="p">);</span>
+
+  <span class="n">color_tag</span> <span class="o">=</span> <span class="n">green</span><span class="p">(</span><span class="s">&quot;careful here&quot;</span><span class="p">);</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">color_tag</span><span class="p">);</span>
+  <span class="n">free</span><span class="p">(</span><span class="n">color_tag</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ----------------------------</span>
+
+<span class="c1">// It isn&#39;t possible, in Standard C, to generate code &#39;on the fly&#39; as is done in the Perl</span>
+<span class="c1">// examples. The code must have been pre-generated, and either statically linked [i.e.</span>
+<span class="c1">// actually part of the executable] or be dynamically loadable [i.e. residing in an external</span>
+<span class="c1">// library which may be located and loaded]. A more appropriate way to solve this problem</span>
+<span class="c1">// is simply to directly call the &#39;color_font&#39; function with the required arguments, two</span>
+<span class="c1">// approaches of which are shown below in (1) and (2)</span>
+
+<span class="cp">#include &lt;stdio.h&gt;</span>
+<span class="cp">#include &lt;stdlib.h&gt;</span>
+<span class="cp">#include &lt;string.h&gt;</span>
+
+<span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="nf">color_font</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">color</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">text</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">return</span> <span class="n">strcat</span><span class="p">(</span><span class="n">strcat</span><span class="p">(</span><span class="n">strcat</span><span class="p">(</span><span class="n">strcat</span><span class="p">(</span><span class="n">strcpy</span><span class="p">(</span><span class="n">malloc</span><span class="p">(</span><span class="mi">128</span><span class="p">),</span> <span class="s">&quot;&lt;FONT COLOR=&#39;&quot;</span><span class="p">),</span> <span class="n">color</span><span class="p">),</span> <span class="s">&quot;&#39;&gt;&quot;</span><span class="p">),</span> <span class="n">text</span><span class="p">),</span> <span class="s">&quot;&lt;/FONT&gt;&quot;</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ----</span>
+
+<span class="c1">// (1) Traverse parallel arrays of arguments</span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">colors</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;red&quot;</span><span class="p">,</span> <span class="s">&quot;blue&quot;</span><span class="p">,</span> <span class="s">&quot;green&quot;</span><span class="p">,</span> <span class="s">&quot;yellow&quot;</span><span class="p">,</span> <span class="s">&quot;orange&quot;</span><span class="p">,</span> <span class="s">&quot;purple&quot;</span><span class="p">,</span> <span class="s">&quot;violet&quot;</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">};</span>
+  <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">texts</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;x&quot;</span><span class="p">,</span> <span class="s">&quot;y&quot;</span><span class="p">,</span> <span class="s">&quot;z&quot;</span><span class="p">,</span> <span class="s">&quot;a&quot;</span><span class="p">,</span> <span class="s">&quot;b&quot;</span><span class="p">,</span> <span class="s">&quot;c&quot;</span><span class="p">,</span> <span class="s">&quot;d&quot;</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">};</span>
+
+  <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">color_tag</span><span class="p">;</span>
+
+  <span class="k">for</span> <span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">**</span><span class="n">color</span> <span class="o">=</span> <span class="n">colors</span><span class="p">,</span> <span class="o">**</span><span class="n">text</span> <span class="o">=</span> <span class="n">texts</span><span class="p">;</span> <span class="o">*</span><span class="n">color</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">;</span> <span class="o">++</span><span class="n">color</span><span class="p">,</span> <span class="o">++</span><span class="n">text</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="n">color_tag</span> <span class="o">=</span> <span class="n">color_font</span><span class="p">(</span><span class="o">*</span><span class="n">color</span><span class="p">,</span> <span class="o">*</span><span class="n">text</span><span class="p">);</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">color_tag</span><span class="p">);</span>
+    <span class="n">free</span><span class="p">(</span><span class="n">color_tag</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="c1">// ----</span>
+
+<span class="c1">// (2) Package arguments as a struct; traverse array of such structs</span>
+<span class="k">typedef</span> <span class="k">struct</span> <span class="n">TAG_TEXT_</span>
+<span class="p">{</span>
+  <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">color</span><span class="p">;</span>
+  <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">text</span><span class="p">;</span>
+<span class="p">}</span> <span class="n">TAG_TEXT</span><span class="p">;</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">const</span> <span class="n">TAG_TEXT</span> <span class="n">tags</span><span class="p">[]</span> <span class="o">=</span>
+  <span class="p">{</span>
+    <span class="p">{</span><span class="s">&quot;red&quot;</span><span class="p">,</span> <span class="s">&quot;x&quot;</span><span class="p">},</span> <span class="p">{</span><span class="s">&quot;blue&quot;</span><span class="p">,</span> <span class="s">&quot;y&quot;</span><span class="p">},</span> <span class="p">{</span><span class="s">&quot;green&quot;</span><span class="p">,</span> <span class="s">&quot;z&quot;</span><span class="p">},</span> <span class="p">{</span><span class="s">&quot;yellow&quot;</span><span class="p">,</span> <span class="s">&quot;a&quot;</span><span class="p">},</span>
+    <span class="p">{</span><span class="s">&quot;orange&quot;</span><span class="p">,</span> <span class="s">&quot;b&quot;</span><span class="p">},</span> <span class="p">{</span><span class="s">&quot;purple&quot;</span><span class="p">,</span> <span class="s">&quot;c&quot;</span><span class="p">},</span> <span class="p">{</span><span class="s">&quot;violet&quot;</span><span class="p">,</span> <span class="s">&quot;d&quot;</span><span class="p">}</span>
+  <span class="p">};</span>
+  <span class="k">const</span> <span class="kt">int</span> <span class="n">TAGS</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">tags</span><span class="p">)</span> <span class="o">/</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">TAG_TEXT</span><span class="p">);</span>
+
+  <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">color_tag</span><span class="p">;</span>
+
+  <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">TAGS</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="n">color_tag</span> <span class="o">=</span> <span class="n">color_font</span><span class="p">(</span><span class="n">tags</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">color</span><span class="p">,</span> <span class="n">tags</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">text</span><span class="p">);</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">color_tag</span><span class="p">);</span>
+    <span class="n">free</span><span class="p">(</span><span class="n">color_tag</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN581"
+>Trapping Undefined Function Calls with AUTOLOAD</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// Undefined function calls are detected as errors at code generation time:</span>
+<span class="c1">//</span>
+<span class="c1">// * At compilation time a function must be explicitly declared before being called i.e. it</span>
+<span class="c1">//   must have a prototype, else a compilation error occurs</span>
+<span class="c1">// * At linkage time [i.e. when currently-generated code is combined with library code to</span>
+<span class="c1">//   create an executable module] the code identified with a function must be available,</span>
+<span class="c1">//   [or, with shared libraries, in a known location] else a linkage error occurs</span>
+<span class="c1">//</span>
+<span class="c1">// In short, in the Standard C language, no runtime detection of &#39;missing&#39; functions is</span>
+<span class="c1">// possible since such code could never have been generated in the first place.</span>
+<span class="c1">//</span>
+<span class="c1">// However, if the convention of using a function pointer to call a function, is adopted,</span>
+<span class="c1">// it does become possible to check whether the function pointer variable is assigned a non-NULL</span>
+<span class="c1">// address, presumably the address of a valid function. Unfortunately, without the aid of</span>
+<span class="c1">// specialised, platform-specific library routines, it is not possible to verify the validity</span>
+<span class="c1">// of this address; an attempted function call either succeeds or fails, and may fail because</span>
+<span class="c1">// it was a bogus address. Again, the Standard C language offers no runtime detection of</span>
+<span class="c1">// something like a &#39;bogus&#39; function address.</span>
+<span class="c1">//</span>
+<span class="c1">// The combination of &#39;call-by-function-pointer&#39;, and a suitable set of shared library handling</span>
+<span class="c1">// functions does make it possible to implement an dynamic code loading facility, even a</span>
+<span class="c1">// full-blown AUTOLOAD facility. However, it is important to realise that this is an</span>
+<span class="c1">// infrastructure built on top of the Standard C language, not an integral language feature.</span>
+<span class="c1">//</span>
+<span class="c1">// In the *NIX environment the &#39;dlopen&#39;, &#39;dlsymbol&#39;, &#39;dlerror&#39;, and &#39;dlclose&#39; set of functions</span>
+<span class="c1">// is commonly used for shared library management, and would form the basis for implementing</span>
+<span class="c1">// an AUTOLOAD facility. The following is an example of a very minimal dynamic loading system</span>
+<span class="c1">// illustrating how a function named &#39;chartreuse&#39; residing in a shared library called &#39;colors.so&#39;</span>
+<span class="c1">// would be loaded, called, and unloaded. Note that this is not an example of dynamic code</span>
+<span class="c1">// generation, as in the Perl example, since the &#39;chartreuse&#39; function *must already exist*</span>
+<span class="c1">// for it to even have a chance of executing.</span>
+<span class="c1">//</span>
+<span class="c1">// Of course it is possible to write code that creates C source file(s), invokes various</span>
+<span class="c1">// code generation tools, and builds a shared library which may subsequently be loaded and</span>
+<span class="c1">// run. Again, though, this is a custom infrastructure, not an integral language facility.</span>
+<span class="c1">// @@INCOMPLETE@@</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN584"
+>Nesting Subroutines</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//------------------------------------------------------------------</span>
+<span class="c1">// Nested functions are supported by GNU C as an extension</span>
+<span class="c1">// See the documentation of your GCC version</span>
+<span class="kt">int</span> <span class="nf">outer</span><span class="p">(</span> <span class="kt">int</span> <span class="n">arg1</span> <span class="p">){</span>
+  <span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="n">arg1</span> <span class="o">+</span> <span class="mi">35</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">inner</span><span class="p">()</span>
+    <span class="p">{</span> <span class="k">return</span> <span class="n">x</span> <span class="o">*</span> <span class="mi">19</span><span class="p">;</span> <span class="p">}</span> <span class="c1">// nested function can access</span>
+                       <span class="c1">// all the variables of the containing function</span>
+                       <span class="c1">// that are visible at the point of its definition</span>
+
+  <span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="n">inner</span><span class="p">();</span>
+<span class="p">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN587"
+>Program: Sorting Your Mail</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// @@INCOMPLETE@@</span>
+<span class="c1">// @@INCOMPLETE@@</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="directories.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="referencesandrecords.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Directories</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>References and Records</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

@@ -1,0 +1,709 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Pattern Matching</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-PicoLisp
+"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Hashes"
+HREF="hashes.html"><LINK
+REL="NEXT"
+TITLE="File Access"
+HREF="fileaccess.html"></HEAD
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-PicoLisp
+</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="hashes.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="fileaccess.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="PATTERNMATCHING"
+>6. Pattern Matching</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN285"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><I><FONT COLOR="#B22222"></FONT></I><I><FONT COLOR="#B22222"># PicoLisp has no strings, and doesn't operate on symbol names directly.
+</FONT></I><I><FONT COLOR="#B22222"># (see the &quot;Strings&quot; section). Instead, patterns are applied to lists.
+</FONT></I><I><FONT COLOR="#B22222">#-----------------------------
+</FONT></I>(match Pattern List)
+(fill Pattern [Symbol|List])
+<I><FONT COLOR="#B22222">#-----------------------------
+</FONT></I>: (match <B><FONT COLOR="#BC8F8F">'(@Name had a @Adj lamb) '</FONT></B>(Mary had a little lamb))
+-&gt; T
+: @Name
+-&gt; (Mary)
+: @Adj
+-&gt; (little)
+<I><FONT COLOR="#B22222">#-----------------------------
+</FONT></I></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN288"
+>Copying and Substituting Simultaneously</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><I><FONT COLOR="#B22222"></FONT></I><I><FONT COLOR="#B22222">#-----------------------------
+</FONT></I>: (replace <B><FONT COLOR="#BC8F8F">'(here in this town) '</FONT></B>this <B><FONT COLOR="#BC8F8F">'that '</FONT></B>town <B><FONT COLOR="#BC8F8F">'village)
+-&gt; (here in that village)
+#-----------------------------
+# strip to basename
+: (let F (chop &quot;abc/def/ghi&quot;)
+   (prinl (last (split F '</FONT></B>/)))  <I><FONT COLOR="#B22222"># Using 'split'
+</FONT></I>   (prinl (stem F <B><FONT COLOR="#BC8F8F">'/)) )        # or '</FONT></B>stem<B><FONT COLOR="#BC8F8F">'
+ghi
+ghi
+#-----------------------------
+# Make All Words Title-Cased
+: (mapcar
+      '</FONT></B>((W) (<B><FONT COLOR="#A020F0">pack</FONT></B> (uppc (car W)) (cdr W)))
+      (<B><FONT COLOR="#A020F0">split</FONT></B> (<B><FONT COLOR="#A020F0">chop</FONT></B> <B><FONT COLOR="#BC8F8F">&quot;Mary had a little lamb&quot;</FONT></B>) <B><FONT COLOR="#BC8F8F">&quot; &quot;</FONT></B>) )
+-&gt; (<B><FONT COLOR="#BC8F8F">&quot;Mary&quot;</FONT></B> <B><FONT COLOR="#BC8F8F">&quot;Had&quot;</FONT></B> <B><FONT COLOR="#BC8F8F">&quot;A&quot;</FONT></B> <B><FONT COLOR="#BC8F8F">&quot;Little&quot;</FONT></B> <B><FONT COLOR="#BC8F8F">&quot;Lamb&quot;</FONT></B>)
+<I><FONT COLOR="#B22222">#-----------------------------
+</FONT></I>: (glue <B><FONT COLOR="#BC8F8F">'/
+   (replace
+      (split (chop &quot;/usr/man/man3/foo.1&quot;) &quot;/&quot;)
+      '</FONT></B>(<B><FONT COLOR="#BC8F8F">&quot;m&quot;</FONT></B> <B><FONT COLOR="#BC8F8F">&quot;a&quot;</FONT></B> <B><FONT COLOR="#BC8F8F">&quot;n&quot;</FONT></B> <B><FONT COLOR="#BC8F8F">&quot;3&quot;</FONT></B>)
+      <B><FONT COLOR="#BC8F8F">'(&quot;c&quot; &quot;a&quot; &quot;t&quot; &quot;3&quot;) ) )
+-&gt; &quot;/usr/man/cat3/foo.1&quot;
+#-----------------------------
+: (mapcar
+   '</FONT></B>((S) (<B><FONT COLOR="#A020F0">pack</FONT></B> (glue <B><FONT COLOR="#BC8F8F">'/ (head -1 (split (chop S) '</FONT></B>/))) <B><FONT COLOR="#BC8F8F">&quot;/lib&quot;</FONT></B>))
+   <B><FONT COLOR="#BC8F8F">'(&quot;/usr/bin&quot; &quot;/bin&quot; &quot;/usr/local/bin&quot;) )
+-&gt; (&quot;/usr/lib&quot; &quot;/lib&quot; &quot;/usr/local/lib&quot;)
+#-----------------------------</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN291"
+>Matching Letters</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">#-----------------------------
+(not
+   (find
+      '</FONT></B>((C) (nor (&gt;= <B><FONT COLOR="#BC8F8F">&quot;Z&quot;</FONT></B> C <B><FONT COLOR="#BC8F8F">&quot;A&quot;</FONT></B>) (&gt;= <B><FONT COLOR="#BC8F8F">&quot;z&quot;</FONT></B> C <B><FONT COLOR="#BC8F8F">&quot;a&quot;</FONT></B>)))
+      List ) )  <I><FONT COLOR="#B22222"># it is purely alphabetic
+</FONT></I><I><FONT COLOR="#B22222">#-----------------------------
+</FONT></I></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN294"
+>Matching Words</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><I><FONT COLOR="#B22222"></FONT></I><I><FONT COLOR="#B22222">#-----------------------------
+</FONT></I><I><FONT COLOR="#B22222"># as many non-whitespace bytes as possible
+</FONT></I>: (make (find <B><FONT COLOR="#BC8F8F">'((C) (or (sp? C) (nil (link C)))) (chop &quot;abcd efg&quot;)))
+-&gt; (&quot;a&quot; &quot;b&quot; &quot;c&quot; &quot;d&quot;)
+
+# as many letters, apostrophes, and hyphens
+: (make
+   (find
+      '</FONT></B>((C)
+         (nand
+            (<B><FONT COLOR="#A020F0">or</FONT></B> (&gt;= <B><FONT COLOR="#BC8F8F">&quot;Z&quot;</FONT></B> C <B><FONT COLOR="#BC8F8F">&quot;A&quot;</FONT></B>) (&gt;= <B><FONT COLOR="#BC8F8F">&quot;z&quot;</FONT></B> C <B><FONT COLOR="#BC8F8F">&quot;a&quot;</FONT></B>) (<B><FONT COLOR="#A020F0">sub</FONT></B>? C <B><FONT COLOR="#BC8F8F">&quot;`-&quot;</FONT></B>))
+            (<B><FONT COLOR="#A020F0">link</FONT></B> C) ) )
+      (<B><FONT COLOR="#A020F0">chop</FONT></B> <B><FONT COLOR="#BC8F8F">&quot;ab`c-d/e&quot;</FONT></B>) ) )
+-&gt; (<B><FONT COLOR="#BC8F8F">&quot;a&quot;</FONT></B> <B><FONT COLOR="#BC8F8F">&quot;b&quot;</FONT></B> <B><FONT COLOR="#BC8F8F">&quot;`&quot;</FONT></B> <B><FONT COLOR="#BC8F8F">&quot;c&quot;</FONT></B> <B><FONT COLOR="#BC8F8F">&quot;-&quot;</FONT></B> <B><FONT COLOR="#BC8F8F">&quot;d&quot;</FONT></B>)
+<I><FONT COLOR="#B22222">#-----------------------------
+</FONT></I>
+<I><FONT COLOR="#B22222"># ...
+</FONT></I>
+<I><FONT COLOR="#B22222">#-----------------------------
+</FONT></I></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN297"
+>Commenting Regular Expressions</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN300"
+>Finding the Nth Occurrence of a Match</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN303"
+>Matching Multiple Lines</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN306"
+>Reading Records with a Pattern Separator</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN309"
+>Extracting a Range of Lines</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN312"
+>Matching Shell Globs as Regular Expressions</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN315"
+>Speeding Up Interpolated Matches</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN318"
+>Testing for a Valid Pattern</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN321"
+>Honoring Locale Settings in Regular Expressions</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN324"
+>Approximate Matching</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN327"
+>Matching from Where the Last Pattern Left Off</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN330"
+>Greedy and Non-Greedy Matches</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN333"
+>Detecting Duplicate Words</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN336"
+>Expressing AND, OR, and NOT in a Single Pattern</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN339"
+>Matching Multiple-Byte Characters</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN342"
+>Matching a Valid Mail Address</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN345"
+>Matching Abbreviations</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN348"
+>Program: urlify</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN351"
+>Program: tcgrep</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN354"
+>Regular Expression Grabbag</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="hashes.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="fileaccess.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Hashes</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>File Access</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

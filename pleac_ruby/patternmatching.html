@@ -1,0 +1,1506 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Pattern Matching</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Ruby"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Hashes"
+HREF="hashes.html"><LINK
+REL="NEXT"
+TITLE="File Access"
+HREF="fileaccess.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Ruby</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="hashes.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="fileaccess.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="PATTERNMATCHING"
+>6. Pattern Matching</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN285"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp"># The verbose version are match, sub, gsub, sub! and gsub!;</span>
+<span class="cp"># pattern needs to be a Regexp object; it yields a MatchData</span>
+<span class="cp"># object.</span>
+<span class="cp">pattern.match(string)</span>
+<span class="cp">string.sub(pattern, replacement)</span>
+<span class="cp">string.gsub(pattern, replacement)</span>
+<span class="cp"># As usual in Ruby, sub! does the same as sub but also modifies</span>
+<span class="cp"># the object, the same for gsub!/gsub.</span>
+
+<span class="cp"># Sugared syntax yields the position of the match (or nil if no</span>
+<span class="cp"># match). Note that the object at the right of the operator needs</span>
+<span class="cp"># not to be a Regexp object (it can be a String). The &quot;dont</span>
+<span class="cp"># match&quot; operator yields true or false.</span>
+<span class="cp">meadow =~ /sheep/   # position of the match, nil if no match</span>
+<span class="cp">meadow !~ /sheep/   # true if doesn&#39;t match, false if it does</span>
+<span class="cp"># There is no sugared version for the substitution</span>
+
+<span class="cp">meadow =~ /\bovines?\b/i and print &quot;Here be sheep!&quot;</span>
+
+<span class="cp">string = &quot;good food&quot;</span>
+<span class="cp">string.sub!(/o*/, &#39;e&#39;)</span>
+
+<span class="cp"># % echo ababacaca | ruby -ne &#39;puts $&amp; if /(a|ba|b)+(a|ac)+/&#39;</span>
+<span class="cp"># ababa</span>
+
+<span class="cp"># The &quot;global&quot; (or &quot;multiple&quot;) match is handled by String#scan</span>
+<span class="cp">scan (/(\d+)/) {</span>
+<span class="cp">    puts &quot;Found number #{$1}&quot;</span>
+<span class="cp">}</span>
+
+<span class="cp"># String#scan yields an Array if not used with a block</span>
+<span class="cp">numbers = scan(/\d+/)</span>
+
+<span class="cp">digits = &quot;123456789&quot;</span>
+<span class="cp">nonlap = digits.scan(/(\d\d\d)/)</span>
+<span class="cp">yeslap = digits.scan(/(?=(\d\d\d))/)</span>
+<span class="cp">puts &quot;Non-overlapping:  #{nonlap.join(&#39; &#39;)}&quot;</span>
+<span class="cp">puts &quot;Overlapping:      #{yeslap.join(&#39; &#39;)}&quot;;</span>
+<span class="cp"># Non-overlapping:  123 456 789</span>
+<span class="cp"># Overlapping:      123 234 345 456 567 678 789</span>
+
+<span class="cp">string = &quot;And little lambs eat ivy&quot;</span>
+<span class="cp">string =~ /l[^s]*s/</span>
+<span class="cp">puts &quot;(#$`) (#$&amp;) (#$&#39;)&quot;</span>
+<span class="cp"># (And ) (little lambs) ( eat ivy)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN288"
+>Copying and Substituting Simultaneously</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp"># Ruby doesn&#39;t have the same problem:</span>
+<span class="cp">dst = src.sub(&#39;this&#39;, &#39;that&#39;)</span>
+
+<span class="cp">progname = $0.sub(&#39;^.*/&#39;, &#39;&#39;)</span>
+
+<span class="cp">bindirs = %w(/usr/bin /bin /usr/local/bin)</span>
+<span class="cp">libdirs = bindirs.map { |l| l.sub(&#39;bin&#39;, &#39;lib&#39;) }</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN291"
+>Matching Letters</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN294"
+>Matching Words</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">/\S+/               # as many non-whitespace bytes as possible</span>
+<span class="cp">/[A-Za-z&#39;-]+/       # as many letters, apostrophes, and hyphens</span>
+
+<span class="cp">/\b([A-Za-z]+)\b/   # usually best</span>
+<span class="cp">/\s([A-Za-z]+)\s/   # fails at ends or w/ punctuation</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN297"
+>Commenting Regular Expressions</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">require &#39;socket&#39;</span>
+<span class="cp">str = &#39;www.ruby-lang.org and www.rubygarden.org&#39;</span>
+<span class="cp">re = /</span>
+<span class="cp">      (               # capture the hostname in $1</span>
+<span class="cp">        (?:           # these parens for grouping only</span>
+<span class="cp">          (?! [-_] )  # lookahead for neither underscore nor dash</span>
+<span class="cp">          [\w-] +     # hostname component</span>
+<span class="cp">          \.          # and the domain dot</span>
+<span class="cp">        ) +           # now repeat that whole thing a bunch of times</span>
+<span class="cp">        [A-Za-z]      # next must be a letter</span>
+<span class="cp">        [\w-] +       # now trailing domain part</span>
+<span class="cp">      )               # end of $1 capture</span>
+<span class="cp">     /x               # /x for nice formatting</span>
+
+<span class="cp">str.gsub! re do       # pass a block to execute replacement</span>
+<span class="cp">    host = TCPsocket.gethostbyname($1)</span>
+<span class="cp">    &quot;#{$1} [#{host[3]}]&quot;</span>
+<span class="cp">end</span>
+
+<span class="cp">puts str</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># to match whitespace or #-characters in an extended re you need to escape</span>
+<span class="cp"># them.</span>
+
+<span class="cp">foo = 42</span>
+<span class="cp">str = &#39;blah #foo# blah&#39;</span>
+<span class="cp">str.gsub! %r/       # replace</span>
+<span class="cp">              \#    #   a pound sign</span>
+<span class="cp">              (\w+) #   the variable name</span>
+<span class="cp">              \#    #   another pound sign</span>
+<span class="cp">          /x do</span>
+<span class="cp">              eval $1           # with the value of a local variable</span>
+<span class="cp">          end</span>
+<span class="cp">puts str  # =&gt; blah 42 blah</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN300"
+>Finding the Nth Occurrence of a Match</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp"># The &#39;g&#39; modifier doesn&#39;t exist in Ruby, a regexp can&#39;t be used</span>
+<span class="cp"># directly in a while loop; instead, use String#scan { |match| .. } </span>
+<span class="cp">fish = &#39;One fish two fish red fish blue fish&#39;</span>
+<span class="cp">WANT = 3</span>
+<span class="cp">count = 0</span>
+<span class="cp">fish.scan(/(\w+)\s+fish\b/i) {</span>
+<span class="cp">    if (count += 1) == WANT</span>
+<span class="cp">        puts &quot;The third fish is a #{$1} one.&quot;</span>
+<span class="cp">    end</span>
+<span class="cp">}</span>
+
+<span class="cp">if fish =~ /(?:\w+\s+fish\s+){2}(\w+)\s+fish/i</span>
+<span class="cp">    puts &quot;The third fish is a #{$1} one.&quot;</span>
+<span class="cp">end</span>
+
+<span class="cp">pond = &#39;One fish two fish red fish blue fish&#39;</span>
+<span class="cp"># String#scan without a block gives an array of matches, each match</span>
+<span class="cp"># being an array of all the specified groups</span>
+<span class="cp">colors = pond.scan(/(\w+)\s+fish\b/i).flatten  # get all matches</span>
+<span class="cp">color  = colors[2]                          # then the one we want</span>
+<span class="cp"># or without a temporary array</span>
+<span class="cp">color = pond.scan(/(\w+)\s+fish\b/i).flatten[2]  # just grab element 3</span>
+<span class="cp">puts &quot;The third fish in the pond is #{color}.&quot;</span>
+
+<span class="cp">count = 0</span>
+<span class="cp">fishes = &#39;One fish two fish red fish blue fish&#39;</span>
+<span class="cp">evens = fishes.scan(/(\w+)\s+fish\b/i).select { (count+=1) % 2 == 0 }</span>
+<span class="cp">print &quot;Even numbered fish are #{evens.join(&#39; &#39;)}.&quot;</span>
+
+<span class="cp">count = 0</span>
+<span class="cp">fishes.gsub(/</span>
+<span class="cp">   \b               # makes next \w more efficient</span>
+<span class="cp">   ( \w+ )          # this is what we\&#39;ll be changing</span>
+<span class="cp">   (</span>
+<span class="cp">     \s+ fish \b</span>
+<span class="cp">   )</span>
+<span class="cp">            /x) {</span>
+<span class="cp">    if (count += 1) == 4</span>
+<span class="cp">        &#39;sushi&#39; + $2</span>
+<span class="cp">    else</span>
+<span class="cp">        $1 + $2</span>
+<span class="cp">    end</span>
+<span class="cp">}</span>
+
+<span class="cp">pond = &#39;One fish two fish red fish blue fish swim here.&#39;</span>
+<span class="cp">puts &quot;Last fish is #{pond.scan(/\b(\w+)\s+fish\b/i).flatten[-1]}&quot;</span>
+
+<span class="cp">/</span>
+<span class="cp">    A               # find some pattern A</span>
+<span class="cp">    (?!             # mustn\&#39;t be able to find</span>
+<span class="cp">        .*          # something</span>
+<span class="cp">        A           # and A</span>
+<span class="cp">    )</span>
+<span class="cp">    $               # through the end of the string</span>
+<span class="cp">/x</span>
+
+<span class="cp"># The &quot;s&quot; perl modifier is &quot;m&quot; in Ruby (not very nice since there is</span>
+<span class="cp"># also an &quot;m&quot; in perl..)</span>
+<span class="cp">pond = &quot;One fish two fish red fish blue fish swim here.&quot;</span>
+<span class="cp">if (pond =~ /</span>
+<span class="cp">                    \b  (  \w+) \s+ fish \b</span>
+<span class="cp">                (?! .* \b fish \b )</span>
+<span class="cp">            /mix)</span>
+<span class="cp">    puts &quot;Last fish is #{$1}.&quot;</span>
+<span class="cp">else</span>
+<span class="cp">    puts &quot;Failed!&quot;</span>
+<span class="cp">end</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN303"
+>Matching Multiple Lines</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">#!/usr/bin/ruby -w</span>
+<span class="cp"># killtags - very bad html killer</span>
+<span class="cp">$/ = nil;                              # each read is whole file</span>
+<span class="cp">while file = gets() do</span>
+<span class="cp">    file.gsub!(/&lt;.*?&gt;/m,&#39;&#39;);           # strip tags (terribly)</span>
+<span class="cp">    puts file                          # print file to STDOUT</span>
+<span class="cp">end</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#!/usr/bin/ruby -w</span>
+<span class="cp">#headerfy - change certain chapter headers to html</span>
+<span class="cp">$/ = &#39;&#39;</span>
+<span class="cp">while file = gets() do</span>
+<span class="cp">    pattern = /</span>
+<span class="cp">                  \A                   # start of record</span>
+<span class="cp">                  (                    # capture in $1</span>
+<span class="cp">                      Chapter          # text string</span>
+<span class="cp">                      \s+              # mandatory whitespace</span>
+<span class="cp">                      \d+              # decimal number</span>
+<span class="cp">                      \s*              # optional whitespace</span>
+<span class="cp">                      :                # a real colon</span>
+<span class="cp">                      . *              # anything not a newline till end of line</span>
+<span class="cp">                  )</span>
+<span class="cp">               /x</span>
+<span class="cp">    puts file.gsub(pattern,&#39;&lt;H1&gt;\1&lt;/H1&gt;&#39;)</span>
+<span class="cp">end</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#% ruby -00pe &quot;gsub!(/\A(Chapter\s+\d+\s*:.*)/,&#39;&lt;H1&gt;\1&lt;/H1&gt;&#39;)&quot; datafile</span>
+
+<span class="cp">#!/usr/bin/ruby -w</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">for file in ARGV</span>
+<span class="cp">    file = File.open(ARGV.shift)</span>
+<span class="cp">    while file.gets(&#39;&#39;) do             # each read is a paragraph</span>
+<span class="cp">        print &quot;chunk #{$.} in $ARGV has &lt;&lt;#{$1}&gt;&gt;\n&quot; while /^START(.*?)^END/m</span>
+<span class="cp">    end                                # /m activates the multiline mode</span>
+<span class="cp">end</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN306"
+>Reading Records with a Pattern Separator</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">$/ = nil;</span>
+<span class="cp">file = File.open(&quot;datafile&quot;)</span>
+<span class="cp">chunks = file.gets.split(/pattern/)</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># .Ch, .Se and .Ss divide chunks of STDIN</span>
+<span class="cp">chunks = gets(nil).split(/^\.(Ch|Se|Ss)$/)</span>
+<span class="cp">print &quot;I read #{chunks.size} chunks.\n&quot;</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN309"
+>Extracting a Range of Lines</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">while gets</span>
+<span class="cp">    if ~/BEGIN/ .. ~/END/</span>
+<span class="cp">        # line falls between BEGIN and END inclusive</span>
+<span class="cp">    end</span>
+<span class="cp">end</span>
+
+<span class="cp">while gets</span>
+<span class="cp">    if ($. == firstnum) .. ($. == lastnum)</span>
+<span class="cp">        # operate between firstnum and lastnum line number</span>
+<span class="cp">    end</span>
+<span class="cp">end</span>
+
+<span class="cp"># in ruby versions prior to 1.8, the above two conditional</span>
+<span class="cp"># expressions could be shortened to:</span>
+<span class="cp">#     if /BEGIN/ .. /END/</span>
+<span class="cp"># and</span>
+<span class="cp">#     if firstnum .. lastnum</span>
+<span class="cp"># but these now only work this way from the command line  </span>
+
+<span class="cp">#-----------------------------</span>
+
+<span class="cp">while gets</span>
+<span class="cp">    if ~/BEGIN/ ... ~/END/</span>
+<span class="cp">        # line falls between BEGIN and END on different lines</span>
+<span class="cp">    end</span>
+<span class="cp">end</span>
+
+<span class="cp">while gets</span>
+<span class="cp">    if ($. == first) ... ($. == last)</span>
+<span class="cp">        # operate between first and last line number on different lines</span>
+<span class="cp">    end</span>
+<span class="cp">end</span>
+
+<span class="cp">#-----------------------------</span>
+<span class="cp"># command-line to print lines 15 through 17 inclusive (see below)</span>
+<span class="cp">ruby -ne &#39;print if 15 .. 17&#39; datafile</span>
+
+<span class="cp"># print out all &lt;XMP&gt; .. &lt;/XMP&gt; displays from HTML doc</span>
+<span class="cp">while gets</span>
+<span class="cp">    print if ~%r#&lt;XMP&gt;#i .. ~%r#&lt;/XMP&gt;#i;</span>
+<span class="cp">end</span>
+<span class="cp">    </span>
+<span class="cp"># same, but as shell command</span>
+<span class="cp"># ruby -ne &#39;print if %r#&lt;XMP&gt;#i .. %r#&lt;/XMP&gt;#i&#39; document.html</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># ruby -ne &#39;BEGIN { $top=3; $bottom=5 }; \</span>
+<span class="cp">#     print if $top .. $bottom&#39; /etc/passwd                 #  FAILS</span>
+<span class="cp"># ruby -ne &#39;BEGIN { $top=3; $bottom=5 }; \</span>
+<span class="cp">#     print if $. == $top .. $. ==  $bottom&#39; /etc/passwd    # works</span>
+<span class="cp"># ruby -ne &#39;print if 3 .. 5&#39; /etc/passwd                    # also works</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">print if ~/begin/ .. ~/end/;</span>
+<span class="cp">print if ~/begin/ ... ~/end/;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">while gets</span>
+<span class="cp">    $in_header = $. == 1  .. ~/^$/ ? true : false</span>
+<span class="cp">    $in_body   = ~/^$/ .. ARGF.eof ? true : false</span>
+<span class="cp">end</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">seen = {}</span>
+<span class="cp">ARGF.each do |line|</span>
+<span class="cp">    next unless line =~ /^From:?\s/i .. line =~ /^$/;</span>
+<span class="cp">    line.scan(%r/([^&lt;&gt;(),;\s]+\@[^&lt;&gt;(),;\s]+)/).each do |addr|</span>
+<span class="cp">        puts addr unless seen[addr]</span>
+<span class="cp">        seen[addr] ||= 1 </span>
+<span class="cp">    end</span>
+<span class="cp">end</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN312"
+>Matching Shell Globs as Regular Expressions</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">def glob2pat(globstr)</span>
+<span class="cp">    patmap = {</span>
+<span class="cp">        &#39;*&#39; =&gt; &#39;.*&#39;,</span>
+<span class="cp">        &#39;?&#39; =&gt; &#39;.&#39;,</span>
+<span class="cp">        &#39;[&#39; =&gt; &#39;[&#39;,</span>
+<span class="cp">        &#39;]&#39; =&gt; &#39;]&#39;,</span>
+<span class="cp">    }</span>
+<span class="cp">    globstr.gsub!(/(.)/) { |c| patmap[c] || Regexp::escape(c) }</span>
+<span class="cp">    &#39;^&#39; + globstr + &#39;$&#39;</span>
+<span class="cp">end</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN315"
+>Speeding Up Interpolated Matches</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp"># avoid interpolating patterns like this if the pattern</span>
+<span class="cp"># isn&#39;t going to change:</span>
+<span class="cp">pattern = ARGV.shift</span>
+<span class="cp">ARGF.each do |line|</span>
+<span class="cp">    print line if line =~ /#{pattern}/</span>
+<span class="cp">end</span>
+
+<span class="cp"># the above creates a new regex each iteration. Instead,</span>
+<span class="cp"># use the /o modifier so the regex is compiled only once</span>
+
+<span class="cp">pattern = ARGV.shift</span>
+<span class="cp">ARGF.each do |line|</span>
+<span class="cp">    print line if line =~ /#{pattern}/o</span>
+<span class="cp">end</span>
+
+<span class="cp">#-----------------------------</span>
+
+<span class="cp">#!/usr/bin/ruby</span>
+<span class="cp"># popgrep1 - grep for abbreviations of places that say &quot;pop&quot;</span>
+<span class="cp"># version 1: slow but obvious way</span>
+<span class="cp">popstates = %w(CO ON MI WI MN)</span>
+<span class="cp">ARGF.each do |line|</span>
+<span class="cp">    popstates.each do |state|</span>
+<span class="cp">        if line =~ /\b#{state}\b/</span>
+<span class="cp">            print line</span>
+<span class="cp">            last</span>
+<span class="cp">        end</span>
+<span class="cp">    end</span>
+<span class="cp">end</span>
+
+<span class="cp">#-----------------------------</span>
+<span class="cp">#!/usr/bin/ruby</span>
+<span class="cp"># popgrep2 - grep for abbreviations of places that say &quot;pop&quot;</span>
+<span class="cp"># version 2: eval strings; fast but hard to quote</span>
+<span class="cp">popstates = %w(CO ON MI WI MN)</span>
+<span class="cp">code = &quot;ARGF.each do |line|\n&quot;</span>
+<span class="cp">popstates.each do |state|</span>
+<span class="cp">    code += &quot;\tif line =~ /\\b#{state}\\b/; print(line); next; end\n&quot;</span>
+<span class="cp">end</span>
+<span class="cp">code += &quot;end\n&quot;</span>
+<span class="cp">print &quot;CODE IS\n---\n#{code}\n---\n&quot; if false # turn on for debugging</span>
+<span class="cp">eval code</span>
+
+<span class="cp"># CODE IS</span>
+<span class="cp"># ---</span>
+<span class="cp"># ARGF.each do |line|</span>
+<span class="cp">#         if line =~ /\bCO\b/; print(line); next; end</span>
+<span class="cp">#         if line =~ /\bON\b/; print(line); next; end</span>
+<span class="cp">#         if line =~ /\bMI\b/; print(line); next; end</span>
+<span class="cp">#         if line =~ /\bWI\b/; print(line); next; end</span>
+<span class="cp">#         if line =~ /\bMN\b/; print(line); next; end</span>
+<span class="cp"># end</span>
+<span class="cp"># </span>
+<span class="cp"># ---</span>
+
+<span class="cp">## alternatively, the same idea as above but compiling </span>
+<span class="cp">## to a case statement: (not in perlcookbook)</span>
+<span class="cp">#!/usr/bin/ruby -w</span>
+<span class="cp"># popgrep2.5 - grep for abbreviations of places that say &quot;pop&quot;</span>
+<span class="cp"># version 2.5: eval strings; fast but hard to quote</span>
+<span class="cp">popstates = %w(CO ON MI WI MN)</span>
+<span class="cp">code = &quot;ARGF.each do |line|\n    case line\n&quot;</span>
+<span class="cp">popstates.each do |state|</span>
+<span class="cp">    code += &quot;        when /\\b#{state}\\b/ : print line\n&quot;</span>
+<span class="cp">end</span>
+<span class="cp">code += &quot;    end\nend\n&quot;</span>
+<span class="cp">print &quot;CODE IS\n---\n#{code}\n---\n&quot; if false # turn on for debugging</span>
+<span class="cp">eval code</span>
+
+<span class="cp"># CODE IS</span>
+<span class="cp"># ---</span>
+<span class="cp"># ARGF.each do |line|</span>
+<span class="cp">#     case line</span>
+<span class="cp">#         when /\bCO\b/ : print line</span>
+<span class="cp">#         when /\bON\b/ : print line</span>
+<span class="cp">#         when /\bMI\b/ : print line</span>
+<span class="cp">#         when /\bWI\b/ : print line</span>
+<span class="cp">#         when /\bMN\b/ : print line</span>
+<span class="cp">#     end</span>
+<span class="cp"># end</span>
+<span class="cp"># </span>
+<span class="cp"># ---</span>
+
+<span class="cp"># Note: (above) Ruby 1.8+ allows the &#39;when EXP : EXPR&#39; on one line</span>
+<span class="cp"># with the colon separator.</span>
+
+<span class="cp">#-----------------------------</span>
+<span class="cp">#!/usr/bin/ruby</span>
+<span class="cp"># popgrep3 - grep for abbreviations of places that say &quot;pop&quot;</span>
+<span class="cp"># version3: build a match_any function</span>
+<span class="cp">popstates = %w(CO ON MI WI MN)</span>
+<span class="cp">expr = popstates.map{|e|&quot;line =~ /\\b#{e}\\b/&quot;}.join(&#39;||&#39;)</span>
+<span class="cp">eval &quot;def match_any(line); #{expr};end&quot;</span>
+<span class="cp">ARGF.each do |line|</span>
+<span class="cp">    print line if match_any(line)</span>
+<span class="cp">end</span>
+<span class="cp">#-----------------------------</span>
+
+<span class="cp">##  building a match_all function is a trivial</span>
+<span class="cp">##  substitution of &amp;&amp; for ||</span>
+<span class="cp">##  here is a generalized example:</span>
+<span class="cp">#!/usr/bin/ruby -w</span>
+<span class="cp">## grepauth - print lines that mention both foo and bar</span>
+<span class="cp">class MultiMatch </span>
+<span class="cp">    def initialize(*patterns)</span>
+<span class="cp">        _any = build_match(&#39;||&#39;,patterns)</span>
+<span class="cp">        _all = build_match(&#39;&amp;&amp;&#39;,patterns)</span>
+<span class="cp">        eval &quot;def match_any(line);#{_any};end\n&quot;</span>
+<span class="cp">        eval &quot;def match_all(line);#{_all};end\n&quot;</span>
+<span class="cp">      end</span>
+<span class="cp">    def build_match(sym,args)</span>
+<span class="cp">        args.map{|e|&quot;line =~ /#{e}/&quot;}.join(sym)</span>
+<span class="cp">    end</span>
+<span class="cp">end</span>
+
+<span class="cp">mm = MultiMatch.new(&#39;foo&#39;,&#39;bar&#39;)</span>
+<span class="cp">ARGF.each do |line|</span>
+<span class="cp">    print line if mm.match_all(line)</span>
+<span class="cp">end</span>
+<span class="cp">#-----------------------------</span>
+
+<span class="cp">#!/usr/bin/ruby</span>
+<span class="cp"># popgrep4 - grep for abbreviations of places that say &quot;pop&quot;</span>
+<span class="cp"># version4: pretty fast, but simple: compile all re&#39;s first:</span>
+<span class="cp">popstates = %w(CO ON MI WI MN)</span>
+<span class="cp">popstates = popstates.map{|re| %r/\b#{re}\b/}</span>
+<span class="cp">ARGF.each do |line|</span>
+<span class="cp">    popstates.each do |state_re|</span>
+<span class="cp">        if line =~ state_re</span>
+<span class="cp">            print line</span>
+<span class="cp">            break</span>
+<span class="cp">        end</span>
+<span class="cp">    end</span>
+<span class="cp">end</span>
+
+<span class="cp">## speeds trials on the jargon file(412): 26006 lines, 1.3MB</span>
+<span class="cp">## popgrep1   =&gt; 7.040s</span>
+<span class="cp">## popgrep2   =&gt; 0.656s</span>
+<span class="cp">## popgrep2.5 =&gt; 0.633s</span>
+<span class="cp">## popgrep3   =&gt; 0.675s</span>
+<span class="cp">## popgrep4   =&gt; 1.027s</span>
+
+<span class="cp"># unless speed is criticial, the technique in popgrep4 is a</span>
+<span class="cp"># reasonable balance between speed and logical simplicity.</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN318"
+>Testing for a Valid Pattern</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">begin</span>
+<span class="cp">    print &quot;Pattern? &quot;</span>
+<span class="cp">    pat = $stdin.gets.chomp</span>
+<span class="cp">    Regexp.new(pat)</span>
+<span class="cp">rescue </span>
+<span class="cp">    warn &quot;Invalid Pattern&quot;</span>
+<span class="cp">    retry</span>
+<span class="cp">end</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN321"
+>Honoring Locale Settings in Regular Expressions</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN324"
+>Approximate Matching</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp"># uses the &#39;amatch&#39; extension found on:</span>
+<span class="cp"># http://raa.ruby-lang.org/project/amatch/</span>
+<span class="cp">require &#39;amatch&#39;</span>
+<span class="cp">matcher = Amatch.new(&#39;balast&#39;)</span>
+<span class="cp">#$relative, $distance = 0, 1</span>
+<span class="cp">File.open(&#39;/usr/share/dict/words&#39;).each_line do |line|</span>
+<span class="cp">    print line if matcher.search(line) &lt;= 1</span>
+<span class="cp">end</span>
+<span class="cp">__END__</span>
+<span class="cp">ballast</span>
+<span class="cp">ballasts</span>
+<span class="cp">balustrade</span>
+<span class="cp">balustrades</span>
+<span class="cp">blast</span>
+<span class="cp">blasted</span>
+<span class="cp">blaster</span>
+<span class="cp">blasters</span>
+<span class="cp">blasting</span>
+<span class="cp">blasts</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN327"
+>Matching from Where the Last Pattern Left Off</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">str.scan(/\G(\d)/).each do |token|</span>
+<span class="cp">    puts &quot;found #{token}&quot;</span>
+<span class="cp">end</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">n = &quot;   49 here&quot;</span>
+<span class="cp">n.gsub!(/\G /,&#39;0&#39;)</span>
+<span class="cp">puts n</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">str = &quot;3,4,5,9,120&quot;</span>
+<span class="cp">str.scan(/\G,?(\d+)/).each do |num|</span>
+<span class="cp">    puts &quot;Found number: #{num}&quot;</span>
+<span class="cp">end</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># Ruby doesn&#39;t have the String.pos or a /c re modifier like Perl </span>
+<span class="cp"># But it does have StringScanner in the standard library (strscn)</span>
+<span class="cp"># which allows similar functionality:</span>
+
+<span class="cp">require &#39;strscan&#39;</span>
+<span class="cp">text = &#39;the year 1752 lost 10 days on the 3rd of September&#39;</span>
+<span class="cp">sc = StringScanner.new(text)</span>
+<span class="cp">while sc.scan(/.*?(\d+)/)</span>
+<span class="cp">    print &quot;found: #{sc[1]}\n&quot;   </span>
+<span class="cp">end</span>
+<span class="cp">if sc.scan(/\S+/)</span>
+<span class="cp">    puts &quot;Found #{sc[0]} after last number&quot;</span>
+<span class="cp">end</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># assuming continuing from above:</span>
+<span class="cp">puts &quot;The position in &#39;text&#39; is: #{sc.pos}&quot;</span>
+<span class="cp">sc.pos = 30</span>
+<span class="cp">puts &quot;The position in &#39;text&#39; is: #{sc.pos}&quot;</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN330"
+>Greedy and Non-Greedy Matches</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp"># greedy pattern</span>
+<span class="cp">str.gsub!(/&lt;.*&gt;/m,&#39;&#39;)   # not good</span>
+
+<span class="cp"># non-greedy (minimal) pattern</span>
+<span class="cp">str.gsub!(/&lt;.*?&gt;/m,&#39;&#39;)   # not great</span>
+
+
+<span class="cp">#-----------------------------</span>
+<span class="cp">#&lt;b&gt;&lt;i&gt;this&lt;/i&gt; and &lt;i&gt;that&lt;/i&gt; are important&lt;/b&gt; Oh, &lt;b&gt;&lt;i&gt;me too!&lt;/i&gt;&lt;/b&gt;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">%r{ &lt;b&gt;&lt;i&gt;(.*?)&lt;/i&gt;&lt;/b&gt; }mx</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">%r/BEGIN((?:(?!BEGIN).)*)END/</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">%r{ &lt;b&gt;&lt;i&gt;(  (?: (?!&lt;/b&gt;|&lt;/i&gt;). )*  ) &lt;/i&gt;&lt;/b&gt; }mx</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">%r{ &lt;b&gt;&lt;i&gt;(  (?: (?!&lt;/[ib]&gt;). )*  ) &lt;/i&gt;&lt;/b&gt; }mx</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">%r{</span>
+<span class="cp">    &lt;b&gt;&lt;i&gt; </span>
+<span class="cp">    [^&lt;]*  # stuff not possibly bad, and not possibly the end.</span>
+<span class="cp">    (?:</span>
+<span class="cp"> # at this point, we can have &#39;&lt;&#39; if not part of something bad</span>
+<span class="cp">     (?!  &lt;/?[ib]&gt;  )   # what we can&#39;t have</span>
+<span class="cp">     &lt;                  # okay, so match the &#39;&lt;&#39;</span>
+<span class="cp">     [^&lt;]*              # and continue with more safe stuff</span>
+<span class="cp">    ) *</span>
+<span class="cp">    &lt;/i&gt;&lt;/b&gt;</span>
+<span class="cp"> }mx</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN333"
+>Detecting Duplicate Words</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">$/ = &quot;&quot;</span>
+<span class="cp">ARGF.each do |para|</span>
+<span class="cp">    para.scan %r/</span>
+<span class="cp">                  \b     # start at word boundary</span>
+<span class="cp">                  (\S+)  # find chunk of non-whitespace</span>
+<span class="cp">                  \b     # until a word boundary</span>
+<span class="cp">                  (      </span>
+<span class="cp">                    \s+  # followed by whitespace</span>
+<span class="cp">                    \1   # and that same chunk again</span>
+<span class="cp">                    \b   # and a word boundary</span>
+<span class="cp">                  ) +    # one or more times</span>
+<span class="cp">                /xi do</span>
+<span class="cp">        puts &quot;dup word &#39;#{$1}&#39; at paragraph #{$.}&quot; </span>
+<span class="cp">    end</span>
+<span class="cp">end</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">astr = &#39;nobody&#39;</span>
+<span class="cp">bstr = &#39;bodysnatcher&#39;</span>
+<span class="cp">if &quot;#{astr} #{bstr}&quot; =~ /^(\w+)(\w+) \2(\w+)$/</span>
+<span class="cp">    print &quot;#{$2} overlaps in #{$1}-#{$2}-#{$3}&quot;</span>
+<span class="cp">end</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#!/usr/bin/ruby -w</span>
+<span class="cp"># prime_pattern -- find prime factors of argument using patterns</span>
+<span class="cp">ARGV &lt;&lt; 180</span>
+<span class="cp">cap = &#39;o&#39; * ARGV.shift</span>
+<span class="cp">while cap =~ /^(oo+?)\1+$/</span>
+<span class="cp">    print $1.size, &quot; &quot;</span>
+<span class="cp">    cap.gsub!(/#{$1}/,&#39;o&#39;)</span>
+<span class="cp">end</span>
+<span class="cp">puts cap.size</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#diophantine</span>
+<span class="cp"># solve for 12x + 15y + 16z = 281, maximizing x</span>
+<span class="cp">if (&#39;o&#39; * 281).match(/^(o*)\1{11}(o*)\2{14}(o*)\3{15}$/)</span>
+<span class="cp">    x, y, z = $1.size, $2.size, $3.size</span>
+<span class="cp">    puts &quot;One solution is: x=#{x}; y=#{y}; z=#{z}&quot;</span>
+<span class="cp">else </span>
+<span class="cp">    puts &quot;No solution.&quot;</span>
+<span class="cp">end</span>
+<span class="cp">#    =&gt; One solution is: x=17; y=3; z=2</span>
+
+<span class="cp">#-----------------------------</span>
+<span class="cp"># using different quantifiers:</span>
+<span class="cp">(&#39;o&#39; * 281).match(/^(o+)\1{11}(o+)\2{14}(o+)\3{15}$/)</span>
+<span class="cp">#    =&gt; One solution is: x=17; y=3; z=2</span>
+
+<span class="cp">(&#39;o&#39; * 281).match(/^(o*?)\1{11}(o*)\2{14}(o*)\3{15}$/)</span>
+<span class="cp">#    =&gt; One solution is: x=0; y=7; z=11</span>
+
+<span class="cp">(&#39;o&#39; * 281).match(/^(o+?)\1{11}(o*)\2{14}(o*)\3{15}$/)</span>
+<span class="cp">#    =&gt; One solution is: x=1; y=3; z=14</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN336"
+>Expressing AND, OR, and NOT in a Single Pattern</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp"># alpha OR beta</span>
+<span class="cp">%r/alpha|beta/</span>
+
+<span class="cp"># alpha AND beta</span>
+<span class="cp">%r/(?=.*alpha)(?=.*beta)/m</span>
+
+<span class="cp"># alpha AND beta,  no overlap</span>
+<span class="cp">%r/alpha.*beta|beta.*alpha/m</span>
+
+<span class="cp"># NOT beta</span>
+<span class="cp">%r/^(?:(?!beta).)*$/m</span>
+
+<span class="cp"># NOT bad BUT good</span>
+<span class="cp">%r/(?=(?:(?!BAD).)*$)GOOD/m</span>
+<span class="cp">#-----------------------------</span>
+
+<span class="cp">if !(string =~ /pattern/)   # ugly</span>
+<span class="cp">    something()</span>
+<span class="cp">end</span>
+
+<span class="cp">if string !~ /pattern/   # preferred</span>
+<span class="cp">    something()</span>
+<span class="cp">end</span>
+
+
+<span class="cp">#-----------------------------</span>
+<span class="cp">if string =~ /pat1/  &amp;&amp; string =~ /pat2/</span>
+<span class="cp">    something()</span>
+<span class="cp">end</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">if string =~ /pat1/ || string =~ /pat2/</span>
+<span class="cp">    something()</span>
+<span class="cp">end</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#!/usr/bin/ruby -w</span>
+<span class="cp"># minigrep - trivial grep</span>
+<span class="cp">pat = ARGV.shift</span>
+<span class="cp">ARGF.each do |line|</span>
+<span class="cp">    print line if line =~ /#{pat}/o</span>
+<span class="cp">end</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"> &quot;labelled&quot; =~ /^(?=.*bell)(?=.*lab)/m</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$string =~ /bell/ &amp;&amp; $string =~ /lab/</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$murray_hill = &quot;blah bell blah &quot;</span>
+<span class="cp">if $murray_hill =~ %r{</span>
+<span class="cp">                         ^              # start of string</span>
+<span class="cp">                        (?=             # zero-width lookahead</span>
+<span class="cp">                            .*          # any amount of intervening stuff</span>
+<span class="cp">                            bell        # the desired bell string</span>
+<span class="cp">                        )               # rewind, since we were only looking</span>
+<span class="cp">                        (?=             # and do the same thing</span>
+<span class="cp">                            .*          # any amount of intervening stuff</span>
+<span class="cp">                            lab         # and the lab part</span>
+<span class="cp">                        )</span>
+<span class="cp">                     }mx                # /m means . can match newline</span>
+
+<span class="cp">    print &quot;Looks like Bell Labs might be in Murray Hill!\n&quot;;</span>
+<span class="cp">end</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">&quot;labelled&quot; =~ /(?:^.*bell.*lab)|(?:^.*lab.*bell)/</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$brand = &quot;labelled&quot;;</span>
+<span class="cp">if $brand =~ %r{</span>
+<span class="cp">                (?:                 # non-capturing grouper</span>
+<span class="cp">                    ^ .*?           # any amount of stuff at the front</span>
+<span class="cp">                      bell          # look for a bell</span>
+<span class="cp">                      .*?           # followed by any amount of anything</span>
+<span class="cp">                      lab           # look for a lab</span>
+<span class="cp">                  )                 # end grouper</span>
+<span class="cp">            |                       # otherwise, try the other direction</span>
+<span class="cp">                (?:                 # non-capturing grouper</span>
+<span class="cp">                    ^ .*?           # any amount of stuff at the front</span>
+<span class="cp">                      lab           # look for a lab</span>
+<span class="cp">                      .*?           # followed by any amount of anything</span>
+<span class="cp">                      bell          # followed by a bell</span>
+<span class="cp">                  )                 # end grouper</span>
+<span class="cp">            }mx                     # /m means . can match newline</span>
+<span class="cp">    print &quot;Our brand has bell and lab separate.\n&quot;;</span>
+<span class="cp">end</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$map =~ /^(?:(?!waldo).)*$/s</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$map = &quot;the great baldo&quot;</span>
+<span class="cp">if $map =~ %r{</span>
+<span class="cp">                ^                   # start of string</span>
+<span class="cp">                (?:                 # non-capturing grouper</span>
+<span class="cp">                    (?!             # look ahead negation</span>
+<span class="cp">                        waldo       # is he ahead of us now?</span>
+<span class="cp">                    )               # is so, the negation failed</span>
+<span class="cp">                    .               # any character (cuzza /s)</span>
+<span class="cp">                ) *                 # repeat that grouping 0 or more</span>
+<span class="cp">                $                   # through the end of the string</span>
+<span class="cp">             }mx                    # /m means . can match newline</span>
+<span class="cp">    print &quot;There&#39;s no waldo here!\n&quot;;</span>
+<span class="cp">end</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"> 7:15am  up 206 days, 13:30,  4 users,  load average: 1.04, 1.07, 1.04</span>
+
+<span class="cp">USER     TTY      FROM              LOGIN@  IDLE   JCPU   PCPU  WHAT</span>
+
+<span class="cp">tchrist  tty1                       5:16pm 36days 24:43   0.03s  xinit</span>
+
+<span class="cp">tchrist  tty2                       5:19pm  6days  0.43s  0.43s  -tcsh</span>
+
+<span class="cp">tchrist  ttyp0    chthon            7:58am  3days 23.44s  0.44s  -tcsh</span>
+
+<span class="cp">gnat     ttyS4    coprolith         2:01pm 13:36m  0.30s  0.30s  -tcsh</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#% w | minigrep &#39;^(?!.*ttyp).*tchrist&#39;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">%r{</span>
+<span class="cp">    ^                       # anchored to the start</span>
+<span class="cp">    (?!                     # zero-width look-ahead assertion</span>
+<span class="cp">        .*                  # any amount of anything (faster than .*?)</span>
+<span class="cp">        ttyp                # the string you don&#39;t want to find</span>
+<span class="cp">    )                       # end look-ahead negation; rewind to start</span>
+<span class="cp">    .*                      # any amount of anything (faster than .*?)</span>
+<span class="cp">    tchrist                 # now try to find Tom</span>
+<span class="cp">}x</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#% w | grep tchrist | grep -v ttyp</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#% grep -i &#39;pattern&#39; files</span>
+<span class="cp">#% minigrep &#39;(?i)pattern&#39; files</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN339"
+>Matching Multiple-Byte Characters</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN342"
+>Matching a Valid Mail Address</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp"># basically, the Perl Cookbook categorizes this as an</span>
+<span class="cp"># unsolvable problem ...</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">1 while addr.gsub!(/\([^()]*\)/,&#39;&#39;)</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">Dear someuser@host.com,</span>
+
+<span class="cp">Please confirm the mail address you gave us Wed May  6 09:38:41</span>
+<span class="cp">MDT 1998 by replying to this message.  Include the string</span>
+<span class="cp">&quot;Rumpelstiltskin&quot; in that reply, but spelled in reverse; that is,</span>
+<span class="cp">start with &quot;Nik...&quot;.  Once this is done, your confirmed address will</span>
+<span class="cp">be entered into our records.</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN345"
+>Matching Abbreviations</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">ans = $stdin.gets.chomp</span>
+<span class="cp">re = %r/^#{Regexp.quote(ans)}/</span>
+<span class="cp">case </span>
+<span class="cp">    when &quot;SEND&quot;  =~ re : puts &quot;Action is send&quot;</span>
+<span class="cp">    when &quot;STOP&quot;  =~ re : puts &quot;Action is stop&quot;</span>
+<span class="cp">    when &quot;ABORT&quot; =~ re : puts &quot;Action is abort&quot;</span>
+<span class="cp">    when &quot;EDIT&quot;  =~ re : puts &quot;Action is edit&quot;</span>
+<span class="cp">end</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">require &#39;abbrev&#39;</span>
+<span class="cp">table = Abbrev.abbrev %w-send stop abort edit-</span>
+<span class="cp">loop do</span>
+<span class="cp">    print &quot;Action: &quot;</span>
+<span class="cp">    ans = $stdin.gets.chomp</span>
+<span class="cp">    puts &quot;Action for #{ans} is #{table[ans.downcase]}&quot;</span>
+<span class="cp">end</span>
+
+
+<span class="cp">#-----------------------------</span>
+<span class="cp"># dummy values are defined for &#39;file&#39;, &#39;PAGER&#39;, and</span>
+<span class="cp"># the &#39;invoke_editor&#39; and &#39;deliver_message&#39; methods</span>
+<span class="cp"># do not do anything interesting in this example.</span>
+<span class="cp">#!/usr/bin/ruby -w</span>
+<span class="cp">require &#39;abbrev&#39;</span>
+
+<span class="cp">file = &#39;pleac_ruby.data&#39;</span>
+<span class="cp">PAGER = &#39;less&#39;</span>
+
+<span class="cp">def invoke_editor</span>
+<span class="cp">    puts &quot;invoking editor&quot;</span>
+<span class="cp">end</span>
+
+<span class="cp">def deliver_message</span>
+<span class="cp">    puts &quot;delivering message&quot;</span>
+<span class="cp">end</span>
+
+<span class="cp">actions = {</span>
+<span class="cp">    &#39;edit&#39;  =&gt; self.method(:invoke_editor),</span>
+<span class="cp">    &#39;send&#39;  =&gt; self.method(:deliver_message),</span>
+<span class="cp">    &#39;list&#39;  =&gt; proc {system(PAGER, file)},</span>
+<span class="cp">    &#39;abort&#39; =&gt; proc {puts &quot;See ya!&quot;; exit},</span>
+<span class="cp">    &quot;&quot;      =&gt; proc {puts &quot;Unknown Command&quot;}</span>
+<span class="cp">}</span>
+
+<span class="cp">dtable = Abbrev.abbrev(actions.keys)</span>
+<span class="cp">loop do</span>
+<span class="cp">    print &quot;Action: &quot;</span>
+<span class="cp">    ans = $stdin.gets.chomp.delete(&quot; \t&quot;)</span>
+<span class="cp">    actions[ dtable[ans.downcase] || &quot;&quot; ].call</span>
+<span class="cp">end</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN348"
+>Program: urlify</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">#% gunzip -c ~/mail/archive.gz | urlify &gt; archive.urlified</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#% urlify ~/mail/*.inbox &gt; ~/allmail.urlified</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#!/usr/bin/ruby -w</span>
+<span class="cp"># urlify - wrap HTML links around URL-like constructs</span>
+
+<span class="cp">urls = &#39;(https?|telnet|gopher|file|wais|ftp)&#39;;</span>
+<span class="cp">ltrs = &#39;\w&#39;;</span>
+<span class="cp">gunk = &#39;/#~:.?+=&amp;%@!\-&#39;;</span>
+<span class="cp">punc = &#39;.:?\-&#39;;</span>
+<span class="cp">any  = &quot;#{ltrs}#{gunk}#{punc}&quot;;</span>
+
+<span class="cp">ARGF.each do |line|</span>
+<span class="cp">    line.gsub! %r/</span>
+<span class="cp">        \b                    # start at word boundary</span>
+<span class="cp">        (                     # begin $1  {</span>
+<span class="cp">         #{urls}     :        # need resource and a colon</span>
+<span class="cp">         [#{any}] +?          # followed by on or more</span>
+<span class="cp">                              #  of any valid character, but</span>
+<span class="cp">                              #  be conservative and take only</span>
+<span class="cp">                              #  what you need to....</span>
+<span class="cp">        )                     # end   $1  }</span>
+<span class="cp">        (?=                   # look-ahead non-consumptive assertion</span>
+<span class="cp">         [#{punc}]*           # either 0 or more punctuation</span>
+<span class="cp">         [^#{any}]            #   followed by a non-url char</span>
+<span class="cp">         |                    # or else</span>
+<span class="cp">         $                    #   then end of the string</span>
+<span class="cp">        )</span>
+<span class="cp">    /iox do </span>
+<span class="cp">        %Q|&lt;A HREF=&quot;#{$1}&quot;&gt;#{$1}&lt;/A&gt;|</span>
+<span class="cp">    end</span>
+<span class="cp">    print line</span>
+<span class="cp">end</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN351"
+>Program: tcgrep</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN354"
+>Regular Expression Grabbag</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">%r/^m*(d?c{0,3}|c[dm])(l?x{0,3}|x[lc])(v?i{0,3}|i[vx])$/i</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">str.sub!(/(\S+)(\s+)(\S+)/, &#39;\3\2\1&#39;)</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">%r/(\w+)\s*=\s*(.*)\s*$/             # keyword is $1, value is $2</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">%r/.{80,}/</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">%r|(\d+)/(\d+)/(\d+) (\d+):(\d+):(\d+)|</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">str.gsub!(%r|/usr/bin|,&#39;/usr/local/bin&#39;)</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">str.gsub!(/%([0-9A-Fa-f][0-9A-Fa-f])/){ $1.hex.chr }</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">str.gsub!(%r{</span>
+<span class="cp">    /\*                    # Match the opening delimiter</span>
+<span class="cp">    .*?                    # Match a minimal number of characters</span>
+<span class="cp">    \*/                    # Match the closing delimiter</span>
+<span class="cp">}xm,&#39;&#39;)</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">str.sub!(/^\s+/, &#39;&#39;)</span>
+<span class="cp">str.sub!(/\s+$/, &#39;&#39;)</span>
+
+<span class="cp"># but really, in Ruby we&#39;d just do:</span>
+<span class="cp">str.strip!</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">str.gsub!(/\\n/,&quot;\n&quot;)</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">str.sub!(/^.*::/, &#39;&#39;)</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">%r/^([01]?\d\d|2[0-4]\d|25[0-5])\.([01]?\d\d|2[0-4]\d|25[0-5])\.</span>
+<span class="cp">    ([01]?\d\d|2[0-4]\d|25[0-5])\.([01]?\d\d|2[0-4]\d|25[0-5])$/x</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">str.sub!(%r|^.*/|, &#39;&#39;)</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">cols = ( (ENV[&#39;TERMCAP&#39;] || &quot; &quot;) =~ /:co#(\d+):/ ) ? $1 : 80;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">name = &quot; #{$0} #{ARGV}&quot;.gsub(%r| /\S+/|, &#39; &#39;)</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">require &#39;rbconfig&#39;</span>
+<span class="cp">include Config</span>
+<span class="cp">raise &quot;This isn&#39;t Linux&quot; unless CONFIG[&#39;target_os&#39;] =~ /linux/i;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">str.gsub!(%r/\n\s+/, &#39; &#39;)</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">nums = str.scan(/(\d+\.?\d*|\.\d+)/)</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">capwords = str.scan(%r/(\b[^\Wa-z0-9_]+\b)/)</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">lowords = str.scan(%r/(\b[^\WA-Z0-9_]+\b)/)</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">icwords = str.scan(%r/(\b[^\Wa-z0-9_][^\WA-Z0-9_]*\b)/)</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">links = str.scan(%r/&lt;A[^&gt;]+?HREF\s*=\s*[&quot;&#39;]?([^&#39;&quot; &gt;]+?)[ &#39;&quot;]?&gt;/mi)   #&#39;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">initial = str =~ /^\S+\s+(\S)\S*\s+\S/ ? $1 : &quot;&quot;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">str.gsub!(%r/&quot;([^&quot;]*)&quot;/, %q-``\1&#39;&#39;-)   #&quot;</span>
+<span class="cp">#-----------------------------</span>
+
+<span class="cp">$/ = &quot;&quot;</span>
+<span class="cp">sentences = []</span>
+<span class="cp">ARGF.each do |para|</span>
+<span class="cp">    para.gsub!(/\n/, &#39; &#39;)</span>
+<span class="cp">    para.gsub!(/ {3,}/,&#39;  &#39;)</span>
+<span class="cp">    sentences &lt;&lt; para.scan(/(\S.*?[!?.])(?=  |\Z)/)</span>
+<span class="cp">end</span>
+
+<span class="cp">#-----------------------------</span>
+<span class="cp">%r/(\d{4})-(\d\d)-(\d\d)/            # YYYY in $1, MM in $2, DD in $3</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">%r/ ^</span>
+<span class="cp">      (?:</span>
+<span class="cp">       1 \s (?: \d\d\d \s)?            # 1, or 1 and area code</span>
+<span class="cp">       |                               # ... or ...</span>
+<span class="cp">       \(\d\d\d\) \s                   # area code with parens</span>
+<span class="cp">       |                               # ... or ...</span>
+<span class="cp">       (?: \+\d\d?\d? \s)?             # optional +country code</span>
+<span class="cp">       \d\d\d ([\s\-])                 # and area code</span>
+<span class="cp">      )</span>
+<span class="cp">      \d\d\d (\s|\1)                   # prefix (and area code separator)</span>
+<span class="cp">      \d\d\d\d                         # exchange</span>
+<span class="cp">        $</span>
+<span class="cp"> /x</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">%r/\boh\s+my\s+gh?o(d(dess(es)?|s?)|odness|sh)\b/i</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">lines = []</span>
+<span class="cp">lines &lt;&lt; $1 while input.sub!(/^([^\012\015]*)(\012\015?|\015\012?)/,&#39;&#39;)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="hashes.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="fileaccess.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Hashes</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>File Access</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

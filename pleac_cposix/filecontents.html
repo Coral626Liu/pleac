@@ -1,0 +1,698 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>File Contents</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-C/Posix/GNU"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="File Access"
+HREF="fileaccess.html"><LINK
+REL="NEXT"
+TITLE="Directories"
+HREF="directories.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-C/Posix/GNU</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="fileaccess.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="directories.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="FILECONTENTS"
+>8. File Contents</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN430"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN433"
+>Reading Lines with Continuation Characters</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN436"
+>Counting Lines (or Paragraphs or Records) in a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//------------------------------------------------------------------</span>
+<span class="cm">/*</span>
+<span class="cm">  using external program : wc -l</span>
+<span class="cm">*/</span>
+<span class="cp">#include &lt;stdio.h&gt;</span>
+<span class="cp">#include &lt;stdlib.h&gt; </span><span class="c1">// system(), exit(); malloc(), free()</span>
+<span class="cp">#include &lt;string.h&gt; </span><span class="c1">// strlen()</span>
+<span class="cp">#include &lt;errno.h&gt; </span><span class="c1">// errno</span>
+
+<span class="p">...</span>
+
+<span class="kt">char</span> <span class="n">file</span><span class="p">[</span><span class="mi">100</span><span class="p">]</span> <span class="o">=</span> <span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span> <span class="c1">// a pathname</span>
+<span class="kt">char</span> <span class="o">*</span> <span class="n">command</span><span class="p">;</span>
+
+<span class="c1">// we format the shell command</span>
+<span class="n">command</span> <span class="o">=</span> <span class="n">malloc</span><span class="p">(</span> <span class="p">(</span><span class="n">strlen</span><span class="p">(</span><span class="s">&quot;wc -l &quot;</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">strlen</span><span class="p">(</span><span class="n">file</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="p">);</span>
+<span class="n">sprintf</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="s">&quot;%s %s&quot;</span><span class="p">,</span> <span class="s">&quot;wc -l&quot;</span><span class="p">,</span> <span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+
+<span class="c1">// bad solution</span>
+
+<span class="n">system</span><span class="p">(</span><span class="n">command</span><span class="p">);</span>
+
+<span class="c1">// good solution : using popen() instead of system()</span>
+
+<span class="kt">FILE</span> <span class="o">*</span> <span class="n">message</span><span class="p">;</span>
+<span class="k">if</span><span class="p">(</span> <span class="p">(</span><span class="n">message</span> <span class="o">=</span> <span class="n">popen</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="s">&quot;r&quot;</span><span class="p">))</span> <span class="o">==</span> <span class="nb">NULL</span> <span class="p">)</span> <span class="p">{</span>
+  <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&quot;error popen %d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">errno</span><span class="p">);</span>
+  <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">char</span> <span class="n">wc_output</span><span class="p">[</span><span class="mi">100</span><span class="p">];</span>
+<span class="n">fgets</span><span class="p">(</span><span class="n">wc_output</span><span class="p">,</span> <span class="k">sizeof</span> <span class="n">wc_output</span><span class="p">,</span> <span class="n">message</span><span class="p">);</span>
+<span class="n">fprintf</span><span class="p">(</span><span class="n">stdout</span><span class="p">,</span> <span class="s">&quot;%s&quot;</span><span class="p">,</span> <span class="n">wc_output</span><span class="p">);</span>
+
+<span class="n">pclose</span><span class="p">(</span><span class="n">message</span><span class="p">);</span>
+
+<span class="n">free</span><span class="p">(</span><span class="n">command</span><span class="p">);</span>
+
+<span class="p">...</span>
+
+<span class="c1">//------------------------------------------------------------------</span>
+<span class="cm">/*</span>
+<span class="cm">    using standard C library</span>
+<span class="cm">*/</span>
+<span class="cp">#include &lt;stdio.h&gt;</span>
+
+<span class="p">...</span>
+
+<span class="kt">char</span> <span class="n">file</span><span class="p">[</span><span class="mi">100</span><span class="p">]</span> <span class="o">=</span> <span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span> <span class="c1">// a pathname</span>
+<span class="kt">FILE</span> <span class="o">*</span> <span class="n">fp</span><span class="p">;</span>
+
+<span class="k">if</span><span class="p">(</span> <span class="p">(</span><span class="n">fp</span> <span class="o">=</span> <span class="n">fopen</span><span class="p">(</span> <span class="n">file</span><span class="p">,</span> <span class="s">&quot;r&quot;</span> <span class="p">))</span> <span class="o">==</span> <span class="nb">NULL</span> <span class="p">)</span> <span class="p">{</span>
+  <span class="n">perror</span><span class="p">(</span><span class="s">&quot;fopen&quot;</span><span class="p">);</span>
+  <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="n">line</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="kt">char</span> <span class="n">ch</span><span class="p">;</span>
+
+<span class="k">while</span> <span class="p">(</span> <span class="p">(</span><span class="n">ch</span> <span class="o">=</span> <span class="n">getc</span><span class="p">(</span><span class="n">fp</span><span class="p">))</span> <span class="o">!=</span> <span class="n">EOF</span> <span class="p">)</span>
+ <span class="k">if</span> <span class="p">(</span><span class="n">ch</span> <span class="o">==</span> <span class="sc">&#39;\n&#39;</span><span class="p">)</span>
+   <span class="n">line</span><span class="o">++</span><span class="p">;</span>
+
+<span class="n">fprintf</span><span class="p">(</span><span class="n">stdout</span><span class="p">,</span> <span class="s">&quot;number of lines : %d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">line</span> <span class="p">);</span>
+<span class="n">fclose</span><span class="p">(</span><span class="n">fp</span><span class="p">);</span>
+
+<span class="p">...</span>
+
+<span class="c1">//------------------------------------------------------------------</span>
+<span class="cm">/*</span>
+<span class="cm">    using system calls</span>
+<span class="cm">    /!\ fast implementation, the whole file is in memory</span>
+<span class="cm">*/</span>
+<span class="cp">#include &lt;stdio.h&gt;</span>
+<span class="cp">#include &lt;stdlib.h&gt;</span>
+
+<span class="cp">#include &lt;fcntl.h&gt; </span><span class="c1">// open()</span>
+<span class="cp">#include &lt;sys/stat.h&gt;</span>
+<span class="cp">#include &lt;sys/types.h&gt;</span>
+<span class="cp">#include &lt;unistd.h&gt; </span><span class="c1">// lseek(), close()</span>
+
+<span class="p">...</span>
+
+<span class="kt">char</span> <span class="n">file</span><span class="p">[</span><span class="mi">100</span><span class="p">]</span> <span class="o">=</span> <span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span> <span class="c1">// a pathname</span>
+<span class="kt">int</span> <span class="n">fd</span><span class="p">;</span>
+
+<span class="n">fd</span> <span class="o">=</span> <span class="n">open</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">O_RDONLY</span><span class="p">);</span>
+
+<span class="kt">size_t</span> <span class="n">size</span><span class="p">;</span>
+
+<span class="n">size</span> <span class="o">=</span> <span class="n">lseek</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">SEEK_END</span> <span class="p">);</span> <span class="c1">// size of the buffer</span>
+
+<span class="kt">char</span> <span class="o">*</span> <span class="n">buffer</span><span class="p">;</span>
+<span class="n">buffer</span> <span class="o">=</span> <span class="n">malloc</span><span class="p">(</span><span class="n">size</span><span class="p">);</span>
+
+<span class="n">lseek</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">SEEK_SET</span><span class="p">);</span> <span class="c1">// back to the beginning of the file</span>
+
+<span class="k">if</span><span class="p">(</span> <span class="p">(</span><span class="n">read</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">buffer</span><span class="p">,</span> <span class="n">size</span><span class="p">))</span> <span class="o">!=</span> <span class="n">size</span> <span class="p">)</span> <span class="p">{</span>
+  <span class="n">perror</span><span class="p">(</span><span class="s">&quot;read&quot;</span><span class="p">);</span>
+  <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="n">close</span><span class="p">(</span><span class="n">fd</span><span class="p">);</span>
+
+<span class="kt">int</span> <span class="n">line</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+<span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
+<span class="k">for</span><span class="p">(</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">size</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="n">buffer</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="sc">&#39;\n&#39;</span><span class="p">)</span>
+    <span class="n">line</span><span class="o">++</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="n">free</span><span class="p">(</span><span class="n">buffer</span><span class="p">);</span>
+
+<span class="n">fprintf</span><span class="p">(</span><span class="n">stdout</span><span class="p">,</span> <span class="s">&quot;number of lines : %d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">line</span> <span class="p">);</span>
+
+<span class="p">...</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN439"
+>Processing Every Word in a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN442"
+>Reading a File Backwards by Line or Paragraph</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN445"
+>Trailing a Growing File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN448"
+>Picking a Random Line from a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN451"
+>Randomizing All Lines</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN454"
+>Reading a Particular Line in a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN457"
+>Processing Variable-Length Text Fields</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN460"
+>Removing the Last Line of a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN463"
+>Processing Binary Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN466"
+>Using Random-Access I/O</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN469"
+>Updating a Random-Access File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN472"
+>Reading a String from a Binary File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN475"
+>Reading Fixed-Length Records</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN478"
+>Reading Configuration Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN481"
+>Testing a File for Trustworthiness</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN484"
+>Program: tailwtmp</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN487"
+>Program: tctee</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN490"
+>Program: laston</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="fileaccess.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="directories.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>File Access</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Directories</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

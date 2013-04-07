@@ -1,0 +1,1094 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Directories</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Objective CAML "
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="File Contents"
+HREF="filecontents.html"><LINK
+REL="NEXT"
+TITLE="Subroutines"
+HREF="subroutines.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Objective CAML </TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="filecontents.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="subroutines.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="DIRECTORIES"
+>9. Directories</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN495"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="k">open</span> <span class="nc">Unix</span>
+
+<span class="c">(* handle_unix_error generates a nice error message and exits *)</span>
+<span class="k">let</span> <span class="n">entry</span> <span class="o">=</span> <span class="n">handle_unix_error</span> <span class="n">stat</span> <span class="s2">&quot;/usr/bin/vi&quot;</span>
+<span class="k">let</span> <span class="n">entry</span> <span class="o">=</span> <span class="n">handle_unix_error</span> <span class="n">stat</span> <span class="s2">&quot;/usr/bin/&quot;</span>
+<span class="k">let</span> <span class="n">entry</span> <span class="o">=</span> <span class="n">handle_unix_error</span> <span class="n">fstat</span> <span class="n">filedescr</span>
+
+<span class="c">(* without handle_unix_error an exception is raised for errors *)</span>
+<span class="k">let</span> <span class="n">inode</span> <span class="o">=</span> <span class="n">stat</span> <span class="s2">&quot;/usr/bin/vi&quot;</span>
+<span class="k">let</span> <span class="n">ctime</span> <span class="o">=</span> <span class="n">inode</span><span class="o">.</span><span class="n">st_ctime</span>
+<span class="k">let</span> <span class="n">size</span> <span class="o">=</span> <span class="n">inode</span><span class="o">.</span><span class="n">st_size</span>
+
+<span class="c">(* don&#39;t know any equivalent in ocaml *)</span>
+<span class="c">(* maybe one could use file(1) (to know if it is an ASCII text file) *)</span>
+<span class="k">let</span> <span class="n">dirhandle</span> <span class="o">=</span> <span class="n">handle_unix_error</span> <span class="n">opendir</span> <span class="s2">&quot;/usr/bin&quot;</span> <span class="k">in</span>
+<span class="k">begin</span>
+  <span class="k">try</span>
+    <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+      <span class="k">let</span> <span class="n">file</span> <span class="o">=</span> <span class="n">readdir</span> <span class="n">dirhandle</span> <span class="k">in</span>
+      <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;Inside /usr/bin is something called %s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="n">file</span>
+    <span class="k">done</span>
+  <span class="k">with</span>
+    <span class="o">|</span> <span class="nc">End_of_file</span> <span class="o">-&gt;</span> <span class="bp">()</span>
+<span class="k">end</span><span class="o">;</span>
+<span class="n">closedir</span> <span class="n">dirhandle</span><span class="o">;;</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN498"
+>Getting and Setting Timestamps</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="k">let</span> <span class="o">(</span><span class="n">readtime</span><span class="o">,</span> <span class="n">writetime</span><span class="o">)</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">inode</span> <span class="o">=</span> <span class="n">stat</span> <span class="n">filename</span> <span class="k">in</span>
+  <span class="o">(</span><span class="n">inode</span><span class="o">.</span><span class="n">st_atime</span><span class="o">,</span> <span class="n">inode</span><span class="o">.</span><span class="n">st_mtime</span><span class="o">);;</span>
+
+<span class="n">utimes</span> <span class="n">filename</span> <span class="n">newreadtime</span> <span class="n">newwritetime</span><span class="o">;;</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="k">let</span> <span class="n">second_per_day</span> <span class="o">=</span> <span class="mi">60</span><span class="o">.</span> <span class="o">*.</span> <span class="mi">60</span><span class="o">.</span> <span class="o">*.</span> <span class="mi">24</span><span class="o">.</span> <span class="k">in</span>
+<span class="k">let</span> <span class="o">(</span><span class="n">atime</span><span class="o">,</span> <span class="n">mtime</span><span class="o">)</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">inode</span> <span class="o">=</span> <span class="n">stat</span> <span class="n">filename</span> <span class="k">in</span>
+  <span class="o">(</span><span class="n">inode</span><span class="o">.</span><span class="n">st_atime</span><span class="o">,</span> <span class="n">inode</span><span class="o">.</span><span class="n">st_mtime</span><span class="o">)</span> <span class="k">in</span>
+<span class="k">let</span> <span class="n">newreadtime</span> <span class="o">=</span> <span class="n">atime</span> <span class="o">-.</span> <span class="mi">7</span><span class="o">.</span> <span class="o">*.</span> <span class="n">second_per_day</span>
+<span class="ow">and</span> <span class="n">newwritetime</span> <span class="o">=</span> <span class="n">mtime</span> <span class="o">-.</span> <span class="mi">7</span><span class="o">.</span> <span class="o">*.</span> <span class="n">second_per_day</span> <span class="k">in</span>
+<span class="k">try</span>
+  <span class="n">utimes</span> <span class="n">filename</span> <span class="n">newreadtime</span> <span class="n">newwritetime</span>
+<span class="k">with</span>
+  <span class="o">|</span> <span class="nc">Unix_error</span> <span class="o">(</span><span class="n">er</span><span class="o">,_,_)</span> <span class="o">-&gt;</span>
+      <span class="nn">Printf</span><span class="p">.</span><span class="n">eprintf</span>
+	<span class="s2">&quot;couldn&#39;t backdate %s by a week w/ utime: %s</span><span class="se">\n</span><span class="s2">&quot;</span>
+	<span class="n">filename</span> <span class="o">(</span><span class="n">error_message</span> <span class="n">er</span><span class="o">);;</span>
+
+<span class="c">(*-----------------------------*)</span>
+<span class="k">let</span> <span class="n">mtime</span> <span class="o">=</span> <span class="o">(</span><span class="n">stat</span> <span class="n">file</span><span class="o">).</span><span class="n">st_mtime</span> <span class="k">in</span>
+<span class="n">utimes</span> <span class="n">file</span> <span class="o">(</span><span class="n">time</span> <span class="bp">()</span><span class="o">)</span> <span class="n">mtime</span>  <span class="o">;;</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* compile with ocamlc unix.cma uvi.ml -o uvi *)</span>
+<span class="k">open</span> <span class="nc">Unix</span>
+
+<span class="k">let</span> <span class="n">main</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">if</span> <span class="o">(</span><span class="nn">Array</span><span class="p">.</span><span class="n">length</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span> <span class="o">&lt;&gt;</span> <span class="mi">2</span><span class="o">)</span>
+  <span class="k">then</span>
+    <span class="nn">Printf</span><span class="p">.</span><span class="n">eprintf</span> <span class="s2">&quot;Usage: uvi filename</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">;</span>
+  <span class="k">let</span> <span class="n">filename</span> <span class="o">=</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span><span class="o">.(</span><span class="mi">1</span><span class="o">)</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="n">atime</span><span class="o">,</span><span class="n">mtime</span> <span class="o">=</span>
+    <span class="k">let</span> <span class="n">st</span> <span class="o">=</span> <span class="n">stat</span> <span class="n">filename</span> <span class="k">in</span>
+    <span class="o">(</span><span class="n">st</span><span class="o">.</span><span class="n">st_atime</span><span class="o">,</span> <span class="n">st</span><span class="o">.</span><span class="n">st_mtime</span><span class="o">)</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="n">editor</span> <span class="o">=</span>
+    <span class="k">begin</span>
+      <span class="k">try</span>
+	<span class="nn">Sys</span><span class="p">.</span><span class="n">getenv</span> <span class="s2">&quot;editor&quot;</span>
+      <span class="k">with</span>
+	<span class="o">|</span> <span class="nc">Not_found</span> <span class="o">-&gt;</span> <span class="s2">&quot;vi&quot;</span>
+    <span class="k">end</span> <span class="k">in</span>
+  <span class="nn">Sys</span><span class="p">.</span><span class="n">command</span> <span class="o">(</span><span class="nn">Printf</span><span class="p">.</span><span class="n">sprintf</span> <span class="s2">&quot;%s %s&quot;</span> <span class="n">editor</span> <span class="n">filename</span><span class="o">);</span>
+  <span class="n">utimes</span> <span class="n">filename</span> <span class="n">atime</span> <span class="n">mtime</span> <span class="k">in</span>
+<span class="n">main</span> <span class="bp">()</span><span class="o">;;</span>
+
+<span class="c">(*-----------------------------*)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN501"
+>Deleting a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="n">unlink</span> <span class="n">filename</span><span class="o">;;</span>			<span class="c">(* use unix library *)</span>
+<span class="nn">Sys</span><span class="p">.</span><span class="n">remove</span> <span class="n">filename</span><span class="o">;;</span>			<span class="c">(* in the standard library *)</span>
+
+<span class="k">let</span> <span class="n">error_flag</span> <span class="o">=</span> <span class="n">ref</span><span class="o">(</span><span class="nc">None</span><span class="o">)</span> <span class="k">in</span>
+<span class="k">let</span> <span class="n">local_unlink</span> <span class="n">filename</span> <span class="o">=</span>
+  <span class="k">try</span>
+    <span class="n">unlink</span> <span class="n">filename</span>
+  <span class="k">with</span>
+    <span class="o">|</span> <span class="nc">Unix_error</span> <span class="o">(</span><span class="n">er</span><span class="o">,_,_)</span> <span class="o">-&gt;</span>
+	<span class="n">error_flag</span> <span class="o">:=</span> <span class="o">(</span><span class="nc">Some</span> <span class="n">er</span><span class="o">)</span> <span class="k">in</span>
+<span class="nn">List</span><span class="p">.</span><span class="n">iter</span> <span class="n">local_unlink</span> <span class="n">filenames</span><span class="o">;</span>
+<span class="k">match</span> <span class="o">!</span><span class="n">error_flag</span> <span class="k">with</span>
+  <span class="o">|</span> <span class="nc">Some</span> <span class="n">er</span> <span class="o">-&gt;</span>
+      <span class="nn">Printf</span><span class="p">.</span><span class="n">eprintf</span> <span class="s2">&quot;Couldn&#39;t unlink all of&quot;</span><span class="o">;</span>
+      <span class="nn">List</span><span class="p">.</span><span class="n">iter</span> <span class="o">(</span><span class="nn">Printf</span><span class="p">.</span><span class="n">eprintf</span> <span class="s2">&quot; %s&quot;</span><span class="o">)</span> <span class="n">filenames</span><span class="o">;</span>
+      <span class="nn">Printf</span><span class="p">.</span><span class="n">eprintf</span> <span class="s2">&quot;: %s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">(</span><span class="n">error_message</span> <span class="n">er</span><span class="o">)</span>
+  <span class="o">|</span> <span class="nc">None</span> <span class="bp">()</span><span class="o">;;</span>
+
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="k">let</span> <span class="n">error_flag</span> <span class="o">=</span> <span class="n">ref</span><span class="o">(</span><span class="mi">0</span><span class="o">)</span> <span class="k">in</span>
+<span class="k">let</span> <span class="n">local_unlink</span> <span class="n">count</span> <span class="n">filename</span> <span class="o">=</span>
+  <span class="k">try</span>
+    <span class="n">unlink</span> <span class="n">filename</span><span class="o">;</span>
+    <span class="n">count</span> <span class="o">+</span> <span class="mi">1</span>
+  <span class="k">with</span>
+    <span class="o">|</span> <span class="nc">Unix_error</span> <span class="o">(</span><span class="n">er</span><span class="o">,_,_)</span> <span class="o">-&gt;</span>
+	<span class="n">count</span> <span class="k">in</span>
+<span class="k">let</span> <span class="n">count</span> <span class="o">=</span> <span class="o">(</span><span class="nn">List</span><span class="p">.</span><span class="n">fold_left</span> <span class="n">local_unlink</span> <span class="n">filenames</span> <span class="mi">0</span><span class="o">)</span>
+<span class="ow">and</span> <span class="n">len</span> <span class="o">=</span> <span class="nn">List</span><span class="p">.</span><span class="n">length</span> <span class="n">filenames</span> <span class="k">in</span>
+<span class="k">if</span> <span class="n">count</span> <span class="o">&lt;&gt;</span> <span class="n">len</span>
+<span class="k">then</span>
+  <span class="nn">Printf</span><span class="p">.</span><span class="n">eprintf</span> <span class="s2">&quot;Could only delete %i of %i file</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="n">count</span> <span class="n">len</span><span class="o">;;</span>
+
+<span class="c">(*-----------------------------*)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN504"
+>Copying or Moving a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* Note : this doesn&#39;t use the unix library, only the standard one *)</span>
+
+<span class="k">let</span> <span class="n">copy</span> <span class="n">oldfile</span> <span class="n">newfile</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">infile</span> <span class="o">=</span> <span class="n">open_in</span> <span class="n">oldfile</span>
+  <span class="ow">and</span> <span class="n">outfile</span> <span class="o">=</span> <span class="n">open_out</span> <span class="n">newfile</span>
+  <span class="ow">and</span> <span class="n">blksize</span> <span class="o">=</span> <span class="mi">16384</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="n">buf</span> <span class="o">=</span> <span class="nn">String</span><span class="p">.</span><span class="n">create</span> <span class="n">blksize</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="k">rec</span> <span class="n">real_copy</span> <span class="bp">()</span> <span class="o">=</span>
+    <span class="k">let</span> <span class="n">byte_read</span> <span class="o">=</span> <span class="n">input</span> <span class="n">infile</span> <span class="n">buf</span> <span class="mi">0</span> <span class="n">blksize</span> <span class="k">in</span>
+    <span class="k">if</span> <span class="n">byte_read</span> <span class="o">&lt;&gt;</span> <span class="mi">0</span> <span class="k">then</span>
+      <span class="k">begin</span>
+	<span class="c">(* Handle partialle write : nothing to do *)</span>
+	<span class="n">output</span> <span class="n">outfile</span> <span class="n">buf</span> <span class="mi">0</span> <span class="n">byte_read</span><span class="o">;</span>
+	<span class="n">real_copy</span> <span class="bp">()</span>
+      <span class="k">end</span> <span class="k">in</span>
+  <span class="n">real_copy</span> <span class="bp">()</span><span class="o">;</span>
+  <span class="n">close_in</span> <span class="n">infile</span><span class="o">;</span>
+  <span class="n">close_out</span> <span class="n">outfile</span><span class="o">;;</span>
+
+<span class="c">(*-----------------------------*)</span>
+<span class="nn">Sys</span><span class="p">.</span><span class="n">command</span> <span class="o">(</span><span class="s2">&quot;cp &quot;</span> <span class="o">^</span> <span class="n">oldfile</span> <span class="o">^</span> <span class="s2">&quot; &quot;</span> <span class="o">^</span> <span class="n">newfile</span><span class="o">)</span>	<span class="c">(* Unix *)</span>
+<span class="nn">Sys</span><span class="p">.</span><span class="n">command</span> <span class="o">(</span><span class="nn">String</span><span class="p">.</span><span class="n">concat</span> <span class="s2">&quot; &quot;</span> <span class="o">[</span><span class="s2">&quot;copy&quot;</span><span class="o">;</span><span class="n">oldfile</span><span class="o">;</span><span class="n">newfile</span><span class="o">])</span> <span class="c">(* Dos *)</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="nn">Unix</span><span class="p">.</span><span class="n">copy</span> <span class="s2">&quot;datafile.dat&quot;</span> <span class="s2">&quot;datafile.bak&quot;</span><span class="o">;;</span>
+
+<span class="nn">Sys</span><span class="p">.</span><span class="n">rename</span> <span class="s2">&quot;datafile.dat&quot;</span> <span class="s2">&quot;datafile.bak&quot;</span><span class="o">;;</span>
+
+<span class="c">(*-----------------------------*)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN507"
+>Recognizing Two Names for the Same File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+
+<span class="c">(* Count the number of times a (dev, ino) pair is seen. *)</span>
+<span class="k">let</span> <span class="n">seen</span> <span class="o">=</span> <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">create</span> <span class="mi">0</span>
+<span class="k">let</span> <span class="n">do_my_thing</span> <span class="n">filename</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="o">{</span><span class="nn">Unix</span><span class="p">.</span><span class="n">st_dev</span><span class="o">=</span><span class="n">dev</span><span class="o">;</span> <span class="n">st_ino</span><span class="o">=</span><span class="n">ino</span><span class="o">}</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">stat</span> <span class="n">filename</span> <span class="k">in</span>
+  <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">replace</span> <span class="n">seen</span> <span class="o">(</span><span class="n">dev</span><span class="o">,</span> <span class="n">ino</span><span class="o">)</span>
+    <span class="o">(</span><span class="k">try</span> <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">find</span> <span class="n">seen</span> <span class="o">(</span><span class="n">dev</span><span class="o">,</span> <span class="n">ino</span><span class="o">)</span> <span class="o">+</span> <span class="mi">1</span>
+     <span class="k">with</span> <span class="nc">Not_found</span> <span class="o">-&gt;</span> <span class="mi">1</span><span class="o">);</span>
+  <span class="k">if</span> <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">find</span> <span class="n">seen</span> <span class="o">(</span><span class="n">dev</span><span class="o">,</span> <span class="n">ino</span><span class="o">)</span> <span class="o">=</span> <span class="mi">1</span>
+  <span class="k">then</span>
+    <span class="k">begin</span>
+      <span class="c">(* do something with filename because we haven&#39;t</span>
+<span class="c">         seen it before. *)</span>
+    <span class="k">end</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* Maintain a list of files for each (dev, ino) pair. *)</span>
+<span class="k">let</span> <span class="n">seen</span> <span class="o">=</span> <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">create</span> <span class="mi">0</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="nn">List</span><span class="p">.</span><span class="n">iter</span>
+    <span class="o">(</span><span class="k">fun</span> <span class="n">filename</span> <span class="o">-&gt;</span>
+       <span class="k">let</span> <span class="o">{</span><span class="nn">Unix</span><span class="p">.</span><span class="n">st_dev</span><span class="o">=</span><span class="n">dev</span><span class="o">;</span> <span class="n">st_ino</span><span class="o">=</span><span class="n">ino</span><span class="o">}</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">stat</span> <span class="n">filename</span> <span class="k">in</span>
+       <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">replace</span> <span class="n">seen</span> <span class="o">(</span><span class="n">dev</span><span class="o">,</span> <span class="n">ino</span><span class="o">)</span>
+         <span class="o">(</span><span class="k">try</span> <span class="n">filename</span> <span class="o">::</span> <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">find</span> <span class="n">seen</span> <span class="o">(</span><span class="n">dev</span><span class="o">,</span> <span class="n">ino</span><span class="o">)</span>
+          <span class="k">with</span> <span class="nc">Not_found</span> <span class="o">-&gt;</span> <span class="o">[</span><span class="n">filename</span><span class="o">]))</span>
+    <span class="n">files</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">iter</span>
+    <span class="o">(</span><span class="k">fun</span> <span class="o">(</span><span class="n">dev</span><span class="o">,</span> <span class="n">ino</span><span class="o">)</span> <span class="n">filenames</span> <span class="o">-&gt;</span>
+       <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;(%d, %d) =&gt; [%s]</span><span class="se">\n</span><span class="s2">&quot;</span>
+         <span class="n">dev</span> <span class="n">ino</span> <span class="o">(</span><span class="nn">String</span><span class="p">.</span><span class="n">concat</span> <span class="s2">&quot;, &quot;</span> <span class="n">filenames</span><span class="o">))</span>
+    <span class="n">seen</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN510"
+>Processing All Files in a Directory</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c">(* Using Sys.readdir. *)</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="nn">Array</span><span class="p">.</span><span class="n">iter</span>
+    <span class="o">(</span><span class="k">fun</span> <span class="n">file</span> <span class="o">-&gt;</span>
+       <span class="k">let</span> <span class="n">path</span> <span class="o">=</span> <span class="nn">Filename</span><span class="p">.</span><span class="n">concat</span> <span class="n">dirname</span> <span class="n">file</span> <span class="k">in</span>
+       <span class="c">(* do something with path *)</span>
+       <span class="bp">()</span><span class="o">)</span>
+    <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="n">readdir</span> <span class="n">dirname</span><span class="o">)</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* Using Unix.opendir, readdir, and closedir. Note that the &quot;.&quot; and &quot;..&quot;</span>
+<span class="c">   directories are included in the result unlike with Sys.readdir. *)</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">dir</span> <span class="o">=</span>
+    <span class="k">try</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">opendir</span> <span class="n">dirname</span>
+    <span class="k">with</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">Unix_error</span> <span class="o">(</span><span class="n">e</span><span class="o">,</span> <span class="o">_,</span> <span class="o">_)</span> <span class="o">-&gt;</span>
+      <span class="nn">Printf</span><span class="p">.</span><span class="n">eprintf</span> <span class="s2">&quot;can&#39;t opendir %s: %s</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">dirname</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">error_message</span> <span class="n">e</span><span class="o">);</span>
+      <span class="n">exit</span> <span class="mi">255</span> <span class="k">in</span>
+  <span class="k">try</span>
+    <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+      <span class="k">let</span> <span class="n">file</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">readdir</span> <span class="n">dir</span> <span class="k">in</span>
+      <span class="k">let</span> <span class="n">path</span> <span class="o">=</span> <span class="nn">Filename</span><span class="p">.</span><span class="n">concat</span> <span class="n">dirname</span> <span class="n">file</span> <span class="k">in</span>
+      <span class="c">(* do something with path *)</span>
+      <span class="bp">()</span>
+    <span class="k">done</span>
+  <span class="k">with</span> <span class="nc">End_of_file</span> <span class="o">-&gt;</span>
+    <span class="nn">Unix</span><span class="p">.</span><span class="n">closedir</span> <span class="n">dir</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* Get a list of full paths to plain files. *)</span>
+<span class="k">let</span> <span class="n">plainfiles</span> <span class="n">dir</span> <span class="o">=</span>
+  <span class="nn">List</span><span class="p">.</span><span class="n">filter</span>
+    <span class="o">(</span><span class="k">fun</span> <span class="n">path</span> <span class="o">-&gt;</span>
+       <span class="k">match</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">lstat</span> <span class="n">path</span> <span class="k">with</span>
+         <span class="o">|</span> <span class="o">{</span><span class="nn">Unix</span><span class="p">.</span><span class="n">st_kind</span><span class="o">=</span><span class="nn">Unix</span><span class="p">.</span><span class="nc">S_REG</span><span class="o">}</span> <span class="o">-&gt;</span> <span class="bp">true</span>
+         <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">false</span><span class="o">)</span>
+    <span class="o">(</span><span class="nn">List</span><span class="p">.</span><span class="n">map</span>
+       <span class="o">(</span><span class="nn">Filename</span><span class="p">.</span><span class="n">concat</span> <span class="n">dir</span><span class="o">)</span>
+       <span class="o">(</span><span class="nn">Array</span><span class="p">.</span><span class="n">to_list</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="n">readdir</span> <span class="n">dir</span><span class="o">)))</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN513"
+>Globbing, or Getting a List of Filenames Matching a Pattern</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c">(* See recipe 6.9 for a more powerful globber. *)</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;str.cma&quot;</span><span class="o">;;</span>
+
+<span class="c">(* OCaml does not come with a globbing function. As a workaround, the</span>
+<span class="c">   following function builds a regular expression from a glob pattern.</span>
+<span class="c">   Only the &#39;*&#39; and &#39;?&#39; wildcards are recognized. *)</span>
+<span class="k">let</span> <span class="n">regexp_of_glob</span> <span class="n">pat</span> <span class="o">=</span>
+  <span class="nn">Str</span><span class="p">.</span><span class="n">regexp</span>
+    <span class="o">(</span><span class="nn">Printf</span><span class="p">.</span><span class="n">sprintf</span> <span class="s2">&quot;^%s$&quot;</span>
+       <span class="o">(</span><span class="nn">String</span><span class="p">.</span><span class="n">concat</span> <span class="s2">&quot;&quot;</span>
+          <span class="o">(</span><span class="nn">List</span><span class="p">.</span><span class="n">map</span>
+             <span class="o">(</span><span class="k">function</span>
+                <span class="o">|</span> <span class="nn">Str</span><span class="p">.</span><span class="nc">Text</span> <span class="n">s</span> <span class="o">-&gt;</span> <span class="nn">Str</span><span class="p">.</span><span class="n">quote</span> <span class="n">s</span>
+                <span class="o">|</span> <span class="nn">Str</span><span class="p">.</span><span class="nc">Delim</span> <span class="s2">&quot;*&quot;</span> <span class="o">-&gt;</span> <span class="s2">&quot;.*&quot;</span>
+                <span class="o">|</span> <span class="nn">Str</span><span class="p">.</span><span class="nc">Delim</span> <span class="s2">&quot;?&quot;</span> <span class="o">-&gt;</span> <span class="s2">&quot;.&quot;</span>
+                <span class="o">|</span> <span class="nn">Str</span><span class="p">.</span><span class="nc">Delim</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="k">assert</span> <span class="bp">false</span><span class="o">)</span>
+             <span class="o">(</span><span class="nn">Str</span><span class="p">.</span><span class="n">full_split</span> <span class="o">(</span><span class="nn">Str</span><span class="p">.</span><span class="n">regexp</span> <span class="s2">&quot;[*?]&quot;</span><span class="o">)</span> <span class="n">pat</span><span class="o">))))</span>
+
+<span class="c">(* Now we can build a very basic globber. Only the filename part will</span>
+<span class="c">   be used in the glob pattern, so directory wildcards will break in</span>
+<span class="c">   this simple example. *)</span>
+<span class="k">let</span> <span class="n">glob</span> <span class="n">pat</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">basedir</span> <span class="o">=</span> <span class="nn">Filename</span><span class="p">.</span><span class="n">dirname</span> <span class="n">pat</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="n">files</span> <span class="o">=</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">readdir</span> <span class="n">basedir</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="n">regexp</span> <span class="o">=</span> <span class="n">regexp_of_glob</span> <span class="o">(</span><span class="nn">Filename</span><span class="p">.</span><span class="n">basename</span> <span class="n">pat</span><span class="o">)</span> <span class="k">in</span>
+  <span class="nn">List</span><span class="p">.</span><span class="n">map</span>
+    <span class="o">(</span><span class="nn">Filename</span><span class="p">.</span><span class="n">concat</span> <span class="n">basedir</span><span class="o">)</span>
+    <span class="o">(</span><span class="nn">List</span><span class="p">.</span><span class="n">filter</span>
+       <span class="o">(</span><span class="k">fun</span> <span class="n">file</span> <span class="o">-&gt;</span> <span class="nn">Str</span><span class="p">.</span><span class="n">string_match</span> <span class="n">regexp</span> <span class="n">file</span> <span class="mi">0</span><span class="o">)</span>
+       <span class="o">(</span><span class="nn">Array</span><span class="p">.</span><span class="n">to_list</span> <span class="n">files</span><span class="o">))</span>
+
+<span class="c">(* Find all data files in the pleac directory. *)</span>
+<span class="k">let</span> <span class="n">files</span> <span class="o">=</span> <span class="n">glob</span> <span class="s2">&quot;pleac/*.data&quot;</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* Find and sort directories with numeric names. *)</span>
+<span class="k">let</span> <span class="n">dirs</span> <span class="o">=</span>
+  <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="n">snd</span>                             <span class="c">(* extract pathnames *)</span>
+    <span class="o">(</span><span class="nn">List</span><span class="p">.</span><span class="n">sort</span> <span class="n">compare</span>                     <span class="c">(* sort names numerically *)</span>
+       <span class="o">(</span><span class="nn">List</span><span class="p">.</span><span class="n">filter</span>                        <span class="c">(* path is a dir *)</span>
+          <span class="o">(</span><span class="k">fun</span> <span class="o">(_,</span> <span class="n">s</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">is_directory</span> <span class="n">s</span><span class="o">)</span>
+          <span class="o">(</span><span class="nn">List</span><span class="p">.</span><span class="n">map</span>                        <span class="c">(* form (name, path) *)</span>
+             <span class="o">(</span><span class="k">fun</span> <span class="n">s</span> <span class="o">-&gt;</span> <span class="o">(</span><span class="n">int_of_string</span> <span class="n">s</span><span class="o">,</span> <span class="nn">Filename</span><span class="p">.</span><span class="n">concat</span> <span class="n">path</span> <span class="n">s</span><span class="o">))</span>
+             <span class="o">(</span><span class="nn">List</span><span class="p">.</span><span class="n">filter</span>                  <span class="c">(* just numerics *)</span>
+                <span class="o">(</span><span class="k">fun</span> <span class="n">s</span> <span class="o">-&gt;</span>
+                   <span class="k">try</span> <span class="n">ignore</span> <span class="o">(</span><span class="n">int_of_string</span> <span class="n">s</span><span class="o">);</span> <span class="bp">true</span>
+                   <span class="k">with</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">false</span><span class="o">)</span>
+                <span class="o">(</span><span class="nn">Array</span><span class="p">.</span><span class="n">to_list</span>
+                   <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="n">readdir</span> <span class="n">path</span><span class="o">))))))</span> <span class="c">(* all files *)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN516"
+>Processing All Files in a Directory Recursively</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="k">let</span> <span class="k">rec</span> <span class="n">find_files</span> <span class="n">f</span> <span class="n">error</span> <span class="n">root</span> <span class="o">=</span>
+  <span class="nn">Array</span><span class="p">.</span><span class="n">iter</span>
+    <span class="o">(</span><span class="k">fun</span> <span class="n">filename</span> <span class="o">-&gt;</span>
+       <span class="k">let</span> <span class="n">path</span> <span class="o">=</span> <span class="nn">Filename</span><span class="p">.</span><span class="n">concat</span> <span class="n">root</span> <span class="n">filename</span> <span class="k">in</span>
+       <span class="k">let</span> <span class="n">is_dir</span> <span class="o">=</span>
+         <span class="k">try</span> <span class="nc">Some</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="n">is_directory</span> <span class="n">path</span><span class="o">)</span>
+         <span class="k">with</span> <span class="n">e</span> <span class="o">-&gt;</span> <span class="n">error</span> <span class="n">root</span> <span class="n">e</span><span class="o">;</span> <span class="nc">None</span> <span class="k">in</span>
+       <span class="k">match</span> <span class="n">is_dir</span> <span class="k">with</span>
+         <span class="o">|</span> <span class="nc">Some</span> <span class="bp">true</span> <span class="o">-&gt;</span> <span class="k">if</span> <span class="n">f</span> <span class="n">path</span> <span class="k">then</span> <span class="n">find_files</span> <span class="n">f</span> <span class="n">error</span> <span class="n">path</span>
+         <span class="o">|</span> <span class="nc">Some</span> <span class="bp">false</span> <span class="o">-&gt;</span> <span class="n">ignore</span> <span class="o">(</span><span class="n">f</span> <span class="n">path</span><span class="o">)</span>
+         <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="bp">()</span><span class="o">)</span>
+    <span class="o">(</span><span class="k">try</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">readdir</span> <span class="n">root</span> <span class="k">with</span> <span class="n">e</span> <span class="o">-&gt;</span> <span class="n">error</span> <span class="n">root</span> <span class="n">e</span><span class="o">;</span> <span class="o">[|</span> <span class="o">|])</span>
+
+<span class="k">let</span> <span class="n">process_file</span> <span class="n">fn</span> <span class="o">=</span>
+  <span class="c">(* Print the name of each directory and file found. *)</span>
+  <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;%s: %s</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="o">(</span><span class="k">if</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">is_directory</span> <span class="n">fn</span> <span class="k">then</span> <span class="s2">&quot;directory&quot;</span> <span class="k">else</span> <span class="s2">&quot;file&quot;</span><span class="o">)</span> <span class="n">fn</span><span class="o">;</span>
+
+  <span class="c">(* Prune directories named &quot;.svn&quot;. *)</span>
+  <span class="n">not</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="n">is_directory</span> <span class="n">fn</span> <span class="o">&amp;&amp;</span> <span class="nn">Filename</span><span class="p">.</span><span class="n">basename</span> <span class="n">fn</span> <span class="o">=</span> <span class="s2">&quot;.svn&quot;</span><span class="o">)</span>
+
+<span class="k">let</span> <span class="n">handle_error</span> <span class="n">fn</span> <span class="n">exc</span> <span class="o">=</span>
+  <span class="nn">Printf</span><span class="p">.</span><span class="n">eprintf</span> <span class="s2">&quot;Error reading %s: %s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="n">fn</span> <span class="o">(</span><span class="nn">Printexc</span><span class="p">.</span><span class="n">to_string</span> <span class="n">exc</span><span class="o">)</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="nn">List</span><span class="p">.</span><span class="n">iter</span> <span class="o">(</span><span class="n">find_files</span> <span class="n">process_file</span> <span class="n">handle_error</span><span class="o">)</span> <span class="n">dirlist</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* Add a trailing slash to the names of directories. *)</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="nn">List</span><span class="p">.</span><span class="n">iter</span>
+    <span class="o">(</span><span class="n">find_files</span>
+       <span class="o">(</span><span class="k">fun</span> <span class="n">fn</span> <span class="o">-&gt;</span>
+          <span class="n">print_endline</span>
+            <span class="o">(</span><span class="k">if</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">is_directory</span> <span class="n">fn</span> <span class="k">then</span> <span class="o">(</span><span class="n">fn</span> <span class="o">^</span> <span class="s2">&quot;/&quot;</span><span class="o">)</span> <span class="k">else</span> <span class="n">fn</span><span class="o">);</span>
+          <span class="bp">true</span><span class="o">)</span>
+       <span class="o">(</span><span class="k">fun</span> <span class="o">_</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">()</span><span class="o">))</span>
+    <span class="o">(</span><span class="k">match</span> <span class="nn">List</span><span class="p">.</span><span class="n">tl</span> <span class="o">(</span><span class="nn">Array</span><span class="p">.</span><span class="n">to_list</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span><span class="o">)</span> <span class="k">with</span>
+       <span class="o">|</span> <span class="bp">[]</span> <span class="o">-&gt;</span> <span class="o">[</span><span class="s2">&quot;.&quot;</span><span class="o">]</span>
+       <span class="o">|</span> <span class="n">dirs</span> <span class="o">-&gt;</span> <span class="n">dirs</span><span class="o">)</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* Sum the file sizes of a directory tree. *)</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+<span class="k">let</span> <span class="n">sum</span> <span class="o">=</span> <span class="n">ref</span> <span class="mi">0</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="nn">List</span><span class="p">.</span><span class="n">iter</span>
+    <span class="o">(</span><span class="n">find_files</span>
+       <span class="o">(</span><span class="k">fun</span> <span class="n">fn</span> <span class="o">-&gt;</span>
+          <span class="n">sum</span> <span class="o">:=</span> <span class="o">!</span><span class="n">sum</span> <span class="o">+</span> <span class="o">(</span><span class="k">match</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">stat</span> <span class="n">fn</span>
+                         <span class="k">with</span> <span class="o">{</span><span class="nn">Unix</span><span class="p">.</span><span class="n">st_size</span><span class="o">=</span><span class="n">size</span><span class="o">}</span> <span class="o">-&gt;</span> <span class="n">size</span><span class="o">);</span>
+          <span class="bp">true</span><span class="o">)</span>
+       <span class="o">(</span><span class="k">fun</span> <span class="o">_</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">()</span><span class="o">))</span>
+    <span class="o">(</span><span class="k">match</span> <span class="nn">List</span><span class="p">.</span><span class="n">tl</span> <span class="o">(</span><span class="nn">Array</span><span class="p">.</span><span class="n">to_list</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span><span class="o">)</span> <span class="k">with</span>
+       <span class="o">|</span> <span class="bp">[]</span> <span class="o">-&gt;</span> <span class="o">[</span><span class="s2">&quot;.&quot;</span><span class="o">]</span>
+       <span class="o">|</span> <span class="n">dirs</span> <span class="o">-&gt;</span> <span class="n">dirs</span><span class="o">);</span>
+  <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;%s contains %d bytes</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="o">(</span><span class="nn">String</span><span class="p">.</span><span class="n">concat</span> <span class="s2">&quot; &quot;</span> <span class="o">(</span><span class="nn">List</span><span class="p">.</span><span class="n">tl</span> <span class="o">(</span><span class="nn">Array</span><span class="p">.</span><span class="n">to_list</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span><span class="o">)))</span> <span class="o">!</span><span class="n">sum</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* Find the largest file in a directory tree. *)</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+<span class="k">let</span> <span class="n">saved_size</span> <span class="o">=</span> <span class="n">ref</span> <span class="mi">0</span>
+<span class="k">let</span> <span class="n">saved_name</span> <span class="o">=</span> <span class="n">ref</span> <span class="s2">&quot;&quot;</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="nn">List</span><span class="p">.</span><span class="n">iter</span>
+    <span class="o">(</span><span class="n">find_files</span>
+       <span class="o">(</span><span class="k">fun</span> <span class="n">fn</span> <span class="o">-&gt;</span>
+          <span class="o">(</span><span class="k">match</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">stat</span> <span class="n">fn</span> <span class="k">with</span>
+             <span class="o">|</span> <span class="o">{</span><span class="nn">Unix</span><span class="p">.</span><span class="n">st_size</span><span class="o">=</span><span class="n">size</span><span class="o">}</span> <span class="o">-&gt;</span>
+                 <span class="k">if</span> <span class="n">size</span> <span class="o">&gt;</span> <span class="o">!</span><span class="n">saved_size</span>
+                 <span class="k">then</span> <span class="o">(</span><span class="n">saved_size</span> <span class="o">:=</span> <span class="n">size</span><span class="o">;</span> <span class="n">saved_name</span> <span class="o">:=</span> <span class="n">fn</span><span class="o">));</span>
+          <span class="bp">true</span><span class="o">)</span>
+       <span class="o">(</span><span class="k">fun</span> <span class="o">_</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">()</span><span class="o">))</span>
+    <span class="o">(</span><span class="k">match</span> <span class="nn">List</span><span class="p">.</span><span class="n">tl</span> <span class="o">(</span><span class="nn">Array</span><span class="p">.</span><span class="n">to_list</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span><span class="o">)</span> <span class="k">with</span>
+       <span class="o">|</span> <span class="bp">[]</span> <span class="o">-&gt;</span> <span class="o">[</span><span class="s2">&quot;.&quot;</span><span class="o">]</span>
+       <span class="o">|</span> <span class="n">dirs</span> <span class="o">-&gt;</span> <span class="n">dirs</span><span class="o">);</span>
+  <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;Biggest file %s in %s is %d bytes long.</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="o">!</span><span class="n">saved_name</span>
+    <span class="o">(</span><span class="nn">String</span><span class="p">.</span><span class="n">concat</span> <span class="s2">&quot; &quot;</span> <span class="o">(</span><span class="nn">List</span><span class="p">.</span><span class="n">tl</span> <span class="o">(</span><span class="nn">Array</span><span class="p">.</span><span class="n">to_list</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span><span class="o">)))</span>
+    <span class="o">!</span><span class="n">saved_size</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* Find the youngest file or directory. *)</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+<span class="k">let</span> <span class="n">saved_age</span> <span class="o">=</span> <span class="n">ref</span> <span class="mi">0</span><span class="o">.</span>
+<span class="k">let</span> <span class="n">saved_name</span> <span class="o">=</span> <span class="n">ref</span> <span class="s2">&quot;&quot;</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="nn">List</span><span class="p">.</span><span class="n">iter</span>
+    <span class="o">(</span><span class="n">find_files</span>
+       <span class="o">(</span><span class="k">fun</span> <span class="n">fn</span> <span class="o">-&gt;</span>
+          <span class="o">(</span><span class="k">match</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">stat</span> <span class="n">fn</span> <span class="k">with</span>
+             <span class="o">|</span> <span class="o">{</span><span class="nn">Unix</span><span class="p">.</span><span class="n">st_mtime</span><span class="o">=</span><span class="n">age</span><span class="o">}</span> <span class="o">-&gt;</span>
+                 <span class="k">if</span> <span class="n">age</span> <span class="o">&gt;</span> <span class="o">!</span><span class="n">saved_age</span>
+                 <span class="k">then</span> <span class="o">(</span><span class="n">saved_age</span> <span class="o">:=</span> <span class="n">age</span><span class="o">;</span> <span class="n">saved_name</span> <span class="o">:=</span> <span class="n">fn</span><span class="o">));</span>
+          <span class="bp">true</span><span class="o">)</span>
+       <span class="o">(</span><span class="k">fun</span> <span class="o">_</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">()</span><span class="o">))</span>
+    <span class="o">(</span><span class="k">match</span> <span class="nn">List</span><span class="p">.</span><span class="n">tl</span> <span class="o">(</span><span class="nn">Array</span><span class="p">.</span><span class="n">to_list</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span><span class="o">)</span> <span class="k">with</span>
+       <span class="o">|</span> <span class="bp">[]</span> <span class="o">-&gt;</span> <span class="o">[</span><span class="s2">&quot;.&quot;</span><span class="o">]</span>
+       <span class="o">|</span> <span class="n">dirs</span> <span class="o">-&gt;</span> <span class="n">dirs</span><span class="o">);</span>
+  <span class="k">match</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">localtime</span> <span class="o">!</span><span class="n">saved_age</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="o">{</span><span class="nn">Unix</span><span class="p">.</span><span class="n">tm_year</span><span class="o">=</span><span class="n">year</span><span class="o">;</span> <span class="n">tm_mon</span><span class="o">=</span><span class="n">month</span><span class="o">;</span> <span class="n">tm_mday</span><span class="o">=</span><span class="n">day</span><span class="o">}</span> <span class="o">-&gt;</span>
+        <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;%04d-%02d-%02d %s</span><span class="se">\n</span><span class="s2">&quot;</span>
+          <span class="o">(</span><span class="n">year</span> <span class="o">+</span> <span class="mi">1900</span><span class="o">)</span> <span class="o">(</span><span class="n">month</span> <span class="o">+</span> <span class="mi">1</span><span class="o">)</span> <span class="n">day</span>
+          <span class="o">!</span><span class="n">saved_name</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* fdirs - find all directories *)</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="nn">List</span><span class="p">.</span><span class="n">iter</span>
+    <span class="o">(</span><span class="n">find_files</span>
+       <span class="o">(</span><span class="k">fun</span> <span class="n">fn</span> <span class="o">-&gt;</span>
+          <span class="k">if</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">is_directory</span> <span class="n">fn</span> <span class="k">then</span> <span class="n">print_endline</span> <span class="n">fn</span><span class="o">;</span>
+          <span class="bp">true</span><span class="o">)</span>
+       <span class="o">(</span><span class="k">fun</span> <span class="o">_</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">()</span><span class="o">))</span>
+    <span class="o">(</span><span class="k">match</span> <span class="nn">List</span><span class="p">.</span><span class="n">tl</span> <span class="o">(</span><span class="nn">Array</span><span class="p">.</span><span class="n">to_list</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span><span class="o">)</span> <span class="k">with</span>
+       <span class="o">|</span> <span class="bp">[]</span> <span class="o">-&gt;</span> <span class="o">[</span><span class="s2">&quot;.&quot;</span><span class="o">]</span>
+       <span class="o">|</span> <span class="n">dirs</span> <span class="o">-&gt;</span> <span class="n">dirs</span><span class="o">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN519"
+>Removing a Directory and Its Contents</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c">(* rmtree - remove whole directory trees like rm -r *)</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+
+<span class="k">let</span> <span class="k">rec</span> <span class="n">finddepth</span> <span class="n">f</span> <span class="n">roots</span> <span class="o">=</span>
+  <span class="nn">Array</span><span class="p">.</span><span class="n">iter</span>
+    <span class="o">(</span><span class="k">fun</span> <span class="n">root</span> <span class="o">-&gt;</span>
+       <span class="o">(</span><span class="k">match</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">lstat</span> <span class="n">root</span> <span class="k">with</span>
+          <span class="o">|</span> <span class="o">{</span><span class="nn">Unix</span><span class="p">.</span><span class="n">st_kind</span><span class="o">=</span><span class="nn">Unix</span><span class="p">.</span><span class="nc">S_DIR</span><span class="o">}</span> <span class="o">-&gt;</span>
+              <span class="n">finddepth</span> <span class="n">f</span>
+                <span class="o">(</span><span class="nn">Array</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="nn">Filename</span><span class="p">.</span><span class="n">concat</span> <span class="n">root</span><span class="o">)</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="n">readdir</span> <span class="n">root</span><span class="o">))</span>
+          <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">()</span><span class="o">);</span>
+       <span class="n">f</span> <span class="n">root</span><span class="o">)</span>
+    <span class="n">roots</span>
+
+<span class="k">let</span> <span class="n">zap</span> <span class="n">path</span> <span class="o">=</span>
+  <span class="k">match</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">lstat</span> <span class="n">path</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="o">{</span><span class="nn">Unix</span><span class="p">.</span><span class="n">st_kind</span><span class="o">=</span><span class="nn">Unix</span><span class="p">.</span><span class="nc">S_DIR</span><span class="o">}</span> <span class="o">-&gt;</span>
+        <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;rmdir %s</span><span class="se">\n</span><span class="s2">%!&quot;</span> <span class="n">path</span><span class="o">;</span>
+        <span class="nn">Unix</span><span class="p">.</span><span class="n">rmdir</span> <span class="n">path</span>
+    <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span>
+        <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;unlink %s</span><span class="se">\n</span><span class="s2">%!&quot;</span> <span class="n">path</span><span class="o">;</span>
+        <span class="nn">Unix</span><span class="p">.</span><span class="n">unlink</span> <span class="n">path</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">if</span> <span class="nn">Array</span><span class="p">.</span><span class="n">length</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span> <span class="o">&lt;</span> <span class="mi">2</span>
+  <span class="k">then</span> <span class="o">(</span><span class="nn">Printf</span><span class="p">.</span><span class="n">eprintf</span> <span class="s2">&quot;usage: %s dir ..</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span><span class="o">.(</span><span class="mi">0</span><span class="o">);</span> <span class="n">exit</span> <span class="mi">1</span><span class="o">);</span>
+  <span class="n">finddepth</span> <span class="n">zap</span> <span class="o">(</span><span class="nn">Array</span><span class="p">.</span><span class="n">sub</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span> <span class="mi">1</span> <span class="o">(</span><span class="nn">Array</span><span class="p">.</span><span class="n">length</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span> <span class="o">-</span> <span class="mi">1</span><span class="o">))</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN522"
+>Renaming Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span> <span class="nn">List</span><span class="p">.</span><span class="n">iter</span>
+  <span class="o">(</span><span class="k">fun</span> <span class="n">file</span> <span class="o">-&gt;</span>
+     <span class="k">let</span> <span class="n">newname</span> <span class="o">=</span> <span class="n">file</span> <span class="k">in</span>
+     <span class="c">(* change newname *)</span>
+     <span class="nn">Unix</span><span class="p">.</span><span class="n">rename</span> <span class="n">file</span> <span class="n">newname</span><span class="o">)</span>
+  <span class="n">names</span>
+
+<span class="c">(* rename - Larry&#39;s filename fixer *)</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+<span class="o">#</span><span class="n">directory</span> <span class="s2">&quot;+pcre&quot;</span><span class="o">;;</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;pcre.cma&quot;</span><span class="o">;;</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">match</span> <span class="nn">Array</span><span class="p">.</span><span class="n">to_list</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="n">prog</span> <span class="o">::</span> <span class="n">pat</span> <span class="o">::</span> <span class="n">templ</span> <span class="o">::</span> <span class="n">files</span> <span class="o">-&gt;</span>
+        <span class="k">let</span> <span class="n">replace</span> <span class="o">=</span> <span class="nn">Pcre</span><span class="p">.</span><span class="n">replace</span> <span class="o">~</span><span class="n">pat</span> <span class="o">~</span><span class="n">templ</span> <span class="k">in</span>
+        <span class="nn">List</span><span class="p">.</span><span class="n">iter</span>
+          <span class="o">(</span><span class="k">fun</span> <span class="n">file</span> <span class="o">-&gt;</span>
+             <span class="k">let</span> <span class="n">file&#39;</span> <span class="o">=</span> <span class="n">replace</span> <span class="n">file</span> <span class="k">in</span>
+             <span class="nn">Unix</span><span class="p">.</span><span class="n">rename</span> <span class="n">file</span> <span class="n">file&#39;</span><span class="o">)</span>
+          <span class="n">files</span>
+    <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="n">prerr_endline</span> <span class="s2">&quot;Usage: rename pattern replacment [files]&quot;</span>
+
+<span class="c">(*</span>
+<span class="c">  % rename &#39;\.orig$&#39; &#39;&#39; *.orig</span>
+<span class="c">  % rename &#39;$&#39; &#39;.bad&#39; *.f</span>
+<span class="c">  % rename &#39;([^/]+)~$&#39; &#39;.#$1&#39; /tmp/*~</span>
+<span class="c">  % find /tmp -name &#39;*~&#39; -exec rename &#39;([^/]+)~$&#39; &#39;.#$1&#39; {} \;</span>
+<span class="c">*)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN525"
+>Splitting a Filename into Its Component Parts</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="k">let</span> <span class="n">splitext</span> <span class="n">name</span> <span class="o">=</span>
+  <span class="k">try</span>
+    <span class="k">let</span> <span class="n">root</span> <span class="o">=</span> <span class="nn">Filename</span><span class="p">.</span><span class="n">chop_extension</span> <span class="n">name</span> <span class="k">in</span>
+    <span class="k">let</span> <span class="n">i</span> <span class="o">=</span> <span class="nn">String</span><span class="p">.</span><span class="n">length</span> <span class="n">root</span> <span class="k">in</span>
+    <span class="k">let</span> <span class="n">ext</span> <span class="o">=</span> <span class="nn">String</span><span class="p">.</span><span class="n">sub</span> <span class="n">name</span> <span class="n">i</span> <span class="o">(</span><span class="nn">String</span><span class="p">.</span><span class="n">length</span> <span class="n">name</span> <span class="o">-</span> <span class="n">i</span><span class="o">)</span> <span class="k">in</span>
+    <span class="n">root</span><span class="o">,</span> <span class="n">ext</span>
+  <span class="k">with</span> <span class="nc">Invalid_argument</span> <span class="o">_</span> <span class="o">-&gt;</span>
+    <span class="n">name</span><span class="o">,</span> <span class="s2">&quot;&quot;</span>
+
+<span class="k">let</span> <span class="n">dir</span> <span class="o">=</span> <span class="nn">Filename</span><span class="p">.</span><span class="n">dirname</span> <span class="n">path</span>
+<span class="k">let</span> <span class="n">file</span> <span class="o">=</span> <span class="nn">Filename</span><span class="p">.</span><span class="n">basename</span> <span class="n">path</span>
+<span class="k">let</span> <span class="n">name</span><span class="o">,</span> <span class="n">ext</span> <span class="o">=</span> <span class="n">splitext</span> <span class="n">file</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN528"
+>Program: symirror</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="o">#!/</span><span class="n">usr</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">ocaml</span>
+<span class="c">(* symirror - build spectral forest of symlinks *)</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+
+<span class="k">open</span> <span class="nc">Printf</span>
+
+<span class="k">let</span> <span class="n">die</span> <span class="n">msg</span> <span class="o">=</span> <span class="n">prerr_endline</span> <span class="n">msg</span><span class="o">;</span> <span class="n">exit</span> <span class="mi">1</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">if</span> <span class="nn">Array</span><span class="p">.</span><span class="n">length</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span> <span class="o">&lt;&gt;</span> <span class="mi">3</span>
+  <span class="k">then</span> <span class="n">die</span> <span class="o">(</span><span class="n">sprintf</span> <span class="s2">&quot;usage: %s realdir mirrordir&quot;</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span><span class="o">.(</span><span class="mi">0</span><span class="o">))</span>
+
+<span class="k">let</span> <span class="n">srcdir</span><span class="o">,</span> <span class="n">dstdir</span> <span class="o">=</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span><span class="o">.(</span><span class="mi">1</span><span class="o">),</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span><span class="o">.(</span><span class="mi">2</span><span class="o">)</span>
+<span class="k">let</span> <span class="n">cwd</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">getcwd</span> <span class="bp">()</span>
+
+<span class="k">let</span> <span class="n">fix_relative</span> <span class="n">path</span> <span class="o">=</span>
+  <span class="k">if</span> <span class="nn">Filename</span><span class="p">.</span><span class="n">is_relative</span> <span class="n">path</span>
+  <span class="k">then</span> <span class="nn">Filename</span><span class="p">.</span><span class="n">concat</span> <span class="n">cwd</span> <span class="n">path</span>
+  <span class="k">else</span> <span class="n">path</span>
+
+<span class="k">let</span> <span class="n">is_dir</span> <span class="n">dir</span> <span class="o">=</span>
+  <span class="k">try</span> <span class="nc">Some</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="n">is_directory</span> <span class="n">dir</span><span class="o">)</span>
+  <span class="k">with</span> <span class="nc">Sys_error</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="nc">None</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">match</span> <span class="o">(</span><span class="n">is_dir</span> <span class="n">srcdir</span><span class="o">,</span> <span class="n">is_dir</span> <span class="n">dstdir</span><span class="o">)</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="o">(</span><span class="nc">None</span><span class="o">,</span> <span class="o">_)</span> <span class="o">|</span> <span class="o">(</span><span class="nc">Some</span> <span class="bp">false</span><span class="o">,</span> <span class="o">_)</span> <span class="o">-&gt;</span>
+        <span class="n">die</span> <span class="o">(</span><span class="n">sprintf</span> <span class="s2">&quot;%s: %s is not a directory&quot;</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span><span class="o">.(</span><span class="mi">0</span><span class="o">)</span> <span class="n">srcdir</span><span class="o">)</span>
+    <span class="o">|</span> <span class="o">(_,</span> <span class="nc">Some</span> <span class="bp">false</span><span class="o">)</span> <span class="o">-&gt;</span>
+        <span class="n">die</span> <span class="o">(</span><span class="n">sprintf</span> <span class="s2">&quot;%s: %s is not a directory&quot;</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span><span class="o">.(</span><span class="mi">0</span><span class="o">)</span> <span class="n">dstdir</span><span class="o">)</span>
+    <span class="o">|</span> <span class="o">(_,</span> <span class="nc">None</span><span class="o">)</span> <span class="o">-&gt;</span>
+        <span class="nn">Unix</span><span class="p">.</span><span class="n">mkdir</span> <span class="n">dstdir</span> <span class="mo">0o7777</span>        <span class="c">(* be forgiving *)</span>
+    <span class="o">|</span> <span class="o">(</span><span class="nc">Some</span> <span class="o">_,</span> <span class="nc">Some</span> <span class="o">_)</span> <span class="o">-&gt;</span>
+        <span class="bp">()</span>                              <span class="c">(* cool *)</span>
+
+<span class="c">(* fix relative paths *)</span>
+<span class="k">let</span> <span class="n">srcdir</span><span class="o">,</span> <span class="n">dstdir</span> <span class="o">=</span> <span class="n">fix_relative</span> <span class="n">srcdir</span><span class="o">,</span> <span class="n">fix_relative</span> <span class="n">dstdir</span>
+
+<span class="k">let</span> <span class="k">rec</span> <span class="n">find</span> <span class="n">f</span> <span class="n">roots</span> <span class="o">=</span>
+  <span class="nn">Array</span><span class="p">.</span><span class="n">iter</span>
+    <span class="o">(</span><span class="k">fun</span> <span class="n">root</span> <span class="o">-&gt;</span>
+       <span class="n">f</span> <span class="n">root</span><span class="o">;</span>
+       <span class="k">match</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">lstat</span> <span class="n">root</span> <span class="k">with</span>
+         <span class="o">|</span> <span class="o">{</span><span class="nn">Unix</span><span class="p">.</span><span class="n">st_kind</span><span class="o">=</span><span class="nn">Unix</span><span class="p">.</span><span class="nc">S_DIR</span><span class="o">}</span> <span class="o">-&gt;</span>
+             <span class="n">find</span> <span class="n">f</span> <span class="o">(</span><span class="nn">Array</span><span class="p">.</span><span class="n">map</span>
+                       <span class="o">(</span><span class="nn">Filename</span><span class="p">.</span><span class="n">concat</span> <span class="n">root</span><span class="o">)</span>
+                       <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="n">readdir</span> <span class="n">root</span><span class="o">))</span>
+         <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">()</span><span class="o">)</span>
+    <span class="n">roots</span>
+
+<span class="k">let</span> <span class="n">wanted</span> <span class="n">name</span> <span class="o">=</span>
+  <span class="k">if</span> <span class="n">name</span> <span class="o">&lt;&gt;</span> <span class="nn">Filename</span><span class="p">.</span><span class="n">current_dir_name</span>
+  <span class="k">then</span>
+    <span class="k">let</span> <span class="o">{</span><span class="nn">Unix</span><span class="p">.</span><span class="n">st_dev</span><span class="o">=</span><span class="n">dev</span><span class="o">;</span> <span class="n">st_ino</span><span class="o">=</span><span class="n">ino</span><span class="o">;</span> <span class="n">st_kind</span><span class="o">=</span><span class="n">kind</span><span class="o">;</span> <span class="n">st_perm</span><span class="o">=</span><span class="n">perm</span><span class="o">}</span> <span class="o">=</span>
+      <span class="nn">Unix</span><span class="p">.</span><span class="n">lstat</span> <span class="n">name</span> <span class="k">in</span>
+    <span class="c">(* preserve directory permissions *)</span>
+    <span class="k">let</span> <span class="n">perm</span> <span class="o">=</span> <span class="n">perm</span> <span class="ow">land</span> <span class="mo">0o7777</span> <span class="k">in</span>
+    <span class="c">(* correct name *)</span>
+    <span class="k">let</span> <span class="n">name</span> <span class="o">=</span>
+      <span class="k">if</span> <span class="nn">String</span><span class="p">.</span><span class="n">length</span> <span class="n">name</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="o">&amp;&amp;</span> <span class="nn">String</span><span class="p">.</span><span class="n">sub</span> <span class="n">name</span> <span class="mi">0</span> <span class="mi">2</span> <span class="o">=</span> <span class="s2">&quot;./&quot;</span>
+      <span class="k">then</span> <span class="nn">String</span><span class="p">.</span><span class="n">sub</span> <span class="n">name</span> <span class="mi">2</span> <span class="o">(</span><span class="nn">String</span><span class="p">.</span><span class="n">length</span> <span class="n">name</span> <span class="o">-</span> <span class="mi">2</span><span class="o">)</span>
+      <span class="k">else</span> <span class="n">name</span> <span class="k">in</span>
+    <span class="k">if</span> <span class="n">kind</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">S_DIR</span>
+    <span class="k">then</span>
+      <span class="c">(* make a real directory *)</span>
+      <span class="nn">Unix</span><span class="p">.</span><span class="n">mkdir</span> <span class="o">(</span><span class="nn">Filename</span><span class="p">.</span><span class="n">concat</span> <span class="n">dstdir</span> <span class="n">name</span><span class="o">)</span> <span class="n">perm</span>
+    <span class="k">else</span>
+      <span class="c">(* shadow everything else *)</span>
+      <span class="nn">Unix</span><span class="p">.</span><span class="n">symlink</span>
+        <span class="o">(</span><span class="nn">Filename</span><span class="p">.</span><span class="n">concat</span> <span class="n">srcdir</span> <span class="n">name</span><span class="o">)</span>
+        <span class="o">(</span><span class="nn">Filename</span><span class="p">.</span><span class="n">concat</span> <span class="n">dstdir</span> <span class="n">name</span><span class="o">)</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="nn">Unix</span><span class="p">.</span><span class="n">chdir</span> <span class="n">srcdir</span><span class="o">;</span>
+  <span class="n">find</span> <span class="n">wanted</span> <span class="o">[|</span><span class="s2">&quot;.&quot;</span><span class="o">|]</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN531"
+>Program: lst</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="o">#!/</span><span class="n">usr</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">ocaml</span>
+<span class="c">(* lst - list sorted directory contents (depth first) *)</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+
+<span class="k">open</span> <span class="nc">Unix</span>
+<span class="k">open</span> <span class="nc">Printf</span>
+
+<span class="k">let</span> <span class="n">opt_m</span> <span class="o">=</span> <span class="n">ref</span> <span class="bp">false</span>
+<span class="k">let</span> <span class="n">opt_u</span> <span class="o">=</span> <span class="n">ref</span> <span class="bp">false</span>
+<span class="k">let</span> <span class="n">opt_c</span> <span class="o">=</span> <span class="n">ref</span> <span class="bp">false</span>
+<span class="k">let</span> <span class="n">opt_s</span> <span class="o">=</span> <span class="n">ref</span> <span class="bp">false</span>
+<span class="k">let</span> <span class="n">opt_r</span> <span class="o">=</span> <span class="n">ref</span> <span class="bp">false</span>
+<span class="k">let</span> <span class="n">opt_i</span> <span class="o">=</span> <span class="n">ref</span> <span class="bp">false</span>
+<span class="k">let</span> <span class="n">opt_l</span> <span class="o">=</span> <span class="n">ref</span> <span class="bp">false</span>
+<span class="k">let</span> <span class="n">names</span> <span class="o">=</span> <span class="n">ref</span> <span class="bp">[]</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="nn">Arg</span><span class="p">.</span><span class="n">parse</span>
+    <span class="o">[</span>
+      <span class="s2">&quot;-m&quot;</span><span class="o">,</span> <span class="nn">Arg</span><span class="p">.</span><span class="nc">Set</span> <span class="n">opt_m</span><span class="o">,</span> <span class="s2">&quot;Use mtime (modify time) [DEFAULT]&quot;</span><span class="o">;</span>
+      <span class="s2">&quot;-u&quot;</span><span class="o">,</span> <span class="nn">Arg</span><span class="p">.</span><span class="nc">Set</span> <span class="n">opt_u</span><span class="o">,</span> <span class="s2">&quot;Use atime (access time)&quot;</span><span class="o">;</span>
+      <span class="s2">&quot;-c&quot;</span><span class="o">,</span> <span class="nn">Arg</span><span class="p">.</span><span class="nc">Set</span> <span class="n">opt_c</span><span class="o">,</span> <span class="s2">&quot;Use ctime (inode change time)&quot;</span><span class="o">;</span>
+      <span class="s2">&quot;-s&quot;</span><span class="o">,</span> <span class="nn">Arg</span><span class="p">.</span><span class="nc">Set</span> <span class="n">opt_s</span><span class="o">,</span> <span class="s2">&quot;Use size for sorting&quot;</span><span class="o">;</span>
+      <span class="s2">&quot;-r&quot;</span><span class="o">,</span> <span class="nn">Arg</span><span class="p">.</span><span class="nc">Set</span> <span class="n">opt_r</span><span class="o">,</span> <span class="s2">&quot;Reverse sort&quot;</span><span class="o">;</span>
+      <span class="s2">&quot;-i&quot;</span><span class="o">,</span> <span class="nn">Arg</span><span class="p">.</span><span class="nc">Set</span> <span class="n">opt_i</span><span class="o">,</span> <span class="s2">&quot;Read pathnames from stdin&quot;</span><span class="o">;</span>
+      <span class="s2">&quot;-l&quot;</span><span class="o">,</span> <span class="nn">Arg</span><span class="p">.</span><span class="nc">Set</span> <span class="n">opt_l</span><span class="o">,</span> <span class="s2">&quot;Long listing&quot;</span><span class="o">;</span>
+    <span class="o">]</span>
+    <span class="o">(</span><span class="k">fun</span> <span class="n">name</span> <span class="o">-&gt;</span> <span class="n">names</span> <span class="o">:=</span> <span class="n">name</span> <span class="o">::</span> <span class="o">!</span><span class="n">names</span><span class="o">)</span>
+    <span class="o">(</span><span class="n">sprintf</span>
+       <span class="s2">&quot;Usage: %s [-m] [-u] [-c] [-s] [-r] [-i] [-l] [dirs ...]</span>
+<span class="s2"> or    %s -i [-m] [-u] [-c] [-s] [-r] [-l] &lt; filelist&quot;</span>
+       <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span><span class="o">.(</span><span class="mi">0</span><span class="o">)</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span><span class="o">.(</span><span class="mi">0</span><span class="o">));</span>
+  <span class="n">names</span> <span class="o">:=</span>
+    <span class="k">match</span> <span class="o">!</span><span class="n">names</span> <span class="k">with</span>
+      <span class="o">|</span> <span class="bp">[]</span> <span class="k">when</span> <span class="n">not</span> <span class="o">!</span><span class="n">opt_i</span> <span class="o">-&gt;</span> <span class="o">[</span><span class="s2">&quot;.&quot;</span><span class="o">]</span>
+      <span class="o">|</span> <span class="n">names</span> <span class="o">-&gt;</span> <span class="n">names</span>
+
+<span class="k">let</span> <span class="n">die</span> <span class="n">msg</span> <span class="o">=</span> <span class="n">prerr_endline</span> <span class="n">msg</span><span class="o">;</span> <span class="n">exit</span> <span class="mi">1</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">int_of_bool</span> <span class="o">=</span> <span class="k">function</span> <span class="bp">true</span> <span class="o">-&gt;</span> <span class="mi">1</span> <span class="o">|</span> <span class="bp">false</span> <span class="o">-&gt;</span> <span class="mi">0</span> <span class="k">in</span>
+  <span class="k">if</span> <span class="o">(</span><span class="n">int_of_bool</span> <span class="o">!</span><span class="n">opt_c</span>
+      <span class="o">+</span> <span class="n">int_of_bool</span> <span class="o">!</span><span class="n">opt_u</span>
+      <span class="o">+</span> <span class="n">int_of_bool</span> <span class="o">!</span><span class="n">opt_s</span>
+      <span class="o">+</span> <span class="n">int_of_bool</span> <span class="o">!</span><span class="n">opt_m</span><span class="o">)</span> <span class="o">&gt;</span> <span class="mi">1</span>
+  <span class="k">then</span> <span class="n">die</span> <span class="s2">&quot;can only sort on one time or size&quot;</span>
+
+<span class="k">let</span> <span class="n">idx</span> <span class="o">=</span> <span class="k">fun</span> <span class="o">{</span><span class="n">st_mtime</span><span class="o">=</span><span class="n">t</span><span class="o">}</span> <span class="o">-&gt;</span> <span class="n">t</span>
+<span class="k">let</span> <span class="n">idx</span> <span class="o">=</span> <span class="k">if</span> <span class="o">!</span><span class="n">opt_u</span> <span class="k">then</span> <span class="k">fun</span> <span class="o">{</span><span class="n">st_atime</span><span class="o">=</span><span class="n">t</span><span class="o">}</span> <span class="o">-&gt;</span> <span class="n">t</span> <span class="k">else</span> <span class="n">idx</span>
+<span class="k">let</span> <span class="n">idx</span> <span class="o">=</span> <span class="k">if</span> <span class="o">!</span><span class="n">opt_c</span> <span class="k">then</span> <span class="k">fun</span> <span class="o">{</span><span class="n">st_ctime</span><span class="o">=</span><span class="n">t</span><span class="o">}</span> <span class="o">-&gt;</span> <span class="n">t</span> <span class="k">else</span> <span class="n">idx</span>
+<span class="k">let</span> <span class="n">idx</span> <span class="o">=</span> <span class="k">if</span> <span class="o">!</span><span class="n">opt_s</span> <span class="k">then</span> <span class="k">fun</span> <span class="o">{</span><span class="n">st_size</span><span class="o">=</span><span class="n">s</span><span class="o">}</span> <span class="o">-&gt;</span> <span class="kt">float</span> <span class="n">s</span> <span class="k">else</span> <span class="n">idx</span>
+<span class="k">let</span> <span class="n">time_idx</span> <span class="o">=</span> <span class="k">if</span> <span class="o">!</span><span class="n">opt_s</span> <span class="k">then</span> <span class="k">fun</span> <span class="o">{</span><span class="n">st_mtime</span><span class="o">=</span><span class="n">t</span><span class="o">}</span> <span class="o">-&gt;</span> <span class="n">t</span> <span class="k">else</span> <span class="n">idx</span>
+
+<span class="k">let</span> <span class="k">rec</span> <span class="n">find</span> <span class="n">f</span> <span class="n">roots</span> <span class="o">=</span>
+  <span class="nn">Array</span><span class="p">.</span><span class="n">iter</span>
+    <span class="o">(</span><span class="k">fun</span> <span class="n">root</span> <span class="o">-&gt;</span>
+       <span class="n">f</span> <span class="n">root</span><span class="o">;</span>
+       <span class="k">match</span> <span class="n">lstat</span> <span class="n">root</span> <span class="k">with</span>
+         <span class="o">|</span> <span class="o">{</span><span class="n">st_kind</span><span class="o">=</span><span class="nc">S_DIR</span><span class="o">}</span> <span class="o">-&gt;</span>
+             <span class="n">find</span> <span class="n">f</span> <span class="o">(</span><span class="nn">Array</span><span class="p">.</span><span class="n">map</span>
+                       <span class="o">(</span><span class="nn">Filename</span><span class="p">.</span><span class="n">concat</span> <span class="n">root</span><span class="o">)</span>
+                       <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="n">readdir</span> <span class="n">root</span><span class="o">))</span>
+         <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">()</span><span class="o">)</span>
+    <span class="n">roots</span>
+
+<span class="k">let</span> <span class="n">time</span> <span class="o">=</span> <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">create</span> <span class="mi">0</span>
+<span class="k">let</span> <span class="n">stat</span> <span class="o">=</span> <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">create</span> <span class="mi">0</span>
+
+<span class="c">(* get stat info on the file, saving the desired *)</span>
+<span class="c">(* sort criterion (mtime, atime, ctime, or size) *)</span>
+<span class="c">(* in the time hash indexed by filename.         *)</span>
+<span class="c">(* if they want a long list, we have to save the *)</span>
+<span class="c">(* entire stat structure in stat.                *)</span>
+<span class="k">let</span> <span class="n">wanted</span> <span class="n">name</span> <span class="o">=</span>
+  <span class="k">try</span>
+    <span class="k">let</span> <span class="n">sb</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">stat</span> <span class="n">name</span> <span class="k">in</span>
+    <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">replace</span> <span class="n">time</span> <span class="n">name</span> <span class="o">(</span><span class="n">idx</span> <span class="n">sb</span><span class="o">);</span>
+    <span class="k">if</span> <span class="o">!</span><span class="n">opt_l</span> <span class="k">then</span> <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">replace</span> <span class="n">stat</span> <span class="n">name</span> <span class="n">sb</span>
+  <span class="k">with</span> <span class="nc">Unix_error</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">()</span>
+
+<span class="c">(* cache user number to name conversions *)</span>
+<span class="k">let</span> <span class="n">user</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">user</span> <span class="o">=</span> <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">create</span> <span class="mi">0</span> <span class="k">in</span>
+  <span class="k">fun</span> <span class="n">uid</span> <span class="o">-&gt;</span>
+    <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">replace</span> <span class="n">user</span> <span class="n">uid</span>
+      <span class="o">(</span><span class="k">try</span> <span class="o">(</span><span class="n">getpwuid</span> <span class="n">uid</span><span class="o">).</span><span class="n">pw_name</span>
+       <span class="k">with</span> <span class="nc">Not_found</span> <span class="o">-&gt;</span> <span class="o">(</span><span class="s2">&quot;#&quot;</span> <span class="o">^</span> <span class="n">string_of_int</span> <span class="n">uid</span><span class="o">));</span>
+    <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">find</span> <span class="n">user</span> <span class="n">uid</span>
+
+<span class="c">(* cache group number to name conversions *)</span>
+<span class="k">let</span> <span class="n">group</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">group</span> <span class="o">=</span> <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">create</span> <span class="mi">0</span> <span class="k">in</span>
+  <span class="k">fun</span> <span class="n">gid</span> <span class="o">-&gt;</span>
+    <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">replace</span> <span class="n">group</span> <span class="n">gid</span>
+      <span class="o">(</span><span class="k">try</span> <span class="o">(</span><span class="n">getgrgid</span> <span class="n">gid</span><span class="o">).</span><span class="n">gr_name</span>
+       <span class="k">with</span> <span class="nc">Not_found</span> <span class="o">-&gt;</span> <span class="o">(</span><span class="s2">&quot;#&quot;</span> <span class="o">^</span> <span class="n">string_of_int</span> <span class="n">gid</span><span class="o">));</span>
+    <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">find</span> <span class="n">group</span> <span class="n">gid</span>
+
+<span class="k">let</span> <span class="n">days</span> <span class="o">=</span> <span class="o">[|</span> <span class="s2">&quot;Sun&quot;</span><span class="o">;</span> <span class="s2">&quot;Mon&quot;</span><span class="o">;</span> <span class="s2">&quot;Tue&quot;</span><span class="o">;</span> <span class="s2">&quot;Wed&quot;</span><span class="o">;</span> <span class="s2">&quot;Thu&quot;</span><span class="o">;</span> <span class="s2">&quot;Fri&quot;</span><span class="o">;</span> <span class="s2">&quot;Sat&quot;</span> <span class="o">|]</span>
+<span class="k">let</span> <span class="n">months</span> <span class="o">=</span> <span class="o">[|</span> <span class="s2">&quot;Jan&quot;</span><span class="o">;</span> <span class="s2">&quot;Feb&quot;</span><span class="o">;</span> <span class="s2">&quot;Mar&quot;</span><span class="o">;</span> <span class="s2">&quot;Apr&quot;</span><span class="o">;</span> <span class="s2">&quot;May&quot;</span><span class="o">;</span> <span class="s2">&quot;Jun&quot;</span><span class="o">;</span>
+                <span class="s2">&quot;Jul&quot;</span><span class="o">;</span> <span class="s2">&quot;Aug&quot;</span><span class="o">;</span> <span class="s2">&quot;Sep&quot;</span><span class="o">;</span> <span class="s2">&quot;Oct&quot;</span><span class="o">;</span> <span class="s2">&quot;Nov&quot;</span><span class="o">;</span> <span class="s2">&quot;Dec&quot;</span> <span class="o">|]</span>
+
+<span class="k">let</span> <span class="n">format_time</span> <span class="n">time</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">tm</span> <span class="o">=</span> <span class="n">localtime</span> <span class="n">time</span> <span class="k">in</span>
+  <span class="n">sprintf</span> <span class="s2">&quot;%s %s %2d %02d:%02d:%02d %04d&quot;</span>
+    <span class="n">days</span><span class="o">.(</span><span class="n">tm</span><span class="o">.</span><span class="n">tm_wday</span><span class="o">)</span>
+    <span class="n">months</span><span class="o">.(</span><span class="n">tm</span><span class="o">.</span><span class="n">tm_mon</span><span class="o">)</span>
+    <span class="n">tm</span><span class="o">.</span><span class="n">tm_mday</span>
+    <span class="n">tm</span><span class="o">.</span><span class="n">tm_hour</span>
+    <span class="n">tm</span><span class="o">.</span><span class="n">tm_min</span>
+    <span class="n">tm</span><span class="o">.</span><span class="n">tm_sec</span>
+    <span class="o">(</span><span class="n">tm</span><span class="o">.</span><span class="n">tm_year</span> <span class="o">+</span> <span class="mi">1900</span><span class="o">)</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">if</span> <span class="o">!</span><span class="n">opt_i</span>
+  <span class="k">then</span>
+    <span class="k">begin</span>
+      <span class="k">begin</span>
+        <span class="k">try</span>
+          <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+            <span class="n">names</span> <span class="o">:=</span> <span class="o">(</span><span class="n">input_line</span> <span class="nn">Pervasives</span><span class="p">.</span><span class="n">stdin</span><span class="o">)</span> <span class="o">::</span> <span class="o">!</span><span class="n">names</span>
+          <span class="k">done</span>
+        <span class="k">with</span> <span class="nc">End_of_file</span> <span class="o">-&gt;</span> <span class="bp">()</span>
+      <span class="k">end</span><span class="o">;</span>
+      <span class="nn">List</span><span class="p">.</span><span class="n">iter</span> <span class="n">wanted</span> <span class="o">(</span><span class="nn">List</span><span class="p">.</span><span class="n">rev</span> <span class="o">!</span><span class="n">names</span><span class="o">)</span>
+    <span class="k">end</span>
+  <span class="k">else</span> <span class="n">find</span> <span class="n">wanted</span> <span class="o">(</span><span class="nn">Array</span><span class="p">.</span><span class="n">of_list</span> <span class="o">(</span><span class="nn">List</span><span class="p">.</span><span class="n">rev</span> <span class="o">!</span><span class="n">names</span><span class="o">))</span>
+
+<span class="c">(* sort the files by their cached times, youngest first *)</span>
+<span class="k">let</span> <span class="n">skeys</span> <span class="o">=</span>
+  <span class="nn">List</span><span class="p">.</span><span class="n">sort</span>
+    <span class="o">(</span><span class="k">fun</span> <span class="n">a</span> <span class="n">b</span> <span class="o">-&gt;</span> <span class="n">compare</span> <span class="o">(</span><span class="nn">Hashtbl</span><span class="p">.</span><span class="n">find</span> <span class="n">time</span> <span class="n">b</span><span class="o">)</span> <span class="o">(</span><span class="nn">Hashtbl</span><span class="p">.</span><span class="n">find</span> <span class="n">time</span> <span class="n">a</span><span class="o">))</span>
+    <span class="o">(</span><span class="nn">Hashtbl</span><span class="p">.</span><span class="n">fold</span> <span class="o">(</span><span class="k">fun</span> <span class="n">k</span> <span class="n">v</span> <span class="n">a</span> <span class="o">-&gt;</span> <span class="n">k</span> <span class="o">::</span> <span class="n">a</span><span class="o">)</span> <span class="n">time</span> <span class="bp">[]</span><span class="o">)</span>
+
+<span class="c">(* but flip the order if -r was supplied on command line *)</span>
+<span class="k">let</span> <span class="n">skeys</span> <span class="o">=</span> <span class="k">if</span> <span class="o">!</span><span class="n">opt_r</span> <span class="k">then</span> <span class="nn">List</span><span class="p">.</span><span class="n">rev</span> <span class="n">skeys</span> <span class="k">else</span> <span class="n">skeys</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="nn">List</span><span class="p">.</span><span class="n">iter</span>
+    <span class="o">(</span><span class="k">fun</span> <span class="n">skey</span> <span class="o">-&gt;</span>
+       <span class="k">if</span> <span class="o">!</span><span class="n">opt_l</span>
+       <span class="k">then</span>
+         <span class="k">let</span> <span class="n">sb</span> <span class="o">=</span> <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">find</span> <span class="n">stat</span> <span class="n">skey</span> <span class="k">in</span>
+         <span class="n">printf</span> <span class="s2">&quot;%6d %04o %6d %8s %8s %8d %s %s</span><span class="se">\n</span><span class="s2">&quot;</span>
+           <span class="n">sb</span><span class="o">.</span><span class="n">st_ino</span>
+           <span class="o">(</span><span class="n">sb</span><span class="o">.</span><span class="n">st_perm</span> <span class="ow">land</span> <span class="mo">0o7777</span><span class="o">)</span>
+           <span class="n">sb</span><span class="o">.</span><span class="n">st_nlink</span>
+           <span class="o">(</span><span class="n">user</span> <span class="n">sb</span><span class="o">.</span><span class="n">st_uid</span><span class="o">)</span>
+           <span class="o">(</span><span class="n">group</span> <span class="n">sb</span><span class="o">.</span><span class="n">st_gid</span><span class="o">)</span>
+           <span class="n">sb</span><span class="o">.</span><span class="n">st_size</span>
+           <span class="o">(</span><span class="n">format_time</span> <span class="o">(</span><span class="n">time_idx</span> <span class="n">sb</span><span class="o">))</span>
+           <span class="n">skey</span>
+       <span class="k">else</span>
+         <span class="n">print_endline</span> <span class="n">skey</span><span class="o">)</span>
+    <span class="n">skeys</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="filecontents.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="subroutines.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>File Contents</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Subroutines</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

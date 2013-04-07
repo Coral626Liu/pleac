@@ -1,0 +1,454 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Internet Services</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Ruby"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Sockets"
+HREF="sockets.html"><LINK
+REL="NEXT"
+TITLE="CGI Programming"
+HREF="cgiprogramming.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Ruby</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="sockets.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="cgiprogramming.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="INTERNETSERVICES"
+>18. Internet Services</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN978"
+>Simple DNS Lookups</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN981"
+>Being an FTP Client</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">require &#39;net/ftp&#39;</span>
+
+<span class="cp">begin</span>
+<span class="cp">    ftp = Net::FTP::new(&quot;ftp.host.com&quot;)</span>
+<span class="cp">    ftp.login(username,password)</span>
+<span class="cp">    ftp.chdir(directory)</span>
+<span class="cp">    ftp.get(filename)</span>
+<span class="cp">    ftp.put(filename)</span>
+<span class="cp">rescue Net::FTPError</span>
+<span class="cp">    $stderr.print &quot;FTP failed: &quot; + $!</span>
+<span class="cp">ensure</span>
+<span class="cp">    ftp.close() if ftp</span>
+<span class="cp">end</span>
+
+<span class="cp"># A better solution for a local use could be :</span>
+<span class="cp">Net::FTP::new(&quot;ftp.host.com&quot;) do |ftp|</span>
+<span class="cp">    ftp.login(username,password)</span>
+<span class="cp">    ftp.chdir(directory)</span>
+<span class="cp">    ftp.get(filename)</span>
+<span class="cp">    ftp.put(filename)</span>
+<span class="cp">end</span>
+
+<span class="cp"># If you have only one file to get, there is a simple solution :</span>
+<span class="cp">require &#39;open-uri&#39;</span>
+<span class="cp">open(&quot;ftp://www.ruby-lang.org/path/filename&quot;) do |fh|</span>
+<span class="cp">    # read from filehandle fh</span>
+<span class="cp">end </span>
+<span class="cp">#--------------------------------------------</span>
+<span class="cp"># to wait a defined time for the connection, </span>
+<span class="cp"># use the timeout module</span>
+<span class="cp">require &#39;timeout&#39;</span>
+<span class="cp">begin </span>
+<span class="cp">    timeout(30){</span>
+<span class="cp">        ftp = Net::FTP::new(&quot;ftp.host.com&quot;)</span>
+<span class="cp">        ftp.debug_mode = true</span>
+<span class="cp">    }</span>
+<span class="cp">rescue Net::FTPError</span>
+<span class="cp">    $stderr.puts &quot;Couldn&#39;t connect.&quot;</span>
+<span class="cp">rescue Timeout::Error</span>
+<span class="cp">    $stderr.puts &quot;Timeout while connecting to server.&quot;</span>
+<span class="cp">end</span>
+
+<span class="cp">begin</span>
+<span class="cp">    ftp.login()</span>
+<span class="cp">rescue Net::FTPError</span>
+<span class="cp">    $stderr.print &quot;Couldn&#39;t authentificate.\n&quot;</span>
+<span class="cp">end</span>
+
+<span class="cp">begin</span>
+<span class="cp">    ftp.login(username)</span>
+<span class="cp">rescue Net::FTPError</span>
+<span class="cp">    $stderr.print &quot;Still couldn&#39;t authenticate.\n&quot;</span>
+<span class="cp">end</span>
+
+<span class="cp">begin</span>
+<span class="cp">    ftp.login(username, password)</span>
+<span class="cp">rescue Net::FTPError</span>
+<span class="cp">    $stderr.print &quot;Couldn&#39;t authenticate, even with explicit</span>
+<span class="cp">    username and password.\n&quot;</span>
+<span class="cp">end</span>
+
+<span class="cp">begin</span>
+<span class="cp">    ftp.login(username, password, account)</span>
+<span class="cp">rescue Net::FTPError</span>
+<span class="cp">    $stderr.print &quot;No dice. It hates me.\n&quot;</span>
+<span class="cp">end</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">ftp.put(localfile, remotefile)</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># Sending data from STDIN is not directly supported </span>
+<span class="cp"># by the ftp library module. A possible way to do it is to use the </span>
+<span class="cp"># storlines method directly to send raw commands to the ftp server.</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">ftp.get(remotefile, localfile)</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">ftp.get(remotefile) { |data| puts data }</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">ftp.chdir(&quot;/pub/ruby&quot;) </span>
+<span class="cp">print &quot;I&#39;m in the directory &quot;, ftp.pwd(), &quot;\n&quot;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">ftp.mkdir(&quot;/pub/ruby/new_dir&quot;)</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">lines = ftp.ls(&quot;/pub/ruby/&quot;)</span>
+<span class="cp"># =&gt; [&quot;drwxr-xr-x 2 matz users 4096 July 17 1998 1.0&quot;, ... ]</span>
+
+<span class="cp">latest = ftp.dir(&quot;/pub/ruby/*.tgz&quot;).sort.last</span>
+
+<span class="cp">ftp.nlst(&quot;/pub/ruby&quot;)</span>
+<span class="cp"># =&gt; [&quot;/pub/ruby/1.0&quot;, ... ]</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">ftp.quit()</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN984"
+>Sending Mail</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN987"
+>Reading and Posting Usenet News Messages</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN990"
+>Reading Mail with POP3</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN993"
+>Simulating Telnet from a Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">require &#39;net/telnet&#39;</span>
+<span class="cp">t = Net::Telnet::new( &quot;Timeout&quot; =&gt; 10,</span>
+<span class="cp">                      &quot;Prompt&quot;  =&gt; /%/,</span>
+<span class="cp">                      &quot;Host&quot;    =&gt; host )</span>
+<span class="cp">t.login(username, password)</span>
+<span class="cp">files = t.cmd(&quot;ls&quot;)</span>
+<span class="cp">t.print(&quot;top&quot;)</span>
+<span class="cp">process_string = t.waitfor(/\d+ processes/)</span>
+<span class="cp">t.close</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">/[$%#&gt;] \z/n</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># In case of an error, the telnet module throws an exception.</span>
+<span class="cp"># For control of the behavior in case of an error,</span>
+<span class="cp"># you just need to catch the exceptions and do your custom</span>
+<span class="cp"># error handling.</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">begin</span>
+<span class="cp">    telnet.login(username, password)</span>
+<span class="cp">rescue TimeoutError</span>
+<span class="cp">    fail &quot;Login failed !\n&quot;</span>
+<span class="cp">end</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">telnet.waitfor(&#39;/--more--/&#39;)</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">telnet.waitfor(String =&gt; &#39;greasy smoke&#39;, Timeout =&gt; 30)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN996"
+>Pinging a Machine</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">require &#39;ping&#39;</span>
+
+<span class="cp">puts &quot;#{host} is alive.\n&quot; if Ping.pingecho(host);</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># the ping module only use TCP ping, not ICMP even if we are root</span>
+<span class="cp">if Ping.pingecho(&quot;kingkong.com&quot;)</span>
+<span class="cp">    puts &quot;The giant ape lives!\n&quot;;</span>
+<span class="cp">else</span>
+<span class="cp">    puts &quot;All hail mighty Gamera, friend of children!\n&quot;;</span>
+<span class="cp">end</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN999"
+>Using Whois to Retrieve Information from the InterNIC</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN1002"
+>Program: expn and vrfy</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="sockets.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="cgiprogramming.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Sockets</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>CGI Programming</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

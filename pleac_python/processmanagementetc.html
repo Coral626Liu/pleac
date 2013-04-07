@@ -1,0 +1,856 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Process Management and Communication</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Python"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="User Interfaces"
+HREF="userinterfaces.html"><LINK
+REL="NEXT"
+TITLE="Sockets"
+HREF="sockets.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Python</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="userinterfaces.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="sockets.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="PROCESSMANAGEMENTETC"
+>16. Process Management and Communication</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN851"
+>Gathering Output from a Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="kn">import</span> <span class="nn">popen2</span>
+
+<span class="c"># other popen methods than popen4 can lead to deadlocks</span>
+<span class="c"># if there is much data on stdout and stderr</span>
+
+<span class="p">(</span><span class="n">err_out</span><span class="p">,</span> <span class="n">stdin</span><span class="p">)</span> <span class="o">=</span> <span class="n">popen2</span><span class="o">.</span><span class="n">popen4</span><span class="p">(</span><span class="s">&quot;program args&quot;</span><span class="p">)</span>
+<span class="n">lines</span> <span class="o">=</span> <span class="n">err_out</span><span class="o">.</span><span class="n">read</span><span class="p">()</span> <span class="c"># collect output into one multiline string</span>
+
+<span class="p">(</span><span class="n">err_out</span><span class="p">,</span> <span class="n">stdin</span><span class="p">)</span> <span class="o">=</span> <span class="n">popen2</span><span class="o">.</span><span class="n">popen4</span><span class="p">(</span><span class="s">&quot;program args&quot;</span><span class="p">)</span>
+<span class="n">lines</span> <span class="o">=</span> <span class="n">err_out</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span> <span class="c"># collect output into a list, one line per element</span>
+
+<span class="c">#-----------------------------</span>
+
+<span class="p">(</span><span class="n">err_out</span><span class="p">,</span> <span class="n">stdin</span><span class="p">)</span> <span class="o">=</span> <span class="n">popen2</span><span class="o">.</span><span class="n">popen4</span><span class="p">(</span><span class="s">&quot;program args&quot;</span><span class="p">)</span>
+<span class="n">output</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+    <span class="n">line</span> <span class="o">=</span> <span class="n">err_out</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">line</span><span class="p">:</span>
+        <span class="k">break</span>
+    <span class="n">output</span><span class="o">.</span><span class="n">appen</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+<span class="n">output</span> <span class="o">=</span> <span class="s">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output</span><span class="p">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN854"
+>Running Another Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="n">myfile</span> <span class="o">=</span> <span class="s">&quot;foo.txt&quot;</span>
+<span class="n">status</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&quot;vi </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">myfile</span><span class="p">)</span>
+
+<span class="c">#-----------------------------</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&quot;cmd1 args | cmd2 | cmd3 &gt;outfile&quot;</span><span class="p">)</span>
+<span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&quot;cmd args &lt;infile &gt;outfile 2&gt;errfile&quot;</span><span class="p">)</span>
+
+<span class="n">status</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s">&quot;</span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">program</span><span class="p">,</span> <span class="n">arg1</span><span class="p">,</span> <span class="n">arg2</span><span class="p">))</span>
+<span class="k">if</span> <span class="n">status</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="k">print</span> <span class="s">&quot;</span><span class="si">%s</span><span class="s"> exited funny: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">program</span><span class="p">,</span> <span class="n">status</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">SystemExit</span>
+    </PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN857"
+>Replacing the Current Program with a Different One</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c"># -----------------------------</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">glob</span>
+
+<span class="n">args</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s">&quot;*.data&quot;</span><span class="p">)</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">execvp</span><span class="p">(</span><span class="s">&quot;archive&quot;</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+<span class="k">except</span> <span class="ne">OSError</span><span class="p">,</span> <span class="n">e</span><span class="p">:</span>
+    <span class="k">print</span> <span class="s">&quot;Couldn&#39;t replace myself with archive: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">err</span>
+    <span class="k">raise</span> <span class="ne">SystemExit</span>
+
+<span class="c"># The error message does not contain the line number like the &quot;die&quot; in</span>
+<span class="c"># perl. But if you want to show more information for debugging, you can</span>
+<span class="c"># delete the try...except and you get a nice traceback which shows all</span>
+<span class="c"># line numbers and filenames.</span>
+
+<span class="c"># -----------------------------</span>
+<span class="n">os</span><span class="o">.</span><span class="n">execvp</span><span class="p">(</span><span class="s">&quot;archive&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s">&quot;accounting.data&quot;</span><span class="p">])</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN860"
+>Reading or Writing to Another Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c"># -------------------------</span>
+<span class="c"># Read from a child process</span>
+
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">popen2</span>
+<span class="n">pipe</span> <span class="o">=</span> <span class="n">popen2</span><span class="o">.</span><span class="n">Popen4</span><span class="p">(</span><span class="s">&quot;program arguments&quot;</span><span class="p">)</span>
+<span class="n">pid</span> <span class="o">=</span> <span class="n">pipe</span><span class="o">.</span><span class="n">pid</span>
+<span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">pipe</span><span class="o">.</span><span class="n">fromchild</span><span class="o">.</span><span class="n">readlines</span><span class="p">():</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+<span class="c"># Popen4 provides stdout and stderr.</span>
+<span class="c"># This avoids deadlocks if you get data</span>
+<span class="c"># from both streams.</span>
+<span class="c">#</span>
+<span class="c"># If you don&#39;t need the pid, you</span>
+<span class="c"># can use popen2.popen4(...)</span>
+
+<span class="c"># -----------------------------</span>
+<span class="c"># Write to a child process</span>
+
+<span class="kn">import</span> <span class="nn">popen2</span>
+
+<span class="n">pipe</span> <span class="o">=</span> <span class="n">popen2</span><span class="o">.</span><span class="n">Popen4</span><span class="p">(</span><span class="s">&quot;gzip &gt; foo.gz&quot;</span><span class="p">)</span>
+<span class="n">pid</span> <span class="o">=</span> <span class="n">pipe</span><span class="o">.</span><span class="n">pid</span>
+<span class="n">pipe</span><span class="o">.</span><span class="n">tochild</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;Hello zipped world!</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+<span class="n">pipe</span><span class="o">.</span><span class="n">tochild</span><span class="o">.</span><span class="n">close</span><span class="p">()</span> <span class="c"># programm will get EOF on STDIN</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN863"
+>Filtering Your Own Output</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="k">class</span> <span class="nc">OutputFilter</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">target</span> <span class="o">=</span> <span class="n">target</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setup</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">textbuffer</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">):</span>
+        <span class="k">pass</span>
+    
+    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">):</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">textbuffer</span> <span class="o">+</span> <span class="n">data</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">textbuffer</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
+            <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">textbuffer</span> <span class="o">+=</span> <span class="n">data</span>
+
+    <span class="k">def</span> <span class="nf">process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">data</span>
+
+<span class="k">class</span> <span class="nc">HeadFilter</span><span class="p">(</span><span class="n">OutputFilter</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">maxcount</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">maxcount</span> <span class="o">=</span> <span class="n">maxcount</span>
+
+    <span class="k">def</span> <span class="nf">process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">maxcount</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">return</span> <span class="n">data</span>
+
+<span class="k">class</span> <span class="nc">NumberFilter</span><span class="p">(</span><span class="n">OutputFilter</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">count</span><span class="o">=</span><span class="mi">0</span>
+
+    <span class="k">def</span> <span class="nf">process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="s">&quot;</span><span class="si">%s</span><span class="s">: </span><span class="si">%s</span><span class="s">&quot;</span><span class="o">%</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">count</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+
+<span class="k">class</span> <span class="nc">QuoteFilter</span><span class="p">(</span><span class="n">OutputFilter</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;&gt; &quot;</span> <span class="o">+</span> <span class="n">data</span>
+
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="n">f</span> <span class="o">=</span> <span class="n">HeadFilter</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">130</span><span class="p">):</span>
+    <span class="k">print</span><span class="o">&gt;&gt;</span><span class="n">f</span><span class="p">,</span> <span class="n">i</span>
+
+<span class="k">print</span>
+
+<span class="n">txt</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;Welcome to Linux, version 2.0.33 on a i686</span>
+
+<span class="s">&quot;The software required `Windows 95 or better&#39;, </span>
+<span class="s">so I installed Linux.&quot; &quot;&quot;&quot;</span>
+<span class="n">f1</span> <span class="o">=</span> <span class="n">NumberFilter</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">)</span>
+<span class="n">f2</span> <span class="o">=</span> <span class="n">QuoteFilter</span><span class="p">(</span><span class="n">f1</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">txt</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">):</span>
+    <span class="k">print</span><span class="o">&gt;&gt;</span><span class="n">f2</span><span class="p">,</span> <span class="n">line</span>
+<span class="k">print</span>
+<span class="n">f1</span> <span class="o">=</span> <span class="n">QuoteFilter</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">)</span>
+<span class="n">f2</span> <span class="o">=</span> <span class="n">NumberFilter</span><span class="p">(</span><span class="n">f1</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">txt</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">):</span>
+    <span class="k">print</span><span class="o">&gt;&gt;</span><span class="n">f2</span><span class="p">,</span> <span class="n">line</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN866"
+>Preprocessing Input</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c"># This script accepts several filenames</span>
+<span class="c"># as argument. If the file is zipped, unzip</span>
+<span class="c"># it first. Then read each line if the file</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">popen2</span>
+
+<span class="k">for</span> <span class="nb">file</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+    <span class="k">if</span> <span class="nb">file</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s">&quot;.gz&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">file</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s">&quot;.Z&quot;</span><span class="p">):</span>
+        <span class="p">(</span><span class="n">stdout</span><span class="p">,</span> <span class="n">stdin</span><span class="p">)</span> <span class="o">=</span> <span class="n">popen2</span><span class="o">.</span><span class="n">popen2</span><span class="p">(</span><span class="s">&quot;gzip -dc &#39;</span><span class="si">%s</span><span class="s">&#39;&quot;</span> <span class="o">%</span> <span class="nb">file</span><span class="p">)</span>
+        <span class="n">fd</span> <span class="o">=</span> <span class="n">stdout</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">fd</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="nb">file</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">fd</span><span class="p">:</span>
+        <span class="c"># ....</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+    <span class="n">fd</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<span class="c">#-----------------------------</span>
+
+<span class="c">#-----------------------------</span>
+<span class="c"># Ask for filename and open it</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="k">print</span> <span class="s">&quot;File, please?&quot;</span>
+<span class="n">line</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">stdin</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+<span class="nb">file</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="c"># chomp</span>
+<span class="nb">open</span><span class="p">(</span><span class="nb">file</span><span class="p">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN869"
+>Reading STDERR from a Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c"># Execute foo_command and read the output</span>
+
+<span class="kn">import</span> <span class="nn">popen2</span>
+<span class="p">(</span><span class="n">stdout_err</span><span class="p">,</span> <span class="n">stdin</span><span class="p">)</span> <span class="o">=</span> <span class="n">popen2</span><span class="o">.</span><span class="n">popen4</span><span class="p">(</span><span class="s">&quot;foo_command&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">stdout_err</span><span class="o">.</span><span class="n">readlines</span><span class="p">():</span>
+    <span class="c"># ....</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN872"
+>Controlling Input and Output of Another Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c"># Open command in a pipe</span>
+<span class="c"># which reads from stdin and writes to stdout</span>
+
+<span class="kn">import</span> <span class="nn">popen2</span>
+<span class="n">pipe</span> <span class="o">=</span> <span class="n">popen2</span><span class="o">.</span><span class="n">Popen4</span><span class="p">(</span><span class="s">&quot;wc -l&quot;</span><span class="p">)</span> <span class="c"># Unix command</span>
+<span class="n">pipe</span><span class="o">.</span><span class="n">tochild</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;line 1</span><span class="se">\n</span><span class="s">line 2</span><span class="se">\n</span><span class="s">line 3</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+<span class="n">pipe</span><span class="o">.</span><span class="n">tochild</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<span class="n">output</span> <span class="o">=</span> <span class="n">pipe</span><span class="o">.</span><span class="n">fromchild</span><span class="o">.</span><span class="n">read</span><span class="p">()</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN875"
+>Controlling the Input, Output, and Error of Another Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span>
+<span class="c"># popen3: get stdout and stderr of new process</span>
+<span class="c"># Attetion: This can lead to deadlock,</span>
+<span class="c"># since the buffer of stderr or stdout might get filled.</span>
+<span class="c"># You need to use select if you want to avoid this.</span>
+
+<span class="kn">import</span> <span class="nn">popen2</span>
+<span class="p">(</span><span class="n">child_stdout</span><span class="p">,</span> <span class="n">child_stdin</span><span class="p">,</span> <span class="n">child_stderr</span><span class="p">)</span> <span class="o">=</span> <span class="n">popen2</span><span class="o">.</span><span class="n">popen3</span><span class="p">(</span><span class="o">...</span><span class="p">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN878"
+>Communicating Between Related Processes</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c"># @@INCOMPLETE@@</span>
+<span class="c"># @@INCOMPLETE@@</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN881"
+>Making a Process Look Like a File with Named Pipes</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c"># @@INCOMPLETE@@</span>
+<span class="c"># @@INCOMPLETE@@</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN884"
+>Sharing Variables in Different Processes</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c"># @@INCOMPLETE@@</span>
+<span class="c"># @@INCOMPLETE@@</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN887"
+>Listing Available Signals</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c">#</span>
+<span class="c"># Print available signals and their value</span>
+<span class="c"># See &quot;man signal&quot; &quot;man kill&quot; on unix.</span>
+
+<span class="kn">import</span> <span class="nn">signal</span>
+<span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="n">signal</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s">&quot;SIG&quot;</span><span class="p">):</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">signal</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+        <span class="k">print</span> <span class="s">&quot;</span><span class="si">%s</span><span class="s">=</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN890"
+>Sending a Signal</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c"># You can send signals to processes</span>
+<span class="c"># with os.kill(pid, signal)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN893"
+>Installing a Signal Handler</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="kn">import</span> <span class="nn">signal</span>
+
+<span class="k">def</span> <span class="nf">get_sig_quit</span><span class="p">(</span><span class="n">signum</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
+    <span class="o">....</span>
+
+<span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGQUIT</span><span class="p">,</span> <span class="n">get_sig_quit</span><span class="p">)</span>   <span class="c"># Install handler</span>
+
+<span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGINT</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIG_IGN</span><span class="p">)</span>  <span class="c"># Ignore this signal</span>
+<span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGSTOP</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIG_DFL</span><span class="p">)</span> <span class="c"># Restore to default handling</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN896"
+>Temporarily Overriding a Signal Handler</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c"># Example of handler: User must Enter Name ctrl-c does not help</span>
+
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">signal</span>
+
+<span class="k">def</span> <span class="nf">ding</span><span class="p">(</span><span class="n">signum</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
+    <span class="k">print</span> <span class="s">&quot;</span><span class="se">\a</span><span class="s">Enter your name!&quot;</span>
+    <span class="k">return</span>
+
+<span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGINT</span><span class="p">,</span> <span class="n">ding</span><span class="p">)</span>
+<span class="k">print</span> <span class="s">&quot;Please enter your name:&quot;</span>
+
+<span class="n">name</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
+<span class="k">while</span> <span class="ow">not</span> <span class="n">name</span><span class="p">:</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">stdin</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="k">pass</span>
+
+<span class="k">print</span> <span class="s">&quot;Hello: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">name</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN899"
+>Writing a Signal Handler</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c"># @@INCOMPLETE@@</span>
+<span class="c"># @@INCOMPLETE@@</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN902"
+>Catching Ctrl-C</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="kn">import</span> <span class="nn">signal</span>
+
+<span class="c"># ignore signal INT</span>
+<span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGINT</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIG_IGN</span><span class="p">)</span>
+
+<span class="c"># Install signal handler</span>
+<span class="k">def</span> <span class="nf">tsktsk</span><span class="p">(</span><span class="n">signum</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
+    <span class="k">print</span> <span class="s">&quot;...&quot;</span>
+
+<span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGINT</span><span class="p">,</span> <span class="n">tsktsk</span><span class="p">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN905"
+>Avoiding Zombie Processes</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c"># @@INCOMPLETE@@</span>
+<span class="c"># @@INCOMPLETE@@</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN908"
+>Blocking Signals</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c"># @@INCOMPLETE@@</span>
+<span class="c"># @@INCOMPLETE@@</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN911"
+>Timing Out an Operation</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="kn">import</span> <span class="nn">signal</span>
+
+<span class="k">def</span> <span class="nf">handler</span><span class="p">(</span><span class="n">signum</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="s">&quot;timeout&quot;</span>
+
+<span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGALRM</span><span class="p">,</span> <span class="n">handler</span><span class="p">)</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">signal</span><span class="o">.</span><span class="n">alarm</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span> <span class="c"># signal.alarm(3600)</span>
+
+    <span class="c"># long-time operation</span>
+    <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+        <span class="k">print</span> <span class="s">&quot;foo&quot;</span>
+
+    <span class="n">signal</span><span class="o">.</span><span class="n">alarm</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="k">except</span><span class="p">:</span>
+    <span class="n">signal</span><span class="o">.</span><span class="n">alarm</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">print</span> <span class="s">&quot;timed out&quot;</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="k">print</span> <span class="s">&quot;no time out&quot;</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN914"
+>Program: sigrand</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c"># @@INCOMPLETE@@</span>
+<span class="c"># @@INCOMPLETE@@</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="userinterfaces.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="sockets.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>User Interfaces</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Sockets</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

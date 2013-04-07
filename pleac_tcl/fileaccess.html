@@ -1,0 +1,927 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>File Access</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Tcl"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Pattern Matching"
+HREF="patternmatching.html"><LINK
+REL="NEXT"
+TITLE="File Contents"
+HREF="filecontents.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Tcl</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="patternmatching.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="filecontents.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="FILEACCESS"
+>7. File Access</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN359"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2">set filename {/tmp/messages}</span>
+<span class="s2">if {![catch {open $filename r} F]} {</span>
+<span class="s2">    while {[gets $F line] &gt;= 0} {</span>
+<span class="s2">        if [regexp  -- {blue} $line] {</span>
+<span class="s2">            puts $line</span>
+<span class="s2">        }</span>
+<span class="s2">    }</span>
+<span class="s2">close $F</span>
+<span class="s2">} else {</span>
+<span class="s2">error &quot;Opening $filename: $F&quot;</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">while {[gets stdin line] &gt;= 0} {        #read from STDIN</span>
+<span class="s2">    if {![regexp -- {\d} $line]} {</span>
+<span class="s2">        puts stderr {No digit found}    #writes to STDERR</span>
+<span class="s2">    }</span>
+<span class="s2">    puts &quot;Read: $line&quot;                  #writes to STDOUT</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set logfile [open {/tmp/log} w]</span>
+<span class="s2">close $logfile</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">puts $logfile {Countdown initiated}</span>
+<span class="s2">puts {You have 30 seconds to reach minimum safety distance.}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN362"
+>Opening a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2"># open file &quot;path&quot; for reading only</span>
+<span class="s2">set source  [open $path r]</span>
+<span class="s2"># open file &quot;path&quot; for writing only</span>
+<span class="s2">set sink    [open $path w]</span>
+
+<span class="s2"># open file &quot;path&quot; for reading only</span>
+<span class="s2">set source  [open $path RDONLY]</span>
+<span class="s2"># open file &quot;path&quot; for writing only</span>
+<span class="s2">set sink    [open $path WRONLY]</span>
+
+<span class="s2"># open &quot;path&quot; for reading and writing</span>
+<span class="s2">set file    [open $path r+ ]</span>
+<span class="s2"># open &quot;path&quot; with the flags &quot;flags&quot; (see examples below for flags)</span>
+<span class="s2">set file    [open $path $flags]</span>
+
+<span class="s2"># open file &quot;path&quot; read only</span>
+<span class="s2">set file    [open $path r]</span>
+<span class="s2">set file    [open $path RDONLY]</span>
+
+<span class="s2"># open file &quot;path&quot; write only, create it if it does not exist</span>
+<span class="s2"># truncate it to zero length if it exists</span>
+<span class="s2">set file    [open $path w]</span>
+<span class="s2">set file    [open $path {WRONLY TRUNC CREAT}]</span>
+
+<span class="s2"># open file &quot;path&quot; write only, fails if file exists</span>
+<span class="s2">set file    [open $path {WRONLY EXCL CREAT}]</span>
+
+<span class="s2"># open file &quot;path&quot; for appending</span>
+<span class="s2">set file    [open $path a]</span>
+<span class="s2">set file    [open $path {WRONLY APPEND CREAT}]</span>
+
+<span class="s2"># open file &quot;path&quot; for appending only when file exists</span>
+<span class="s2">set file    [open $path {WRONLY APPEND}]</span>
+
+<span class="s2"># open file &quot;path&quot; for reading and writing</span>
+<span class="s2">set file    [open $path r+]</span>
+<span class="s2">set file    [open $path w+]</span>
+<span class="s2">set file    [open $path RDWR]</span>
+
+<span class="s2"># open file for reading and writing, create a new file if it does not exist</span>
+<span class="s2">set file    [open $path {RDWR CREAT}]</span>
+
+<span class="s2"># open file &quot;path&quot; reading and writing, fails if file exists</span>
+<span class="s2">set file   [open $path {RDWR EXCL CREAT}]</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN365"
+>Opening Files with Unusual Filenames</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2"># tcl open does not use chars with special meaning.</span>
+<span class="s2">set file [open $filename]</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN368"
+>Expanding Tildes in Filenames</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2">set el [file split $path]</span>
+<span class="s2">lset el 0 [glob [lindex $el 0]]</span>
+<span class="s2">set expandedpath [file join {expand}$el]</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN371"
+>Making Perl Report Filenames in Errors</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2"># the raised exception contains the filename.</span>
+<span class="s2">open afile r</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN374"
+>Creating Temporary Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN377"
+>Storing Files Inside Your Program Text</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2">set data {</span>
+<span class="s2">Your data goes here</span>
+<span class="s2">}</span>
+<span class="s2">foreach line [split $data &quot;\n&quot;] {</span>
+<span class="s2">    # process the line</span>
+<span class="s2">}</span><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2">while {[gets stdin line] &gt;= 0} {</span>
+<span class="s2">    # do something with the line.</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">foreach filename $argv {</span>
+<span class="s2">    # closing and exception handling are done by the block</span>
+<span class="s2">    if {![catch {open $filename r} F]} {</span>
+<span class="s2">        set line [gets $F] #do stuff with $line</span>
+<span class="s2">        close $F</span>
+<span class="s2">    } else {</span>
+<span class="s2">        error &quot;can&#39;t open $filename&quot;</span>
+<span class="s2">    }</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">if {![llength $argv]} {</span>
+<span class="s2">    set argv [glob {*.[Cch]}]</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2"># arg demo 1</span>
+<span class="s2">set chop_first 0</span>
+<span class="s2">if {![string compare [lindex $argv 0] {-c}]} {</span>
+<span class="s2">    incr chop_first</span>
+<span class="s2">    set argv [lrange $argv 1 end]</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2"># arg demo 2</span>
+<span class="s2">if [regexp -- {^-(\d+)$} [lindex $argv 0] all one] {</span>
+<span class="s2">    set columns $one</span>
+<span class="s2">    set argv [lrange $argv 1 end]</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2"># arg demo 3 - clustered options</span>
+<span class="s2"># unfortunately tcllib does not yet provide clustered opts</span>
+<span class="s2"># so using the same logic as that of perl.</span>
+<span class="s2">set append 0</span>
+<span class="s2">set ignore_ints 0</span>
+<span class="s2">set nostdout 0</span>
+<span class="s2">set unbuffer 0</span>
+<span class="s2">foreach arg $argv {</span>
+<span class="s2">    #process arg for -abcd</span>
+<span class="s2">    set parg $arg</span>
+<span class="s2">    while 1 {</span>
+<span class="s2">        if [regexp -- {^-(.)(.*)$} $parg all one two] {</span>
+<span class="s2">            switch -- $one {</span>
+<span class="s2">                {a} {incr append}</span>
+<span class="s2">                {i} {incr ignore_ints}</span>
+<span class="s2">                {n} {incr ignore_ints}</span>
+<span class="s2">                {u} {incr unbuffer}</span>
+<span class="s2">                default { error {usage: [-ainu] [filenames] ...}}</span>
+<span class="s2">            }</span>
+<span class="s2">            set parg -$two</span>
+<span class="s2">        } else {</span>
+<span class="s2">            break</span>
+<span class="s2">        }</span>
+<span class="s2">    }</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set fd [open [lindex $argv 0]]</span>
+<span class="s2">set data [read -nonewline $fd]</span>
+<span class="s2">close $fd</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">foreach arg $argv {</span>
+<span class="s2">    set F [open $arg r]</span>
+<span class="s2">    for {set i 0} {[gets $F line] &gt;= 0} {incr i} {</span>
+<span class="s2">        puts $arg:$i:$line</span>
+<span class="s2">    }</span>
+<span class="s2">    close $F</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">foreach arg $argv {</span>
+<span class="s2">    set F [open $arg r]</span>
+<span class="s2">    while {[gets $F line] &gt;= 0} {</span>
+<span class="s2">        if [regexp -- {login} $line] {</span>
+<span class="s2">            puts $line</span>
+<span class="s2">        }</span>
+<span class="s2">    }</span>
+<span class="s2">    close $F</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set fd [open [lindex $argv 0] r]</span>
+<span class="s2">set data [read -nonewline $fd]</span>
+<span class="s2">close $fd</span>
+<span class="s2">set chunks 0</span>
+<span class="s2">foreach line [split $data &quot;\n&quot;] {</span>
+<span class="s2">    switch $line {</span>
+<span class="s2">    {^#} continue</span>
+<span class="s2">    {__(DATA|END)__} break</span>
+<span class="s2">    default { set chunks [llength $line]}</span>
+<span class="s2">}</span>
+
+<span class="s2">puts &quot;Found $chunks chunks&quot;</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN380"
+>Writing a Filter</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN383"
+>Modifying a File in Place with Temporary File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2">set old [open $old_file]</span>
+<span class="s2">set new [open $new_file w]</span>
+<span class="s2">while {[gets $old line] &gt;= 0} {</span>
+<span class="s2">    # change $line, then...</span>
+<span class="s2">    puts $new $line</span>
+<span class="s2">}</span>
+<span class="s2">close $old</span>
+<span class="s2">close $new</span>
+
+<span class="s2">file rename $old_file &quot;old.orig&quot;</span>
+<span class="s2">file rename $new_file $old_file</span>
+
+<span class="s2">for {set i 0} {[gets $old line] &gt;= 0} {incr i} {</span>
+<span class="s2">    if {$i == 20} { # we are at the 20th line</span>
+<span class="s2">        puts $new &quot;Extra line 1&quot;</span>
+<span class="s2">        puts $new &quot;Extra line 2&quot;</span>
+<span class="s2">    }</span>
+<span class="s2">    puts $new $line</span>
+<span class="s2">}</span>
+
+<span class="s2">for {set i 0} {[gets $old line] &gt;= 0} {incr i} {</span>
+<span class="s2">    if {![expr (20 &lt;= $i) &amp;&amp; ($i &lt;= 30)]} {</span>
+<span class="s2">        puts $new $line</span>
+<span class="s2">    }</span>
+<span class="s2">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN386"
+>Modifying a File in Place with -i Switch</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN389"
+>Modifying a File in Place Without a Temporary File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2">set fd [open {itest} r+]</span>
+<span class="s2">set data [read -nonewline $fd]</span>
+<span class="s2">regsub {foo} $data {QQQ} data</span>
+<span class="s2">chan seek $fd 0</span>
+<span class="s2">puts $fd $data</span>
+<span class="s2">chan truncate $fd</span>
+<span class="s2">close $fd</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set fd [open {itest} r+]</span>
+<span class="s2">set data [read -nonewline $fd]</span>
+<span class="s2">regsub {foo} $data [clock format [clock seconds]] data</span>
+<span class="s2">chan seek $fd 0</span>
+<span class="s2">puts $fd $data</span>
+<span class="s2">chan truncate $fd</span>
+<span class="s2">close $fd</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN392"
+>Locking a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2"># tcl does not yet support locking of files though it is available in tclx</span>
+<span class="s2"># @@INCOMPLETE@@</span>
+<span class="s2"># @@INCOMPLETE@@</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN395"
+>Flushing Output</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2">chan configure $fd none</span>
+<span class="s2">if [llength $argv] {</span>
+<span class="s2">    chan configure stdout none</span>
+<span class="s2">}</span>
+<span class="s2">puts -nonewline {Now you dont see it...}</span>
+<span class="s2">sleep 2</span>
+<span class="s2">puts {Now you do}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2"># stderr is unbuffered by default. so this is not necessary</span>
+<span class="s2">chan configure stderr none</span>
+<span class="s2">chan configure $fd full</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">chan configure $sock none</span>
+<span class="s2">chan configure $fd full</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set sock [socket {www.tcl.tk} 80]</span>
+<span class="s2">chan configure $sock -buffering none</span>
+<span class="s2">puts $sock &quot;GET / HTTP/1.0\n\n&quot;</span>
+<span class="s2">set resp [read -nonewline $sock]</span>
+<span class="s2">close $sock</span>
+<span class="s2">puts &quot;DOC is \n$resp\n&quot;</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN398"
+>Reading from Many Filehandles Without Blocking</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2"># assume fh1 fh2 fh3 are open channels</span>
+<span class="s2">foreach $f {fh1 fh2 fh3} {</span>
+<span class="s2">    chan event [set $f] readable {</span>
+<span class="s2">        # do something when this becomes readable.</span>
+<span class="s2">    }</span>
+<span class="s2">    chan event [set $f] writable {</span>
+<span class="s2">        # do something when this becomes writable.</span>
+<span class="s2">    }</span>
+<span class="s2">}</span>
+<span class="s2">vwait forever</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN401"
+>Doing Non-Blocking I/O</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2">set fd [open {/dev/cua0} r+]</span>
+<span class="s2">chan configure $fd -blocking 0</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set blocked [chan configure $fd -blocking]</span>
+<span class="s2">chan configure $fd -blocking 0</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">chan configure $fd -blocking 0</span>
+<span class="s2">chan puts $fd {some data}</span>
+<span class="s2">if [chan blocked $fd] {</span>
+<span class="s2">    # incomplete write, but there is no case of</span>
+<span class="s2">    # us having to redo the write again since tcl</span>
+<span class="s2">    # does it in the back ground for us.</span>
+<span class="s2">}</span>
+
+<span class="s2">set buffer [chan read -nonewline $fd $bufsize]</span>
+<span class="s2">if [chan blocked $fd] {</span>
+<span class="s2">    # did not read full bufsize.</span>
+<span class="s2">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN404"
+>Determining the Number of Bytes to Read</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2"># @@INCOMPLETE@@</span>
+<span class="s2"># @@INCOMPLETE@@</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN407"
+>Storing Filehandles in Variables</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2"># tcl filehandles are like any other vars</span>
+<span class="s2">set fd [open {myfile}]</span>
+<span class="s2">set newfd $fd</span>
+<span class="s2">set data [myproc $newfd]</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN410"
+>Caching Open Output Filehandles</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2"># @@INCOMPLETE@@</span>
+<span class="s2"># @@INCOMPLETE@@</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN413"
+>Printing to Many Filehandles Simultaneously</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2">foreach $f {fh1 fh2 fh3} {</span>
+<span class="s2">    puts [set $f] $stuff_to_print</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set fd [open {| tee file1 file2 &gt; /dev/null} w]</span>
+<span class="s2">puts $fd {data\n}</span>
+<span class="s2">close $fd</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN416"
+>Opening and Closing File Descriptors by Number</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2"># @@INCOMPLETE@@</span>
+<span class="s2"># @@INCOMPLETE@@</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN419"
+>Copying Filehandles</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2"># file descriptors are just like any other variables</span>
+<span class="s2">set fd [open {file}]</span>
+<span class="s2">set newfd $fd</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN422"
+>Program: netlock</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN425"
+>Program: lockarea</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="patternmatching.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="filecontents.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Pattern Matching</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>File Contents</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

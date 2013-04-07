@@ -1,0 +1,746 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>File Access</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Clojure"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Pattern Matching"
+HREF="patternmatching.html"><LINK
+REL="NEXT"
+TITLE="File Contents"
+HREF="filecontents.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Clojure</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="patternmatching.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="filecontents.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="FILEACCESS"
+>7. File Access</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN359"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;; -----------------------------</span>
+<span class="p">(</span><span class="kd">ns </span><span class="nv">pleac-section-7.0</span>
+  <span class="p">(</span><span class="ss">:require</span> <span class="p">[</span><span class="nv">clojure.java.io</span> <span class="ss">:as</span> <span class="nv">io</span><span class="p">])</span>
+  <span class="p">(</span><span class="ss">:import</span> <span class="p">[</span><span class="nv">java.io</span> <span class="nv">BufferedReader</span> <span class="nv">FileReader</span><span class="p">]))</span>
+
+<span class="c1">;; The perl version contains an or die &quot;Couldn&#39;t open filename: $!&quot;</span>
+<span class="c1">;; after the file open, but this isn&#39;t quite as necessary</span>
+<span class="c1">;; in languages with exceptions, such as Clojure.</span>
+<span class="p">(</span><span class="kd">defn </span><span class="nv">print-blue-lines-in-file</span> <span class="p">[</span><span class="nv">filename</span><span class="p">]</span>
+  <span class="p">(</span><span class="nb">with-open </span><span class="p">[</span><span class="nv">reader</span> <span class="p">(</span><span class="nf">io/reader</span> <span class="nv">filename</span><span class="p">)]</span>
+    <span class="p">(</span><span class="nb">doseq </span><span class="p">[</span><span class="nv">line</span> <span class="p">(</span><span class="nb">line-seq </span><span class="nv">reader</span><span class="p">)]</span>
+      <span class="p">(</span><span class="k">if </span><span class="p">(</span><span class="nf">.contains</span> <span class="nv">line</span> <span class="s">&quot;blue&quot;</span><span class="p">)</span>
+        <span class="p">(</span><span class="nb">println </span><span class="nv">line</span><span class="p">)))))</span>
+
+<span class="c1">;; =&gt; (print-blue-lines-in-file &quot;/usr/local/widgets/data&quot;)</span>
+<span class="c1">;; blue</span>
+<span class="c1">;; blue&#39;s</span>
+<span class="c1">;; bluebell</span>
+<span class="c1">;; ...</span>
+<span class="c1">;; -----------------------------</span>
+<span class="c1">;; The Perl code shows how to use * to cast the STDIN file handle</span>
+<span class="c1">;; to a scalar variable.  This is unnecessary in Clojure, the</span>
+<span class="c1">;; stdin reader object is already bound to the name *in*, which</span>
+<span class="c1">;; can be manipulated like any other symbol.</span>
+<span class="p">(</span><span class="k">def </span><span class="nv">stdin-var</span> <span class="nv">*in*</span><span class="p">)</span>
+<span class="p">(</span><span class="nf">mysub</span> <span class="nv">stdin-var</span> <span class="nv">logfile</span><span class="p">)</span>
+<span class="c1">;; -----------------------------</span>
+
+<span class="c1">;; Here&#39;s another way to do the blue line iterator.</span>
+<span class="p">(</span><span class="kd">defn </span><span class="nv">print-blue-lines-in-file</span> <span class="p">[</span><span class="nv">filename</span><span class="p">]</span>
+  <span class="p">(</span><span class="k">let </span><span class="p">[</span><span class="nv">compiled-regex</span> <span class="o">#</span><span class="s">&quot;blue&quot;</span><span class="p">]</span>
+    <span class="p">(</span><span class="nb">with-open </span><span class="p">[</span><span class="nv">rdr</span> <span class="p">(</span><span class="nf">io/BufferedReader.</span> <span class="p">(</span><span class="nf">io/FileReader.</span> <span class="nv">filename</span><span class="p">))]</span>
+      <span class="p">(</span><span class="nb">doseq </span><span class="p">[</span><span class="nv">line</span> <span class="p">(</span><span class="nb">line-seq </span><span class="nv">rdr</span><span class="p">)]</span>
+        <span class="p">(</span><span class="nb">when-not </span><span class="p">(</span><span class="nb">re-find </span><span class="nv">compiled-regex</span> <span class="nv">line</span><span class="p">)</span>
+          <span class="p">(</span><span class="nf">printf</span> <span class="s">&quot;%s\n&quot;</span> <span class="nv">line</span><span class="p">))))))</span>
+
+<span class="p">(</span><span class="kd">defn </span><span class="nv">print-digital-lines-from-stdin</span> <span class="p">[]</span>
+  <span class="p">(</span><span class="k">let </span><span class="p">[</span><span class="nv">digit-regex</span> <span class="s">&quot;#\d&quot;</span><span class="p">]</span>
+    <span class="p">(</span><span class="nb">with-open </span><span class="p">[</span><span class="nv">reader</span> <span class="p">(</span><span class="nf">io/reader</span> <span class="nv">*in*</span><span class="p">)]</span>
+      <span class="p">(</span><span class="nb">doseq </span><span class="p">[</span><span class="nv">line</span> <span class="p">(</span><span class="nb">line-seq </span><span class="nv">reader</span><span class="p">)]</span>
+        <span class="p">(</span><span class="k">if </span><span class="p">(</span><span class="nb">re-find </span><span class="nv">digit-regex</span><span class="p">)</span>
+          <span class="p">(</span><span class="nf">printf</span> <span class="s">&quot;Read: %s\n&quot;</span> <span class="nv">line</span><span class="p">)</span>
+          <span class="p">(</span><span class="nb">println </span><span class="nv">*err*</span> <span class="s">&quot;No digit found.&quot;</span><span class="p">))))))</span>
+
+<span class="c1">;; -----------------------------</span>
+<span class="c1">;; The Perl code shows how to assign a file handle to LOGFILE...</span>
+<span class="p">(</span><span class="k">def </span><span class="nv">log-file-handle</span> <span class="p">(</span><span class="nf">io/writer</span> <span class="s">&quot;/tmp/log&quot;</span> <span class="ss">:append</span> <span class="nv">true</span><span class="p">))</span>
+<span class="c1">;; -----------------------------</span>
+<span class="p">(</span><span class="nf">.close</span> <span class="nv">log-file-handle</span><span class="p">)</span>
+<span class="c1">;; -----------------------------</span>
+<span class="c1">;; ... but because unlike Perl, flow-control in Clojure can be</span>
+<span class="c1">;; interupted with conditions and exceptions, it&#39;s a good idea to</span>
+<span class="c1">;; use the with-open macro to ensure the file handle is closed.</span>
+<span class="p">(</span><span class="nb">with-open </span><span class="p">[</span><span class="nv">log-file-handle</span> <span class="p">(</span><span class="nf">io/writer</span> <span class="s">&quot;/tmp/log&quot;</span> <span class="ss">:append</span> <span class="nv">true</span><span class="p">)]</span>
+  <span class="c1">;; do stuff with log-file-handle.  Log-file-handle wlll be closed when</span>
+  <span class="c1">;; evaluation of this expression terminates.</span>
+  <span class="p">)</span>
+<span class="c1">;; -----------------------------</span>
+
+<span class="c1">;; The with-out-str macro redirects everything written to *out*</span>
+<span class="c1">;; into a string.</span>
+<span class="c1">;; mbac: rewrite as a macro so calling is less awkward.</span>
+<span class="p">(</span><span class="kd">defn </span><span class="nv">append-stdout-to-file</span> <span class="p">[</span><span class="nv">f</span> <span class="nv">filename</span><span class="p">]</span>
+  <span class="p">(</span><span class="nb">with-open </span><span class="p">[</span><span class="nv">fh</span> <span class="p">(</span><span class="nf">io/writer</span> <span class="nv">filename</span> <span class="ss">:append</span> <span class="nv">true</span><span class="p">)]</span>
+    <span class="p">(</span><span class="nf">.write</span> <span class="nv">fh</span> <span class="p">(</span><span class="nb">with-out-str </span><span class="p">(</span><span class="nf">f</span><span class="p">)))))</span>
+<span class="c1">;; =&gt; (append-stdout-to-file (fn [] (printf &quot;foo bar baz\n&quot;)) &quot;/tmp/log.txt&quot;)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN362"
+>Opening a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;; -----------------------------</span>
+<span class="p">(</span><span class="kd">ns </span><span class="nv">pleac-section-7.1</span>
+  <span class="p">(</span><span class="ss">:require</span> <span class="p">[</span><span class="nv">clojure.java.io</span> <span class="ss">:as</span> <span class="nv">io</span><span class="p">])</span>
+  <span class="p">(</span><span class="ss">:import</span> <span class="p">[</span><span class="nv">java.io</span> <span class="nv">BufferedReader</span> <span class="nv">FileReader</span><span class="p">]))</span>
+
+<span class="c1">;; open PATH for reading</span>
+<span class="p">(</span><span class="k">def </span><span class="nv">source</span> <span class="p">(</span><span class="nf">io/reader</span> <span class="nv">path</span><span class="p">))</span>
+
+<span class="c1">;; open PATH for writing</span>
+<span class="p">(</span><span class="k">def </span><span class="nv">sink</span> <span class="p">(</span><span class="nf">io/writer</span> <span class="nv">path</span><span class="p">))</span>
+
+<span class="c1">;; ----------------------------</span>
+
+<span class="c1">;; The Perl code makes POSIX open for read and open for write calls</span>
+<span class="c1">;; which aren&#39;t directly accessible from Clojure.</span>
+<span class="c1">;; mbac: maybe find a UNIX/POSIX module?</span>
+
+<span class="c1">;; -----------------------------</span>
+
+<span class="c1">;; The Perl code shows how to open files through an object oriented</span>
+<span class="c1">;; interface to contrast the file handle interface.  Clojure already uses</span>
+<span class="c1">;; objects.</span>
+
+<span class="c1">;; mbac: maybe we can show interesting file openers from contrib instead?</span>
+
+<span class="c1">;; -----------------------------</span>
+<span class="c1">;; sysopen(FILEHANDLE, $name, $flags)         or die &quot;Can&#39;t open $name : $!&quot;;</span>
+<span class="c1">;; sysopen(FILEHANDLE, $name, $flags, $perms) or die &quot;Can&#39;t open $name : $!&quot;;</span>
+<span class="c1">;; #-----------------------------</span>
+<span class="c1">;; open(FH, &quot;&lt; $path&quot;)                                 or die $!;</span>
+<span class="c1">;; sysopen(FH, $path, O_RDONLY)                        or die $!;</span>
+<span class="c1">;; #-----------------------------</span>
+<span class="c1">;; open(FH, &quot;&gt; $path&quot;)                                 or die $!;</span>
+<span class="c1">;; sysopen(FH, $path, O_WRONLY|O_TRUNC|O_CREAT)        or die $!;</span>
+<span class="c1">;; sysopen(FH, $path, O_WRONLY|O_TRUNC|O_CREAT, 0600)  or die $!;</span>
+<span class="c1">;; #-----------------------------</span>
+<span class="c1">;; sysopen(FH, $path, O_WRONLY|O_EXCL|O_CREAT)         or die $!;</span>
+<span class="c1">;; sysopen(FH, $path, O_WRONLY|O_EXCL|O_CREAT, 0600)   or die $!;</span>
+<span class="c1">;; #-----------------------------</span>
+<span class="c1">;; open(FH, &quot;&gt;&gt; $path&quot;)                                or die $!;</span>
+<span class="c1">;; sysopen(FH, $path, O_WRONLY|O_APPEND|O_CREAT)       or die $!;</span>
+<span class="c1">;; sysopen(FH, $path, O_WRONLY|O_APPEND|O_CREAT, 0600) or die $!;</span>
+<span class="c1">;; #-----------------------------</span>
+<span class="c1">;; sysopen(FH, $path, O_WRONLY|O_APPEND)               or die $!;</span>
+<span class="c1">;; #-----------------------------</span>
+<span class="c1">;; open(FH, &quot;+&lt; $path&quot;)                                or die $!;</span>
+<span class="c1">;; sysopen(FH, $path, O_RDWR)                          or die $!;</span>
+<span class="c1">;; #-----------------------------</span>
+<span class="c1">;; sysopen(FH, $path, O_RDWR|O_CREAT)                  or die $!;</span>
+<span class="c1">;; sysopen(FH, $path, O_RDWR|O_CREAT, 0600)            or die $!;</span>
+<span class="c1">;; #-----------------------------</span>
+<span class="c1">;; sysopen(FH, $path, O_RDWR|O_EXCL|O_CREAT)           or die $!;</span>
+<span class="c1">;; sysopen(FH, $path, O_RDWR|O_EXCL|O_CREAT, 0600)     or die $!;</span>
+<span class="c1">;; #-----------------------------</span>
+<span class="o">@@</span><span class="nv">INCOMPLETE</span><span class="o">@@</span>
+</pre></div>
+</body>
+</html></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN365"
+>Opening Files with Unusual Filenames</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN368"
+>Expanding Tildes in Filenames</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN371"
+>Making Perl Report Filenames in Errors</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN374"
+>Creating Temporary Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN377"
+>Storing Files Inside Your Program Text</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN380"
+>Writing a Filter</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN383"
+>Modifying a File in Place with Temporary File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN386"
+>Modifying a File in Place with -i Switch</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN389"
+>Modifying a File in Place Without a Temporary File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN392"
+>Locking a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN395"
+>Flushing Output</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN398"
+>Reading from Many Filehandles Without Blocking</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN401"
+>Doing Non-Blocking I/O</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN404"
+>Determining the Number of Bytes to Read</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN407"
+>Storing Filehandles in Variables</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN410"
+>Caching Open Output Filehandles</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN413"
+>Printing to Many Filehandles Simultaneously</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN416"
+>Opening and Closing File Descriptors by Number</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN419"
+>Copying Filehandles</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN422"
+>Program: netlock</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN425"
+>Program: lockarea</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="patternmatching.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="filecontents.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Pattern Matching</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>File Contents</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

@@ -1,0 +1,641 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Database Access</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Python"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Classes, Objects, and Ties"
+HREF="classesetc.html"><LINK
+REL="NEXT"
+TITLE="User Interfaces"
+HREF="userinterfaces.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Python</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="classesetc.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="userinterfaces.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="DBACCESS"
+>14. Database Access</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN754"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span>
+<span class="c"># See http://www.python.org/doc/topics/database/ for Database Interfaces details.</span>
+<span class="c"># currently listed on http://www.python.org/doc/topics/database/modules/</span>
+<span class="c">#</span>
+<span class="c">#  DB/2, Informix, Interbase, Ingres, JDBC, MySQL, pyodbc, mxODBC, ODBC Interface,</span>
+<span class="c">#  DCOracle, DCOracle2, PyGresQL, psycopg, PySQLite, sapdbapi, Sybase, ThinkSQL.</span>
+<span class="c">#</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN757"
+>Making and Using a DBM File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c">#-------------------------------------</span>
+<span class="kn">import</span> <span class="nn">anydbm</span>
+<span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;test.db&quot;</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">db</span> <span class="o">=</span> <span class="n">anydbm</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+<span class="k">except</span> <span class="n">anydbm</span><span class="p">,</span> <span class="n">err</span><span class="p">:</span>
+    <span class="k">print</span> <span class="s">&quot;Can&#39;t open </span><span class="si">%s</span><span class="s">: </span><span class="si">%s</span><span class="s">!&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+
+<span class="n">db</span><span class="p">[</span><span class="s">&quot;key&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;value&quot;</span>        <span class="c"># put value into database</span>
+<span class="k">if</span> <span class="s">&quot;key&quot;</span> <span class="ow">in</span> <span class="n">db</span><span class="p">:</span>            <span class="c"># check whether in database</span>
+    <span class="n">val</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&quot;key&quot;</span><span class="p">)</span>    <span class="c"># retrieve and remove from database</span>
+<span class="n">db</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>                 <span class="c"># close the database</span>
+<span class="c">#-------------------------------------</span>
+<span class="c"># <font size="-1"><a href="http://pleac.sourceforge.net/include/python/ch14/userstats</span>">download the following standalone program</a></font>
+<span class="c">#!/usr/bin/python</span>
+<span class="c"># userstats - generates statistics on who logged in.</span>
+<span class="c"># call with an argument to display totals</span>
+
+<span class="kn">import</span> <span class="nn">sys</span><span class="o">,</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">anydbm</span><span class="o">,</span> <span class="nn">re</span>
+
+<span class="n">db_file</span> <span class="o">=</span> <span class="s">&#39;/tmp/userstats.db&#39;</span>       <span class="c"># where data is kept between runs</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">db</span> <span class="o">=</span> <span class="n">anydbm</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">db_file</span><span class="p">,</span><span class="s">&#39;c&#39;</span><span class="p">)</span>   <span class="c"># open, create if it does not exist</span>
+<span class="k">except</span><span class="p">:</span>
+    <span class="k">print</span> <span class="s">&quot;Can&#39;t open db </span><span class="si">%s</span><span class="s">: </span><span class="si">%s</span><span class="s">!&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">db_file</span><span class="p">,</span> <span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;ALL&#39;</span><span class="p">:</span>
+        <span class="n">userlist</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">userlist</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="n">userlist</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">user</span> <span class="ow">in</span> <span class="n">userlist</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">db</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="n">user</span><span class="p">):</span>
+            <span class="k">print</span> <span class="s">&quot;</span><span class="si">%s</span><span class="se">\t</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">db</span><span class="p">[</span><span class="n">user</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">print</span> <span class="s">&quot;</span><span class="si">%s</span><span class="se">\t</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">who</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">popen</span><span class="p">(</span><span class="s">&#39;who&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>  <span class="c"># run who(1)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">who</span><span class="p">)</span><span class="o">&lt;</span><span class="mi">1</span><span class="p">:</span>
+        <span class="k">print</span> <span class="s">&quot;error running who&quot;</span>       <span class="c"># exit</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="c"># extract username (first thin on the line) and update</span>
+    <span class="n">user_re</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s">&quot;^(\S+)&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">who</span><span class="p">:</span>
+        <span class="n">fnd</span> <span class="o">=</span> <span class="n">user_re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">fnd</span><span class="p">:</span>
+            <span class="k">print</span> <span class="s">&quot;Bad line from who: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">line</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">user</span> <span class="o">=</span> <span class="n">fnd</span><span class="o">.</span><span class="n">groups</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">db</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="n">user</span><span class="p">):</span>
+            <span class="n">db</span><span class="p">[</span><span class="n">user</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;0&quot;</span>
+        <span class="n">db</span><span class="p">[</span><span class="n">user</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">db</span><span class="p">[</span><span class="n">user</span><span class="p">])</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="c"># only strings are allowed</span>
+<span class="n">db</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    </PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN760"
+>Emptying a DBM File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c"># Emptying a DBM File</span>
+
+<span class="kn">import</span> <span class="nn">anydbm</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">db</span> <span class="o">=</span> <span class="n">anydbm</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">FILENAME</span><span class="p">,</span><span class="s">&#39;w&#39;</span><span class="p">)</span>   <span class="c"># open, for writing</span>
+<span class="k">except</span> <span class="n">anydbm</span><span class="o">.</span><span class="n">error</span><span class="p">,</span> <span class="n">err</span><span class="p">:</span>
+    <span class="k">print</span> <span class="s">&quot;Can&#39;t open db </span><span class="si">%s</span><span class="s">: </span><span class="si">%s</span><span class="s">!&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">SystemExit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="n">db</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+<span class="n">db</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<span class="c"># -------------------------------</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">db</span> <span class="o">=</span> <span class="n">anydbm</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="s">&#39;n&#39;</span><span class="p">)</span>   <span class="c"># open, always create a new empty db</span>
+<span class="k">except</span> <span class="n">anydbm</span><span class="o">.</span><span class="n">error</span><span class="p">,</span> <span class="n">err</span><span class="p">:</span>
+    <span class="k">print</span> <span class="s">&quot;Can&#39;t open db </span><span class="si">%s</span><span class="s">: </span><span class="si">%s</span><span class="s">!&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">SystemExit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="n">db</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<span class="c"># -------------------------------</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">FILENAME</span><span class="p">)</span>
+<span class="k">except</span> <span class="ne">OSError</span><span class="p">,</span> <span class="n">err</span><span class="p">:</span>
+    <span class="k">print</span> <span class="s">&quot;Couldn&#39;t remove </span><span class="si">%s</span><span class="s"> to empty the database: </span><span class="si">%s</span><span class="s">!&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">FILENAME</span><span class="p">,</span>
+        <span class="n">err</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">SystemExit</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">db</span> <span class="o">=</span> <span class="n">anydbm</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">FILENAME</span><span class="p">,</span><span class="s">&#39;n&#39;</span><span class="p">)</span>   <span class="c"># open, flways create a new empty db</span>
+<span class="k">except</span> <span class="n">anydbm</span><span class="o">.</span><span class="n">error</span><span class="p">,</span> <span class="n">err</span><span class="p">:</span>
+    <span class="k">print</span> <span class="s">&quot;Couldn&#39;t create </span><span class="si">%s</span><span class="s"> database: </span><span class="si">%s</span><span class="s">!&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">FILENAME</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">SystemExit</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN763"
+>Converting Between DBM Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c"># Converting Between DBM Files</span>
+
+<span class="c"># <font size="-1"><a href="http://pleac.sourceforge.net/include/python/ch14/db2gdbm</span>">download the following standalone program</a></font>
+<span class="c">#!/usr/bin/python</span>
+<span class="c"># db2gdbm: converts DB to GDBM</span>
+
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">dbm</span><span class="o">,</span> <span class="nn">gdbm</span>
+
+<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">:</span>
+    <span class="k">print</span> <span class="s">&quot;usage: db2gdbm infile outfile&quot;</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="p">(</span><span class="n">infile</span><span class="p">,</span> <span class="n">outfile</span><span class="p">)</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+
+<span class="c"># open the files</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">db_in</span> <span class="o">=</span> <span class="n">dbm</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">infile</span><span class="p">)</span>
+<span class="k">except</span><span class="p">:</span>
+    <span class="k">print</span> <span class="s">&quot;Can&#39;t open infile </span><span class="si">%s</span><span class="s">: </span><span class="si">%s</span><span class="s">!&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">infile</span><span class="p">,</span> <span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">db_out</span> <span class="o">=</span> <span class="n">dbm</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">outfile</span><span class="p">,</span><span class="s">&quot;n&quot;</span><span class="p">)</span>
+<span class="k">except</span><span class="p">:</span>
+    <span class="k">print</span> <span class="s">&quot;Can&#39;t open outfile </span><span class="si">%s</span><span class="s">: </span><span class="si">%s</span><span class="s">!&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">outfile</span><span class="p">,</span> <span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="c"># copy (don&#39;t use db_out = db_in because it&#39;s slow on big databases)</span>
+<span class="c"># is this also so for python ?</span>
+<span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">db_in</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+    <span class="n">db_out</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">db_in</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+
+<span class="c"># these close happen automatically at program exit</span>
+<span class="n">db_out</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<span class="n">db_in</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN766"
+>Merging DBM Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span>
+<span class="n">OUTPUT</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">INPUT1</span><span class="p">)</span>
+<span class="n">OUTPUT</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">INPUT2</span><span class="p">)</span>
+
+<span class="n">OUTPUT</span> <span class="o">=</span> <span class="n">anydbm</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s">&quot;OUT&quot;</span><span class="p">,</span><span class="s">&quot;n&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">INPUT</span> <span class="ow">in</span> <span class="p">(</span><span class="n">INPUT1</span><span class="p">,</span> <span class="n">INPUT2</span><span class="p">,</span> <span class="n">INPUT1</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">INPUT</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">OUTPUT</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
+            <span class="c"># decide which value to use and set OUTPUT[key] if necessary</span>
+            <span class="k">print</span> <span class="s">&quot;key </span><span class="si">%s</span><span class="s"> already present: </span><span class="si">%s</span><span class="s">, new: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                    <span class="n">key</span><span class="p">,</span> <span class="n">OUTPUT</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">value</span> <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">OUTPUT</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN769"
+>Locking DBM Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c"># On systems where the Berkeley DB supports it, dbhash takes an</span>
+<span class="c"># &quot;l&quot; flag:</span>
+<span class="kn">import</span> <span class="nn">dbhash</span>
+<span class="n">dbhash</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s">&quot;mydb.db&quot;</span><span class="p">,</span> <span class="s">&quot;cl&quot;</span><span class="p">)</span> <span class="c"># &#39;c&#39;: create if doesn&#39;t exist</span>
+
+<span class="c"># @@INCOMPLETE@@</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN772"
+>Sorting Large DBM Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c"># @@INCOMPLETE@@</span>
+<span class="c"># @@INCOMPLETE@@</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN775"
+>Treating a Text File as a Database Array</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c"># @@INCOMPLETE@@</span>
+<span class="c"># @@INCOMPLETE@@</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN778"
+>Storing Complex Data in a DBM File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c"># shelve uses anydbm to access and chooses between DBMs.</span>
+<span class="c"># anydbm detect file formats automatically.</span>
+<span class="kn">import</span> <span class="nn">shelve</span>
+<span class="n">db</span> <span class="o">=</span> <span class="n">shelve</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s">&quot;celebrities.db&quot;</span><span class="p">)</span>
+
+<span class="n">name1</span> <span class="o">=</span> <span class="s">&quot;Greg Stein&quot;</span>
+<span class="n">name2</span> <span class="o">=</span> <span class="s">&quot;Greg Ward&quot;</span>
+
+<span class="c"># shelve uses pickle to convert objects into strings and back.</span>
+<span class="c"># This is automatic.</span>
+<span class="n">db</span><span class="p">[</span><span class="n">name1</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;of ViewCVS fame&quot;</span><span class="p">,</span> <span class="s">&quot;gstein@lyra.org&quot;</span><span class="p">]</span>
+<span class="n">db</span><span class="p">[</span><span class="n">name2</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;of Distutils fame&quot;</span><span class="p">,</span> <span class="s">&quot;gward@python.net&quot;</span><span class="p">]</span>
+
+<span class="n">greg1</span> <span class="o">=</span> <span class="n">db</span><span class="p">[</span><span class="n">name1</span><span class="p">]</span>
+<span class="n">greg2</span> <span class="o">=</span> <span class="n">db</span><span class="p">[</span><span class="n">name2</span><span class="p">]</span>
+
+<span class="k">print</span> <span class="s">&quot;Two Gregs: </span><span class="si">%x</span><span class="s"> </span><span class="si">%x</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">id</span><span class="p">(</span><span class="n">greg1</span><span class="p">),</span> <span class="nb">id</span><span class="p">(</span><span class="n">greg2</span><span class="p">))</span>
+
+<span class="k">if</span> <span class="n">greg1</span> <span class="o">==</span> <span class="n">greg2</span><span class="p">:</span>
+    <span class="k">print</span> <span class="s">&quot;You&#39;re having runtime fun with one Greg made two.&quot;</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="k">print</span> <span class="s">&quot;No two Gregs are ever alike.&quot;</span>
+
+<span class="c"># Changes to mutable entries are not written back by default.</span>
+<span class="c"># You can get the copy, change it, and put it back.</span>
+<span class="n">entry</span> <span class="o">=</span> <span class="n">db</span><span class="p">[</span><span class="n">name1</span><span class="p">]</span>
+<span class="n">entry</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;of Subversion fame&quot;</span>
+<span class="n">db</span><span class="p">[</span><span class="n">name1</span><span class="p">]</span> <span class="o">=</span> <span class="n">entry</span>
+
+<span class="c"># Or you can open shelve with writeback option. Then you can</span>
+<span class="c"># change mutable entries directly. (New in 2.3)</span>
+<span class="n">db</span> <span class="o">=</span> <span class="n">shelve</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s">&quot;celebrities.db&quot;</span><span class="p">,</span> <span class="n">writeback</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+<span class="n">db</span><span class="p">[</span><span class="n">name2</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;of Optik fame&quot;</span>
+
+<span class="c"># However, writeback option can consume vast amounts of memory</span>
+<span class="c"># to do its magic. You can clear cache with sync().</span>
+<span class="n">db</span><span class="o">.</span><span class="n">sync</span><span class="p">()</span>
+<span class="c">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN781"
+>Persistent Data</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c"># DON&#39;T DO THIS.</span>
+<span class="kn">import</span> <span class="nn">os</span> <span class="kn">as</span> <span class="nn">_os</span><span class="o">,</span> <span class="nn">shelve</span> <span class="kn">as</span> <span class="nn">_shelve</span>
+
+<span class="n">_fname</span> <span class="o">=</span> <span class="s">&quot;persist.db&quot;</span>
+<span class="k">if</span> <span class="ow">not</span> <span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">_fname</span><span class="p">):</span>
+    <span class="n">var1</span> <span class="o">=</span> <span class="s">&quot;foo&quot;</span>
+    <span class="n">var2</span> <span class="o">=</span> <span class="s">&quot;bar&quot;</span>
+<span class="n">_d</span> <span class="o">=</span> <span class="n">_shelve</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s">&quot;persist.db&quot;</span><span class="p">)</span>
+<span class="nb">globals</span><span class="p">()</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">_d</span><span class="p">)</span>
+
+<span class="k">print</span> <span class="s">&quot;var1 is </span><span class="si">%s</span><span class="s">; var2 is </span><span class="si">%s</span><span class="s">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">var1</span><span class="p">,</span> <span class="n">var2</span><span class="p">)</span>
+<span class="n">var1</span> <span class="o">=</span> <span class="nb">raw_input</span><span class="p">(</span><span class="s">&quot;New var1: &quot;</span><span class="p">)</span>
+<span class="n">var2</span> <span class="o">=</span> <span class="nb">raw_input</span><span class="p">(</span><span class="s">&quot;New var2: &quot;</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">globals</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s">&quot;_&quot;</span><span class="p">):</span>
+        <span class="n">_d</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+<span class="c"># @@INCOMPLETE@@</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN784"
+>Executing an SQL Command Using DBI and DBD</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c">#-----------------------------</span>
+<span class="kn">import</span> <span class="nn">dbmodule</span>
+
+<span class="n">dbconn</span> <span class="o">=</span> <span class="n">dbmodule</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">arguments</span><span class="o">...</span><span class="p">)</span>
+
+<span class="n">cursor</span> <span class="o">=</span> <span class="n">dbconn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+<span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
+
+<span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+   <span class="n">row</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+   <span class="k">if</span> <span class="n">row</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+       <span class="k">break</span>
+   <span class="o">...</span>
+
+<span class="n">cursor</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<span class="n">dbconn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+<span class="c">#-----------------------------</span>
+<span class="kn">import</span> <span class="nn">MySQLdb</span>
+<span class="kn">import</span> <span class="nn">pwd</span>
+
+<span class="n">dbconn</span> <span class="o">=</span> <span class="n">MySQLdb</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">db</span><span class="o">=</span><span class="s">&#39;dbname&#39;</span><span class="p">,</span> <span class="n">host</span><span class="o">=</span><span class="s">&#39;mysqlserver.domain.com&#39;</span><span class="p">,</span>
+                        <span class="n">port</span><span class="o">=</span><span class="mi">3306</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="s">&#39;user&#39;</span><span class="p">,</span> <span class="n">passwd</span><span class="o">=</span><span class="s">&#39;password&#39;</span><span class="p">)</span>
+
+<span class="n">cursor</span> <span class="o">=</span> <span class="n">dbconn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+<span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s">&quot;CREATE TABLE users (uid INT, login CHAR(8))&quot;</span><span class="p">)</span>
+
+<span class="c"># Note: some databases use %s for parameters, some use ? or other</span>
+<span class="c"># formats</span>
+<span class="n">sql_fmt</span> <span class="o">=</span> <span class="s">&quot;INSERT INTO users VALUES( </span><span class="si">%s</span><span class="s">, </span><span class="si">%s</span><span class="s"> )&quot;</span>
+
+<span class="k">for</span> <span class="n">userent</span> <span class="ow">in</span> <span class="n">pwd</span><span class="o">.</span><span class="n">getpwall</span><span class="p">():</span>
+   <span class="c"># the second argument contains a list of parameters which will</span>
+   <span class="c"># be quoted before being put in the query</span>
+   <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql_fmt</span><span class="p">,</span> <span class="p">(</span><span class="n">userent</span><span class="o">.</span><span class="n">pw_uid</span><span class="p">,</span> <span class="n">userent</span><span class="o">.</span><span class="n">pw_name</span><span class="p">))</span>
+
+<span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s">&quot;SELECT * FROM users WHERE uid &lt; 50&quot;</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">():</span>
+   <span class="c"># NULL will be displayed as None</span>
+   <span class="k">print</span> <span class="s">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">row</span><span class="p">))</span>
+
+<span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s">&quot;DROP TABLE users&quot;</span><span class="p">)</span>
+<span class="n">cursor</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<span class="n">dbconn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<span class="c">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN787"
+>Program: ggh - Grep Netscape Global History</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c"># @@INCOMPLETE@@</span>
+<span class="c"># @@INCOMPLETE@@</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="classesetc.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="userinterfaces.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Classes, Objects, and Ties</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>User Interfaces</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

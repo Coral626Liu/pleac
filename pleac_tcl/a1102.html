@@ -1,0 +1,241 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Helpers</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Tcl"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Web Automation"
+HREF="webautomation.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="APPENDIX"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Tcl</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="webautomation.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+>&nbsp;</TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="APPENDIX"
+><H1
+CLASS="APPENDIX"
+><A
+NAME="AEN1102"
+>A. Helpers</A
+></H1
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+>General-purpose, custom functions that might be used in several sections, appear here</span>
+
+<span class="c"># coroutines.</span>
+<span class="c"># recursion messes with the uplevel stuff. so using this imperative</span>
+<span class="c"># version instead.</span>
+<span class="c"># what we have here is an eqivalent of ruby&#39;s str.gsub! &amp;block mechanism,</span>
+<span class="c"># where each matched string is passed into the block and the results are</span>
+<span class="c"># used for substitution.</span>
+
+<span class="k">proc</span> gregsub <span class="k">{</span><span class="nv">re</span> txt block<span class="k">}</span> <span class="k">{</span>
+    <span class="k">set</span> res <span class="k">{}</span>
+    <span class="k">while</span> <span class="mi">1</span> <span class="k">{</span>
+        <span class="c">#fetch the regexp first</span>
+        <span class="k">set</span> part <span class="k">[</span><span class="nb">lindex</span> <span class="k">[</span><span class="nb">regexp</span> <span class="o">-</span>inline <span class="nv">$re</span> <span class="nv">$txt</span><span class="k">]</span> <span class="mi">1</span><span class="k">]</span>
+        <span class="k">if</span> <span class="k">{</span><span class="o">!</span><span class="k">[</span><span class="nb">string</span> length <span class="nv">$part</span><span class="k">]}</span> <span class="k">{</span>
+                <span class="nb">append</span> res <span class="nv">$txt</span>
+                <span class="k">break</span>
+        <span class="k">}</span>
+
+        <span class="c">#now substitute with original</span>
+        <span class="k">set</span> lst <span class="k">[</span><span class="nb">split</span> <span class="k">[</span><span class="nb">regsub</span> <span class="o">--</span> <span class="nv">$re</span> <span class="nv">$txt</span> <span class="s2">&quot;\0&quot;</span><span class="k">]</span> <span class="s2">&quot;\0&quot;</span><span class="k">]</span>
+        <span class="nb">append</span> res <span class="k">[</span><span class="nb">lindex</span> <span class="nv">$lst</span> <span class="mi">0</span><span class="k">]</span> <span class="k">[apply</span> <span class="nv">$block</span> <span class="nv">$part</span><span class="k">]</span>
+        <span class="k">set</span> txt <span class="k">[</span><span class="nb">lindex</span> <span class="nv">$lst</span> <span class="mi">1</span><span class="k">]</span>
+    <span class="k">}</span>
+    <span class="k">return</span> <span class="nv">$res</span>
+<span class="k">}</span>
+
+<span class="k">proc</span> regrange <span class="k">{</span><span class="nv">p1</span> sep p2 data block<span class="k">}</span> <span class="k">{</span>
+    <span class="k">set</span> on <span class="mi">0</span>
+    <span class="k">set</span> delay <span class="mi">0</span>
+    <span class="k">if</span> <span class="k">{</span><span class="o">!</span><span class="k">[</span><span class="nb">string</span> compare <span class="nv">$sep</span> <span class="s2">&quot;...&quot;</span><span class="k">]}</span> <span class="k">{</span>
+        <span class="k">set</span> delay <span class="mi">1</span>
+    <span class="k">}</span>
+    <span class="k">if</span> <span class="o">!</span><span class="k">[</span><span class="nb">llength</span> <span class="nv">$p1</span><span class="k">]</span> <span class="k">{</span> <span class="err">;</span><span class="c"># {} for start from begining.</span>
+        <span class="k">set</span> on <span class="mi">1</span>
+        <span class="k">set</span> p1 <span class="k">{</span><span class="nv">$-</span><span class="o">^</span><span class="k">}</span> <span class="k">;</span><span class="c"># never match any thing more.</span>
+    <span class="k">}</span>
+
+    <span class="k">foreach</span> line <span class="nv">$data</span> <span class="k">{</span>
+        <span class="k">switch</span> <span class="o">-</span>exact <span class="o">--</span> <span class="nv">$sep</span> <span class="k">{</span>
+            <span class="k">{</span><span class="nv">..</span><span class="k">}</span>  <span class="k">{</span>
+                <span class="k">if</span> <span class="k">{[</span><span class="nb">regexp</span> <span class="o">--</span> <span class="nv">$p1</span> <span class="nv">$line</span><span class="k">]}</span> <span class="k">{set</span> on <span class="mi">1</span><span class="k">}</span> <span class="k">elseif</span> <span class="k">{[</span><span class="nb">regexp</span> <span class="o">--</span> <span class="nv">$p2</span> <span class="nv">$line</span><span class="k">]}</span> <span class="k">{set</span> delay <span class="mi">1</span><span class="k">}</span>
+                <span class="k">if</span> <span class="k">{</span><span class="nv">$on</span><span class="k">}</span> <span class="k">{</span>
+                    <span class="c">#do thingies.</span>
+                    <span class="k">apply</span> <span class="nv">$block</span> <span class="nv">$line</span>
+                <span class="k">}</span>
+                <span class="k">if</span> <span class="k">{</span><span class="nv">$delay</span><span class="k">}</span> <span class="k">{</span>
+                    <span class="k">set</span> on <span class="mi">0</span>
+                    <span class="k">set</span> delay <span class="mi">0</span>
+                <span class="k">}</span>
+            <span class="k">}</span>
+            <span class="k">{</span><span class="nv">...</span><span class="k">}</span> <span class="k">{</span>
+                <span class="k">if</span> <span class="k">{[</span><span class="nb">regexp</span> <span class="o">--</span> <span class="nv">$p1</span> <span class="nv">$line</span><span class="k">]}</span> <span class="k">{set</span> delay <span class="mi">0</span><span class="k">}</span> <span class="k">elseif</span> <span class="k">{[</span><span class="nb">regexp</span> <span class="o">--</span> <span class="nv">$p2</span> <span class="nv">$line</span><span class="k">]}</span> <span class="k">{set</span> on <span class="mi">0</span><span class="k">}</span>
+                <span class="k">if</span> <span class="k">{</span><span class="nv">$on</span><span class="k">}</span> <span class="k">{</span>
+                    <span class="c">#do thingies.</span>
+                    <span class="k">apply</span> <span class="nv">$block</span> <span class="nv">$line</span>
+                <span class="k">}</span>
+                <span class="k">if</span> <span class="k">{</span><span class="o">!</span><span class="nv">$delay</span><span class="k">}</span> <span class="k">{</span>
+                    <span class="k">set</span> on <span class="mi">1</span>
+                    <span class="k">set</span> delay <span class="mi">1</span>
+                <span class="k">}</span>
+            <span class="k">}</span>
+            <span class="nv">default</span> <span class="k">{</span>
+                <span class="k">error</span> <span class="s2">&quot;wrong range operator $sep&quot;</span>
+            <span class="k">}</span>
+        <span class="k">}</span>
+    <span class="k">}</span>
+<span class="k">}</span>
+
+<span class="k">proc</span> with-file <span class="k">{</span><span class="nb">file</span> block<span class="k">}</span> <span class="k">{</span>
+    <span class="k">set</span> fd <span class="k">[</span><span class="nb">open</span> <span class="nv">$file</span><span class="k">]</span>
+    <span class="k">uplevel</span> <span class="mi">1</span> <span class="k">[</span><span class="nb">list</span> apply <span class="nv">$block</span> <span class="nv">$fd</span><span class="k">]</span>
+    <span class="nb">close</span> <span class="nv">$fd</span>
+<span class="k">}</span>
+
+<span class="k">proc</span> read-lines <span class="k">{</span><span class="nv">fd</span> block<span class="k">}</span> <span class="k">{</span>
+    <span class="k">while</span> <span class="k">{[</span><span class="nb">gets</span> <span class="nv">$fd</span> line<span class="k">]</span> <span class="o">&gt;=</span> <span class="nv">0</span><span class="k">}</span> <span class="k">{</span>
+        <span class="k">uplevel</span> <span class="mi">1</span> <span class="k">[</span><span class="nb">list</span> apply <span class="nv">$block</span> <span class="nv">$line</span><span class="k">]</span>
+    <span class="k">}</span>
+<span class="k">}</span>
+
+<span class="k">proc</span> readlines <span class="k">{</span><span class="nv">fd</span> block<span class="k">}</span> <span class="k">{</span>
+    <span class="k">set</span> data <span class="k">[</span><span class="nb">read</span> <span class="o">-</span>nonewline <span class="nv">$fd</span><span class="k">]</span>
+    <span class="k">set</span> variable options
+    <span class="k">set</span> cr <span class="s2">&quot;\n&quot;</span>
+    <span class="k">if</span> <span class="k">[</span><span class="nb">info</span> exist options<span class="k">(</span><span class="nv">CR</span><span class="k">)]</span> <span class="k">{</span>
+        <span class="k">set</span> cr <span class="nv">$options</span><span class="k">(</span><span class="nv">CR</span><span class="k">)</span>
+    <span class="k">}</span>
+    <span class="k">foreach</span> line <span class="k">[</span><span class="nb">split</span> <span class="k">[</span><span class="nb">regsub</span> <span class="o">-</span>all <span class="o">--</span> <span class="nv">$cr</span> <span class="nv">$data</span> <span class="s2">&quot;\0&quot;</span> <span class="k">]</span> <span class="s2">&quot;\0&quot;</span> <span class="k">]</span> <span class="k">{</span>
+        <span class="k">uplevel</span> <span class="mi">1</span> <span class="k">[</span><span class="nb">list</span> apply <span class="nv">$block</span> <span class="nv">$line</span><span class="k">]</span>
+        <span class="nb">puts</span> <span class="o">-</span>nonewline <span class="nv">$cr</span>
+    <span class="k">}</span>
+<span class="k">}</span>
+
+<span class="k">proc</span> argf-iter <span class="k">{</span><span class="nv">block</span><span class="k">}</span> <span class="k">{</span>
+    <span class="k">variable</span> options
+    <span class="k">foreach</span> file <span class="nv">$::argv</span> <span class="k">{</span>
+        <span class="nv">with-file</span> <span class="nv">$file</span> <span class="k">[</span><span class="nb">list</span> fd <span class="s2">&quot;return \[readlines \$fd {$block}\]&quot;</span><span class="k">]</span>
+    <span class="k">}</span>
+<span class="k">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="webautomation.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>&nbsp;</TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Web Automation</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>&nbsp;</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

@@ -1,0 +1,1517 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Subroutines</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-REXX "
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Directories"
+HREF="directories.html"><LINK
+REL="NEXT"
+TITLE="References and Records"
+HREF="referencesandrecords.html"></HEAD
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-REXX </TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="directories.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="referencesandrecords.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="SUBROUTINES"
+>10. Subroutines</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN536"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* REXX supports two types of subroutine:                             */
+/* * Internal Subroutine [A block of instructions commencing with a   */
+/*   label, ending with a RETURN instruction]                         */
+/*                                                                    */
+/* * External Subroutine [Subroutine residing external to the caller  */
+/*   in a separate script file; it's last statement will be an        */
+/*   implied RETURN instruction unless an explicit RETURN or EXIT is  */
+/*   used]                                                            */
+/*                                                                    */
+/* A REXX program, can itself, be considered an external subroutine.  */
+/* As such, all variables are local to a subroutine which means that  */
+/* there is no direct support for 'global' variables, though it is    */
+/* possible to achieve a similar effect via:                          */
+/*                                                                    */
+/* * Adopting the convention whereby a program only uses internal     */
+/*   subroutines; any variables declared at the 'program-level' can,  */
+/*   in effect, be considered 'global' [though whether these are      */
+/*   visible to internal subroutines is determined on an individual   */
+/*   basis via the PROCEDURE and EXPOSE intructions]                  */
+/*                                                                    */
+/* * Using an external 'storage facility'. This is a common approach  */
+/*   since common REXX usage sees it interact closely with the        */
+/*   external environment                                             */
+/*                                                                    */
+/* Two types of subroutine calling conventions:                       */
+/* * CALL instruction used to invoke subroutine designed as           */
+/*   procedures i.e. those which RETURN no value. However, it may     */
+/*   also be used to invoke a subroutine which does return a value    */
+/*   - in this case it is placed in a variable called RESULT          */
+/*                                                                    */
+/* * Implict call for subroutines designed as functions; requires     */
+/*   arguments enclosed in parentheses and the capture of the return  */
+/*   value in a variable or as an argument in another function call.  */
+/*   Argument list is, by convention, comma-separated, but may also   */
+/*   be space-separated although this requires an adjustment in how   */
+/*   arguments are extracted within the procedure                     */
+/* ------------------------------------------------------------------ */
+
+greeted = 0
+
+call hello
+greetings = howManyGreetings()
+say &quot;bye there!, there have been &quot; greetings &quot;greetings so far&quot;
+
+exit 0
+
+/* ----------- */
+
+hello :
+  greeted = greeted + 1
+  say &quot;hi there!, this procedure has been called&quot; greeted &quot;times&quot;
+  return
+
+/* ----------- */
+
+howManyGreetings :
+  return greeted</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN539"
+>Accessing Subroutine Arguments</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* REXX supports a flexible argument passing / extraction mechanism   */
+/* in that arguments passed to a procedure are nothing more than a    */
+/* list of strings.                                                   */
+/*                                                                    */
+/* The convention is to comma-separate arguments so that the          */
+/* subroutine simply parses a comma-separated string to extract       */
+/* arguments. It is, however, possible to circumvent convention and   */
+/* adopt an alternate argument passing approach when required.        */
+/*                                                                    */
+/* Argument extraction is via the the PARSE ARG instruction, or via   */
+/* the ARG() BIF, the latter used where manual parsing of the argument*/
+/* list is to be performed.                                           */
+/* ------------------------------------------------------------------ */
+
+/* Load math functions from external library */
+call rxFuncAdd 'mathLoadFuncs', 'rexxMath', 'mathLoadFuncs'
+call mathLoadFuncs
+
+/* In all cases, 'diag', contains the value 5 */ 
+diag = hypotenuse(3, 4)
+call hypotenuse 3, 4 ; diag = RESULT
+
+diag = hypotenuse2(3, 4)
+call hypotenuse2 3, 4 ; diag = RESULT
+
+diag = hypotenuse3(3 4)
+call hypotenuse3 3 4 ; diag = RESULT
+
+/* Unload math functions */
+call mathDropFuncs
+
+exit 0
+
+/* ----------- */
+
+/* Extract comma-separated arguments via 'parse' instruction */
+hypotenuse : procedure
+
+  /* Extracting subroutine arguments - assumed comma-separated */
+  parse arg side1, side2
+
+  return SQRT((side1 ** 2) + (side2 ** 2))
+
+/* ----------- */
+
+/* Extract comma-separated arguments via 'ARG()' BIF */
+hypotenuse2 : procedure
+
+  /* Check number of [comma-separated] arguments passed */
+  if ARG() \= 2 then return -1
+
+  /* Extracting subroutine arguments - assumed comma-separated */
+  side1 = ARG(1) ; side2 = ARG(2)
+
+  return SQRT((side1 ** 2) + (side2 ** 2))
+
+/* ----------- */
+
+/* Extract space-separated arguments via 'ARG()' BIF */
+hypotenuse3 : procedure
+
+  /* Extracting subroutine arguments - assumed space-separated */
+  parse value ARG(1) with side1 side2 .
+
+  return SQRT((side1 ** 2) + (side2 ** 2))</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN542"
+>Making Variables Private to a Function</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* In REXX, all variables are local to a subroutine, thus a caller has*/
+/* no direct access to the variables of a callee, something which     */
+/* applies equally to both internal and external subroutines.         */
+/*                                                                    */
+/* An internal subroutine, since it is by definition, part of a REXX  */
+/* program [therefore part of an external subroutine] is, by default, */
+/* granted full access to the caller's variables. However, it is      */
+/* possible to prevent such access via the PROCEDURE instruction, or  */
+/* more selectively, via a combination of the PROCEDURE and EXPOSE    */
+/* instructions.                                                      */
+/*                                                                    */
+/* Example:                                                           */
+/*                                                                    */
+/*     v1 = 5 ; v2 = 10                                               */
+/*                                                                    */
+/*     call f1                                                        */
+/*     call f2                                                        */
+/*     call f3                                                        */
+/*                                                                    */
+/*     exit 0                                                         */
+/*                                                                    */
+/*     f1 :                                                           */
+/*       /* Access to caller's 'v1' and 'v2' */                       */
+/*       v1 = 10 ; v2 = 15 ; return                                   */
+/*                                                                    */
+/*     f2 : procedure                                                 */
+/*       /* No access to caller's variables - all local to 'f2' */    */
+/*       v1 = 10 ; v2 = 15 ; return                                   */
+/*                                                                    */
+/*     f3 : procedure expose v1                                       */
+/*       /* Access to caller's 'v1' only; 'v2' is local to 'f3' */    */
+/*       v1 = 10 ; v2 = 15 ; return                                   */
+/* ------------------------------------------------------------------ */
+
+/*
+   Unless 'variable' is declared in the caller, thus any reference
+   to it is to the caller's, it is implicitly invisible outside of
+   'somefunc'
+*/
+somefunc :
+    variable = something  
+
+/* ----------------------------- */
+
+/*
+   'variable' is implicitly invisible outside of 'somefunc' since
+   even if the caller declared its own 'variable', it would not
+   be visible here
+*/
+somefunc : procedure
+    variable = something  </PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN545"
+>Creating Persistent Private Variables</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* REXX does not support persistent private variables, commonly known */
+/* as 'static' variables in various languages. REXX *does* allow:     */
+/* * Visibility of a 'local' variable to be restricted to certain     */
+/*   subroutines, but the variable is not persistent - it's destroyed */
+/*   once the current subroutine [caller] exits                       */
+/* * A 'global' variable to be resticted to certain subroutines; if   */
+/*   the variable is first used in the top-level caller then it may be*/
+/*   considered persistent. However, it is also visible within the    */
+/*   scope it was first used - so is not, strictly-speaking, private  */
+/*                                                                    */
+/* A common method for mimicing persistent private variables is to    */
+/* globally share a 'stem' variable, and have each subroutine that    */
+/* needs such items create a leaf [named after itself] on this stem.  */
+/* This approach provides persistence whilst avoiding the inadvertent */
+/* use of global names.                                               */
+/* ------------------------------------------------------------------ */
+
+/* -------------------------------
+   REXX doesn't have unnamed scopes that allow declarations:
+
+   {
+      my $variable;
+      sub mysub {
+         # ... accessing $variable
+      }
+   }
+
+   The following:
+
+   BEGIN {
+      my $counter = 42;
+      sub next_counter { return ++$counter }
+      sub prev_counter { return --$counter }
+   }
+
+   may be [roughly] implemented in two ways:
+   ----------------------------- */
+
+/* [1] Persistent, but not entirely private */
+counter = 42
+
+call next_counter
+call next_counter
+call prev_counter
+
+exit 0
+
+/* ----------- */
+
+next_counter : procedure expose counter
+  counter = counter + 1
+  return counter
+
+prev_counter : procedure expose counter
+  counter = counter - 1
+  return counter
+
+/* ----------------------------- */
+
+/* [2] Private, but not persistent */
+
+BEGIN
+
+exit 0
+
+/* ----------- */
+
+BEGIN : procedure
+  counter = 42
+  call next_counter
+  call next_counter
+  call prev_counter
+
+  /* 'counter' destroyed once subroutine returns */
+  return
+
+/* ----------- */
+
+next_counter : procedure expose counter
+  counter = counter + 1
+  return counter
+
+prev_counter : procedure expose counter
+  counter = counter - 1
+  return counter</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN548"
+>Determining Current Function Name</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* REXX does not offer a standard means of obtaining the current      */
+/* procedure name.                                                    */
+/*                                                                    */
+/* The PARSE instruction with argument SOURCE may be used to obtain:  */
+/* * Operating System Name                                            */
+/* * Invocation Mode of current script file                           */
+/*                                                                    */
+/* Various implementations extend the range of available information  */
+/* with a third argument commonly being the name of the current script*/
+/* file. If only external procedures are ever invoked then this value */
+/* corresponds to the procedure name. It is otherwise not possible to */
+/* obtain the name of an internal procedure except via some kludge,   */
+/* which include:                                                     */ 
+/*                                                                    */
+/* * Pass the procedure name as a procedure argument                  */
+/* * Force an error which then invokes the debugger; trap and parse   */
+/*   this output [approach might even allow tracing the call stack    */
+/*   but this *is not* a standard approach]                           */
+/* ------------------------------------------------------------------ */
+
+me = whoami(&quot;whoami&quot;)
+him = whowasi(&quot;whowasi&quot;)
+
+exit 0
+
+/* ----------- */
+
+whoami : procedure
+  parse arg name
+  return name
+
+whowasi : procedure
+  parse arg name
+  return name</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN551"
+>Passing Arrays and Hashes by Reference</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* REXX supports neither pass-by-reference, nor return-by-reference,  */ 
+/* thus it is *not* possible [using in-built REXX facilities] to:     */
+/*                                                                    */
+/* * Pass a variable name / handle to a subroutine                    */
+/* * Return a variable name / handle from a subroutine                */
+/*                                                                    */
+/* and use this item for updating a 'referred' object.                */
+/*                                                                    */
+/* Other languages possess similar restictions but can circumvent them*/
+/* via other built-in facilities. For example, the C language supports*/
+/* neither facility, but through its support of pointers mimics these */
+/* facilities [i.e. a pointer acts like a handle to a memory block,   */
+/* and by passing / returning pointer copies, several subroutines may */
+/* all access (and optionally update) the contents of this item].     */
+/*                                                                    */
+/* In REXX, the following applies:                                    */
+/*                                                                    */
+/* * Shared access to variable(s) possible via the EXPOSE instruction */
+/*   [i.e. controlled access to 'global' data]. This is the idiomatic */
+/*   REXX approach though it may be considered by some to not wholly  */
+/*   adhere to structured programming principles                      */
+/*                                                                    */
+/* * Use of a third party library that implements pointer-like or     */
+/*   handle-like functionality. The third-party code used is 'RxHash' */ 
+/*   library [details on availability in Appendix, and it is also     */
+/*   extensively showcased in the PLEAC arrays section &lt;&lt;PLEAC_4.X&gt;&gt;] */
+/*                                                                    */
+/* The examples illustrate both approaches though emphasis is placed  */
+/* on using the 'RxHash' library approach as it is closer in spirit to*/
+/* the 'pass-by-reference' approach. Also, all 'RxHash' examples      */
+/* assume the following prologue / epilogue:                          */
+/*                                                                    */
+/*   call rxFuncAdd 'arrLoadFuncs', 'rxHash', 'arrLoadFuncs'          */
+/*   call arrLoadFuncs                                                */
+/*   ...                                                              */
+/*   call arrDropFuncs                                                */
+/* ------------------------------------------------------------------ */
+
+/* 'array_diff' Example 1: Data sharing via EXPOSE instruction */
+array1.0 = 3 ; array1.1 = 'a' ; array1.2 = 'b' ; array1.3 = 'c'
+array2.0 = 3 ; array2.1 = 'a' ; array2.2 = 'z' ; array2.3 = 'c'
+
+/* Arguments need not be passed - done so to enhance code intent */
+is_array_different = array_diff(array1, array2)
+
+exit 0 
+
+/* ----------- */
+
+/* Subroutine has direct access to 'array1.' and 'array2.' variables */
+array_diff : procedure expose array1. array2.
+  /* Any passed arguments ignored - direct access to 'exposed' items */
+  if array1.0 \= array2.0 then ; return TRUE
+
+  /* Convention is that leaf '.0' of a stem variable contain is size */
+  do i = 1 for array1.0
+    if array1.i \= array2.i then ; return TRUE
+  end
+  return FALSE
+
+/* ----------------------------- */
+
+/* 'array_diff' Example 2(a): Data sharing via array handle-passing */
+array1.0 = 3 ; array1.1 = 'a' ; array1.2 = 'b' ; array1.3 = 'c'
+array2.0 = 3 ; array2.1 = 'a' ; array2.2 = 'z' ; array2.3 = 'c'
+
+/* Dynamic 'arrays' created from stem variable contents */
+array1Ptr = arrFromStem(&quot;array1.&quot;) ; array2Ptr = arrFromStem(&quot;array2.&quot;)
+
+/* Dynamic array handles passed as arguments to subroutine */
+is_array_different = array_diff(array1Ptr, array2Ptr)
+
+/* Free dynamic array resources */
+call arrDrop array1Ptr, array2Ptr
+
+exit 0 
+
+/* ----------- */
+
+array_diff : procedure
+  /* Extract arguments to obtain array handles */
+  array1 = ARG(1) ; array2 = ARG(2)
+
+  /* Compare array sizes - zeroeth element is array size */
+  arrSize = arrGet(array1, 0)
+  if arrSize \= arrGet(array2, 0) then ; return TRUE
+
+  do i = 1 for arrSize
+    if arrGet(array1, i) \= arrGet(array2, i) then ; return TRUE
+  end
+  return FALSE
+
+/* ----------------------------- */
+
+/* 'array_diff' Example 2(b): Data sharing via array handle-passing */
+
+/* Dynamic 'arrays' created [Always place length in zeroeth element] */
+array1Ptr = arrNew() ; call arrSet array1Ptr, 0, 0
+array2Ptr = arrNew() ; call arrSet array2Ptr, 0, 0
+
+/* Load arrays with data */
+call arrSet array1Ptr, 1, 'a' ; call arrSet array2Ptr, 1, 'a'
+call arrSet array1Ptr, 2, 'b' ; call arrSet array2Ptr, 2, 'z'
+call arrSet array1Ptr, 3, 'c' ; call arrSet array2Ptr, 3, 'c'
+
+/* Update array length */
+call arrSet array1Ptr, 0, 3 ; call arrSet array2Ptr, 0, 3
+
+/* Dynamic array handles passed as arguments to subroutine */
+is_array_different = array_diff(array1Ptr, array2Ptr)
+
+/* Free dynamic array resources */
+call arrDrop array1Ptr, array2Ptr
+
+exit 0 
+
+/* Subroutine as for 2(a) */
+
+/* ----------------------------- */
+
+/* Create and load arrays */
+a = arrNew() ; b = arrNew()
+call arrSet a, 1, 1 ; call arrSet a, 2, 2 ; call arrSet a, 0, 2
+call arrSet b, 1, 5 ; call arrSet b, 2, 8 ; call arrSet b, 0, 2
+
+/* Compute results, capture return array */
+c = add_vecpair(a, b)
+
+/* Build output string */
+arrSize = arrGet(c, 0) ; arrString = &quot;&quot;
+do i = 1 for arrSize
+  arrString = arrString arrGet(c, i)
+end
+
+/* Output: 6 10 */
+say STRIP(arrString)
+
+/* Release arrays */
+call arrDrop a, b, c
+ 
+/* ----------- */
+
+add_vecpair : procedure
+  /* Extract arguments to obtain array handles */
+  array1 = ARG(1) ; array2 = ARG(2)
+
+  /* Allocate dynamic array, set its size to zero */
+  arrayRet = arrNew() ; call arrSet arrayRet, 0, 0
+
+  /* Compare array sizes - zeroeth element is array size */
+  arrSize = arrGet(array1, 0)
+  if arrSize \= arrGet(array2, 0) then ; return arrayRet
+
+  /* Compute vector sum */
+  do i = 1 for arrSize
+    call arrSet arrayRet, i, arrGet(array1, i) + arrGet(array2, i)
+  end
+
+  /* Update array size */
+  call arrSet arrayRet, 0, arrSize
+
+  return arrayRet</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN554"
+>Detecting Return Context</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* Since REXX is a typeless language - the only 'type' is 'string', a */
+/* sequence of characters - it isn't possible to determine the 'return*/
+/* context' of a subroutine as is possible in Perl [i.e. Perl achieves*/
+/* this feat by inspecting the stack looking for the type signature of*/
+/* the variable 'capturing' the subroutine's return value (IIRC)].    */
+/*                                                                    */
+/* It is, however, possible to conditionally return values, be it the */
+/* number of values, or the 'type' [loosely speaking] of values, based*/
+/* on a control flag argument value. This is a rather conventional    */
+/* approach capable of being used in many language environments. The  */
+/* example shown will utilise this approach.                          */
+/* ------------------------------------------------------------------ */
+
+call mysub                                   /* Void Context */
+
+scalar = mysub('S')                          /* Scalar Context */
+if mysub('S') \= &quot;&quot; then ; nop
+
+list = mysub('L')                            /* List Context */
+
+exit 0
+
+/* ----------- */
+
+mysub : procedure
+  parse upper arg retType
+
+  if retType == 'S' then ; return 4          /* Scalar */
+  if retType == 'L' then ; return &quot;1 2 3 4&quot;  /* List */
+
+  return &quot;&quot; /* void */</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN557"
+>Passing by Named Parameter</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* Argument passing to subroutines is entirely optional: all may be   */
+/* legally called with zero or more arguments; whether they are used, */
+/* or not, is a subroutine design issue. Looking at this another way, */
+/* if arguments are passed to a subroutine then data is available for */
+/* extraction [via the ARG BIF or PARSE ARG instruction] and use; if  */
+/* no arguments were passed then any extraction results in empty [&quot;&quot;] */
+/* strings. No runtime argument-passing checks are otherwise made.    */
+/*                                                                    */
+/* REXX offers no formal support for 'named' parameters, or, for that */
+/* matter, default parameters. However, it is easy to mimic both by   */
+/* adopting a suitable convention. Examples of these appear below.    */
+/* ------------------------------------------------------------------ */
+
+call defaultParmExample             /* a = 'X', b = 'X', c = 'X' */
+call defaultParmExample 1           /* a = 1,  b = 'X', c = 'X' */
+call defaultParmExample 1, , 3      /* a = 1,  b = 'X', c = 3 */
+
+exit 0
+
+/* ----------- */
+
+defaultParmExample : procedure
+  defaultValue = 'X'
+
+  /* Check whether argument(s) assigned */ 
+  a = defaultValue ; if ARG(1) \= &quot;&quot; then ; a = ARG(1)
+  b = defaultValue ; if ARG(2) \= &quot;&quot; then ; b = ARG(2)
+  c = defaultValue ; if ARG(3) \= &quot;&quot; then ; c = ARG(3)
+
+  /* Display each parameter and its assigned value */
+  say &quot;a =&quot; a
+  say &quot;b =&quot; b
+  say &quot;c =&quot; c
+
+  return
+
+/* ----------------------------- */
+
+call namedParmExample &quot;a=1&quot;, &quot;b=2&quot;, &quot;c=cat&quot;
+
+exit 0
+
+/* ----------- */
+
+namedParmExample : procedure
+  /* Extract argument count */
+  argCount = ARG()
+
+  do i = 1 for argCount
+    /* Parse 'named' parameter and value */
+    parse value ARG(i) with key '=' val
+
+    /* Create and initialise 'named' parameter */
+    call VALUE key, val
+  end
+
+  /* Display each 'named' parameter and its assigned value */
+  say &quot;a =&quot; a
+  say &quot;b =&quot; b
+  say &quot;c =&quot; c
+
+  return
+
+/* ----------------------------- */
+
+call thefunc &quot;increment=20s&quot;, &quot;start=+5m&quot;, &quot;finish=+30m&quot;
+call thefunc &quot;start=+5m&quot;, &quot;finish=+30m&quot;
+call thefunc &quot;finish=+30m&quot;
+call thefunc &quot;start=+5m&quot;, &quot;increment=15s&quot;
+
+exit 0
+
+/* ----------- */
+
+thefunc : procedure 
+  /* Set default values */
+  increment = '10s' ; finish = 0 ; start = 0
+
+  /* Extract argument count */
+  argCount = ARG()
+
+  do i = 1 for argCount
+    /* Parse 'named' parameter and value */
+    parse value ARG(i) with key '=' val
+
+    /* Create and initialise 'named' parameter */
+    call VALUE key, val
+  end
+
+  /* Default values remain unless 'named' parameters were passed */
+  if RIGHT(increment, 1) == &quot;m&quot; then ; nop
+
+  return</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN560"
+>Skipping Selected Return Values</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* The PARSE instruction is generally used to tokenise a string. When */
+/* used with the VALUE clause it is used to:                          */
+/*                                                                    */
+/* * Assign literals to a list of variables                           */
+/* * Tokenise the return value of a function [shown below] or an      */
+/*   expression                                                       */
+/*                                                                    */
+/* Since a string may be composed of several items, a function        */
+/* returning a string allows it to mimic the returning of multiple    */
+/* values. It also, almost invariably, requires the use of PARSE VALUE*/
+/*                                                                    */
+/* Since not all return values may be of significance on every call,  */
+/* it is convention to use the '.' as the 'ignore' indicator - any    */
+/* matching output is discarded.                                      */
+/*                                                                    */
+/* Examples use the following custom functions:                       */
+/*                                                                    */
+/* func : return &quot;1 b cval&quot;                                           */
+/* stat : return &quot;DEV INO X Y UID&quot;                                    */
+/* ------------------------------------------------------------------ */
+
+parse value func() with a ignore c
+
+/* Displays: 1 'b' 'cval' */
+say a ignore c
+
+/* ----------- */
+
+parse value func() with a . c
+
+/* Displays: 1 'cval' */
+say a c
+
+/* ----------- */
+
+filename = &quot;myfile.txt&quot;
+parse value stat(filename) with dev ino . . uid
+
+/* Displays: 'DEV' 'INO' 'UID'  */
+say dev ino uid</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN563"
+>Returning More Than One Array or Hash</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* As already described in &lt;&lt;PLEAC&gt;&gt;_10.8 a function may mimic the    */
+/* returning of multiple variables by returning a string which is     */
+/* tokenised into multiple values.                                    */
+/*                                                                    */
+/* As already described in &lt;&lt;PLEAC&gt;&gt;_10.5 REXX supports neither       */
+/* pass-by-reference, nor return- by-reference, but can use a 'handle-*/
+/* based' approach [with the help of a third-party library] to 'share'*/
+/* arrays among several subroutines.                                  */
+/*                                                                    */
+/* Sadly these two techniques cannot be combined since handles are,   */
+/* themselves, strings, and cannot be arbitrarily combined and taken  */
+/* apart. It is, however, possible to use the stack to return a fixed,*/
+/* or arbitrary number of such items from a subroutine. Its caller is,*/
+/* of course, responsible for any stack cleanup.                      */
+/*                                                                    */
+/* Stack use is quite simple:                                         */
+/*                                                                    */
+/* * Place items on stack via:                                        */
+/*                                                                    */
+/*     queue ITEM   [FIFO order retrieval]                            */
+/*     push ITEM    [LIFO order retrieval]                            */
+/*                                                                    */
+/* * Extract items from stack [somewhat like reading a file] via:     */
+/*                                                                    */
+/*     do while QUEUED() &gt; 0                                          */
+/*       parse pull ITEM                                              */
+/*       /* Do something with ITEM ... */                             */
+/*     end                                                            */
+/*                                                                    */
+/*   Another technique involves placing [and later retrieving] the    */
+/*   number of items in the stack; a counted loop can then be used for*/
+/*   item retrieval.                                                  */
+/*                                                                    */
+/* Only a single example is shown - a modification of the 'somefunc'  */
+/* Perl example - that uses a counted loop for stack retrieval. The   */
+/* variables used map as follows:                                     */ 
+/*                                                                    */
+/*   array_ref.0  --&gt;  Number of stack items                          */
+/*   array_ref.1  --&gt;  $array_ref                                     */
+/*   array_ref.2  --&gt;  $hash_ref                                      */
+/* ------------------------------------------------------------------ */
+
+/* Return value is the number of items to be extracted from stack */
+array_ref.0 = somefunc()
+
+/* Use counted loop to retrieve 'returned' array handles */
+do i = 1 for array_ref.0
+  /* Extract item [array handle] from stack */
+  parse pull array_ref.i
+
+  /* Display array handle 'length' to prove items are intact */
+  say &quot;Length of array_ref.&quot;||i &quot;=&quot; arrGet(array_ref.i, 0)
+
+  /* Free array handle */
+  call arrDrop array_ref.i
+end
+
+exit 0
+
+/* ----------- */
+
+somefunc : procedure
+  /* Create two dynamic arrays, set their sizes to arbitrary values */
+  arrayRet1 = arrNew() ; call arrSet arrayRet1, 0, 3
+  arrayRet2 = arrNew() ; call arrSet arrayRet2, 0, 4
+
+  /* Return array handles on the stack for FIFO retrieval */
+  queue arrayRet1 ; queue arrayRet2 
+
+  /* Return number of array handles returned */
+  return 2</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN566"
+>Returning Failure</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* Like so many programming languages, the empty string - &quot;&quot; - may be */
+/* used to indicate that a subroutine 'failed'. This is, of course, a */
+/* convention only, purely an arbitrary choice.                       */ 
+/*                                                                    */
+/* In order to improve the readability of examples, the variable NULL */
+/* has been assigned the empty string value, so code such as:         */
+/*                                                                    */
+/*   return &quot;&quot;                                                        */
+/*                                                                    */
+/* and:                                                               */
+/*                                                                    */
+/*   return NULL                                                      */
+/*                                                                    */
+/* is equivalent.                                                     */
+/* ------------------------------------------------------------------ */
+
+return &quot;&quot;
+
+/* ----------- */
+
+empty_retval : return &quot;&quot;
+
+/* ----------- */
+
+a = yourfunc()
+
+/* 'nop' means 'No operation' - same as Python's 'pass' */
+if a == &quot;&quot; then ; nop 
+
+/* ----------------------------- */
+
+a = sfunc()
+if a == &quot;&quot; then do
+  ERRTXT = &quot;sfunc failed&quot;
+  signal assertionError
+end
+
+/* ----------- */
+
+assertionError : 
+  say ERRTXT
+  exit 1</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN569"
+>Prototyping Functions</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* REXX does not require / support the prototyping of subroutines. A  */
+/* subroutine is simply assumed to exist as one of a:                 */ 
+/*                                                                    */
+/* * Label [Internal Subroutine]                                      */ 
+/* * File [External Subroutine]                                       */
+/*                                                                    */
+/* when a subroutine invocation is encountered. If the interpreter    */
+/* fails to locate the subroutine then a SYNTAX error is thrown.      */ 
+/* ------------------------------------------------------------------ */
+
+/* *** Translation skipped *** */</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN572"
+>Handling Exceptions</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* REXX does sport several types of built-in exception. However, REXX */
+/* at least as defined in the ANSI standard, doesn't support user-def-*/
+/* ined exceptions, nor does it allow the user to raise any of them.  */
+/* It is, therefore, not possible to implement exact equivalents to   */
+/* the Perl examples [some REXX interpreters do, however, overcome    */
+/* these limitations].                                                */
+/*                                                                    */
+/* Instead, a simple example illustrating exception handling [called  */
+/* CONDITION handling in REXX] will be provided.                      */
+/* ------------------------------------------------------------------ */
+
+/* Install exception handlers */
+
+/*
+   These will not return control, thus they should each
+   perform some sort of appropriate error handling e.g. message
+   display / logging, application cleanup, etc, and then exit
+   the application
+*/
+signal on HALT name HALT_Handler
+signal on SYNTAX name SYNTAX_Handler
+signal on NOVALUE name NOVALUE_Handler
+
+/*
+   These return control, thus it is possible to recover from
+   a problem
+*/
+call on ERROR name ERROR_Handler
+call on FAILURE name FAILURE_Handler
+call on NOTREADY name NOTREADY_Handler
+
+/*
+   Do something that causes a signal to be raised. Here we
+   assign to an undefined variable. A NOVALUE condition is
+   raised, and NOVALUE_Handler is invoked
+*/ 
+
+a = a + 1
+
+exit 0
+
+/* ----------- */
+
+/* Exception handlers */
+
+/* Thse exit from application */
+SYNTAX_Handler :
+  say &quot;SYNTAX Condition&quot;
+  say &quot;Line:&quot; SIGL
+  say CONDITION('D')
+  exit 1
+  return
+
+HALT_Handler :
+  say &quot;HALT Condition&quot;
+  say &quot;Line:&quot; SIGL
+  say CONDITION('D')
+  exit 1
+  return
+
+NOVALUE_Handler :
+  say &quot;NOVALUE Condition&quot;
+  say &quot;Line:&quot; SIGL
+  say CONDITION('D')
+  exit 1
+  return
+
+/* These return to caller */
+ERROR_Handler :
+  say &quot;ERROR Condition&quot;
+  say &quot;Line:&quot; SIGL
+  say CONDITION('D')
+  return
+
+FAILURE_Handler :
+  say &quot;FAILURE Condition&quot;
+  say &quot;Line:&quot; SIGL
+  say CONDITION('D')
+  return
+
+NOTREADY_Handler :
+  say &quot;NOTREADY Condition&quot;
+  say &quot;Line:&quot; SIGL
+  say CONDITION('D')
+  return</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN575"
+>Saving Global Values</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* REXX does not support true 'global' variables, therefore it does   */
+/* not implement the equivalent of Perl's LOCAL whereby a local name  */
+/* can be made to override a global name for current block duration.  */
+/* The closest facility offered in REXX are the PROCEDURE and EXPOSE  */
+/* instructions, but these apply only to the subroutine to which they */
+/* are applied, not on a block-basis like Perl's LOCAL.               */
+/*                                                                    */
+/* See PLEAC 10.2 for examples of PROCEDURE and EXPOSE                */
+/* ------------------------------------------------------------------ */
+
+/* *** Translation skipped *** */</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN578"
+>Redefining a Function</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* REXX subroutines are identified via labels. Unlike variables which */
+/* may be undefined via the DROP instruction, labels cannot be        */
+/* undefined. Any attempt to redefine a subroutine will be ignored -  */
+/* ony the first definition in the source file will be recognised.    */
+/*                                                                    */
+/* Example:                                                           */
+/*                                                                    */
+/*     call f                                                         */
+/*     exit 0                                                         */
+/*                                                                    */
+/*     /* Multiple subroutines - only the first one is recognised */  */
+/*     f : say &quot;First 'f'&quot;; return                                    */
+/*     f : say &quot;Second 'f'&quot;; return                                   */
+/*     f : say &quot;Third 'f'&quot;; return                                    */
+/*                                                                    */
+/* Nor is it possible to assign the name of a subroutine to a         */
+/* variable, and execute it *indirectly*. This is because REXX does   */
+/* not support the notion of object 'address' or 'reference'. In      */
+/* short, the whole concept of aliasing is entirely foreign to REXX.  */
+/*                                                                    */
+/* Aliasing-type behaviour is possible in REXX via:                   */
+/*                                                                    */
+/* * VALUE BIF                                                        */
+/* * INTERPRET instruction                                            */
+/*                                                                    */
+/* but the approach taken is to build an expression, then dynamically */
+/* evaluate it [the INTERPRET instruction is similar to the 'eval'    */
+/* facility in Perl and Python].                                      */
+/* ------------------------------------------------------------------ */
+
+/* A call to label, 'expand' */
+call expand
+
+/* Variable, 'grow', assigned literal, 'expand'
+grow = 'expand'
+
+/* A call to label [not variable], 'grow' */
+call grow
+
+/* Both equivalent to: 'call expand' */
+interpret 'call' grow
+interpret 'call' VALUE('grow')
+
+exit 0
+
+/* ----------- */
+
+grow : say 'grow' ; return
+expand : say 'expand' ; return
+
+/* ----------------------------- */
+
+two.Table = &quot;X&quot; ; two.small = &quot;Y&quot;
+
+one.var = 'two.Table'
+one.big = 'two.small'
+
+interpret 'say' VALUE('one.var')
+interpret 'say' VALUE('one.big')
+
+/* ----------------------------- */
+
+fred = 'barney'       
+interpret VALUE('fred') '=' 15
+
+say fred      /* fred = 'barney' */
+say barney    /* barney = 15 */
+
+/* ----------------------------- */
+
+s = 'red(&quot;careful here&quot;)'
+interpret 'say' VALUE('s')
+
+s = 'green(&quot;careful there&quot;)'
+interpret 'say' VALUE('s')
+
+s = 'blue(&quot;careful everywhere&quot;)'
+interpret 'say' VALUE('s')
+
+/* ----------- */
+
+color_font :
+  parse arg color, text
+  return &quot;&lt;FONT COLOR='&quot; || color || &quot;'&gt;&quot; || text || &quot;&lt;/FONT&gt;&quot;
+
+red :
+  parse arg text ; return color_font(&quot;red&quot;, text)
+green :
+  parse arg text ; return color_font(&quot;green&quot;, text)
+blue :
+  parse arg text ; return color_font(&quot;blue&quot;, text)</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN581"
+>Trapping Undefined Function Calls with AUTOLOAD</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* REXX does not sport an AUTOLOAD facility. However, should a        */
+/* non-existent subroutine be invoked the interpreter will signal a   */
+/* SYNTAX error, typically Syntax Error Number 43 - &quot;Routine not      */
+/* found&quot;. It is possible to install a subroutine which checks for    */
+/* this condition, and then takes appropriate recovery steps, perhaps */
+/* copying an external subroutine from another location, or maybe     */
+/* generating one, and then reattempting the subroutine invocation.   */
+/*                                                                    */
+/* Note, however, this approach is quite limited:                     */
+/* * The undefined procedure cannot be identified                     */
+/* * SYNTAX class errors are not directly recoverable because control */
+/*   is not returned to the line following the error [because the     */
+/*   SIGNAL instruction must be used which possesses a GOTO-like      */
+/*   behaviour]                                                       */
+/*                                                                    */
+/* Example:                                                           */
+/*                                                                    */
+/*     /* Commands are system-specific - examples are Win32 */        */
+/*     DELCMD = &quot;del/q notExistFunc.rexx&quot;                             */
+/*     GENCMD = &quot;@echo say 'I am notExistFunc' &gt; notExistFunc.rexx&quot;   */
+/*                                                                    */
+/*     main :                                                         */
+/*       /* Install SYNTAX error handler */                           */
+/*       signal on SYNTAX name notExistFuncTrap                       */
+/*                                                                    */
+/*       /* Call an undefined subroutine */                           */
+/*       call notExistFunc                                            */
+/*                                                                    */
+/*       /* If here, subroutine *was* executed */                     */
+/*       say &quot;'notExistFunc' called ok&quot;                               */
+/*                                                                    */
+/*       /* Delete subroutine before exiting */                       */
+/*       address system DELCMD                                        */
+/*                                                                    */
+/*       exit 0                                                       */
+/*                                                                    */
+/*     /* SYNTAX error handler */                                     */
+/*     notExistFuncTrap :                                             */
+/*       say &quot;'notExistFunc' not found, so generating it ...&quot;         */
+/*                                                                    */
+/*       /* Generate missing subroutine */                            */
+/*       address system GENCMD                                        */
+/*                                                                    */
+/*       /* Retry operation by branching back to known label */       */
+/*       signal main                                                  */
+/* ------------------------------------------------------------------ */
+
+/* *** Translation skipped *** */</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN584"
+>Nesting Subroutines</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* REXX does not support the nesting of subroutines; these must all be*/
+/* top-level, and it is not possible to restrict their visibility. If */
+/* nesting *is* attempted control returns from the point in the outer */
+/* subroutine where the first inner subroutine is defined; this can be*/
+/* a difficult problem to diagnose.                                   */
+/* ------------------------------------------------------------------ */
+
+/* WRONG ! */
+outer : procedure
+  parse arg x
+  x = x + 35
+
+  inner : return x * 19 /* 'inner' block executed; 'outer' returns */
+
+  return x + inner()    /* this line is never executed !!! */
+
+/* ----------- */
+
+/* OK, don't nest subroutines; alter access with PROCEDURE */
+outer : procedure
+  parse arg x
+  x = x + 35
+  return x + inner()    /* this line now executes */
+
+inner : return x * 19   /* 'inner' has direct access to 'x' */</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN587"
+>Program: Sorting Your Mail</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="directories.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="referencesandrecords.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Directories</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>References and Records</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

@@ -1,0 +1,607 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Dates and Times</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Common Lisp"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Numbers"
+HREF="numbers.html"><LINK
+REL="NEXT"
+TITLE="Arrays"
+HREF="arrays.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Common Lisp</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="numbers.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="arrays.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="DATESANDTIMES"
+>3. Dates and Times</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN132"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;;; Despite  standard Common Lisp  date &amp;  time related  functions used  in this</span>
+<span class="c1">;;; chapter,  there are  also these  date &amp;  time libraries  which you  might be</span>
+<span class="c1">;;; interested  in: local-time, net-telent-date,  and date-calc.   (Packages are</span>
+<span class="c1">;;; available      via      ASDF-INSTALL.)       There      is      also      &lt;a</span>
+<span class="c1">;;; href=&quot;http://cybertiggyr.com/gene/pdl/&quot;&gt;Parsing  Dates  in Lisp&lt;/a&gt;  webpage</span>
+<span class="c1">;;; written by G. M. Stover containing some utility scripts.</span>
+
+<span class="c1">;;; As a shortcut,  below is a small  list of available Common Lisp  date &amp; time</span>
+<span class="c1">;;; builtins.</span>
+
+<span class="c1">;;; Constant Variable &lt;a href=&quot;http://l1sp.org/cl/internal-time-units-per-second&quot;&gt;INTERNAL-TIME-UNITS-PER-SECOND&lt;/a&gt;</span>
+<span class="c1">;;; Function &lt;a href=&quot;http://l1sp.org/cl/decode-universal-time&quot;&gt;DECODE-UNIVERSAL-TIME&lt;/a&gt;</span>
+<span class="c1">;;; Function &lt;a href=&quot;http://l1sp.org/cl/encode-universal-time&quot;&gt;ENCODE-UNIVERSAL-TIME&lt;/a&gt;</span>
+<span class="c1">;;; Function &lt;a href=&quot;http://l1sp.org/cl/get-universal-time&quot;&gt;GET-UNIVERSAL-TIME&lt;/a&gt;</span>
+<span class="c1">;;; Function &lt;a href=&quot;http://l1sp.org/cl/get-decoded-time&quot;&gt;GET-DECODED-TIME&lt;/a&gt;</span>
+<span class="c1">;;; Function &lt;a href=&quot;http://l1sp.org/cl/sleep&quot;&gt;SLEEP&lt;/a&gt;</span>
+<span class="c1">;;; Function &lt;a href=&quot;http://l1sp.org/cl/get-internal-real-time&quot;&gt;GET-INTERNAL-REAL-TIME&lt;/a&gt;</span>
+<span class="c1">;;; Function &lt;a href=&quot;http://l1sp.org/cl/get-internal-run-time&quot;&gt;GET-INTERNAL-RUN-TIME&lt;/a&gt;</span>
+
+<span class="c1">;;; A &quot;decoded time&quot; is an ordered  series of nine values (second, minute, hour,</span>
+<span class="c1">;;; day,  month, year,  dow,  daylight-p, and  timezone)  that, taken  together,</span>
+<span class="c1">;;; represent a point in calendar time (ignoring leap seconds).</span>
+
+<span class="c1">;;; &quot;Universal time&quot;  is an absolute  time represented as a  single non-negative</span>
+<span class="c1">;;; integer  --- the  number  of seconds  since  midnight, January  1, 1900  GMT</span>
+<span class="c1">;;; (ignoring leap seconds).</span>
+
+<span class="p">(</span><span class="nb">get-universal-time</span><span class="p">)</span>
+<span class="c1">; =&gt; 3445946614</span>
+
+<span class="p">(</span><span class="nb">multiple-value-list</span> <span class="p">(</span><span class="nb">get-decoded-time</span><span class="p">))</span>
+<span class="c1">; =&gt; (45 23 17 13 3 2009 4 NIL -2)</span>
+
+<span class="c1">;;; Current  Common   Lisp  specification   is  lacking  of   a  day-of-the-year</span>
+<span class="c1">;;; concept.   But  we   can  easily   implement   it  using   a  decoded   time</span>
+<span class="c1">;;; specification.     (For     hairy    details     you     can    check     &lt;a</span>
+<span class="c1">;;; href=&quot;http://en.wikipedia.org/wiki/Calculating_the_day_of_the_week&quot;&gt;related</span>
+<span class="c1">;;; wikipedia page&lt;/a&gt; out.)</span>
+
+<span class="p">(</span><span class="nb">defun</span> <span class="nv">day-of-the-year</span> <span class="p">(</span><span class="k">&amp;optional</span> <span class="nv">universal-time</span><span class="p">)</span>
+  <span class="p">(</span><span class="k">let*</span> <span class="p">((</span><span class="nv">decoded-time</span> <span class="p">(</span><span class="nb">multiple-value-list</span>
+                           <span class="p">(</span><span class="nb">decode-universal-time</span>
+                            <span class="p">(</span><span class="nb">or</span> <span class="nv">universal-time</span>
+                                <span class="p">(</span><span class="nb">get-universal-time</span><span class="p">)))))</span>
+         <span class="p">(</span><span class="nv">day</span>          <span class="p">(</span><span class="nb">elt</span> <span class="nv">decoded-time</span> <span class="mi">3</span><span class="p">))</span>
+         <span class="p">(</span><span class="nv">month</span>        <span class="p">(</span><span class="nb">elt</span> <span class="nv">decoded-time</span> <span class="mi">4</span><span class="p">))</span>
+         <span class="p">(</span><span class="nv">year</span>         <span class="p">(</span><span class="nb">elt</span> <span class="nv">decoded-time</span> <span class="mi">5</span><span class="p">)))</span>
+    <span class="p">(</span><span class="nb">loop</span> <span class="nv">for</span> <span class="nv">m</span> <span class="nv">from</span> <span class="mi">2</span> <span class="nv">to</span> <span class="nv">month</span>
+          <span class="nb">do</span> <span class="p">(</span><span class="nb">incf</span> <span class="nv">day</span>
+                   <span class="p">(</span><span class="nb">elt</span>
+                     <span class="p">(</span><span class="nb">multiple-value-list</span>
+                         <span class="p">(</span><span class="nb">decode-universal-time</span>
+                          <span class="p">(</span><span class="nb">-</span> <span class="p">(</span><span class="nb">encode-universal-time</span> <span class="mi">0</span> <span class="mi">0</span> <span class="mi">0</span> <span class="mi">1</span> <span class="nv">m</span> <span class="nv">year</span><span class="p">)</span>
+                             <span class="p">(</span><span class="nb">*</span> <span class="mi">60</span> <span class="mi">60</span> <span class="mi">24</span><span class="p">))))</span>
+                     <span class="mi">3</span><span class="p">)))</span>
+    <span class="nv">day</span><span class="p">))</span>
+
+<span class="p">(</span><span class="nb">format</span> <span class="no">t</span> <span class="s">&quot;Today is day ~A of the current year.~%&quot;</span> <span class="p">(</span><span class="nv">day-of-the-year</span><span class="p">))</span>
+<span class="c1">; =&gt; Today is day 72 of the current year.</span>
+
+<span class="p">(</span><span class="nv">day-of-the-year</span> <span class="p">(</span><span class="nb">encode-universal-time</span> <span class="mi">59</span> <span class="mi">59</span> <span class="mi">23</span> <span class="mi">31</span> <span class="mi">12</span> <span class="mi">2009</span><span class="p">))</span>
+<span class="c1">; =&gt; 365</span>
+
+<span class="p">(</span><span class="nb">format</span> <span class="no">t</span> <span class="s">&quot;Today is day ~A of the current year.~%&quot;</span> <span class="p">(</span><span class="nv">day-of-the-year</span><span class="p">))</span>
+
+<span class="c1">;;; And here is a quick &amp; dirty `STRFTIME&#39; utility.</span>
+
+<span class="p">(</span><span class="nb">defmacro</span> <span class="nv">define-time-formatters</span> <span class="p">(</span><span class="k">&amp;body</span> <span class="nv">formatter-specs</span><span class="p">)</span>
+  <span class="o">`</span><span class="p">(</span><span class="nb">list</span>
+    <span class="o">,@</span><span class="p">(</span><span class="nb">mapcar</span>
+       <span class="p">(</span><span class="k">lambda</span> <span class="p">(</span><span class="nv">formatter-spec</span><span class="p">)</span>
+         <span class="o">`</span><span class="p">(</span><span class="nb">cons</span>
+           <span class="o">,</span><span class="p">(</span><span class="nb">first</span> <span class="nv">formatter-spec</span><span class="p">)</span>
+           <span class="p">(</span><span class="k">lambda</span> <span class="p">(</span><span class="nb">second</span> <span class="nv">minute</span> <span class="nv">hour</span> <span class="nv">day</span> <span class="nv">month</span> <span class="nv">year</span> <span class="nv">dow</span> <span class="nv">daylight-p</span> <span class="nv">zone</span><span class="p">)</span>
+             <span class="p">(</span><span class="k">declare</span> <span class="p">(</span><span class="k">ignorable</span> <span class="nb">second</span> <span class="nv">minute</span> <span class="nv">hour</span> <span class="nv">day</span> <span class="nv">month</span> <span class="nv">year</span> <span class="nv">dow</span> <span class="nv">daylight-p</span> <span class="nv">zone</span><span class="p">))</span>
+             <span class="o">,@</span><span class="p">(</span><span class="nb">rest</span> <span class="nv">formatter-spec</span><span class="p">))))</span>
+       <span class="nv">formatter-specs</span><span class="p">)))</span>
+
+<span class="p">(</span><span class="nb">defvar</span> <span class="vg">*time-formatters*</span>
+  <span class="p">(</span><span class="nv">define-time-formatters</span>
+    <span class="p">(</span><span class="sc">#\a</span> <span class="p">(</span><span class="nb">elt</span> <span class="o">#(</span><span class="s">&quot;Mon&quot;</span> <span class="s">&quot;Tue&quot;</span> <span class="s">&quot;Wed&quot;</span> <span class="s">&quot;Thu&quot;</span> <span class="s">&quot;Fri&quot;</span> <span class="s">&quot;Sat&quot;</span> <span class="s">&quot;Sun&quot;</span><span class="p">)</span> <span class="nv">dow</span><span class="p">))</span>
+    <span class="p">(</span><span class="sc">#\b</span> <span class="p">(</span><span class="nb">elt</span> <span class="o">#(</span><span class="s">&quot;Jan&quot;</span> <span class="s">&quot;Feb&quot;</span> <span class="s">&quot;Mar&quot;</span>
+                <span class="s">&quot;Apr&quot;</span> <span class="s">&quot;May&quot;</span> <span class="s">&quot;Jun&quot;</span>
+                <span class="s">&quot;Jul&quot;</span> <span class="s">&quot;Aug&quot;</span> <span class="s">&quot;Sep&quot;</span>
+                <span class="s">&quot;Oct&quot;</span> <span class="s">&quot;Nov&quot;</span> <span class="s">&quot;Dec&quot;</span><span class="p">)</span>
+              <span class="nv">month</span><span class="p">))</span>
+    <span class="p">(</span><span class="sc">#\d</span> <span class="p">(</span><span class="nb">format</span> <span class="no">nil</span> <span class="s">&quot;~2,&#39;0D&quot;</span> <span class="nv">day</span><span class="p">))</span>
+    <span class="p">(</span><span class="sc">#\H</span> <span class="p">(</span><span class="nb">format</span> <span class="no">nil</span> <span class="s">&quot;~2,&#39;0D&quot;</span> <span class="nv">hour</span><span class="p">))</span>
+    <span class="p">(</span><span class="err">#</span><span class="nv">j</span>  <span class="p">(</span><span class="nv">day-of-the-year</span>
+          <span class="p">(</span><span class="nb">encode-universal-time</span>
+           <span class="nb">second</span> <span class="nv">minute</span> <span class="nv">hour</span> <span class="nv">day</span> <span class="nv">month</span> <span class="nv">year</span> <span class="nv">dow</span> <span class="nv">zone</span><span class="p">)))</span>
+    <span class="p">(</span><span class="sc">#\m</span> <span class="p">(</span><span class="nb">format</span> <span class="no">nil</span> <span class="s">&quot;~2,&#39;0D&quot;</span> <span class="nv">month</span><span class="p">))</span>
+    <span class="p">(</span><span class="sc">#\M</span> <span class="p">(</span><span class="nb">format</span> <span class="no">nil</span> <span class="s">&quot;~2,&#39;0D&quot;</span> <span class="nv">minute</span><span class="p">))</span>
+    <span class="p">(</span><span class="sc">#\S</span> <span class="p">(</span><span class="nb">format</span> <span class="no">nil</span> <span class="s">&quot;~2,&#39;0D&quot;</span> <span class="nb">second</span><span class="p">))</span>
+    <span class="p">(</span><span class="sc">#\w</span> <span class="nv">dow</span><span class="p">)</span>
+    <span class="p">(</span><span class="sc">#\Y</span> <span class="nv">year</span><span class="p">)</span>
+    <span class="p">(</span><span class="sc">#\z</span> <span class="nv">zone</span><span class="p">)))</span>
+
+<span class="p">(</span><span class="nb">defun</span> <span class="nv">strftime</span> <span class="p">(</span><span class="nb">format</span> <span class="k">&amp;optional</span> <span class="nv">universal-time</span><span class="p">)</span>
+  <span class="p">(</span><span class="nb">with-output-to-string</span> <span class="p">(</span><span class="nv">out</span><span class="p">)</span>
+    <span class="p">(</span><span class="nb">loop</span> <span class="nv">for</span> <span class="nv">curr-index</span> <span class="nv">from</span> <span class="mi">0</span>
+          <span class="nv">for</span> <span class="nv">prev-special-p</span> <span class="nb">=</span> <span class="no">nil</span> <span class="nv">then</span> <span class="nv">curr-special-p</span>
+          <span class="nv">for</span> <span class="nv">curr-char</span> <span class="nv">across</span> <span class="nb">format</span>
+          <span class="nv">for</span> <span class="nv">curr-special-p</span> <span class="nb">=</span> <span class="p">(</span><span class="nb">char-equal</span> <span class="sc">#\%</span> <span class="nv">curr-char</span><span class="p">)</span>
+          <span class="nb">do</span> <span class="p">(</span><span class="nb">cond</span>
+               <span class="p">((</span><span class="nb">or</span> <span class="p">(</span><span class="nb">and</span> <span class="nv">prev-special-p</span> <span class="nv">curr-special-p</span><span class="p">)</span>
+                    <span class="p">(</span><span class="nb">not</span> <span class="p">(</span><span class="nb">or</span> <span class="nv">prev-special-p</span> <span class="nv">curr-special-p</span><span class="p">)))</span>
+                <span class="p">(</span><span class="nb">format</span> <span class="nv">out</span> <span class="s">&quot;~C&quot;</span> <span class="nv">curr-char</span><span class="p">))</span>
+               <span class="p">(</span><span class="nv">prev-special-p</span>
+                <span class="p">(</span><span class="nb">format</span>
+                 <span class="nv">out</span> <span class="s">&quot;~A&quot;</span>
+                 <span class="p">(</span><span class="k">if</span> <span class="p">(</span><span class="nb">not</span> <span class="p">(</span><span class="nb">&lt;</span> <span class="nv">curr-index</span> <span class="p">(</span><span class="nb">length</span> <span class="nb">format</span><span class="p">)))</span>
+                     <span class="p">(</span><span class="nb">error</span> <span class="s">&quot;Missing directive at position ~D.&quot;</span> <span class="nv">curr-index</span><span class="p">)</span>
+                     <span class="p">(</span><span class="nb">or</span> <span class="p">(</span><span class="nv">alexandria:when-let</span>
+                             <span class="p">(</span><span class="nb">formatter</span>
+                              <span class="p">(</span><span class="nb">find</span> <span class="nv">curr-char</span> <span class="vg">*time-formatters*</span>
+                                    <span class="ss">:test</span> <span class="nf">#&#39;</span><span class="nb">char-equal</span> <span class="ss">:key</span> <span class="nf">#&#39;</span><span class="nb">car</span><span class="p">))</span>
+                           <span class="p">(</span><span class="nb">apply</span>
+                            <span class="p">(</span><span class="nb">cdr</span> <span class="nb">formatter</span><span class="p">)</span>
+                            <span class="p">(</span><span class="nb">multiple-value-list</span>
+                                <span class="p">(</span><span class="nb">decode-universal-time</span>
+                                 <span class="p">(</span><span class="nb">or</span> <span class="nv">universal-time</span> <span class="p">(</span><span class="nb">get-universal-time</span><span class="p">))))))</span>
+                         <span class="p">(</span><span class="nb">error</span> <span class="s">&quot;Invalid directive ~S at position ~D.&quot;</span>
+                                <span class="nv">curr-char</span> <span class="nv">curr-index</span><span class="p">)))))))))</span>
+
+<span class="p">(</span><span class="nv">strftime</span> <span class="s">&quot;%d %b, %Y, %a&quot;</span><span class="p">)</span>
+<span class="c1">; =&gt; &quot;12 Apr, 2009, Thu&quot;</span>
+
+<span class="p">(</span><span class="k">let*</span> <span class="p">((</span><span class="nv">today</span>     <span class="p">(</span><span class="nb">get-universal-time</span><span class="p">))</span>
+       <span class="p">(</span><span class="nv">yesterday</span> <span class="p">(</span><span class="nb">-</span> <span class="nv">today</span> <span class="p">(</span><span class="nb">*</span> <span class="mi">60</span> <span class="mi">60</span> <span class="mi">24</span><span class="p">))))</span>
+  <span class="p">(</span><span class="nb">format</span> <span class="no">t</span> <span class="s">&quot;Today    : ~A (~A)~%Yesterday: ~A (~A)~%&quot;</span>
+          <span class="p">(</span><span class="nv">strftime</span> <span class="s">&quot;%Y-%m-%d %H:%M:%S&quot;</span> <span class="nv">today</span><span class="p">)</span> <span class="nv">today</span>
+          <span class="p">(</span><span class="nv">strftime</span> <span class="s">&quot;%Y-%m-%d %H:%M:%S&quot;</span> <span class="nv">yesterday</span><span class="p">)</span> <span class="nv">yesterday</span><span class="p">))</span>
+<span class="c1">; =&gt; Today    : 2009-22-13 17:22:09 (3445946529)</span>
+<span class="c1">;    Yesterday: 2009-22-12 17:22:09 (3445860129)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN135"
+>Finding Today's Date</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;;;-----------------------------</span>
+<span class="c1">;; use GET-DECODED-TIME to fetch the time</span>
+<span class="p">(</span><span class="nb">multiple-value-bind</span>
+      <span class="p">(</span><span class="nb">second</span> <span class="nv">minute</span> <span class="nv">hour</span> <span class="nv">date</span> <span class="nv">month</span> <span class="nv">year</span> <span class="nv">day-of-week</span> <span class="nv">dst-p</span> <span class="nv">tz</span><span class="p">)</span>
+    <span class="p">(</span><span class="nb">get-decoded-time</span><span class="p">)</span>
+  <span class="nv">year</span><span class="p">)</span> <span class="c1">; prints out year using standard library</span>
+
+<span class="c1">;; alternatively date-calc provides overlapping functionality</span>
+<span class="p">(</span><span class="nb">multiple-value-bind</span> <span class="p">(</span><span class="nv">year</span> <span class="nv">month</span> <span class="nv">day</span> <span class="nv">h</span> <span class="nv">m</span> <span class="nv">s</span><span class="p">)</span>
+    <span class="p">(</span><span class="nv">today-and-now</span><span class="p">)</span>                     <span class="c1">; imported from date-calc</span>
+  <span class="nv">year</span><span class="p">)</span>                                 <span class="c1">; date-calc approach</span>
+
+<span class="c1">;; how to print out current date as &quot;YYYY-MM-DD&quot; (in approved ISO 8601 fashion)</span>
+<span class="p">(</span><span class="nb">multiple-value-bind</span> <span class="p">(</span><span class="nv">year</span> <span class="nv">month</span> <span class="nv">day</span><span class="p">)</span>
+    <span class="p">(</span><span class="nv">today</span><span class="p">)</span>                             <span class="c1">;imported from date-calc</span>
+  <span class="p">(</span><span class="nb">format</span> <span class="no">t</span> <span class="s">&quot;The current date is ~A-~2,&#39;0d-~2,&#39;0d&quot;</span> <span class="nv">year</span> <span class="nv">month</span> <span class="nv">day</span><span class="p">))</span>
+
+<span class="c1">;; Alternatively, you could use the format-time function from the</span>
+<span class="c1">;; CyberTiggyr-Time package:</span>
+<span class="p">(</span><span class="nv">format-time</span> <span class="no">t</span> <span class="s">&quot;%Y-%m-%d&quot;</span> <span class="p">(</span><span class="nb">get-universal-time</span><span class="p">))</span>
+
+<span class="c1">;; As you can see, format-time operates on epoch time</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN138"
+>Converting DMYHMS to Epoch Seconds</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;;;-----------------------------</span>
+<span class="c1">;; to encode time into universal time using date-calc</span>
+<span class="p">(</span><span class="nb">multiple-value-bind</span>
+      <span class="p">(</span><span class="nb">second</span> <span class="nv">minute</span> <span class="nv">hour</span> <span class="nv">date</span> <span class="nv">month</span> <span class="nv">year</span> <span class="nv">day-of-week</span> <span class="nv">dst-p</span> <span class="nv">tz</span><span class="p">)</span>
+    <span class="p">(</span><span class="nb">get-decoded-time</span><span class="p">)</span>
+  <span class="p">(</span><span class="nb">encode-universal-time</span> <span class="nb">second</span> <span class="nv">minute</span> <span class="nv">hour</span> <span class="nv">date</span> <span class="nv">month</span> <span class="nv">year</span><span class="p">))</span>
+
+<span class="c1">;; The last two return values for get-decoded-time correspond to</span>
+<span class="c1">;; daylight savings and the timezone.  Both are useful for</span>
+<span class="c1">;; timezone-related arithmetic.</span>
+
+<span class="c1">;;; @@INCOMPLETE@@</span>
+<span class="c1">;; An example of a GMT computation with and without daylight savings</span>
+<span class="c1">;; is appropriate here since the built-in perl functions handle this.</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN141"
+>Converting Epoch Seconds to DMYHMS</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nb">time</span> <span class="p">(</span><span class="nb">get-universal-time</span><span class="p">)))</span> <span class="c1">; get epoch seconds</span>
+  <span class="p">(</span><span class="nb">multiple-value-bind</span>
+      <span class="p">(</span><span class="nb">second</span> <span class="nv">minute</span> <span class="nv">hour</span> <span class="nv">day</span> <span class="nv">month</span> <span class="nv">year</span> <span class="nv">day-of-week</span> <span class="nv">dst-p</span> <span class="nv">tz</span><span class="p">)</span>
+      <span class="p">(</span><span class="nb">decode-universal-time</span> <span class="nb">time</span><span class="p">)</span> <span class="c1">; decode and...</span>
+    <span class="p">(</span><span class="nb">list</span> <span class="nv">day</span> <span class="nv">month</span> <span class="nv">year</span> <span class="nv">hour</span> <span class="nv">minute</span> <span class="nb">second</span><span class="p">)))</span> <span class="c1">; return</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN144"
+>Adding to or Subtracting from a Date</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;;;-----------------------------</span>
+
+<span class="c1">;; when using universal time you add or subtract seconds</span>
+<span class="c1">;; here we add one hour</span>
+<span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nv">firstdate</span>
+       <span class="p">(</span><span class="nb">encode-universal-time</span> <span class="mi">0</span> <span class="mi">12</span> <span class="mi">6</span> <span class="mi">23</span> <span class="mi">11</span> <span class="mi">2006</span><span class="p">))</span>
+      <span class="p">(</span><span class="nv">onehour</span> <span class="p">(</span><span class="nb">*</span> <span class="mi">60</span> <span class="mi">60</span> <span class="mi">1</span><span class="p">)))</span>
+  <span class="p">(</span><span class="nb">+</span> <span class="nv">onehour</span> <span class="nv">firstdate</span><span class="p">))</span>
+
+<span class="c1">;; or you could use date-calc function</span>
+<span class="c1">;; here we&#39;ll add one day</span>
+<span class="p">(</span><span class="nv">add-delta-ymdhms</span> <span class="mi">2006</span> <span class="mi">11</span> <span class="mi">24</span> <span class="mi">18</span> <span class="mi">12</span> <span class="mi">0</span>  <span class="mi">0</span> <span class="mi">0</span> <span class="mi">1</span> <span class="mi">0</span> <span class="mi">0</span> <span class="mi">0</span><span class="p">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN147"
+>Difference of Two Dates</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;;;-----------------------------</span>
+<span class="c1">;; We&#39;ll use the epoch seconds to perform subtraction,</span>
+<span class="c1">;; then divide by seconds per day</span>
+<span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nb">first</span> <span class="p">(</span><span class="nb">encode-universal-time</span> <span class="mi">52</span> <span class="mi">45</span> <span class="mi">20</span> <span class="mi">13</span> <span class="mi">12</span> <span class="mi">1901</span><span class="p">))</span>
+      <span class="p">(</span><span class="nb">second</span> <span class="p">(</span><span class="nb">encode-universal-time</span> <span class="mi">7</span> <span class="mi">14</span> <span class="mi">3</span> <span class="mi">19</span> <span class="mi">1</span> <span class="mi">2038</span><span class="p">)))</span>
+  <span class="p">(</span><span class="nb">float</span> <span class="p">(</span><span class="nb">/</span> <span class="p">(</span><span class="nb">-</span> <span class="nb">second</span> <span class="nb">first</span><span class="p">)</span> <span class="p">(</span><span class="nb">*</span> <span class="mi">60</span> <span class="mi">60</span> <span class="mi">24</span><span class="p">))))</span>
+
+<span class="c1">;; method two uses delta-days from the date-calc package:</span>
+<span class="p">(</span><span class="nv">delta-days</span> <span class="mi">1901</span> <span class="mi">12</span> <span class="mi">13</span> <span class="mi">2038</span> <span class="mi">1</span> <span class="mi">19</span><span class="p">)</span>
+
+<span class="c1">;; delta-days does not yet have the granularity of seconds, minutes or hours.</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN150"
+>Day in a Week/Month/Year or Week Number</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;;;-----------------------------</span>
+<span class="c1">;; The week of the year is computed as follows:</span>
+<span class="p">(</span><span class="nv">week-number</span> <span class="mi">2006</span> <span class="mi">12</span> <span class="mi">1</span><span class="p">)</span>      <span class="c1">; week-of-year is imported from date-calc</span>
+
+<span class="c1">;; similar functions exist for day of week, day of year, etc.</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN153"
+>Parsing Dates and Times from Strings</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nv">parse-time</span> <span class="s">&quot;2006-08-20&quot;</span><span class="p">)</span>
+
+<span class="c1">;; PARSE-TIME can recognize many of the commonly found date formats</span>
+
+<span class="c1">; format-time comes with several ways to format...</span>
+<span class="p">(</span><span class="nv">format-time</span> <span class="no">t</span> <span class="vg">*format-time-date*</span> <span class="p">(</span><span class="nb">get-universal-time</span><span class="p">))</span>
+
+<span class="c1">; results in: 25 Nov 2006</span>
+
+<span class="p">(</span><span class="nv">format-time</span> <span class="no">t</span> <span class="vg">*format-time-iso8601-short*</span> <span class="p">(</span><span class="nb">get-universal-time</span><span class="p">))</span>
+
+<span class="c1">; results in: 20061125T172917 -5</span>
+
+<span class="p">(</span><span class="nv">format-time</span> <span class="no">t</span> <span class="s">&quot;%Y-%m-%d&quot;</span> <span class="p">(</span><span class="nb">get-universal-time</span><span class="p">))</span>
+
+<span class="c1">; results in: 2006-11-25</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN156"
+>Printing a Date</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN159"
+>High-Resolution Timers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN162"
+>Short Sleeps</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN165"
+>Program: hopdelta</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="numbers.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="arrays.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Numbers</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Arrays</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

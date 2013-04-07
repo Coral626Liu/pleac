@@ -1,0 +1,1051 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Classes, Objects, and Ties</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Ruby"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Packages, Libraries, and Modules"
+HREF="packagesetc.html"><LINK
+REL="NEXT"
+TITLE="Database Access"
+HREF="dbaccess.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Ruby</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="packagesetc.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="dbaccess.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="CLASSESETC"
+>13. Classes, Objects, and Ties</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN704"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp"># Classes and objects in Ruby are rather straigthforward</span>
+<span class="cp">class Person</span>
+<span class="cp">    # Class variables (also called static attributes) are prefixed by @@</span>
+<span class="cp">    @@person_counter=0</span>
+<span class="cp">    </span>
+<span class="cp">    # object constructor</span>
+<span class="cp">    def initialize(age, name, alive = true)     # Default arg like in C++</span>
+<span class="cp">        @age, @name, @alive = age, name, alive  # Object attributes are prefixed by &#39;@&#39;</span>
+<span class="cp">        @@person_counter += 1</span>
+<span class="cp">          # There is no &#39;++&#39; operator in Ruby. The &#39;++&#39;/&#39;--&#39;  operators are in fact </span>
+<span class="cp">          # hidden assignments which affect variables, not objects. You cannot accomplish</span>
+<span class="cp">          # assignment via method. Since everything in Ruby is object, &#39;++&#39; and &#39;--&#39; </span>
+<span class="cp">          # contradict Ruby OO ideology. Instead &#39;-=&#39; and &#39;+=&#39; are used.</span>
+<span class="cp">    end</span>
+<span class="cp">    </span>
+<span class="cp">    attr_accessor :name, :age   # This creates setter and getter methods for @name</span>
+<span class="cp">                                # and @age. See 13.3 for detailes.</span>
+<span class="cp">    </span>
+<span class="cp">    # methods modifying the receiver object usually have the &#39;!&#39; suffix</span>
+<span class="cp">    def die!</span>
+<span class="cp">        @alive = false</span>
+<span class="cp">        puts &quot;#{@name} has died at the age of #{@age}.&quot;</span>
+<span class="cp">        @alive</span>
+<span class="cp">    end</span>
+<span class="cp">    </span>
+<span class="cp">    def kill(anotherPerson)</span>
+<span class="cp">        print @name, &#39; is killing &#39;, anotherPerson.name, &quot;.\n&quot;</span>
+<span class="cp">        anotherPerson.die!</span>
+<span class="cp">    end</span>
+
+<span class="cp">    # methods used as queries</span>
+<span class="cp">    # usually have the &#39;?&#39; suffix    </span>
+<span class="cp">    def alive?</span>
+<span class="cp">        @alive &amp;&amp; true</span>
+<span class="cp">    end</span>
+<span class="cp">    </span>
+<span class="cp">    def year_of_birth</span>
+<span class="cp">        Time.now.year - @age</span>
+<span class="cp">    end</span>
+<span class="cp">    </span>
+<span class="cp">    # Class method (also called static method)</span>
+<span class="cp">    def Person.number_of_people</span>
+<span class="cp">        @@person_counter</span>
+<span class="cp">    end</span>
+<span class="cp">end</span>
+
+<span class="cp"># Using the class:</span>
+<span class="cp"># Create objects of class Person</span>
+<span class="cp">lecter = Person.new(47, &#39;Hannibal&#39;)</span>
+<span class="cp">starling = Person.new(29, &#39;Clarice&#39;, true)</span>
+<span class="cp">pazzi = Person.new(40, &#39;Rinaldo&#39;, true)</span>
+
+<span class="cp"># Calling a class method</span>
+<span class="cp">print &quot;There are &quot;, Person.number_of_people, &quot; Person objects\n&quot;</span>
+
+<span class="cp">print pazzi.name, &#39; is &#39;, (pazzi.alive?) ? &#39;alive&#39; : &#39;dead&#39;, &quot;.\n&quot;</span>
+<span class="cp">lecter.kill(pazzi)</span>
+<span class="cp">print pazzi.name, &#39; is &#39;, (pazzi.alive?) ? &#39;alive&#39; : &#39;dead&#39;, &quot;.\n&quot;</span>
+
+<span class="cp">print starling.name , &#39; was born in &#39;, starling.year_of_birth, &quot;\n&quot;</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN707"
+>Constructing an Object</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp"># If you don&#39;t need any initialisation in the constructor,</span>
+<span class="cp"># you don&#39;t need to write a constructor.</span>
+<span class="cp">class MyClass</span>
+<span class="cp">end</span>
+
+<span class="cp">class MyClass</span>
+<span class="cp">    def initialize</span>
+<span class="cp">        @start = Time.new</span>
+<span class="cp">        @age = 0</span>
+<span class="cp">    end</span>
+<span class="cp">end</span>
+
+<span class="cp">class MyClass</span>
+<span class="cp">    def initialize(inithash)</span>
+<span class="cp">        @start = Time.new</span>
+<span class="cp">        @age = 0</span>
+<span class="cp">        for key, value in inithash</span>
+<span class="cp">            instance_variable_set(&quot;@#{key}&quot;, value)</span>
+<span class="cp">        end</span>
+<span class="cp">    end</span>
+<span class="cp">end</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN710"
+>Destroying an Object</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp"># Objects are destroyed by the garbage collector.</span>
+<span class="cp"># The time of destroying is not predictable.</span>
+<span class="cp"># The ruby garbage collector can handle circular references,</span>
+<span class="cp"># so there is no need to write destructor for that.</span>
+
+<span class="cp"># There is no direct support for destructor.</span>
+<span class="cp"># You can call a custom function, or more specific a proc object, when the</span>
+<span class="cp"># garbage collector is about to destruct the object, but it is unpredictable</span>
+<span class="cp"># when this occurs.</span>
+<span class="cp"># Also if such a finalizer object has a reference to the orignal object,</span>
+<span class="cp"># this may prevent the original object to get garbage collected.</span>
+<span class="cp"># Because of this problem the finalize method below is</span>
+<span class="cp"># a class method and not a instance method.</span>
+<span class="cp"># So if you need to free resources for an object, like</span>
+<span class="cp"># closing a socket or kill a spawned subprocess,</span>
+<span class="cp"># you should do it explicitly.</span>
+
+<span class="cp">class MyClass</span>
+<span class="cp">    def initialize</span>
+<span class="cp">        ObjectSpace.define_finalizer(self,</span>
+<span class="cp">                                     self.class.method(:finalize).to_proc)</span>
+<span class="cp">    end</span>
+<span class="cp">    def MyClass.finalize(id)</span>
+<span class="cp">        puts &quot;Object #{id} dying at #{Time.new}&quot;</span>
+<span class="cp">    end</span>
+<span class="cp">end</span>
+
+<span class="cp"># test code</span>
+<span class="cp">3.times {</span>
+<span class="cp">    MyClass.new</span>
+<span class="cp">}</span>
+<span class="cp">ObjectSpace.garbage_collect</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN713"
+>Managing Instance Data</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp"># You can write getter and setter methods in a natural way:</span>
+<span class="cp">class Person</span>
+<span class="cp">    def name</span>
+<span class="cp">        @name</span>
+<span class="cp">    end</span>
+<span class="cp">    def name=(name)</span>
+<span class="cp">        @name = name</span>
+<span class="cp">    end</span>
+<span class="cp">end</span>
+
+<span class="cp"># But there is a better and shorter way</span>
+<span class="cp">class Person</span>
+<span class="cp">    attr_reader :age</span>
+<span class="cp">    attr_writer :name  </span>
+<span class="cp">    # attr_reader and attr_writer are actually methods in class Class</span>
+<span class="cp">    # which set getter and setter methods for you.</span>
+<span class="cp">end</span>
+
+<span class="cp"># There is also attr_accessor to create both setters and getters</span>
+<span class="cp">class Person</span>
+<span class="cp">    attr_accessor :age, :name</span>
+<span class="cp">end</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN716"
+>Managing Class Data</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">class Person</span>
+<span class="cp">    # Class variables (also called static attributes) are prefixed by @@</span>
+<span class="cp">    @@person_counter = 0</span>
+<span class="cp">    </span>
+<span class="cp">    def Person.population</span>
+<span class="cp">        @@person_counter</span>
+<span class="cp">    end</span>
+<span class="cp">    def initialize</span>
+<span class="cp">        @@person_counter += 1</span>
+<span class="cp">        ObjectSpace.define_finalizer(self,</span>
+<span class="cp">                                     self.class.method(:finalize).to_proc)</span>
+<span class="cp">    end</span>
+<span class="cp">    def Person.finalize(id)</span>
+<span class="cp">        @@person_counter -= 1</span>
+<span class="cp">    end</span>
+<span class="cp">end</span>
+<span class="cp">people = []</span>
+<span class="cp">10.times {</span>
+<span class="cp">    people.push(Person.new)</span>
+<span class="cp">}</span>
+<span class="cp">printf(&quot;There are %d people alive&quot;, Person.population)</span>
+
+
+<span class="cp">FixedArray.class_max_bounds = 100</span>
+<span class="cp">alpha = FixedArray.new</span>
+<span class="cp">puts &quot;Bound on alpha is #{alpha.max_bounds}&quot;</span>
+
+<span class="cp">beta = FixedArray.new</span>
+<span class="cp">beta.max_bounds = 50                    # calls the instance method</span>
+<span class="cp">beta.class.class_max_bounds = 50        # alternative, calls the class method</span>
+<span class="cp">puts &quot;Bound on alpha is #{alpha.max_bounds}&quot;</span>
+<span class="cp">    </span>
+<span class="cp">class FixedArray</span>
+<span class="cp">    @@bounds = 7</span>
+<span class="cp">    </span>
+<span class="cp">    def max_bounds</span>
+<span class="cp">        @@max_bounds</span>
+<span class="cp">    end</span>
+<span class="cp">    # instance method, which sets the class variable</span>
+<span class="cp">    def max_bounds=(value)</span>
+<span class="cp">        @@max_bounds = value</span>
+<span class="cp">    end</span>
+<span class="cp">    # class method. This can only be called on a class,</span>
+<span class="cp">    # but not on the instances</span>
+<span class="cp">    def FixedArray.class_max_bounds=(value)</span>
+<span class="cp">        @@max_bounds = value</span>
+<span class="cp">    end</span>
+<span class="cp">end</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN719"
+>Using Classes as Structs</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">PersonStruct = Struct.new(&quot;Person&quot;, :name, :age, :peers)</span>
+<span class="cp"># creates a class &quot;Person::Struct&quot;, which is accessiable with the</span>
+<span class="cp"># constant &quot;PersonStruct&quot;</span>
+<span class="cp">p = PersonStruct.new</span>
+<span class="cp">p = Struct::Person.new                      # alternative using the classname</span>
+<span class="cp">p.name = &quot;Jason Smythe&quot;</span>
+<span class="cp">p.age = 13</span>
+<span class="cp">p.peers = [&quot;Wilbur&quot;, &quot;Ralph&quot;, &quot;Fred&quot;]</span>
+<span class="cp">p[:peers] = [&quot;Wilbur&quot;, &quot;Ralph&quot;, &quot;Fred&quot;]     # alternative access using symbol</span>
+<span class="cp">p[&quot;peers&quot;] = [&quot;Wilbur&quot;, &quot;Ralph&quot;, &quot;Fred&quot;]    # alternative access using name of field</span>
+<span class="cp">p[2] = [&quot;Wilbur&quot;, &quot;Ralph&quot;, &quot;Fred&quot;]          # alternative access using index of field</span>
+<span class="cp">puts &quot;At age #{p.age}, #{p.name}&#39;s first friend is #{p.peers[0]}&quot;</span>
+
+<span class="cp"># The fields of a struct have no special type, like other ruby variables</span>
+<span class="cp"># you can put any objects in. Therefore the discussions how to specify</span>
+<span class="cp"># the types of the fields do not apply to ruby.</span>
+
+<span class="cp">FamilyStruct = Struct.new(&quot;Family&quot;, :head, :address, :members)</span>
+<span class="cp">folks = FamilyStruct.new</span>
+<span class="cp">folks.head = PersonStruct.new</span>
+<span class="cp">dad = folks.head</span>
+<span class="cp">dad.name = &quot;John&quot;</span>
+<span class="cp">dad.age = 34</span>
+
+<span class="cp"># supply of own accessor method for the struct for error checking</span>
+<span class="cp">class PersonStruct</span>
+<span class="cp">    def age=(value)</span>
+<span class="cp">        if !value.kind_of?(Integer)</span>
+<span class="cp">            raise(ArgumentError, &quot;Age #{value} isn&#39;t an Integer&quot;)</span>
+<span class="cp">        elsif value &gt; 150</span>
+<span class="cp">            raise(ArgumentError, &quot;Age #{value} is unreasonable&quot;)</span>
+<span class="cp">        end</span>
+<span class="cp">        @age = value</span>
+<span class="cp">    end</span>
+<span class="cp">end</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN722"
+>Cloning Objects</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp"># The ruby Object class defines a dup and a clone method.</span>
+<span class="cp"># The dup method is recommended for prototype object creation.</span>
+<span class="cp"># The default implementation makes a shallow copy,</span>
+<span class="cp"># but each class can override it, for example to make a deep copy.</span>
+
+<span class="cp"># If you want to call &#39;new&#39; directly on the instances,</span>
+<span class="cp"># you can create a instance method &quot;new&quot;, which returns a new duplicate.</span>
+<span class="cp"># This method is distinct from the class method new.</span>
+<span class="cp">#</span>
+<span class="cp">class A</span>
+<span class="cp">    def new</span>
+<span class="cp">        dup</span>
+<span class="cp">    end</span>
+<span class="cp">end</span>
+
+<span class="cp">ob1 = A.new</span>
+<span class="cp"># later on</span>
+<span class="cp">ob2 = ob1.new</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN725"
+>Calling Methods Indirectly</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">methname = &#39;flicker&#39;</span>
+<span class="cp">obj.send(methname, 10)      # calls obj.flicker(10)</span>
+
+<span class="cp"># call three methods on the object, by name</span>
+<span class="cp">[&#39;start&#39;, &#39;run&#39;, &#39;stop&#39;].each do |method_string|</span>
+<span class="cp">    obj.send(method_string)</span>
+<span class="cp">end</span>
+
+<span class="cp"># Another way is to create a Method object</span>
+<span class="cp">method_obj = obj.method(&#39;flicker&#39;)</span>
+<span class="cp"># And then call it</span>
+<span class="cp">method_obj.call(10)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN728"
+>Determining Subclass Membership</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp"># All classes in Ruby inherit from class Object</span>
+<span class="cp"># and thus all objects share methods defined in this class</span>
+
+<span class="cp"># the class of the object</span>
+<span class="cp">puts any_object.type</span>
+
+<span class="cp"># Ruby classes are actually objects of class Class and they</span>
+<span class="cp"># respond to methods defined in Object class as well</span>
+
+<span class="cp"># the superclass of this class</span>
+<span class="cp">puts any_object.class.superclass</span>
+
+<span class="cp"># ask an object whether it is an instance of particular class</span>
+<span class="cp">n = 4.7</span>
+<span class="cp">puts n.instance_of?(Float)    # true</span>
+<span class="cp">puts n.instance_of?(Numeric)  # false</span>
+
+<span class="cp"># ask an object whether it is an instance of class, one of the</span>
+<span class="cp"># superclasses of the object, or modules included in it</span>
+<span class="cp">puts n.kind_of?(Float)       # true (the class)</span>
+<span class="cp">puts n.kind_of?(Numeric)     # true (an ancestor class)</span>
+<span class="cp">puts n.kind_of?(Comparable)  # true (a mixin module)</span>
+<span class="cp">puts n.kind_of?(String)      # false</span>
+
+<span class="cp"># ask an object whether it can respond to a particular method</span>
+<span class="cp">puts n.respond_to?(&#39;+&#39;)      # true</span>
+<span class="cp">puts n.respond_to?(&#39;length&#39;) # false</span>
+
+<span class="cp"># all methods an object can respond to</span>
+<span class="cp">&#39;just a string&#39;.methods.each { |m| puts m }</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN731"
+>Writing an Inheritable Class</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp"># Actually any class in Ruby is inheritable</span>
+<span class="cp">class Person        </span>
+<span class="cp">    attr_accessor :age, :name</span>
+<span class="cp">    def initialize</span>
+<span class="cp">        @name</span>
+<span class="cp">        @age</span>
+<span class="cp">    end</span>
+<span class="cp">end</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">dude = Person.new</span>
+<span class="cp">dude.name = &#39;Jason&#39;</span>
+<span class="cp">dude.age = 23</span>
+<span class="cp">printf &quot;%s is age %d.\n&quot;, dude.name, dude.age</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># Inheriting from Person</span>
+<span class="cp">class Employee &lt; Person</span>
+<span class="cp">    attr_accessor :salary</span>
+<span class="cp">end</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">empl = Employee.new</span>
+<span class="cp">empl.name = &#39;Jason&#39;</span>
+<span class="cp">empl.age = 23</span>
+<span class="cp">empl.salary = 200</span>
+<span class="cp">printf &quot;%s is age %d, the salary is %d.\n&quot;, empl.name, empl.age, empl.salary</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># Any built-in class can be inherited the same way</span>
+<span class="cp">class WeirdString &lt; String  </span>
+<span class="cp">    def initialize(obj)</span>
+<span class="cp">        super obj</span>
+<span class="cp">    end</span>
+<span class="cp">    def +(anotherObj)   # + method in this class is overridden</span>
+<span class="cp">        # to return the sum of string lengths</span>
+<span class="cp">        self.length + anotherObj.length  # &#39;self&#39; can be omitted</span>
+<span class="cp">    end  </span>
+<span class="cp">end</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">a = WeirdString.new(&#39;hello&#39;)</span>
+<span class="cp">b = WeirdString.new(&#39;bye&#39;)</span>
+
+<span class="cp">puts a + b    # the overridden +</span>
+<span class="cp">#=&gt; 8</span>
+<span class="cp">puts a.length # method from the superclass, String</span>
+<span class="cp">#=&gt; 5</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN734"
+>Accessing Overridden Methods</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN737"
+>Generating Attribute Methods Using AUTOLOAD</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp"># In ruby you can override the method_missing method</span>
+<span class="cp"># to have a solution similar to perls AUTOLOAD.</span>
+<span class="cp">class Person</span>
+
+<span class="cp">    def initialize</span>
+<span class="cp">        @ok_fields = %w(name age peers parent)</span>
+<span class="cp">    end</span>
+
+<span class="cp">    def valid_attribute?(name)</span>
+<span class="cp">        @ok_fields.include?(name)</span>
+<span class="cp">    end</span>
+
+<span class="cp">    def method_missing(namesymbol, *params)</span>
+<span class="cp">        name = namesymbol.to_s</span>
+<span class="cp">        return if name =~ /^A-Z/</span>
+<span class="cp">        if name.to_s[-1] == (&#39;=&#39;[0])       # we have a setter</span>
+<span class="cp">            isSetter = true</span>
+<span class="cp">            name.sub!(/=$/, &#39;&#39;)</span>
+<span class="cp">        end</span>
+<span class="cp">        if valid_attribute?(name)</span>
+<span class="cp">            if isSetter</span>
+<span class="cp">                instance_variable_set(&quot;@#{name}&quot;, *params)</span>
+<span class="cp">            else</span>
+<span class="cp">                instance_variable_get(&quot;@#{name}&quot;, *params)</span>
+<span class="cp">            end</span>
+<span class="cp">        else</span>
+<span class="cp">            # if no annestor is responsible,</span>
+<span class="cp">            # the Object class will throw a NoMethodError exception</span>
+<span class="cp">            super(namesymbol, *params)</span>
+<span class="cp">        end</span>
+<span class="cp">    end</span>
+
+<span class="cp">    def new</span>
+<span class="cp">        kid = Person.new</span>
+<span class="cp">        kid.parent = self</span>
+<span class="cp">        kid</span>
+<span class="cp">    end</span>
+
+<span class="cp">end</span>
+
+<span class="cp">dad = Person.new</span>
+<span class="cp">dad.name = &quot;Jason&quot;</span>
+<span class="cp">dad.age = 23</span>
+<span class="cp">kid = dad.new</span>
+<span class="cp">kid.name = &quot;Rachel&quot;</span>
+<span class="cp">kid.age = 2</span>
+<span class="cp">puts &quot;Kid&#39;s parent is #{kid.parent.name}&quot;</span>
+<span class="cp">puts dad</span>
+<span class="cp">puts kid</span>
+
+<span class="cp">class Employee &lt; Person</span>
+<span class="cp">    def initialize</span>
+<span class="cp">        super</span>
+<span class="cp">        @ok_fields.push(&quot;salary&quot;, &quot;boss&quot;)</span>
+<span class="cp">    end</span>
+<span class="cp">    def ok_fields</span>
+<span class="cp">        @ok_fields</span>
+<span class="cp">    end</span>
+<span class="cp">end</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN740"
+>Solving the Data Inheritance Problem</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN743"
+>Coping with Circular Data Structures</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp"># The ruby garbage collector pretends to cope with circular structures.</span>
+<span class="cp"># You can test it with this code:</span>
+<span class="cp">class RingNode</span>
+<span class="cp">    attr_accessor :next</span>
+<span class="cp">    attr_accessor :prev</span>
+<span class="cp">    attr_reader :name</span>
+
+<span class="cp">    def initialize(aName)</span>
+<span class="cp">        @name = aName</span>
+<span class="cp">        ObjectSpace.define_finalizer(self,</span>
+<span class="cp">                                     self.class.method(:finalize).to_proc)</span>
+<span class="cp">    end</span>
+
+<span class="cp">    def RingNode.finalize(id)</span>
+<span class="cp">        puts &quot;Node #{id} dying&quot;</span>
+<span class="cp">    end</span>
+
+<span class="cp">    def RingNode.show_all_objects</span>
+<span class="cp">        ObjectSpace.each_object {|id|</span>
+<span class="cp">            puts id.name if id.class == RingNode</span>
+<span class="cp">        }</span>
+<span class="cp">    end</span>
+<span class="cp">end</span>
+
+<span class="cp">def create_test</span>
+<span class="cp">    a = RingNode.new(&quot;Node A&quot;)</span>
+<span class="cp">    b = RingNode.new(&quot;Node B&quot;)</span>
+<span class="cp">    c = RingNode.new(&quot;Node C&quot;)</span>
+<span class="cp">    a.next = b</span>
+<span class="cp">    b.next = c</span>
+<span class="cp">    c.next = a</span>
+<span class="cp">    a.prev = c</span>
+<span class="cp">    c.prev = b</span>
+<span class="cp">    b.prev = a</span>
+
+<span class="cp">    a = nil</span>
+<span class="cp">    b = nil</span>
+<span class="cp">    c = nil</span>
+<span class="cp">end</span>
+
+<span class="cp">create_test</span>
+<span class="cp">RingNode.show_all_objects</span>
+<span class="cp">ObjectSpace.garbage_collect</span>
+<span class="cp">puts &quot;After garbage collection&quot;</span>
+<span class="cp">RingNode.show_all_objects</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN746"
+>Overloading Operators</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">class String</span>
+<span class="cp">    def &lt;=&gt;(other)</span>
+<span class="cp">        self.casecmp other</span>
+<span class="cp">    end</span>
+<span class="cp">end</span>
+
+<span class="cp"># There is no way to directly overload the &#39;&quot;&quot;&#39; (stringify) </span>
+<span class="cp"># operator in Ruby.  However, by convention, classes which </span>
+<span class="cp"># can reasonably be converted to a String will define a </span>
+<span class="cp"># &#39;to_s&#39; method as in the TimeNumber class defined below.</span>
+<span class="cp"># The &#39;puts&#39; method will automatcally call an object&#39;s</span>
+<span class="cp"># &#39;to_s&#39; method as is demonstrated below.</span>
+<span class="cp"># Furthermore, if a class defines a to_str method, an object of that</span>
+<span class="cp"># class can be used most any place where the interpreter is looking </span>
+<span class="cp"># for a String value.</span>
+
+<span class="cp">#---------------------------------------</span>
+<span class="cp"># NOTE: Ruby has a builtin Time class which would usually be used </span>
+<span class="cp"># to manipulate time objects, the following is supplied for</span>
+<span class="cp"># educational purposes to demonstrate operator overloading.</span>
+<span class="cp">#</span>
+<span class="cp">class TimeNumber</span>
+<span class="cp">    attr_accessor  :hours,:minutes,:seconds</span>
+<span class="cp">    def initialize( hours, minutes, seconds)</span>
+<span class="cp">        @hours = hours</span>
+<span class="cp">        @minutes = minutes</span>
+<span class="cp">        @seconds = seconds</span>
+<span class="cp">    end</span>
+<span class="cp">    </span>
+<span class="cp">    def to_s</span>
+<span class="cp">        return sprintf( &quot;%d:%02d:%02d&quot;, @hours, @minutes, @seconds)</span>
+<span class="cp">    end</span>
+
+<span class="cp">    def to_str</span>
+<span class="cp">        to_s</span>
+<span class="cp">    end</span>
+
+<span class="cp">    def +( other)</span>
+<span class="cp">        seconds = @seconds + other.seconds</span>
+<span class="cp">        minutes = @minutes + other.minutes</span>
+<span class="cp">        hours = @hours + other.hours</span>
+<span class="cp">        if seconds &gt;= 60</span>
+<span class="cp">            seconds %= 60</span>
+<span class="cp">            minutes += 1</span>
+<span class="cp">        end</span>
+<span class="cp">        if minutes &gt;= 60</span>
+<span class="cp">            minutes %= 60</span>
+<span class="cp">            hours += 1</span>
+<span class="cp">        end</span>
+<span class="cp">        return TimeNumber.new(hours, minutes, seconds)</span>
+<span class="cp">    end</span>
+
+<span class="cp">    def -(other)</span>
+<span class="cp">        raise NotImplementedError</span>
+<span class="cp">    end</span>
+
+<span class="cp">    def *(other)</span>
+<span class="cp">        raise NotImplementedError</span>
+<span class="cp">    end</span>
+
+<span class="cp">    def /( other)</span>
+<span class="cp">        raise NotImplementedError</span>
+<span class="cp">    end</span>
+<span class="cp">end</span>
+
+<span class="cp">t1 = TimeNumber.new(0, 58, 59)</span>
+<span class="cp">sec = TimeNumber.new(0, 0, 1)</span>
+<span class="cp">min = TimeNumber.new(0, 1, 0)</span>
+<span class="cp">puts t1 + sec + min + min</span>
+
+<span class="cp">#-----------------------------</span>
+<span class="cp"># StrNum class example: Ruby&#39;s builtin String class already has the </span>
+<span class="cp"># capabilities outlined in StrNum Perl example, however the &#39;*&#39; operator</span>
+<span class="cp"># on Ruby&#39;s String class acts differently: It creates a string which</span>
+<span class="cp"># is the original string repeated N times.</span>
+<span class="cp">#</span>
+<span class="cp"># Using Ruby&#39;s String class as is in this example:</span>
+<span class="cp">x = &quot;Red&quot;; y = &quot;Black&quot;</span>
+<span class="cp">z = x+y</span>
+<span class="cp">r = z*3 # r is &quot;RedBlackRedBlackRedBlack&quot;</span>
+<span class="cp">puts &quot;values are #{x}, #{y}, #{z}, and #{r}&quot;</span>
+<span class="cp">print &quot;#{x} is &quot;, x &lt; y ? &quot;LT&quot; : &quot;GE&quot;, &quot; #{y}\n&quot;</span>
+<span class="cp"># prints:</span>
+<span class="cp"># values are Red, Black, RedBlack, and RedBlackRedBlackRedBlack</span>
+<span class="cp"># Red is GE Black</span>
+
+<span class="cp">#-----------------------------</span>
+<span class="cp">class FixNum</span>
+<span class="cp">    REGEX = /(\.\d*)/</span>
+<span class="cp">    DEFAULT_PLACES = 0</span>
+<span class="cp">    attr_accessor :value, :places</span>
+<span class="cp">    def initialize(value, places = nil)</span>
+<span class="cp">        @value = value</span>
+<span class="cp">        if places</span>
+<span class="cp">            @places = places</span>
+<span class="cp">        else</span>
+<span class="cp">            m = REGEX.match(value.to_s) </span>
+<span class="cp">            if m</span>
+<span class="cp">                @places = m[0].length - 1</span>
+<span class="cp">            else</span>
+<span class="cp">                @places = DEFAULT_PLACES</span>
+<span class="cp">            end</span>
+<span class="cp">        end</span>
+<span class="cp">    end</span>
+
+<span class="cp">    def +(other)</span>
+<span class="cp">        FixNum.new(@value + other.value, max(@places, other.places))</span>
+<span class="cp">    end</span>
+
+<span class="cp">    def *(other)</span>
+<span class="cp">        FixNum.new(@value * other.value, max(@places, other.places))</span>
+<span class="cp">    end</span>
+
+<span class="cp">    def /(other)</span>
+<span class="cp">        puts &quot;Divide: #{@value.to_f/other.value.to_f}&quot;</span>
+<span class="cp">        result = FixNum.new(@value.to_f/other.value.to_f)</span>
+<span class="cp">        result.places = max(result.places,other.places) </span>
+<span class="cp">        result</span>
+<span class="cp">    end</span>
+
+<span class="cp">    def to_s</span>
+<span class="cp">        sprintf(&quot;STR%s: %.*f&quot;, self.class.to_s , @places, @value)   #.</span>
+<span class="cp">    end  </span>
+
+<span class="cp">    def to_str</span>
+<span class="cp">        to_s</span>
+<span class="cp">    end</span>
+
+<span class="cp">    def to_i #convert to int</span>
+<span class="cp">        @value.to_i</span>
+<span class="cp">    end</span>
+
+<span class="cp">    def to_f #convert to float`</span>
+<span class="cp">        @value.to_f</span>
+<span class="cp">    end</span>
+
+<span class="cp">    private</span>
+<span class="cp">    def max(a,b)</span>
+<span class="cp">        a &gt; b ? a : b</span>
+<span class="cp">    end</span>
+<span class="cp">end</span>
+
+<span class="cp">def demo()</span>
+<span class="cp">    x = FixNum.new(40)</span>
+<span class="cp">    y = FixNum.new(12, 0)</span>
+
+<span class="cp">    puts &quot;sum of #{x} and #{y} is  #{x+y}&quot;</span>
+<span class="cp">    puts &quot;product of #{x} and #{y} is #{x*y}&quot;</span>
+
+<span class="cp">    z = x/y</span>
+<span class="cp">    puts &quot;#{z} has #{z.places} places&quot;</span>
+<span class="cp">    unless z.places</span>
+<span class="cp">        z.places = 2</span>
+<span class="cp">    end</span>
+
+<span class="cp">    puts &quot;div of #{x} by #{y} is #{z}&quot;</span>
+<span class="cp">    puts &quot;square of that is  #{z*z}&quot;</span>
+<span class="cp">end</span>
+
+<span class="cp">if __FILE__ == $0</span>
+<span class="cp">    demo()</span>
+<span class="cp">end</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN749"
+>Creating Magic Variables with tie</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="packagesetc.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="dbaccess.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Packages, Libraries, and Modules</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Database Access</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

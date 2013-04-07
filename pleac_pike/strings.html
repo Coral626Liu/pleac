@@ -1,0 +1,1048 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Strings</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Pike"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="PLEAC-Pike"
+HREF="index.html"><LINK
+REL="NEXT"
+TITLE="Numbers"
+HREF="numbers.html"></HEAD
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Pike</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="index.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="numbers.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="STRINGS"
+>1. Strings</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN14"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// in pike only double quotes are used for strings
+// they are not interpolated.
+// single quotes are used for chars (the integer value of a character)
+// see chapter 1.4
+//-----------------------------
+string str;                     // declare a variable of type string
+str = &quot;\n&quot;;                     // a &quot;newline&quot; character
+str = &quot;Jon \&quot;Maddog\&quot; Orwant&quot;;  // literal double quotes
+//-----------------------------
+str =
+#&quot;This is a multiline string
+terminated by a double-quote like any other string&quot;;
+//-----------------------------</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN17"
+>Accessing Substrings</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// accessing part of a string
+//------------------------------
+string str, value;
+int offset, count;
+value = str[offset..offset+count];
+value = str[offset..];
+
+string newstring, newtail;
+str = str[..offset-1]+newstring+str[offset+count..];
+str = str[..offset-1]+newtail;
+
+//------------------------------
+// get a 5-byte string, skip 3, then grab 2 8-byte strings, then the rest
+string leading, s1, s2, trailing;
+[leading, s1, s2, trailing] = array_sscanf(str, &quot;%5s%*3s%8s%8s%s&quot;);
+
+// split at five byte boundaries
+array(string) fivers = str/5;
+
+// chop string into individual characters
+array(string) chars = str/&quot;&quot;;
+
+//------------------------------
+
+str = &quot;This is what you have&quot;; 
+
+string first, start, rest, last, end, piece;
+int t = str[0];
+// 84
+first = str[0..0];                     
+// &quot;T&quot;          
+start = str[5..5+1]; 
+// &quot;is&quot;
+rest  = str[13..];   
+// &quot;you have&quot;
+last  = str[sizeof(str)-1..sizeof(str)-1];
+// &quot;e&quot;
+end   = str[sizeof(str)-4..]; 
+// &quot;have&quot;                 
+piece = str[sizeof(str)-8..sizeof(str)-8+2];
+// &quot;you&quot;
+               
+str = &quot;This is what you have&quot;;               
+str = replace(str, ([ &quot; is &quot;:&quot; wasn't &quot; ]) );
+// &quot;This wasn't what you have&quot;
+str = str[..sizeof(str)-13]+&quot;ondrous&quot;;       
+// &quot;This wasn't wondrous&quot;
+str = str[1..]; 
+// &quot;his wasn't wondrous&quot;               
+str = str[..sizeof(str)-11];
+// &quot;his wasn'&quot;            
+str = &quot;This is what you have&quot;;
+str = replace(str[..4], ([ &quot;is&quot;:&quot;at&quot; ]) )+str[5..];
+// &quot;That is what you have&quot;    
+str = &quot;make a hat&quot;;
+// &quot;make a hat&quot;          
+[str[0], str[-1]] = ({ str[-1], str[0] });
+// &quot;take a ham&quot;
+
+string a, b, c;
+a = &quot;To be or not to be&quot;;    
+b = a[6..11];      
+// &quot;or not&quot;                
+b = a[6..7]; c=a[3..4];            
+write(&quot;%s\n%s\n&quot;, b, c);
+/*
+or                  
+be
+*/
+//------------------------------------------------
+
+string cut2fmt(int ... positions)
+{ 
+  string template = &quot;&quot;;
+  int lastpos  = 1;
+  foreach(positions ;; int place) 
+  {      
+    template += &quot;A&quot; + (place - lastpos) + &quot; &quot;;
+    lastpos = place;     
+  }
+  template += &quot;A*&quot;;
+  return template;
+}
+
+string fmt = cut2fmt(8, 14, 20, 26, 30);
+write(&quot;%s\n&quot;, fmt);
+//A7 A6 A6 A6 A4 A*         </PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN20"
+>Establishing a Default Value</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// set a default, ie, only set the value if no other value is set.
+//-----------------------------
+// use b if b is true, else c
+a = b || c;
+
+// set x to y unless x is already true
+if(!x)
+  x = y;
+
+// use b if b is defined, else c
+// an undefined variable would be a compile time error so this
+// does not really apply. 
+
+// return b if b is defined (was supplied by the caller), else c
+int foo(int c, int|void b)
+{
+  return zero_type(b) ? c : b;
+}
+
+foo = bar || &quot;DEFAULT VALUE&quot;;
+argv = argv[1..];              // remove program, as that is always set.
+dir = argv[0] || &quot;/tmp&quot;;       // and see if anything is left...
+dir = sizeof(argv) ? argv[0] : &quot;/tmp&quot;;
+count[shell||&quot;/bin/sh&quot;]++;     
+
+user = getenv(&quot;USER&quot;) || getenv(&quot;LOGNAME&quot;) || getpwuid(getuid())[0] ||
+&quot;Unknown uid number &quot;+getuid();
+
+if(!starting_point)
+  starting_point = &quot;Greenwich&quot;;
+
+if(!sizeof(a))                  
+  a = b;              // copy only if empty              
+a = (sizeof(b)?b:c);  // assign b if nonempty, else c</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN23"
+>Exchanging Values Without Using Temporary Variables</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">[var1, var2] = ({ var2, var1 });  // gee, i love this example.        
+                                  // it didn't even occur to me before
+                                  // :-)
+temp = a;
+a    = b;             
+b    = temp;
+
+a = &quot;alpha&quot;;
+b = &quot;omega&quot;;
+[a, b] = ({ b, a });
+
+[alpha, beta, production] = &quot;January March August&quot;/&quot; &quot;;
+[alpha, beta, production] = ({ beta, production, alpha });</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN26"
+>Converting Between ASCII Characters and Values</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// print the ascii value of a char, or the char from its ascii value
+int i;                          // declare a variable of type int             
+i = 'a';                        // the ascii value of &quot;a&quot;
+i = '\n';                       // the ascii value of a &quot;newline&quot;
+//-----------------------------
+string char = &quot;foo&quot;;
+int num = char[0];   // gets the ascii value from the first char (that's
+                     // what ord() in perl does)
+char = String.int2char(num);
+
+char = sprintf(&quot;%c&quot;,num);   // the same as String.int2char(num) :-)
+write(&quot;Number %d is character %[0]c\n&quot;, num);
+
+Number 101 is character e
+
+string str;
+array(int) arr;
+arr = (array)str;
+str = (string)arr;
+int ascii_value = 'e';                      // now 101
+string character = String.int2char(101);    // now &quot;e&quot;                  
+
+write(&quot;Number %d is character %[0]c\n&quot;, 101);
+
+
+array(int) ascii_character_numbers = (array(int))&quot;sample&quot;;
+write(&quot;%s\n&quot;, (array(string))ascii_character_numbers*&quot; &quot;);    
+
+string word = (string)ascii_character_numbers;
+string word = (string)({ 115, 97, 109, 112, 108, 101 });  // same
+write(word+&quot;\n&quot;);
+// sample           
+
+string hal =&quot;HAL&quot;;
+array(int) ascii = (array)hal;
+array(int) ibm = ascii[*]+1;       // add 1 to each element in the array.
+array(int) ibm = map(ascii, `+, 1) // apply the function +, with the argument
+                                   // 1, to each element in the array.
+write(ibm+&quot;\n&quot;);                   // prints &quot;IBM&quot;</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN29"
+>Processing a String One Character at a Time</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">string hello = &quot;Hello world!&quot;;
+array(string) chars = hello/&quot;&quot;;     // array of characters as strings
+
+foreach(chars;; string char)        // this also matches newlines
+  ;  // do stuff with char
+//-----------------------------
+string data = &quot;an apple a day&quot;;
+array(string) chars = data/&quot;&quot;;
+mapping(string:int) seen = ([]);
+
+foreach(chars ;; string char)
+  seen[char]++; 
+
+write(&quot;unique chars are: %s\n&quot;, sort(indices(seen))*&quot;&quot;);
+// unique chars are:  adelnpy
+//-----------------------------
+string data = &quot;an apple a day&quot;;
+string result = sort(indices(mkmapping(data/&quot;&quot;, allocate(sizeof(data))))*&quot;&quot;;
+
+write(&quot;unique chars are: %s\n&quot;, result);
+// unique chars are:  adelnpy
+//-----------------------------
+string data = &quot;an apple a day&quot;;
+int sum;
+
+foreach(data ;; int char)
+  sum += char;
+
+write(&quot;sum is %d\n&quot;, sum);
+// sum is 1248
+//-----------------------------
+string data = &quot;an apple a day&quot;;
+int sum=`+(@(array)data);  
+
+write(&quot;sum is %d\n&quot;, sum);
+// sum is 1248
+//-----------------------------
+// <font size="-1"><a href="http://pleac.sourceforge.net/include/pike/ch01/sum">download the following standalone program</a></font>
+#/usr/bin/pike
+// chapter 1.5
+void main(int argc, array(string) argv)
+{
+  string data = Stdio.read_file(argv[1]);
+  int checksum;
+
+  foreach(data ;; int char)
+    checksum += char;
+
+  checksum %= pow(2,16)-1;
+  write(&quot;%d\n&quot;, checksum);
+}
+
+//-----------------------------
+// alternate version
+// <font size="-1"><a href="http://pleac.sourceforge.net/include/pike/ch01/sum2">download the following standalone program</a></font>
+#!/usr/bin/pike
+// chapter 1.5
+void main(int argc, array(string) argv)
+{
+  string data=Stdio.read_file(argv[1]);
+  int checksum = `+(@(array)data) % ((1&lt;&lt;16)-1);
+  write(&quot;%d\n&quot;, checksum);
+}
+
+//-----------------------------
+// <font size="-1"><a href="http://pleac.sourceforge.net/include/pike/ch01/slowcat">download the following standalone program</a></font>
+#!/usr/bin/pike
+// chapter 1.5
+// slowcat - emulate a   s l o w  line printer
+// usage: slowcat [-DELAY] [files ...]
+void main(int argc, array argv)
+{
+  array(string) files;
+  int delay = 1;
+
+  if(argv[1][0] == '-')
+  {
+    files = argv[2..];
+    delay = (int)argv[1][1..];
+  }
+  else
+    files = argv[1..];
+
+  foreach(files, string file)
+  {
+    string data = Stdio.read_file(file);
+    foreach(data/&quot;&quot;, string char)
+    {
+      write(char);
+      sleep(0.005*delay);
+    }
+  }
+}</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN32"
+>Reversing a String by Word or Character</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// #1.6 (reverse a string by char/word)
+// by Olivier Girondel
+
+string s = &quot;This is  a string&quot;;
+// Result: &quot;This is  a string&quot;
+
+reverse(s);
+// Result: &quot;gnirts a  si sihT&quot;
+
+reverse(s/&quot; &quot;) * &quot; &quot;;               // preserve whitespace
+// Result: &quot;string a  is This&quot;
+
+(reverse(s/&quot; &quot;)-({ &quot;&quot; })) * &quot; &quot;;    // collapse whitespace
+// Result: &quot;string a is This&quot;
+//-----------------------------
+string word = &quot;reviver&quot;;
+int is_palindrome = word==reverse(word);
+//-----------------------------
+// <font size="-1"><a href="http://pleac.sourceforge.net/include/pike/ch01/palindrome">download the following standalone program</a></font>
+#!/usr/bin/pike
+// chapter 1.6
+void main(int argc, array(string) argv)
+{
+  string data=Stdio.read_file(argv[1]);
+  foreach(data/&quot;\n&quot;, string line)
+  {
+    if(line==reverse(line) &amp;&amp; sizeof(line)&gt;5)
+    write(&quot;%s\n&quot;, line);
+  }
+}</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN35"
+>Expanding and Compressing Tabs</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">string s = &quot;This   	 is                a    \n   string&quot;;
+
+string notabs=String.expand_tabs(s);
+// Result: &quot;This     is                a    \n   string&quot;
+
+string notabs=String.expand_tabs(s, 4);
+// Result: &quot;This     is            a    \n   string&quot;
+
+string notabs=String.expand_tabs(s, 4, &quot;-&quot;);
+// Result: &quot;This   - is --------   a ---\n   string&quot;
+//-----------------------------
+string s = &quot;This     is      a     string&quot;;
+string tabs=&quot;&quot;;
+
+foreach(s/8.0 ;; string stop)
+{ 
+  int spaces=sizeof(String.common_prefix(({ reverse(stop), &quot;        &quot;}))); 
+  tabs+=stop[..7-spaces]; 
+  if(spaces)
+    tabs+=&quot;^I&quot;;
+}
+// Result: &quot;This\t is\t a     string&quot;
+
+string notabs=&quot;&quot;; 
+foreach(tabs/&quot;^I&quot; ;; string stop)
+{ 
+  notabs+=stop; 
+  if(sizeof(stop)&lt;8) 
+    notabs+=&quot; &quot;*(8-sizeof(stop)); 
+}
+// Result: &quot;This     is      a     string&quot;</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN38"
+>Expanding Variables in User Input</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// since variable names in pike do not have a special notation we need to 
+// &quot;invent&quot; one for this.
+// there are a few ways to solve this problem.
+// here is one:
+
+mapping(string:string) vars = ([ &quot;$fruit$&quot;:&quot;apple&quot;, &quot;$desert$&quot;:&quot;pudding&quot; ]);
+string template  = &quot;Todays fruit is $fruit$, and for desert we have $desert$&quot;;
+string menu = replace(template, vars);
+
+// Result: &quot;Todays fruit is apple, and for desert we have pudding&quot;</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN41"
+>Controlling Case</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">string upper, lower, result;
+upper = &quot;DON'T SHOUT!&quot;;
+result = lower_case(upper);
+// Result: &quot;don't shout!&quot;
+//-----------------------------
+lower = &quot;speak up&quot;;
+result = upper_case(lower);
+// Result: &quot;SPEAK UP&quot;
+//-----------------------------
+result = String.capitalize(lower);
+// Result: &quot;Speak up&quot;
+
+//-----------------------------
+string text = &quot;thIS is a loNG liNE&quot;;
+array(string) words = text/&quot; &quot;;       // splits the line into words
+words = lower_case(words[*]);         // lower_case each word
+words = String.capitalize(words[*]);  // capitalize each word
+text = words*&quot; &quot;;                     // join back
+// you may do the same in one short line:
+text = String.capitalize(lower_case((text/&quot; &quot;)[*])[*])*&quot; &quot;;
+
+// <font size="-1"><a href="http://pleac.sourceforge.net/include/pike/ch01/randcap">download the following standalone program</a></font>
+#!/usr/bin/pike
+// chapter 1.9
+// randcap: filter to randomly capitalize 20% of the letters
+
+void main()
+{
+  string input;
+  while(input=Stdio.stdin.read(1))
+    write(randcap(input));
+}
+
+string randcap(string char)
+{
+  if(random(100)&lt;20)
+    char=String.capitalize(char);
+  return char;
+}</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN44"
+>Interpolating Functions and Expressions Within Strings</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// since pike does not provide any string interpolation 
+// there are no sneaky tricks here.
+// a solution could be similar to the one in chapter 1.8
+// putting functions into the mapping instead of string values, or use xml and
+// callbacks
+// TODO: provide an example of using the xml parser here</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN47"
+>Indenting Here Documents</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// we believe that indenting the string and then removing that indent does not
+// actually enhance readability of the code.
+// but if you insist the following will remove all whitespace at the beginning
+// of each line:
+string here=#&quot;your text
+              goes here&quot;;
+    
+string there=array_sscanf((here/&quot;\n&quot;)[*], &quot;%*[\t ]%s&quot;)[*][0]*&quot;\n&quot;;
+
+// expanded version:
+array tmp=({});
+foreach(here/&quot;\n&quot;;; string line)
+{
+  tmp+=array_sscanf(line, &quot;%*[\t ]%s&quot;);
+}
+string there=tmp*&quot;\n&quot;;</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN50"
+>Reformatting Paragraphs</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// pike sprintf() provides a facility for wrapping (column mode):
+// sprintf(&quot;%-=&lt;int width&gt;s&quot;, text);
+// <font size="-1"><a href="http://pleac.sourceforge.net/include/pike/ch01/wrapdemo">download the following standalone program</a></font>
+#!/usr/bin/pike
+// chapter 1.12
+// wrapdemo - show how wrapping with sprintf works
+void main()
+{
+  array(string) input = ({ &quot;Folding and splicing is the work of an editor,&quot;,
+                           &quot;not a mere collection of silicon&quot;,
+                           &quot;and&quot;,
+                           &quot;mobile electrons!&quot;});
+  int columns = 20;
+
+  write(&quot;0123456789&quot;*2+&quot;\n&quot;);
+  write(wrap(input*&quot; &quot;, 20, &quot;  &quot;, &quot;  &quot;)+&quot;\n&quot;);
+}
+
+// unlike the perl version here leadtab is relative to nexttab, 
+// to get a shorter lead use a negative int value. this allows the default of 0
+// to be a lead indent that is the same as nexttab, and it also has the
+// advantage of allowing you to change the indent without having to worry about
+// the lead getting messed up.
+// a negative lead will cut away from the nexttab which will be visible if you
+// use something other than spaces
+string wrap(string text, void|int width, 
+            void|string|int nexttab, void|string|int leadtab)
+{
+  string leadindent=&quot;&quot;;
+  string indent=&quot;&quot;; 
+  string indent2=&quot;&quot;;
+
+  if(!width)
+    width=Stdio.stdout-&gt;tcgetattr()-&gt;columns;
+
+  if(stringp(nexttab))
+  {
+    indent=nexttab;
+    width-=sizeof(nexttab);  // this will be off if there are chars that have a
+                             // different width than 1.
+  }
+  else if(intp(nexttab))
+  {
+    indent=&quot; &quot;*nexttab;
+    width-=nexttab;
+  }
+
+  if(stringp(leadtab))
+    leadindent=leadtab;
+  else if(intp(leadtab))
+    if(leadtab &gt; 0)
+      leadindent=&quot; &quot;*leadtab;
+    else if(leadtab &lt; 0)
+    {
+      write(indent+&quot;.\n&quot;);
+      indent=indent[..(sizeof(indent)+leadtab)-1];
+      write(indent+&quot;.\n&quot;);
+      indent2=text[..-leadtab-1]; 
+      text=text[-leadtab..];
+    }
+  return sprintf(&quot;%^s%=*s%-=*s&quot;, indent, sizeof(indent2), indent2, 
+                                 width, leadindent+text);
+}
+
+//----------------------------------------------
+$ ./wrapdemo 
+01234567890123456789
+    Folding and     
+  splicing is the   
+  work of an editor,
+  not a mere        
+  collection of     
+  silicon and mobile
+  electrons!        
+
+// merge multiple lines into one, then wrap one long line
+inherit &quot;wrapdemo.pike&quot;;
+wrap(replace(text, &quot;\n&quot;, &quot; &quot;));
+
+// read stdin and split by paragraph,
+// remove \n in paragraphs
+// reformat
+// add paragraph break
+foreach(Stdio.stdin-&gt;read()/&quot;\n\n&quot;;; string para)
+  write(wrap(replace(para, &quot;\n&quot;, &quot; &quot;))+&quot;\n\n&quot;);</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN53"
+>Escaping Characters</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// we need to escape the \ for this example, ironic, eh?
+array(string) charlist=({ &quot;%&quot;, &quot;\\&quot; }); 
+string var=&quot;some input % text with \\&quot;;
+
+// backslash
+var=replace(var, charlist, &quot;\\&quot;+charlist[*]);
+
+// double
+var=replace(var, charlist, charlist[*]+charlist[*]);</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN56"
+>Trimming Blanks from the Ends of a String</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">string line=&quot; foo\n\t &quot;;
+array(string) many=({ &quot; bar\n\t &quot;, &quot; baz\t &quot; });
+
+// remove spaces and tabs
+line=String.trim_whites(line);
+many=String.trim_whites(many[*]);
+
+//remove spaces, tabs, newlines and carriage returns
+line=String.trim_all_whites(line);
+many=String.trim_all_whites(many[*]);</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN59"
+>Parsing Comma-Separated Data</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN62"
+>Soundex Matching</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// contributed by martin nilsson
+
+write(&quot;Lookup user: &quot;);
+string user = String.soundex(Stdio.stdin.gets());
+foreach(get_all_users(), array u) 
+{
+  string firstname=&quot;&quot;, lastname=&quot;&quot;;
+  sscanf(u[4], &quot;%s %s,&quot;, firstname, lastname);
+  if( user==String.soundex(u[0]) ||
+      user==String.soundex(firstname) ||
+      user==String.soundex(lastname) )
+    write(&quot;%s: %s %s\n&quot;, u[0], firstname, lastname);
+}</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN65"
+>Program: fixstyle</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN68"
+>Program: psgrep</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="numbers.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>PLEAC-Pike</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Numbers</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

@@ -1,0 +1,810 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Numbers</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Haskell"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Strings"
+HREF="strings.html"><LINK
+REL="NEXT"
+TITLE="Dates and Times"
+HREF="datesandtimes.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Haskell</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="strings.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="datesandtimes.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="NUMBERS"
+>2. Numbers</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN73"
+>Checking Whether a String Is a Valid Number</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">-- using readIO</span>
+<span class="nf">is_integer</span> <span class="n">s</span> <span class="ow">=</span> <span class="n">catch</span> <span class="p">(</span><span class="kr">do</span> <span class="n">readIO</span> <span class="n">s</span> <span class="ow">::</span> <span class="kt">IO</span> <span class="kt">Int</span>
+                         <span class="n">putStrLn</span> <span class="s">&quot;is an integer&quot;</span><span class="p">)</span>
+                     <span class="p">(</span><span class="nf">\</span><span class="kr">_</span> <span class="ow">-&gt;</span> <span class="n">putStrLn</span> <span class="s">&quot;is not&quot;</span><span class="p">)</span>
+
+<span class="c1">-- using regexp</span>
+<span class="nf">is_integer</span> <span class="ow">=</span> <span class="n">isJust</span> <span class="o">.</span> <span class="n">matchRegex</span> <span class="p">(</span><span class="n">mkRegex</span> <span class="s">&quot;^[+-]?[0-9]+$&quot;</span><span class="p">)</span>
+
+<span class="c1">-- using reads</span>
+<span class="nf">read_maybe</span> <span class="n">s</span> <span class="ow">=</span> <span class="kr">case</span> <span class="n">reads</span> <span class="n">s</span> <span class="kr">of</span>
+                 <span class="p">[</span> <span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s">&quot;&quot;</span><span class="p">)</span> <span class="p">]</span> <span class="ow">-&gt;</span> <span class="kt">Just</span> <span class="n">v</span>
+                 <span class="kr">_</span> <span class="ow">-&gt;</span> <span class="kt">Nothing</span>
+
+<span class="nf">is_integer</span> <span class="n">s</span> <span class="ow">=</span> <span class="n">isJust</span> <span class="p">(</span><span class="n">read_maybe</span> <span class="n">s</span> <span class="ow">::</span> <span class="kt">Maybe</span> <span class="kt">Int</span><span class="p">)</span>
+<span class="nf">is_float</span> <span class="n">s</span> <span class="ow">=</span> <span class="n">isJust</span> <span class="p">(</span><span class="n">read_maybe</span> <span class="n">s</span> <span class="ow">::</span> <span class="kt">Maybe</span> <span class="kt">Double</span><span class="p">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN76"
+>Comparing Floating-Point Numbers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span>
+<span class="c1">-- equal_num num1 num2 accuracy : returns true if num1 and num2 are</span>
+<span class="c1">--   equal to accuracy number of decimal places</span>
+<span class="nf">equal_num</span> <span class="n">n1</span> <span class="n">n2</span> <span class="n">accuracy</span> <span class="ow">=</span> <span class="n">abs</span> <span class="p">(</span><span class="n">n1</span> <span class="o">-</span> <span class="n">n2</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">10</span> <span class="o">^^</span> <span class="p">(</span><span class="o">-</span><span class="n">accuracy</span><span class="p">)</span>
+
+<span class="nf">wage</span> <span class="ow">=</span> <span class="mi">536</span>          <span class="c1">-- $5.36/hour</span>
+<span class="nf">week</span> <span class="ow">=</span> <span class="mi">40</span> <span class="o">*</span> <span class="n">wage</span>    <span class="c1">-- $214.40</span>
+<span class="nf">weekwage</span> <span class="ow">::</span> <span class="kt">String</span>
+<span class="nf">weekwage</span> <span class="ow">=</span> <span class="n">printf</span> <span class="s">&quot;One week&#39;s wage is: $%.2f</span><span class="se">\n</span><span class="s">&quot;</span> <span class="p">(</span><span class="n">week</span> <span class="o">/</span> <span class="mi">100</span> <span class="ow">::</span> <span class="kt">Double</span><span class="p">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN79"
+>Rounding Floating-Point Numbers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="nf">rounded</span> <span class="ow">=</span> <span class="n">round</span> <span class="n">unrounded</span>
+
+<span class="nf">a</span> <span class="ow">=</span> <span class="mf">0.255</span> <span class="ow">::</span> <span class="kt">Double</span>
+<span class="nf">b</span> <span class="ow">=</span> <span class="n">printf</span> <span class="s">&quot;%.2f&quot;</span> <span class="n">a</span>
+<span class="nf">t</span> <span class="ow">=</span> <span class="kr">do</span> <span class="n">putStrLn</span> <span class="p">(</span><span class="s">&quot;Unrounded: &quot;</span> <span class="o">++</span> <span class="n">show</span> <span class="n">a</span> <span class="o">++</span> <span class="s">&quot;</span><span class="se">\n</span><span class="s">Rounded: &quot;</span> <span class="o">++</span> <span class="n">b</span><span class="p">)</span>
+       <span class="n">printf</span> <span class="s">&quot;Unrounded: %f</span><span class="se">\n</span><span class="s">Rounded: %.2f</span><span class="se">\n</span><span class="s">&quot;</span> <span class="n">a</span> <span class="n">a</span>
+<span class="c1">-- Unrounded: 0.255</span>
+<span class="c1">-- Rounded: 0.26</span>
+<span class="c1">-- Unrounded: 0.255</span>
+<span class="c1">-- Rounded: 0.26</span>
+
+
+<span class="nf">a</span> <span class="ow">=</span> <span class="p">[</span><span class="mf">3.3</span><span class="p">,</span> <span class="mf">3.5</span><span class="p">,</span> <span class="mf">3.7</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.3</span><span class="p">]</span>
+<span class="nf">t</span> <span class="ow">=</span> <span class="kr">let</span> <span class="n">l</span> <span class="ow">=</span> <span class="n">map</span> <span class="p">(</span><span class="nf">\</span><span class="n">n</span> <span class="ow">-&gt;</span> <span class="n">printf</span> <span class="s">&quot;%.1f</span><span class="se">\t</span><span class="s">%d</span><span class="se">\t</span><span class="s">%d</span><span class="se">\t</span><span class="s">%d&quot;</span> <span class="p">(</span><span class="n">n</span> <span class="ow">::</span> <span class="kt">Double</span><span class="p">)</span> <span class="p">(</span><span class="n">truncate</span> <span class="n">n</span> <span class="ow">::</span> <span class="kt">Int</span><span class="p">)</span>
+                                                 <span class="p">(</span><span class="n">floor</span> <span class="n">n</span> <span class="ow">::</span> <span class="kt">Int</span><span class="p">)</span> <span class="p">(</span><span class="n">ceiling</span> <span class="n">n</span> <span class="ow">::</span> <span class="kt">Int</span><span class="p">))</span> <span class="n">a</span> <span class="kr">in</span>
+    <span class="n">putStrLn</span> <span class="p">(</span><span class="n">unlines</span> <span class="o">$</span> <span class="s">&quot;number</span><span class="se">\t</span><span class="s">trncate</span><span class="se">\t</span><span class="s">floor</span><span class="se">\t</span><span class="s">ceiling&quot;</span> <span class="kt">:</span> <span class="n">l</span><span class="p">)</span>
+
+<span class="c1">-- nb: to have a better looking output, use %4.1f and %2d instead of %.1f and %d</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN82"
+>Converting Between Binary and Decimal</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="nf">bin2dec</span> <span class="ow">::</span> <span class="kt">String</span> <span class="ow">-&gt;</span> <span class="kt">Integer</span>
+<span class="nf">bin2dec</span> <span class="ow">=</span> <span class="n">foldr</span> <span class="p">(</span><span class="nf">\</span><span class="n">c</span> <span class="n">s</span> <span class="ow">-&gt;</span> <span class="n">s</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">c</span><span class="p">)</span> <span class="mi">0</span> <span class="o">.</span> <span class="n">reverse</span> <span class="o">.</span> <span class="n">map</span> <span class="n">c2i</span>
+    <span class="kr">where</span> <span class="n">c2i</span> <span class="n">c</span> <span class="ow">=</span> <span class="kr">if</span> <span class="n">c</span> <span class="o">==</span> <span class="sc">&#39;0&#39;</span> <span class="kr">then</span> <span class="mi">0</span> <span class="kr">else</span> <span class="mi">1</span>
+<span class="c1">-- bin2dec &quot;0110110&quot; == 54</span>
+
+<span class="nf">dec2bin</span> <span class="ow">=</span> <span class="n">map</span> <span class="n">i2c</span> <span class="o">.</span> <span class="n">reverse</span> <span class="o">.</span> <span class="n">unfoldr</span> <span class="n">decomp</span>
+    <span class="kr">where</span> <span class="n">decomp</span> <span class="n">n</span> <span class="ow">=</span> <span class="kr">if</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">0</span> <span class="kr">then</span> <span class="kt">Nothing</span> <span class="kr">else</span> <span class="kt">Just</span><span class="p">(</span><span class="n">n</span> <span class="p">`</span><span class="n">mod</span><span class="p">`</span> <span class="mi">2</span><span class="p">,</span> <span class="n">n</span> <span class="p">`</span><span class="n">div</span><span class="p">`</span> <span class="mi">2</span><span class="p">)</span>
+          <span class="n">i2c</span> <span class="n">i</span> <span class="ow">=</span> <span class="kr">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span> <span class="kr">then</span> <span class="sc">&#39;0&#39;</span> <span class="kr">else</span> <span class="sc">&#39;1&#39;</span>
+<span class="c1">-- dec2bin 54 == &quot;110110&quot;</span>
+
+<span class="cm">{-</span>
+<span class="cm">import Test.QuickCheck</span>
+<span class="cm">property_bindec n = n &gt;= 0 ==&gt; (bin2dec . dec2bin) n == n</span>
+<span class="cm">verif = quickCheck property_bindec</span>
+<span class="cm">-}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN85"
+>Operating on a Series of Integers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span>
+<span class="c1">-- clean &amp; pure way:</span>
+<span class="nf">m1</span> <span class="ow">=</span> <span class="n">putStrLn</span> <span class="o">$</span> <span class="s">&quot;Infancy is: &quot;</span> <span class="o">++</span> <span class="n">unwords</span> <span class="p">(</span><span class="n">map</span> <span class="n">show</span> <span class="p">[</span><span class="mi">0</span><span class="o">..</span><span class="mi">2</span><span class="p">])</span>
+<span class="c1">-- Infancy is: 0 1 2 </span>
+
+<span class="c1">-- imperative way:</span>
+<span class="nf">m2</span> <span class="ow">=</span> <span class="kr">do</span> <span class="n">putStr</span> <span class="s">&quot;Infancy is: &quot;</span>
+        <span class="n">mapM_</span> <span class="p">(</span><span class="n">printf</span> <span class="s">&quot;%d &quot;</span><span class="p">)</span> <span class="p">[</span><span class="mi">0</span> <span class="ow">::</span> <span class="kt">Int</span> <span class="o">..</span> <span class="mi">2</span><span class="p">]</span>
+        <span class="n">putStrLn</span> <span class="s">&quot;&quot;</span>
+
+<span class="c1">-- imperative way&#39;:</span>
+<span class="nf">m2&#39;</span> <span class="ow">=</span> <span class="kr">do</span> <span class="n">putStr</span> <span class="s">&quot;Infancy is: &quot;</span>
+         <span class="n">mapM_</span> <span class="p">(</span><span class="nf">\</span><span class="n">n</span> <span class="ow">-&gt;</span> <span class="n">putStr</span> <span class="o">$</span> <span class="n">show</span> <span class="n">n</span> <span class="o">++</span> <span class="s">&quot; &quot;</span><span class="p">)</span> <span class="p">[</span><span class="mi">0</span> <span class="ow">::</span> <span class="kt">Int</span> <span class="o">..</span> <span class="mi">2</span><span class="p">]</span>
+         <span class="n">putStrLn</span> <span class="s">&quot;&quot;</span>
+
+<span class="c1">-- [0,2..8] == [0,2,4,6,8]</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN88"
+>Working with Roman Numerals</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="nf">roman</span> <span class="n">n</span> <span class="ow">=</span> <span class="n">concat</span> <span class="o">$</span> <span class="n">reverse</span> <span class="o">$</span> <span class="n">snd</span> <span class="o">$</span> <span class="n">mapAccumL</span> <span class="n">transform</span> <span class="n">n</span> <span class="n">sets</span>
+    <span class="kr">where</span>
+      <span class="n">transform</span> <span class="n">n</span> <span class="n">set</span> <span class="ow">=</span> <span class="p">(</span><span class="n">n</span> <span class="p">`</span><span class="n">div</span><span class="p">`</span> <span class="mi">10</span><span class="p">,</span> <span class="n">roman</span> <span class="n">set</span> <span class="p">(</span><span class="n">n</span> <span class="p">`</span><span class="n">mod</span><span class="p">`</span> <span class="mi">10</span><span class="p">))</span>
+      <span class="n">roman</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">v</span><span class="p">,</span><span class="n">x</span><span class="p">)</span> <span class="n">n</span> <span class="ow">=</span> <span class="n">l</span> <span class="o">!!</span> <span class="n">n</span>
+          <span class="kr">where</span> <span class="n">l</span> <span class="ow">=</span> <span class="p">[</span> <span class="kt">[]</span><span class="p">,</span> <span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">i</span><span class="p">],</span> <span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">i</span><span class="p">,</span><span class="n">i</span><span class="p">],</span> <span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">v</span><span class="p">],</span> <span class="p">[</span><span class="n">v</span><span class="p">],</span> <span class="p">[</span><span class="n">v</span><span class="p">,</span><span class="n">i</span><span class="p">],</span> <span class="p">[</span><span class="n">v</span><span class="p">,</span><span class="n">i</span><span class="p">,</span><span class="n">i</span><span class="p">],</span> <span class="p">[</span><span class="n">v</span><span class="p">,</span><span class="n">i</span><span class="p">,</span><span class="n">i</span><span class="p">,</span><span class="n">i</span><span class="p">],</span> <span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">x</span><span class="p">]</span> <span class="p">]</span>
+      <span class="n">sets</span> <span class="ow">=</span> <span class="p">[(</span><span class="sc">&#39;I&#39;</span><span class="p">,</span><span class="sc">&#39;V&#39;</span><span class="p">,</span><span class="sc">&#39;X&#39;</span><span class="p">),</span> <span class="p">(</span><span class="sc">&#39;X&#39;</span><span class="p">,</span><span class="sc">&#39;L&#39;</span><span class="p">,</span><span class="sc">&#39;C&#39;</span><span class="p">),</span> <span class="p">(</span><span class="sc">&#39;C&#39;</span><span class="p">,</span><span class="sc">&#39;D&#39;</span><span class="p">,</span><span class="sc">&#39;M&#39;</span><span class="p">),</span> <span class="p">(</span><span class="sc">&#39;M&#39;</span><span class="p">,</span><span class="n">too_big</span><span class="p">,</span><span class="n">too_big</span><span class="p">)]</span> 
+      <span class="n">too_big</span> <span class="ow">=</span> <span class="ne">error</span> <span class="s">&quot;roman: number greater than 3999&quot;</span>
+
+<span class="nf">arabic</span> <span class="ow">=</span> <span class="n">sum</span> <span class="o">.</span> <span class="n">snd</span> <span class="o">.</span> <span class="n">mapAccumL</span> <span class="n">set_sign</span> <span class="mi">0</span> <span class="o">.</span> <span class="n">map</span> <span class="n">c2i</span> <span class="o">.</span> <span class="n">reverse</span>
+    <span class="kr">where</span>
+      <span class="c1">-- if the roman digit is smaller than biggest digit so far, substract it (eg: I is -1 in IV)</span>
+      <span class="n">set_sign</span> <span class="n">max</span> <span class="n">i</span> <span class="ow">=</span> <span class="kr">if</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="n">max</span> <span class="kr">then</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="kr">else</span> <span class="p">(</span><span class="n">max</span><span class="p">,</span> <span class="o">-</span><span class="n">i</span><span class="p">)</span>
+      <span class="n">c2i</span> <span class="n">c</span> <span class="ow">=</span> <span class="kr">case</span> <span class="n">toUpper</span> <span class="n">c</span> <span class="kr">of</span> 
+                <span class="sc">&#39;I&#39;</span> <span class="ow">-&gt;</span> <span class="mi">1</span><span class="p">;</span> <span class="sc">&#39;V&#39;</span> <span class="ow">-&gt;</span> <span class="mi">5</span><span class="p">;</span> <span class="sc">&#39;X&#39;</span> <span class="ow">-&gt;</span> <span class="mi">10</span><span class="p">;</span> <span class="sc">&#39;L&#39;</span> <span class="ow">-&gt;</span> <span class="mi">50</span> 
+                <span class="sc">&#39;C&#39;</span> <span class="ow">-&gt;</span> <span class="mi">100</span><span class="p">;</span> <span class="sc">&#39;D&#39;</span> <span class="ow">-&gt;</span> <span class="mi">500</span><span class="p">;</span> <span class="sc">&#39;M&#39;</span> <span class="ow">-&gt;</span> <span class="mi">1000</span>
+
+<span class="nf">roman_fifteen</span> <span class="ow">=</span> <span class="n">roman</span> <span class="mi">15</span> <span class="c1">-- &quot;XV&quot;</span>
+<span class="nf">s1</span> <span class="ow">=</span> <span class="s">&quot;Roman for fifteen is &quot;</span> <span class="o">++</span> <span class="n">roman_fifteen</span>
+<span class="nf">arabic_fifteen</span> <span class="ow">=</span> <span class="n">arabic</span> <span class="n">roman_fifteen</span>
+<span class="nf">s2</span> <span class="ow">=</span> <span class="s">&quot;Converted back, &quot;</span> <span class="o">++</span> <span class="n">roman_fifteen</span> <span class="o">++</span> <span class="s">&quot; is &quot;</span> <span class="o">++</span> <span class="n">show</span> <span class="n">arabic_fifteen</span>
+
+<span class="cm">{-</span>
+<span class="cm">property_roman_arabic n = n &gt;= 0 &amp;&amp; n &lt; 4000 ==&gt; (arabic . roman) n == n</span>
+<span class="cm">verif = quickCheck property_roman_arabic</span>
+<span class="cm">-}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN91"
+>Generating Random Numbers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="kr">import</span> <span class="nn">Random</span>
+<span class="kr">import</span> <span class="nn">Control.Monad</span> <span class="p">(</span><span class="nf">replicateM</span><span class="p">)</span>
+
+<span class="nf">rand</span> <span class="ow">::</span> <span class="kt">Int</span> <span class="ow">-&gt;</span> <span class="kt">Int</span> <span class="ow">-&gt;</span> <span class="kt">IO</span> <span class="kt">Int</span>
+<span class="nf">rand</span> <span class="n">low</span> <span class="n">high</span> <span class="ow">=</span> <span class="n">getStdRandom</span> <span class="p">(</span><span class="n">randomR</span> <span class="p">(</span><span class="n">low</span><span class="p">,</span> <span class="n">high</span><span class="p">))</span>
+
+<span class="nf">n</span> <span class="ow">=</span> <span class="n">rand</span> <span class="mi">25</span> <span class="mi">75</span> <span class="c1">-- [25,75]</span>
+
+<span class="nf">random_elt</span> <span class="n">l</span> <span class="ow">=</span> <span class="kr">do</span> <span class="n">i</span> <span class="ow">&lt;-</span> <span class="n">rand</span> <span class="mi">0</span> <span class="p">(</span><span class="n">length</span> <span class="n">l</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                  <span class="n">return</span> <span class="p">(</span><span class="n">l</span> <span class="o">!!</span> <span class="n">i</span><span class="p">)</span>
+
+<span class="nf">password</span> <span class="ow">=</span> <span class="n">replicateM</span> <span class="mi">8</span> <span class="p">(</span><span class="n">random_elt</span> <span class="n">chars</span><span class="p">)</span>
+    <span class="kr">where</span> <span class="n">chars</span> <span class="ow">=</span> <span class="n">concat</span> <span class="p">[</span> <span class="p">[</span><span class="sc">&#39;A&#39;</span><span class="o">..</span><span class="sc">&#39;Z&#39;</span><span class="p">],</span> <span class="p">[</span><span class="n">&#39;a&#39;</span><span class="o">..</span><span class="n">&#39;z&#39;</span><span class="p">],</span> <span class="p">[</span><span class="sc">&#39;0&#39;</span><span class="o">..</span><span class="sc">&#39;9&#39;</span><span class="p">],</span> <span class="s">&quot;!@$%^&amp;*&quot;</span> <span class="p">]</span>
+
+
+<span class="c1">-- random_elt can be also be written</span>
+<span class="nf">random_elt&#39;</span> <span class="n">l</span> <span class="ow">=</span> <span class="n">fmap</span> <span class="p">(</span><span class="n">l</span> <span class="o">!!</span><span class="p">)</span> <span class="p">(</span><span class="n">rand</span> <span class="mi">0</span> <span class="o">$</span> <span class="n">length</span> <span class="n">l</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN94"
+>Generating Different Random Numbers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="nf">srand</span> <span class="ow">=</span> <span class="n">setStdGen</span> <span class="o">.</span> <span class="n">mkStdGen</span>
+
+<span class="nf">randfixed</span> <span class="ow">=</span> <span class="kr">do</span> <span class="n">srand</span> <span class="mi">2</span>
+	       <span class="n">rand</span> <span class="mi">1</span> <span class="mi">10</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN97"
+>Making Numbers Even More Random</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">-- you can provide your own random generator by playing with the StdGen type</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN100"
+>Generating Biased Random Numbers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="nf">std_rand</span> <span class="ow">::</span> <span class="kt">IO</span> <span class="kt">Double</span>
+<span class="nf">std_rand</span> <span class="ow">=</span> <span class="n">getStdRandom</span> <span class="p">(</span><span class="n">randomR</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>
+
+<span class="nf">gaussian_rand</span> <span class="ow">=</span> 
+    <span class="kr">do</span> <span class="n">r1</span> <span class="ow">&lt;-</span> <span class="n">std_rand</span>
+       <span class="n">r2</span> <span class="ow">&lt;-</span> <span class="n">std_rand</span>
+       <span class="kr">let</span> <span class="n">u1</span> <span class="ow">=</span> <span class="mi">2</span><span class="o">*</span><span class="n">r1</span> <span class="o">-</span> <span class="mi">1</span>
+       <span class="kr">let</span> <span class="n">u2</span> <span class="ow">=</span> <span class="mi">2</span><span class="o">*</span><span class="n">r2</span> <span class="o">-</span> <span class="mi">1</span>
+       <span class="kr">let</span> <span class="n">w</span>  <span class="ow">=</span> <span class="n">u1</span><span class="o">*</span><span class="n">u1</span> <span class="o">+</span> <span class="n">u2</span><span class="o">*</span><span class="n">u2</span> <span class="c1">-- variance</span>
+       <span class="kr">if</span> <span class="n">w</span> <span class="o">&gt;=</span> <span class="mi">1</span> 
+         <span class="kr">then</span> <span class="n">gaussian_rand</span>
+         <span class="kr">else</span> <span class="kr">let</span> <span class="n">w2</span> <span class="ow">=</span> <span class="n">sqrt</span> <span class="p">((</span><span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">log</span> <span class="n">w</span><span class="p">)</span> <span class="o">/</span> <span class="n">w</span><span class="p">)</span> <span class="kr">in</span> 
+              <span class="n">return</span> <span class="p">(</span><span class="n">u2</span><span class="o">*</span><span class="n">w2</span><span class="p">,</span> <span class="n">u1</span><span class="o">*</span><span class="n">w2</span><span class="p">)</span> <span class="c1">-- gaussian-distributed numbers</span>
+
+<span class="nf">mean</span> <span class="ow">=</span> <span class="mi">25</span>
+<span class="nf">sdev</span> <span class="ow">=</span> <span class="mi">2</span>
+<span class="nf">t</span> <span class="ow">=</span> <span class="kr">do</span> <span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="kr">_</span><span class="p">)</span> <span class="ow">&lt;-</span> <span class="n">gaussian_rand</span> 
+       <span class="kr">let</span> <span class="n">salary</span> <span class="ow">=</span> <span class="n">r</span> <span class="o">*</span> <span class="n">sdev</span> <span class="o">+</span> <span class="n">mean</span>
+       <span class="n">printf</span> <span class="s">&quot;You have been hired at $%.2f</span><span class="se">\n</span><span class="s">&quot;</span> <span class="n">salary</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN103"
+>Doing Trigonometry in Degrees, not Radians</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="nf">deg2rad</span> <span class="n">d</span> <span class="ow">=</span> <span class="n">d</span> <span class="o">*</span> <span class="n">pi</span> <span class="o">/</span> <span class="mi">180</span>
+<span class="nf">rad2deg</span> <span class="n">r</span> <span class="ow">=</span> <span class="n">r</span> <span class="o">*</span> <span class="mi">180</span> <span class="o">/</span> <span class="n">pi</span>
+
+<span class="nf">degree_sine</span> <span class="ow">=</span> <span class="n">sin</span> <span class="o">.</span> <span class="n">deg2rad</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN106"
+>Calculating More Trigonometric Functions</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="nf">asin_val</span> <span class="ow">=</span> <span class="n">asin</span> <span class="mi">1</span>
+<span class="nf">acos_val</span> <span class="ow">=</span> <span class="n">acos</span> <span class="mi">1</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN109"
+>Taking Logarithms</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="nf">v</span> <span class="ow">=</span> <span class="n">log</span> <span class="mi">10</span>
+
+<span class="nf">log10</span> <span class="ow">=</span> <span class="n">logBase</span> <span class="mi">10</span>
+
+<span class="nf">t</span> <span class="ow">=</span> <span class="n">putStrLn</span> <span class="o">$</span> <span class="s">&quot;log10(10,000)=&quot;</span> <span class="o">++</span> <span class="n">log10</span> <span class="mi">10000</span>
+<span class="c1">-- log10(10,000) = 4</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN112"
+>Multiplying Matrices</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">-- no standard matrix function in haskell library</span>
+<span class="c1">-- here is a simple implementation</span>
+<span class="c1">-- see also http://darcs.haskell.org/hugs98/demos/Matrix.hs</span>
+<span class="c1">--       or http://darcs.haskell.org/nofib/ghc/matrix/Matrix.hs</span>
+
+<span class="nf">sum_product</span> <span class="ow">::</span> <span class="kt">Num</span> <span class="n">a</span> <span class="ow">=&gt;</span> <span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="n">a</span>
+<span class="nf">sum_product</span> <span class="n">u</span> <span class="n">v</span> <span class="ow">=</span> <span class="n">sum</span> <span class="p">(</span><span class="n">zipWith</span> <span class="p">(</span><span class="o">*</span><span class="p">)</span> <span class="n">u</span> <span class="n">v</span><span class="p">)</span>
+
+<span class="nf">matrix_zipWith</span> <span class="n">f</span> <span class="n">a</span> <span class="n">b</span> <span class="ow">=</span> <span class="p">[</span><span class="n">zipWith</span> <span class="n">f</span> <span class="n">ak</span> <span class="n">bk</span> <span class="o">|</span> <span class="p">(</span><span class="n">ak</span><span class="p">,</span><span class="n">bk</span><span class="p">)</span> <span class="ow">&lt;-</span> <span class="n">zip</span> <span class="n">a</span> <span class="n">b</span><span class="p">]</span>
+
+<span class="nf">add_matrices</span> <span class="n">a</span> <span class="n">b</span> <span class="ow">=</span> <span class="n">matrix_zipWith</span> <span class="p">(</span><span class="o">+</span><span class="p">)</span>
+
+<span class="nf">inner_product</span> <span class="ow">::</span> <span class="kt">Num</span> <span class="n">a</span> <span class="ow">=&gt;</span> <span class="p">[[</span><span class="n">a</span><span class="p">]]</span> <span class="ow">-&gt;</span> <span class="p">[[</span><span class="n">a</span><span class="p">]]</span> <span class="ow">-&gt;</span> <span class="p">[[</span><span class="n">a</span><span class="p">]]</span>
+<span class="nf">inner_product</span> <span class="n">a</span> <span class="n">b</span> <span class="ow">=</span> <span class="n">mult</span> <span class="n">a</span> <span class="p">(</span><span class="n">transpose</span> <span class="n">b</span><span class="p">)</span>
+    <span class="kr">where</span> <span class="n">mult</span> <span class="kt">[]</span> <span class="kr">_</span> <span class="ow">=</span> <span class="kt">[]</span>
+          <span class="n">mult</span> <span class="p">(</span><span class="n">a_x</span><span class="kt">:</span><span class="n">a_xs</span><span class="p">)</span> <span class="n">b</span> <span class="ow">=</span> <span class="p">[</span><span class="n">sum_product</span> <span class="n">a_x</span> <span class="n">bi</span> <span class="o">|</span> <span class="n">bi</span> <span class="ow">&lt;-</span> <span class="n">b</span><span class="p">]</span> <span class="kt">:</span> <span class="n">mult</span> <span class="n">a_xs</span> <span class="n">b</span>
+
+<span class="nf">a</span> <span class="ow">=</span> <span class="p">[</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+    <span class="p">,</span> <span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">8</span><span class="p">]</span> <span class="p">]</span>
+<span class="nf">b</span> <span class="ow">=</span> <span class="p">[</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">7</span><span class="p">]</span>
+    <span class="p">,</span> <span class="p">[</span><span class="mi">9</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+    <span class="p">,</span> <span class="p">[</span><span class="mi">8</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="p">]</span>
+<span class="nf">c</span> <span class="ow">=</span> <span class="n">inner_product</span> <span class="n">a</span> <span class="n">b</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN115"
+>Using Complex Numbers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="kr">import</span> <span class="nn">Complex</span>
+
+<span class="nf">a</span> <span class="ow">=</span> <span class="mi">3</span> <span class="kt">:+</span> <span class="mi">5</span>    <span class="c1">-- 3 + 5i</span>
+<span class="nf">b</span> <span class="ow">=</span> <span class="mi">2</span> <span class="kt">:+</span> <span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="c1">-- 2 - 2i</span>
+<span class="nf">c</span> <span class="ow">=</span> <span class="n">a</span> <span class="o">*</span> <span class="n">b</span>     <span class="c1">-- 16 + 4i</span>
+
+<span class="nf">t1</span> <span class="ow">=</span> <span class="p">(</span><span class="n">realPart</span> <span class="n">c</span><span class="p">,</span> <span class="n">imagPart</span> <span class="n">c</span><span class="p">,</span> <span class="n">conjugate</span> <span class="n">c</span><span class="p">)</span> <span class="c1">--  16, 4, 16-4i</span>
+
+<span class="nf">d</span> <span class="ow">=</span> <span class="mi">3</span> <span class="kt">:+</span> <span class="mi">4</span>
+<span class="nf">t2</span> <span class="ow">=</span> <span class="n">sqrt</span> <span class="n">d</span>  <span class="c1">-- 2 + i</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN118"
+>Converting Between Octal and Hexadecimal</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">-- &quot;read&quot; handles both octal and hexadecimal when prefixed with 0x or 0o</span>
+<span class="c1">-- here are versions adding the prefix and calling &quot;read&quot;</span>
+<span class="nf">hex</span> <span class="n">s</span> <span class="ow">=</span> <span class="n">read</span> <span class="p">(</span><span class="s">&quot;0x&quot;</span> <span class="o">++</span> <span class="n">s</span><span class="p">)</span> <span class="ow">::</span> <span class="kt">Integer</span>
+<span class="nf">oct</span> <span class="n">s</span> <span class="ow">=</span> <span class="n">read</span> <span class="p">(</span><span class="s">&quot;0o&quot;</span> <span class="o">++</span> <span class="n">s</span><span class="p">)</span> <span class="ow">::</span> <span class="kt">Integer</span>
+
+<span class="c1">-- hex &quot;45&quot; == 69</span>
+<span class="c1">-- oct &quot;45&quot; == 37</span>
+<span class="c1">-- hex &quot;45foo&quot; =&gt; Exception: Prelude.read: no parse</span>
+
+<span class="c1">-- calling explicitly readHex or readOct:</span>
+<span class="nf">hex</span> <span class="ow">=</span> <span class="n">fst</span> <span class="o">.</span> <span class="n">head</span> <span class="o">.</span> <span class="kt">Numeric</span><span class="o">.</span><span class="n">readHex</span>
+<span class="nf">oct</span> <span class="ow">=</span> <span class="n">fst</span> <span class="o">.</span> <span class="n">head</span> <span class="o">.</span> <span class="kt">Numeric</span><span class="o">.</span><span class="n">readOct</span>
+
+<span class="c1">-- one need to flush between putStr and getLine,</span>
+<span class="c1">--   it would not be needed if we had printer a newline</span>
+<span class="c1">-- the other solution is to disable buffering with hSetBuffering</span>
+<span class="nf">putStr_getLine</span> <span class="n">s</span> <span class="ow">=</span> <span class="kr">do</span> <span class="n">putStr</span> <span class="n">s</span>
+                      <span class="n">hFlush</span> <span class="n">stdout</span>
+                      <span class="n">getLine</span>
+
+<span class="nf">t</span> <span class="ow">=</span> <span class="kr">do</span> <span class="n">s</span> <span class="ow">&lt;-</span> <span class="n">putStr_getLine</span> <span class="s">&quot;Gimme a number in decimal, octal, or hex: &quot;</span>
+       <span class="kr">let</span> <span class="n">n</span> <span class="ow">=</span> <span class="n">read</span> <span class="n">s</span> <span class="ow">::</span> <span class="kt">Integer</span>
+       <span class="n">printf</span> <span class="s">&quot;%d %x %o</span><span class="se">\n</span><span class="s">&quot;</span> <span class="n">n</span> <span class="n">n</span> <span class="n">n</span>
+
+<span class="nf">t&#39;</span> <span class="ow">=</span> <span class="kr">do</span> <span class="n">permissions</span> <span class="ow">&lt;-</span> <span class="n">putStr_getLine</span> <span class="s">&quot;Enter file permission in octal: &quot;</span>
+	<span class="n">putStrLn</span> <span class="o">$</span> <span class="s">&quot;The decimal value is &quot;</span> <span class="o">++</span> <span class="n">show</span> <span class="p">(</span><span class="n">oct</span> <span class="n">permissions</span><span class="p">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN121"
+>Putting Commas in Numbers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="kr">import</span> <span class="nn">Data.List</span>
+<span class="c1">-- (using groupNelem from &quot;Helpers&quot;)</span>
+<span class="nf">commify</span> <span class="ow">=</span> <span class="n">reverse</span> <span class="o">.</span> <span class="n">intercalate</span> <span class="s">&quot;,&quot;</span> <span class="o">.</span> <span class="n">groupNelem</span> <span class="mi">3</span> <span class="o">.</span> <span class="n">reverse</span>
+<span class="c1">-- commify &quot;-1740525205&quot; == &quot;-1,740,525,205&quot;</span>
+
+<span class="c1">-- a version handling decimal numbers (using subRegexOnceWith from &quot;Helpers&quot;)</span>
+<span class="nf">commify&#39;</span> <span class="ow">=</span> <span class="n">subRegexOnceWith</span> <span class="p">(</span><span class="n">mkRegex</span> <span class="s">&quot;[0-9]+&quot;</span><span class="p">)</span> <span class="n">commify</span>
+<span class="c1">-- commify&#39; &quot;-1740525205.000001&quot; == &quot;-1,740,525,205.000001&quot;</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN124"
+>Printing Correct Plurals</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="nf">hours</span> <span class="ow">=</span> <span class="mi">2</span>
+<span class="nf">s</span> <span class="ow">=</span> <span class="s">&quot;It took &quot;</span> <span class="o">++</span> <span class="n">show</span> <span class="n">hours</span> <span class="o">++</span> <span class="s">&quot; hour&quot;</span> <span class="o">++</span> <span class="kr">if</span> <span class="n">hours</span> <span class="o">==</span> <span class="mi">1</span> <span class="kr">then</span> <span class="s">&quot;&quot;</span> <span class="kr">else</span> <span class="s">&quot;s&quot;</span>
+
+<span class="nf">s2</span> <span class="ow">=</span> <span class="n">printf</span> <span class="n">fmt</span> <span class="p">(</span><span class="n">hours</span> <span class="ow">::</span> <span class="kt">Int</span><span class="p">)</span> <span class="ow">::</span> <span class="kt">String</span>
+    <span class="kr">where</span> <span class="n">fmt</span> <span class="ow">=</span> <span class="kr">if</span> <span class="n">hours</span> <span class="o">==</span> <span class="mi">1</span> <span class="kr">then</span> <span class="s">&quot;%d hour is enough.</span><span class="se">\n</span><span class="s">&quot;</span> <span class="kr">else</span> <span class="s">&quot;%d hours are enough.</span><span class="se">\n</span><span class="s">&quot;</span>
+
+
+<span class="c1">-- subRegex doesn&#39;t return wether it succeeded or not</span>
+<span class="c1">-- calling matchRegex first</span>
+<span class="nf">subRegexMaybe</span> <span class="ow">::</span> <span class="kt">Regex</span> <span class="ow">-&gt;</span> <span class="kt">String</span> <span class="ow">-&gt;</span> <span class="kt">String</span> <span class="ow">-&gt;</span> <span class="kt">Maybe</span> <span class="kt">String</span>
+<span class="nf">subRegexMaybe</span> <span class="n">re</span> <span class="n">s</span> <span class="n">repla</span> <span class="ow">=</span> <span class="kr">do</span> <span class="n">matchRegex</span> <span class="n">re</span> <span class="n">s</span> <span class="c1">-- discard the result</span>
+                              <span class="kt">Just</span> <span class="p">(</span><span class="n">subRegex</span> <span class="n">re</span> <span class="n">s</span> <span class="n">repla</span><span class="p">)</span>
+
+<span class="nf">subRegexMany</span> <span class="ow">::</span> <span class="p">[(</span><span class="kt">String</span><span class="p">,</span> <span class="kt">String</span><span class="p">)]</span> <span class="ow">-&gt;</span> <span class="kt">String</span> <span class="ow">-&gt;</span> <span class="kt">Maybe</span> <span class="kt">String</span>
+<span class="nf">subRegexMany</span> <span class="n">regexps</span> <span class="n">s</span> <span class="ow">=</span> <span class="n">msum</span> <span class="p">(</span><span class="n">map</span> <span class="n">try_one</span> <span class="n">regexps</span><span class="p">)</span>
+    <span class="kr">where</span> <span class="n">try_one</span> <span class="p">(</span><span class="n">re</span><span class="p">,</span> <span class="n">repla</span><span class="p">)</span> <span class="ow">=</span> <span class="n">subRegexMaybe</span> <span class="p">(</span><span class="n">mkRegex</span> <span class="n">re</span><span class="p">)</span> <span class="n">s</span> <span class="n">repla</span>
+<span class="c1">-- note the use of msum to take the first (Just _) in the list</span>
+<span class="c1">-- here msum is used with type [Maybe a] -&gt; Maybe a</span>
+
+<span class="nf">noun_plural</span> <span class="n">s</span> <span class="ow">=</span> <span class="n">fromMaybe</span> <span class="p">(</span><span class="ne">error</span> <span class="s">&quot;can&#39;t get here&quot;</span><span class="p">)</span> <span class="p">(</span><span class="n">subRegexMany</span> <span class="n">regexps</span> <span class="n">s</span><span class="p">)</span>
+    <span class="kr">where</span> <span class="n">regexps</span> <span class="ow">=</span> <span class="p">[</span> <span class="p">(</span><span class="s">&quot;ss$&quot;</span><span class="p">,</span> <span class="s">&quot;sses&quot;</span><span class="p">)</span>
+                    <span class="p">,</span> <span class="p">(</span><span class="s">&quot;([psc]h)$&quot;</span><span class="p">,</span> <span class="s">&quot;</span><span class="se">\\</span><span class="s">1es&quot;</span><span class="p">)</span>
+                    <span class="p">,</span> <span class="p">(</span><span class="s">&quot;z$&quot;</span><span class="p">,</span> <span class="s">&quot;zes&quot;</span><span class="p">)</span>
+                    <span class="p">,</span> <span class="p">(</span><span class="s">&quot;ff$&quot;</span><span class="p">,</span> <span class="s">&quot;ffs&quot;</span><span class="p">)</span>
+                    <span class="p">,</span> <span class="p">(</span><span class="s">&quot;f$&quot;</span><span class="p">,</span> <span class="s">&quot;ves&quot;</span><span class="p">)</span>
+                    <span class="p">,</span> <span class="p">(</span><span class="s">&quot;ey$&quot;</span><span class="p">,</span> <span class="s">&quot;eys&quot;</span><span class="p">)</span>
+                    <span class="p">,</span> <span class="p">(</span><span class="s">&quot;y$&quot;</span><span class="p">,</span> <span class="s">&quot;ies&quot;</span><span class="p">)</span>
+                    <span class="p">,</span> <span class="p">(</span><span class="s">&quot;ix$&quot;</span><span class="p">,</span> <span class="s">&quot;ices&quot;</span><span class="p">)</span>
+                    <span class="p">,</span> <span class="p">(</span><span class="s">&quot;([sx])$&quot;</span><span class="p">,</span> <span class="s">&quot;</span><span class="se">\\</span><span class="s">1es&quot;</span><span class="p">)</span>
+                    <span class="p">,</span> <span class="p">(</span><span class="s">&quot;(.)$&quot;</span><span class="p">,</span> <span class="s">&quot;</span><span class="se">\\</span><span class="s">1s&quot;</span><span class="p">)</span> <span class="c1">-- note that subRegex is unsafe if the regexp matches an empty strings, cf documentation</span>
+                    <span class="p">]</span>
+
+<span class="nf">s</span> <span class="ow">=</span> <span class="n">unlines</span> <span class="o">$</span> <span class="n">map</span> <span class="p">(</span><span class="nf">\</span><span class="n">s</span> <span class="ow">-&gt;</span> <span class="s">&quot;One &quot;</span> <span class="o">++</span> <span class="n">s</span> <span class="o">++</span> <span class="s">&quot;, two &quot;</span> <span class="o">++</span> <span class="n">noun_plural</span> <span class="n">s</span> <span class="o">++</span> <span class="s">&quot;.&quot;</span><span class="p">)</span> <span class="o">$</span> <span class="n">words</span> <span class="n">test_words</span>
+    <span class="kr">where</span> <span class="n">test_words</span> <span class="ow">=</span> <span class="s">&quot;fish fly ox </span><span class="se">\</span>
+<span class="se">                       \</span><span class="s">species genus phylum </span><span class="se">\</span>
+<span class="se">                       \</span><span class="s">cherub radius jockey </span><span class="se">\</span>
+<span class="se">                       \</span><span class="s">index matrix mythos </span><span class="se">\</span>
+<span class="se">                       \</span><span class="s">phenomenon formula&quot;</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN127"
+>Program: Calculating Prime Factors</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="o">#!/</span><span class="n">usr</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">runghc</span>
+
+<span class="kr">import</span> <span class="nn">List</span>
+<span class="kr">import</span> <span class="nn">System</span>
+<span class="kr">import</span> <span class="nn">Text.Printf</span>
+
+<span class="c1">-- from http://haskell.org/haskellwiki/99_questions/31_to_41#Problem_36</span>
+<span class="nf">encode</span> <span class="ow">::</span> <span class="kt">Eq</span> <span class="n">a</span> <span class="ow">=&gt;</span> <span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="p">[(</span><span class="n">a</span><span class="p">,</span> <span class="kt">Int</span><span class="p">)]</span>
+<span class="nf">encode</span> <span class="ow">=</span> <span class="n">map</span> <span class="p">(</span><span class="nf">\</span><span class="n">x</span> <span class="ow">-&gt;</span> <span class="p">(</span><span class="n">head</span> <span class="n">x</span><span class="p">,</span> <span class="n">length</span> <span class="n">x</span><span class="p">))</span> <span class="o">.</span> <span class="n">group</span>
+
+<span class="nf">primeFactors</span> <span class="n">n</span> <span class="ow">=</span> <span class="n">factor</span> <span class="n">n</span> <span class="n">primes</span>
+  <span class="kr">where</span> <span class="n">factor</span> <span class="n">n</span> <span class="p">(</span><span class="n">p</span><span class="kt">:</span><span class="n">ps</span><span class="p">)</span> <span class="o">|</span> <span class="n">p</span><span class="o">*</span><span class="n">p</span> <span class="o">&gt;</span> <span class="n">n</span> <span class="ow">=</span> <span class="p">[</span><span class="n">n</span><span class="p">]</span>
+                        <span class="o">|</span> <span class="n">n</span> <span class="p">`</span><span class="n">mod</span><span class="p">`</span> <span class="n">p</span> <span class="o">/=</span> <span class="mi">0</span> <span class="ow">=</span> <span class="n">factor</span> <span class="n">n</span> <span class="n">ps</span>
+                        <span class="o">|</span> <span class="n">otherwise</span> <span class="ow">=</span> <span class="n">p</span> <span class="kt">:</span> <span class="n">factor</span> <span class="p">(</span><span class="n">n</span> <span class="p">`</span><span class="n">div</span><span class="p">`</span> <span class="n">p</span><span class="p">)</span> <span class="p">(</span><span class="n">p</span><span class="kt">:</span><span class="n">ps</span><span class="p">)</span>
+        <span class="n">primes</span> <span class="ow">=</span> <span class="mi">2</span> <span class="kt">:</span> <span class="n">filter</span> <span class="p">((</span><span class="o">==</span><span class="mi">1</span><span class="p">)</span> <span class="o">.</span> <span class="n">length</span> <span class="o">.</span> <span class="n">primeFactors</span><span class="p">)</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span><span class="mi">5</span><span class="o">..</span><span class="p">]</span>
+
+<span class="nf">main</span> <span class="ow">=</span> <span class="n">getArgs</span> <span class="o">&gt;&gt;=</span> <span class="n">mapM_</span> <span class="n">do_one</span>
+    <span class="kr">where</span> <span class="n">do_one</span> <span class="n">n</span> <span class="ow">=</span> <span class="n">printf</span> <span class="s">&quot;%-10s %s</span><span class="se">\n</span><span class="s">&quot;</span> <span class="n">n</span> <span class="p">(</span><span class="n">to_string</span> <span class="o">$</span> <span class="n">encode</span> <span class="o">$</span> <span class="n">primeFactors</span> <span class="o">$</span> <span class="n">read</span> <span class="n">n</span><span class="p">)</span>
+          <span class="n">to_string</span> <span class="p">[(</span><span class="kr">_</span><span class="p">,</span> <span class="mi">1</span><span class="p">)]</span> <span class="ow">=</span> <span class="s">&quot;PRIME&quot;</span>
+          <span class="n">to_string</span> <span class="n">l</span> <span class="ow">=</span> <span class="n">unwords</span> <span class="o">$</span> <span class="n">map</span> <span class="p">(</span><span class="nf">\</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">power</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="n">show</span> <span class="n">n</span> <span class="o">++</span> <span class="n">to_string_power</span> <span class="n">power</span><span class="p">)</span> <span class="n">l</span>
+          <span class="n">to_string_power</span> <span class="n">p</span> <span class="ow">=</span> <span class="kr">if</span> <span class="n">p</span> <span class="o">==</span> <span class="mi">1</span> <span class="kr">then</span> <span class="s">&quot;&quot;</span> <span class="kr">else</span> <span class="s">&quot;**&quot;</span> <span class="o">++</span> <span class="n">show</span> <span class="n">p</span>
+
+<span class="cm">{-</span>
+<span class="cm">% bigfact  8 9 96 2178</span>
+<span class="cm">8          2**3</span>
+<span class="cm">9          3**2</span>
+<span class="cm">96         2**5 3</span>
+<span class="cm">2178       2 3**2 11**2</span>
+<span class="cm">% bigfact 239322000000000000000000</span>
+<span class="cm">239322000000000000000000 2**19 3 5**18 39887</span>
+<span class="cm">% bigfact 25000000000000000000000000</span>
+<span class="cm">25000000000000000000000000 2**24 5**26</span>
+<span class="cm">-}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="strings.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="datesandtimes.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Strings</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Dates and Times</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

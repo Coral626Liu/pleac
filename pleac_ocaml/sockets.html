@@ -1,0 +1,1571 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Sockets</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Objective CAML "
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Process Management and Communication"
+HREF="processmanagementetc.html"><LINK
+REL="NEXT"
+TITLE="Internet Services"
+HREF="internetservices.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Objective CAML </TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="processmanagementetc.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="internetservices.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="SOCKETS"
+>17. Sockets</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN919"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="k">open</span> <span class="nc">Unix</span>
+
+<span class="c">(* Convert human readable form to 32 bit value *)</span>
+<span class="k">let</span> <span class="n">packed_ip</span> <span class="o">=</span> <span class="n">inet_addr_of_string</span> <span class="s2">&quot;208.146.240.1&quot;</span> <span class="k">in</span>
+
+<span class="k">let</span> <span class="n">host</span> <span class="o">=</span> <span class="n">gethostbyname</span> <span class="s2">&quot;www.oreilly.com&quot;</span> <span class="k">in</span>
+<span class="k">let</span> <span class="n">packed_ip</span> <span class="o">=</span> <span class="n">host</span><span class="o">.</span><span class="n">h_addr_list</span><span class="o">.(</span><span class="mi">0</span><span class="o">)</span> <span class="k">in</span>
+
+<span class="c">(* Convert 32 bit value to ip adress *)</span>
+<span class="k">let</span> <span class="n">ip_address</span> <span class="o">=</span> <span class="n">string_of_inet_addr</span> <span class="o">(</span><span class="n">packed_ip</span><span class="o">)</span> <span class="k">in</span>
+
+<span class="c">(* Create socket object *)</span>
+<span class="k">let</span> <span class="n">sock</span> <span class="o">=</span> <span class="n">socket</span> <span class="nc">PF_INET</span> <span class="nc">SOCK_STREAM</span> <span class="mi">0</span> <span class="k">in</span>
+
+<span class="c">(* Get socketname *)</span>
+<span class="k">let</span> <span class="n">saddr</span> <span class="o">=</span> <span class="n">getsockname</span> <span class="n">sock</span> <span class="o">;;</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN922"
+>Writing a TCP Client</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span>
+<span class="c">(* For real applications you should the SMTP module in Ocamlnet. *)</span>
+<span class="k">open</span> <span class="nc">Unix</span>
+
+<span class="k">let</span> <span class="n">sock_send</span> <span class="n">sock</span> <span class="n">str</span> <span class="o">=</span>
+	    <span class="k">let</span> <span class="n">len</span> <span class="o">=</span> <span class="nn">String</span><span class="p">.</span><span class="n">length</span> <span class="n">str</span> <span class="k">in</span>
+    <span class="n">send</span> <span class="n">sock</span> <span class="n">str</span> <span class="mi">0</span> <span class="n">len</span> <span class="bp">[]</span>
+
+<span class="k">let</span> <span class="n">sock_recv</span> <span class="n">sock</span> <span class="n">maxlen</span> <span class="o">=</span>
+    <span class="k">let</span> <span class="n">str</span> <span class="o">=</span> <span class="nn">String</span><span class="p">.</span><span class="n">create</span> <span class="n">maxlen</span> <span class="k">in</span>
+    <span class="k">let</span> <span class="n">recvlen</span> <span class="o">=</span> <span class="n">recv</span> <span class="n">sock</span> <span class="n">str</span> <span class="mi">0</span> <span class="n">maxlen</span> <span class="bp">[]</span> <span class="k">in</span>
+    <span class="nn">String</span><span class="p">.</span><span class="n">sub</span> <span class="n">str</span> <span class="mi">0</span> <span class="n">recvlen</span>
+
+<span class="k">let</span> <span class="n">client_sock</span> <span class="o">=</span> <span class="n">socket</span> <span class="nc">PF_INET</span> <span class="nc">SOCK_STREAM</span> <span class="mi">0</span> <span class="k">in</span>
+<span class="k">let</span> <span class="n">hentry</span> <span class="o">=</span> <span class="n">gethostbyname</span> <span class="s2">&quot;coltrane&quot;</span> <span class="k">in</span>
+<span class="n">connect</span> <span class="n">client_sock</span> <span class="o">(</span><span class="nc">ADDR_INET</span> <span class="o">(</span><span class="n">hentry</span><span class="o">.</span><span class="n">h_addr_list</span><span class="o">.(</span><span class="mi">0</span><span class="o">),</span> <span class="mi">25</span><span class="o">))</span> <span class="o">;</span> <span class="c">(* SMTP *)</span>
+
+<span class="n">sock_recv</span> <span class="n">client_sock</span> <span class="mi">1024</span> <span class="o">;</span>
+
+<span class="n">sock_send</span> <span class="n">client_sock</span> <span class="s2">&quot;mail from: &lt;pleac@localhost&gt;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">;</span>
+<span class="n">sock_recv</span> <span class="n">client_sock</span> <span class="mi">1024</span> <span class="o">;</span>
+
+<span class="n">sock_send</span> <span class="n">client_sock</span> <span class="s2">&quot;rcpt to: &lt;erikd@localhost&gt;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">;</span>
+<span class="n">sock_recv</span> <span class="n">client_sock</span> <span class="mi">1024</span><span class="o">;</span>
+
+<span class="n">sock_send</span> <span class="n">client_sock</span> <span class="s2">&quot;data</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">;</span>
+<span class="n">sock_recv</span> <span class="n">client_sock</span> <span class="mi">1024</span> <span class="o">;</span>
+
+<span class="n">sock_send</span> <span class="n">client_sock</span> <span class="s2">&quot;From: Ocaml whiz</span><span class="se">\n</span><span class="s2">Subject: Ocaml rulez!</span><span class="se">\n\n</span><span class="s2">YES!</span><span class="se">\n</span><span class="s2">.</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">;</span>
+<span class="n">sock_recv</span> <span class="n">client_sock</span> <span class="mi">1024</span> <span class="o">;</span>
+
+<span class="n">close</span> <span class="n">client_sock</span> <span class="o">;;</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN925"
+>Writing a TCP Server</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span>
+<span class="c">(* Writing a TCP Server *)</span>
+<span class="c">(* Run this and then telnet &lt;machinename&gt; 1027 *)</span>
+
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span> <span class="o">;;</span>
+<span class="k">open</span> <span class="nc">Unix</span> <span class="o">;;</span>
+
+<span class="k">let</span> <span class="n">server_sock</span> <span class="o">=</span> <span class="n">socket</span> <span class="nc">PF_INET</span> <span class="nc">SOCK_STREAM</span> <span class="mi">0</span> <span class="k">in</span>
+
+<span class="c">(* so we can restart our server quickly *)</span>
+<span class="n">setsockopt</span> <span class="n">server_sock</span> <span class="nc">SO_REUSEADDR</span> <span class="bp">true</span> <span class="o">;</span>
+
+<span class="c">(* build up my socket address *)</span>
+<span class="k">let</span> <span class="n">address</span> <span class="o">=</span> <span class="o">(</span><span class="n">gethostbyname</span><span class="o">(</span><span class="n">gethostname</span><span class="bp">()</span><span class="o">)).</span><span class="n">h_addr_list</span><span class="o">.(</span><span class="mi">0</span><span class="o">)</span> <span class="k">in</span>
+<span class="n">bind</span> <span class="n">server_sock</span> <span class="o">(</span><span class="nc">ADDR_INET</span> <span class="o">(</span><span class="n">address</span><span class="o">,</span> <span class="mi">1029</span><span class="o">))</span> <span class="o">;</span>
+
+<span class="c">(* Listen on the socket. Max of 10 incoming connections. *)</span>
+<span class="n">listen</span> <span class="n">server_sock</span> <span class="mi">10</span> <span class="o">;</span>
+
+<span class="c">(* accept and process connections *)</span>
+<span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+	<span class="k">let</span> <span class="o">(</span><span class="n">client_sock</span><span class="o">,</span> <span class="n">client_addr</span><span class="o">)</span> <span class="o">=</span> <span class="n">accept</span> <span class="n">server_sock</span> <span class="k">in</span>
+	<span class="k">let</span> <span class="n">str</span> <span class="o">=</span> <span class="s2">&quot;Hello</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="k">in</span>
+	<span class="k">let</span> <span class="n">len</span> <span class="o">=</span> <span class="nn">String</span><span class="p">.</span><span class="n">length</span> <span class="n">str</span> <span class="k">in</span>
+	<span class="k">let</span> <span class="n">x</span> <span class="o">=</span> <span class="n">send</span> <span class="n">client_sock</span> <span class="n">str</span> <span class="mi">0</span> <span class="n">len</span> <span class="bp">[]</span> <span class="k">in</span>
+	<span class="n">shutdown</span> <span class="n">client_sock</span> <span class="nc">SHUTDOWN_ALL</span>
+	<span class="k">done</span> <span class="o">;;</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN928"
+>Communicating over TCP</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">server_in</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">in_channel_of_descr</span> <span class="n">server</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="n">server_out</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">out_channel_of_descr</span> <span class="n">server</span> <span class="k">in</span>
+  <span class="n">output_string</span> <span class="n">server_out</span> <span class="s2">&quot;What is your name?</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">;</span>
+  <span class="n">flush</span> <span class="n">server_out</span><span class="o">;</span>
+  <span class="k">let</span> <span class="n">response</span> <span class="o">=</span> <span class="n">input_line</span> <span class="n">server_in</span> <span class="k">in</span>
+  <span class="n">print_endline</span> <span class="n">response</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">try</span>
+    <span class="n">ignore</span>
+      <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">send</span> <span class="n">server</span> <span class="n">data_to_send</span> <span class="mi">0</span> <span class="o">(</span><span class="nn">String</span><span class="p">.</span><span class="n">length</span> <span class="n">data_to_send</span><span class="o">)</span> <span class="n">flags</span><span class="o">)</span>
+  <span class="k">with</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">Unix_error</span> <span class="o">(</span><span class="n">e</span><span class="o">,</span> <span class="o">_,</span> <span class="o">_)</span> <span class="o">-&gt;</span>
+    <span class="nn">Printf</span><span class="p">.</span><span class="n">eprintf</span> <span class="s2">&quot;Can&#39;t send: %s</span><span class="se">\n</span><span class="s2">%!&quot;</span>
+      <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">error_message</span> <span class="n">e</span><span class="o">);</span>
+    <span class="n">exit</span> <span class="mi">1</span>
+
+<span class="k">let</span> <span class="n">data_read</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">data_read</span> <span class="o">=</span> <span class="nn">String</span><span class="p">.</span><span class="n">create</span> <span class="n">maxlen</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="n">data_length</span> <span class="o">=</span>
+    <span class="k">try</span>
+      <span class="nn">Unix</span><span class="p">.</span><span class="n">recv</span> <span class="n">server</span> <span class="n">data_read</span> <span class="mi">0</span> <span class="n">maxlen</span> <span class="n">flags</span>
+    <span class="k">with</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">Unix_error</span> <span class="o">(</span><span class="n">e</span><span class="o">,</span> <span class="o">_,</span> <span class="o">_)</span> <span class="o">-&gt;</span>
+      <span class="nn">Printf</span><span class="p">.</span><span class="n">eprintf</span> <span class="s2">&quot;Can&#39;t receive: %s</span><span class="se">\n</span><span class="s2">%!&quot;</span>
+        <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">error_message</span> <span class="n">e</span><span class="o">);</span>
+      <span class="n">exit</span> <span class="mi">1</span> <span class="k">in</span>
+  <span class="nn">String</span><span class="p">.</span><span class="n">sub</span> <span class="n">data_read</span> <span class="mi">0</span> <span class="n">data_length</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">read_from</span><span class="o">,</span> <span class="o">_,</span> <span class="o">_</span> <span class="o">=</span>
+    <span class="nn">Unix</span><span class="p">.</span><span class="n">select</span> <span class="o">[</span><span class="n">from_server</span><span class="o">;</span> <span class="n">to_client</span><span class="o">]</span> <span class="bp">[]</span> <span class="bp">[]</span> <span class="n">timeout</span> <span class="k">in</span>
+  <span class="nn">List</span><span class="p">.</span><span class="n">iter</span>
+    <span class="o">(</span><span class="k">fun</span> <span class="n">socket</span> <span class="o">-&gt;</span>
+       <span class="c">(* read the pending data from socket *)</span>
+       <span class="bp">()</span><span class="o">)</span>
+    <span class="n">read_from</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* Requires OCaml 3.11 or newer. *)</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">try</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">setsockopt</span> <span class="n">server</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">TCP_NODELAY</span> <span class="bp">true</span>
+  <span class="k">with</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">Unix_error</span> <span class="o">(</span><span class="n">e</span><span class="o">,</span> <span class="o">_,</span> <span class="o">_)</span> <span class="o">-&gt;</span>
+    <span class="nn">Printf</span><span class="p">.</span><span class="n">eprintf</span> <span class="s2">&quot;Couldn&#39;t disable Nagle&#39;s algorithm: %s</span><span class="se">\n</span><span class="s2">%!&quot;</span>
+      <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">error_message</span> <span class="n">e</span><span class="o">)</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* Requires OCaml 3.11 or newer. *)</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">try</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">setsockopt</span> <span class="n">server</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">TCP_NODELAY</span> <span class="bp">false</span>
+  <span class="k">with</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">Unix_error</span> <span class="o">(</span><span class="n">e</span><span class="o">,</span> <span class="o">_,</span> <span class="o">_)</span> <span class="o">-&gt;</span>
+    <span class="nn">Printf</span><span class="p">.</span><span class="n">eprintf</span> <span class="s2">&quot;Couldn&#39;t enable Nagle&#39;s algorithm: %s</span><span class="se">\n</span><span class="s2">%!&quot;</span>
+      <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">error_message</span> <span class="n">e</span><span class="o">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN931"
+>Setting Up a UDP Client</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+
+<span class="c">(* Create a UDP socket. *)</span>
+<span class="k">let</span> <span class="n">socket</span> <span class="o">=</span>
+  <span class="nn">Unix</span><span class="p">.</span><span class="n">socket</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">PF_INET</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">SOCK_DGRAM</span>
+    <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">getprotobyname</span> <span class="s2">&quot;udp&quot;</span><span class="o">).</span><span class="nn">Unix</span><span class="p">.</span><span class="n">p_proto</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* Send a UDP message. *)</span>
+<span class="k">let</span> <span class="n">ipaddr</span> <span class="o">=</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">gethostbyname</span> <span class="n">hostname</span><span class="o">).</span><span class="nn">Unix</span><span class="p">.</span><span class="n">h_addr_list</span><span class="o">.(</span><span class="mi">0</span><span class="o">)</span>
+<span class="k">let</span> <span class="n">portaddr</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">ADDR_INET</span> <span class="o">(</span><span class="n">ipaddr</span><span class="o">,</span> <span class="n">portno</span><span class="o">)</span>
+<span class="k">let</span> <span class="n">len</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">sendto</span> <span class="n">socket</span> <span class="n">msg</span> <span class="mi">0</span> <span class="o">(</span><span class="nn">String</span><span class="p">.</span><span class="n">length</span> <span class="n">msg</span><span class="o">)</span> <span class="bp">[]</span> <span class="n">portaddr</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* Receive a UDP message. *)</span>
+<span class="k">let</span> <span class="n">msg</span> <span class="o">=</span> <span class="nn">String</span><span class="p">.</span><span class="n">create</span> <span class="n">maxlen</span>
+<span class="k">let</span> <span class="n">len</span><span class="o">,</span> <span class="n">portaddr</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">recvfrom</span> <span class="n">socket</span> <span class="n">msg</span> <span class="mi">0</span> <span class="n">maxlen</span> <span class="bp">[]</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="o">#!/</span><span class="n">usr</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">ocaml</span>
+<span class="c">(* clockdrift - compare another system&#39;s clock with this one *)</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+
+<span class="k">let</span> <span class="n">secs_of_70_years</span> <span class="o">=</span> <span class="mi">2_208_988_800</span><span class="n">L</span>
+
+<span class="k">let</span> <span class="n">msgbox</span> <span class="o">=</span>
+  <span class="nn">Unix</span><span class="p">.</span><span class="n">socket</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">PF_INET</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">SOCK_DGRAM</span>
+    <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">getprotobyname</span> <span class="s2">&quot;udp&quot;</span><span class="o">).</span><span class="nn">Unix</span><span class="p">.</span><span class="n">p_proto</span>
+
+<span class="k">let</span> <span class="n">him</span> <span class="o">=</span>
+  <span class="nn">Unix</span><span class="p">.</span><span class="nc">ADDR_INET</span> <span class="o">((</span><span class="nn">Unix</span><span class="p">.</span><span class="n">gethostbyname</span>
+                     <span class="o">(</span><span class="k">if</span> <span class="nn">Array</span><span class="p">.</span><span class="n">length</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span> <span class="o">&gt;</span> <span class="mi">1</span>
+                      <span class="k">then</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span><span class="o">.(</span><span class="mi">1</span><span class="o">)</span>
+                      <span class="k">else</span> <span class="s2">&quot;127.1&quot;</span><span class="o">)).</span><span class="nn">Unix</span><span class="p">.</span><span class="n">h_addr_list</span><span class="o">.(</span><span class="mi">0</span><span class="o">),</span>
+                  <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">getservbyname</span> <span class="s2">&quot;time&quot;</span> <span class="s2">&quot;udp&quot;</span><span class="o">).</span><span class="nn">Unix</span><span class="p">.</span><span class="n">s_port</span><span class="o">)</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span> <span class="n">ignore</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">sendto</span> <span class="n">msgbox</span> <span class="s2">&quot;&quot;</span> <span class="mi">0</span> <span class="mi">0</span> <span class="bp">[]</span> <span class="n">him</span><span class="o">)</span>
+
+<span class="k">let</span> <span class="n">ptime</span> <span class="o">=</span> <span class="nn">String</span><span class="p">.</span><span class="n">create</span> <span class="mi">4</span>
+
+<span class="k">let</span> <span class="n">host</span> <span class="o">=</span>
+  <span class="k">match</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">recvfrom</span> <span class="n">msgbox</span> <span class="n">ptime</span> <span class="mi">0</span> <span class="mi">4</span> <span class="bp">[]</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="o">_,</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">ADDR_INET</span> <span class="o">(</span><span class="n">addr</span><span class="o">,</span> <span class="n">port</span><span class="o">)</span> <span class="o">-&gt;</span>
+        <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">gethostbyaddr</span> <span class="n">addr</span><span class="o">).</span><span class="nn">Unix</span><span class="p">.</span><span class="n">h_name</span>
+    <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="k">assert</span> <span class="bp">false</span>
+
+<span class="k">let</span> <span class="n">delta</span> <span class="o">=</span>
+  <span class="nn">Int64</span><span class="p">.</span><span class="n">to_float</span>
+    <span class="o">(</span><span class="nn">Int64</span><span class="p">.</span><span class="n">sub</span>
+       <span class="o">(</span><span class="nn">Int64</span><span class="p">.</span><span class="n">of_string</span> <span class="o">(</span><span class="nn">Printf</span><span class="p">.</span><span class="n">sprintf</span> <span class="s2">&quot;0x%02x%02x%02x%02x&quot;</span>
+                           <span class="o">(</span><span class="n">int_of_char</span> <span class="n">ptime</span><span class="o">.[</span><span class="mi">0</span><span class="o">])</span>
+                           <span class="o">(</span><span class="n">int_of_char</span> <span class="n">ptime</span><span class="o">.[</span><span class="mi">1</span><span class="o">])</span>
+                           <span class="o">(</span><span class="n">int_of_char</span> <span class="n">ptime</span><span class="o">.[</span><span class="mi">2</span><span class="o">])</span>
+                           <span class="o">(</span><span class="n">int_of_char</span> <span class="n">ptime</span><span class="o">.[</span><span class="mi">3</span><span class="o">])))</span>
+       <span class="n">secs_of_70_years</span><span class="o">)</span>
+    <span class="o">-.</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">time</span> <span class="bp">()</span><span class="o">)</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;Clock on %s is %d seconds ahead of this one.</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="n">host</span> <span class="o">(</span><span class="n">int_of_float</span> <span class="n">delta</span><span class="o">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN934"
+>Setting Up a UDP Server</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">begin</span>
+    <span class="k">try</span>
+      <span class="nn">Unix</span><span class="p">.</span><span class="n">bind</span> <span class="n">socket</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="nc">ADDR_INET</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">inet_addr_any</span><span class="o">,</span> <span class="n">server_port</span><span class="o">));</span>
+    <span class="k">with</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">Unix_error</span> <span class="o">(</span><span class="n">e</span><span class="o">,</span> <span class="o">_,</span> <span class="o">_)</span> <span class="o">-&gt;</span>
+      <span class="nn">Printf</span><span class="p">.</span><span class="n">eprintf</span> <span class="s2">&quot;Couldn&#39;t be a udp server on port %d: %s</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">server_port</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">error_message</span> <span class="n">e</span><span class="o">);</span>
+      <span class="n">exit</span> <span class="mi">1</span>
+  <span class="k">end</span><span class="o">;</span>
+  <span class="k">let</span> <span class="n">him</span> <span class="o">=</span> <span class="nn">String</span><span class="p">.</span><span class="n">create</span> <span class="n">max_to_read</span> <span class="k">in</span>
+  <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+    <span class="n">ignore</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">recvfrom</span> <span class="n">socket</span> <span class="n">him</span> <span class="mi">0</span> <span class="n">max_to_read</span> <span class="bp">[]</span><span class="o">);</span>
+    <span class="c">(* do something *)</span>
+  <span class="k">done</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="o">#!/</span><span class="n">usr</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">ocaml</span>
+<span class="c">(* udpqotd - UDP message server *)</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+
+<span class="k">let</span> <span class="n">maxlen</span> <span class="o">=</span> <span class="mi">1024</span>
+<span class="k">let</span> <span class="n">portno</span> <span class="o">=</span> <span class="mi">5151</span>
+
+<span class="k">let</span> <span class="n">sock</span> <span class="o">=</span>
+  <span class="nn">Unix</span><span class="p">.</span><span class="n">socket</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">PF_INET</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">SOCK_DGRAM</span>
+    <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">getprotobyname</span> <span class="s2">&quot;udp&quot;</span><span class="o">).</span><span class="nn">Unix</span><span class="p">.</span><span class="n">p_proto</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="nn">Unix</span><span class="p">.</span><span class="n">bind</span> <span class="n">sock</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="nc">ADDR_INET</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">inet_addr_any</span><span class="o">,</span> <span class="n">portno</span><span class="o">));</span>
+  <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;Awaiting UDP messages on port %d</span><span class="se">\n</span><span class="s2">%!&quot;</span> <span class="n">portno</span>
+
+<span class="k">let</span> <span class="n">oldmsg</span> <span class="o">=</span> <span class="n">ref</span> <span class="s2">&quot;This is the starting message.&quot;</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">newmsg</span> <span class="o">=</span> <span class="nn">String</span><span class="p">.</span><span class="n">create</span> <span class="n">maxlen</span> <span class="k">in</span>
+  <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+    <span class="k">let</span> <span class="n">newmsg</span><span class="o">,</span> <span class="n">hishost</span><span class="o">,</span> <span class="n">sockaddr</span> <span class="o">=</span>
+      <span class="k">match</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">recvfrom</span> <span class="n">sock</span> <span class="n">newmsg</span> <span class="mi">0</span> <span class="n">maxlen</span> <span class="bp">[]</span> <span class="k">with</span>
+        <span class="o">|</span> <span class="n">len</span><span class="o">,</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="nc">ADDR_INET</span> <span class="o">(</span><span class="n">addr</span><span class="o">,</span> <span class="n">port</span><span class="o">)</span> <span class="k">as</span> <span class="n">sockaddr</span><span class="o">)</span> <span class="o">-&gt;</span>
+            <span class="nn">String</span><span class="p">.</span><span class="n">sub</span> <span class="n">newmsg</span> <span class="mi">0</span> <span class="n">len</span><span class="o">,</span>
+            <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">gethostbyaddr</span> <span class="n">addr</span><span class="o">).</span><span class="nn">Unix</span><span class="p">.</span><span class="n">h_name</span><span class="o">,</span>
+            <span class="n">sockaddr</span>
+        <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="k">assert</span> <span class="bp">false</span> <span class="k">in</span>
+    <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;Client %s said ``%s&#39;&#39;</span><span class="se">\n</span><span class="s2">%!&quot;</span> <span class="n">hishost</span> <span class="n">newmsg</span><span class="o">;</span>
+    <span class="n">ignore</span>
+      <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">sendto</span> <span class="n">sock</span> <span class="o">!</span><span class="n">oldmsg</span> <span class="mi">0</span> <span class="o">(</span><span class="nn">String</span><span class="p">.</span><span class="n">length</span> <span class="o">!</span><span class="n">oldmsg</span><span class="o">)</span> <span class="bp">[]</span> <span class="n">sockaddr</span><span class="o">);</span>
+    <span class="n">oldmsg</span> <span class="o">:=</span> <span class="nn">Printf</span><span class="p">.</span><span class="n">sprintf</span> <span class="s2">&quot;[%s] %s&quot;</span> <span class="n">hishost</span> <span class="n">newmsg</span>
+  <span class="k">done</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="o">#!/</span><span class="n">usr</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">ocaml</span>
+<span class="c">(* udpmsg - send a message to the udpqotd server *)</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+
+<span class="k">let</span> <span class="n">maxlen</span>  <span class="o">=</span> <span class="mi">1024</span>
+<span class="k">let</span> <span class="n">portno</span>  <span class="o">=</span> <span class="mi">5151</span>
+<span class="k">let</span> <span class="n">timeout</span> <span class="o">=</span> <span class="mi">5</span>
+
+<span class="k">let</span> <span class="n">server_host</span><span class="o">,</span> <span class="n">msg</span> <span class="o">=</span>
+  <span class="k">match</span> <span class="nn">Array</span><span class="p">.</span><span class="n">to_list</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="o">_</span> <span class="o">::</span> <span class="n">head</span> <span class="o">::</span> <span class="n">tail</span> <span class="o">-&gt;</span> <span class="n">head</span><span class="o">,</span> <span class="nn">String</span><span class="p">.</span><span class="n">concat</span> <span class="s2">&quot; &quot;</span> <span class="n">tail</span>
+    <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span>
+        <span class="nn">Printf</span><span class="p">.</span><span class="n">eprintf</span> <span class="s2">&quot;Usage: %s server_host msg ...</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span><span class="o">.(</span><span class="mi">0</span><span class="o">);</span>
+        <span class="n">exit</span> <span class="mi">1</span>
+
+<span class="k">let</span> <span class="n">sock</span> <span class="o">=</span>
+  <span class="nn">Unix</span><span class="p">.</span><span class="n">socket</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">PF_INET</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">SOCK_DGRAM</span>
+    <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">getprotobyname</span> <span class="s2">&quot;udp&quot;</span><span class="o">).</span><span class="nn">Unix</span><span class="p">.</span><span class="n">p_proto</span>
+
+<span class="k">let</span> <span class="n">sockaddr</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">addr</span> <span class="o">=</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">gethostbyname</span> <span class="n">server_host</span><span class="o">).</span><span class="nn">Unix</span><span class="p">.</span><span class="n">h_addr_list</span><span class="o">.(</span><span class="mi">0</span><span class="o">)</span> <span class="k">in</span>
+  <span class="nn">Unix</span><span class="p">.</span><span class="nc">ADDR_INET</span> <span class="o">(</span><span class="n">addr</span><span class="o">,</span> <span class="n">portno</span><span class="o">)</span>
+
+<span class="k">let</span> <span class="n">handle_alarm</span> <span class="n">signal</span> <span class="o">=</span>
+  <span class="nn">Printf</span><span class="p">.</span><span class="n">eprintf</span> <span class="s2">&quot;recv from %s timed out after %d seconds.</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="n">server_host</span> <span class="n">timeout</span><span class="o">;</span>
+  <span class="n">exit</span> <span class="mi">1</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="n">ignore</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">sendto</span> <span class="n">sock</span> <span class="n">msg</span> <span class="mi">0</span> <span class="o">(</span><span class="nn">String</span><span class="p">.</span><span class="n">length</span> <span class="n">msg</span><span class="o">)</span> <span class="bp">[]</span> <span class="n">sockaddr</span><span class="o">);</span>
+  <span class="nn">Sys</span><span class="p">.</span><span class="n">set_signal</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigalrm</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="nc">Signal_handle</span> <span class="n">handle_alarm</span><span class="o">);</span>
+  <span class="n">ignore</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">alarm</span> <span class="n">timeout</span><span class="o">);</span>
+  <span class="k">let</span> <span class="n">msg</span> <span class="o">=</span> <span class="nn">String</span><span class="p">.</span><span class="n">create</span> <span class="n">maxlen</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="n">msg</span><span class="o">,</span> <span class="n">hishost</span> <span class="o">=</span>
+    <span class="k">match</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">recvfrom</span> <span class="n">sock</span> <span class="n">msg</span> <span class="mi">0</span> <span class="n">maxlen</span> <span class="bp">[]</span> <span class="k">with</span>
+      <span class="o">|</span> <span class="n">len</span><span class="o">,</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">ADDR_INET</span> <span class="o">(</span><span class="n">addr</span><span class="o">,</span> <span class="n">port</span><span class="o">)</span> <span class="o">-&gt;</span>
+          <span class="nn">String</span><span class="p">.</span><span class="n">sub</span> <span class="n">msg</span> <span class="mi">0</span> <span class="n">len</span><span class="o">,</span>
+          <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">gethostbyaddr</span> <span class="n">addr</span><span class="o">).</span><span class="nn">Unix</span><span class="p">.</span><span class="n">h_name</span>
+      <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="k">assert</span> <span class="bp">false</span> <span class="k">in</span>
+  <span class="n">ignore</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">alarm</span> <span class="mi">0</span><span class="o">);</span>
+  <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;Server %s responded ``%s&#39;&#39;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="n">hishost</span> <span class="n">msg</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN937"
+>Using UNIX Domain Sockets</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+
+<span class="c">(* Create a Unix domain socket server - you can also use SOCK_STREAM. *)</span>
+<span class="k">let</span> <span class="n">server</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">socket</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">PF_UNIX</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">SOCK_DGRAM</span> <span class="mi">0</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span> <span class="k">try</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">unlink</span> <span class="s2">&quot;/tmp/mysock&quot;</span> <span class="k">with</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">Unix_error</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">()</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">bind</span> <span class="n">server</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="nc">ADDR_UNIX</span> <span class="s2">&quot;/tmp/mysock&quot;</span><span class="o">)</span>
+
+<span class="c">(* Create a Unix domain socket client - you can also use SOCK_STREAM. *)</span>
+<span class="k">let</span> <span class="n">client</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">socket</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">PF_UNIX</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">SOCK_DGRAM</span> <span class="mi">0</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">connect</span> <span class="n">client</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="nc">ADDR_UNIX</span> <span class="s2">&quot;/tmp/mysock&quot;</span><span class="o">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN940"
+>Identifying the Other End of a Socket</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+
+<span class="c">(* Get the remote IP address. *)</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">other_end</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">getpeername</span> <span class="n">socket</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="n">name_info</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">getnameinfo</span> <span class="n">other_end</span> <span class="o">[</span><span class="nn">Unix</span><span class="p">.</span><span class="nc">NI_NUMERICHOST</span><span class="o">]</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="n">ip_address</span> <span class="o">=</span> <span class="n">name_info</span><span class="o">.</span><span class="nn">Unix</span><span class="p">.</span><span class="n">ni_hostname</span> <span class="k">in</span>
+  <span class="c">(* ... *)</span>
+  <span class="bp">()</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* Attempt to determine the remote host name, with forward and reverse</span>
+<span class="c">   DNS lookups to detect spoofing. *)</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">other_end</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">getpeername</span> <span class="n">socket</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="n">name_info</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">getnameinfo</span> <span class="n">other_end</span> <span class="o">[</span><span class="nn">Unix</span><span class="p">.</span><span class="nc">NI_NUMERICHOST</span><span class="o">]</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="n">actual_ip</span> <span class="o">=</span> <span class="n">name_info</span><span class="o">.</span><span class="nn">Unix</span><span class="p">.</span><span class="n">ni_hostname</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="n">claimed_hostname</span> <span class="o">=</span>
+    <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">gethostbyaddr</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">inet_addr_of_string</span> <span class="n">actual_ip</span><span class="o">))</span>
+      <span class="o">.</span><span class="nn">Unix</span><span class="p">.</span><span class="n">h_name</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="n">name_lookup</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">gethostbyname</span> <span class="n">claimed_hostname</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="n">resolved_ips</span> <span class="o">=</span>
+    <span class="nn">Array</span><span class="p">.</span><span class="n">to_list</span> <span class="o">(</span><span class="nn">Array</span><span class="p">.</span><span class="n">map</span>
+                     <span class="nn">Unix</span><span class="p">.</span><span class="n">string_of_inet_addr</span>
+                     <span class="n">name_lookup</span><span class="o">.</span><span class="nn">Unix</span><span class="p">.</span><span class="n">h_addr_list</span><span class="o">)</span> <span class="k">in</span>
+  <span class="c">(* ... *)</span>
+  <span class="bp">()</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN943"
+>Finding Your Own Name and Address</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c">(*-----------------------------*)</span>
+
+<span class="c">(*</span>
+<span class="c">** Finding Your Own Name and Address.</span>
+<span class="c">** The Unix module to the rescue again.</span>
+<span class="c">*)</span>
+
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span> <span class="o">;;</span>
+<span class="k">open</span> <span class="nc">Unix</span> <span class="o">;;</span>
+
+<span class="k">let</span> <span class="n">hostname</span> <span class="o">=</span> <span class="n">gethostname</span> <span class="bp">()</span> <span class="k">in</span>
+<span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;hostname : %s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="n">hostname</span> <span class="o">;;</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(*</span>
+<span class="c">** Unfortunately there is no easy way of retreiving the</span>
+<span class="c">** uname without using Unix.open_process_in.</span>
+<span class="c">*)</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="k">let</span> <span class="n">hentry</span> <span class="o">=</span> <span class="n">gethostbyname</span> <span class="n">hostname</span> <span class="k">in</span>
+<span class="k">let</span> <span class="n">address</span> <span class="o">=</span> <span class="n">hentry</span><span class="o">.</span><span class="n">h_addr_list</span><span class="o">.(</span><span class="mi">0</span><span class="o">)</span> <span class="k">in</span>
+<span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;address : %s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">(</span><span class="n">string_of_inet_addr</span> <span class="n">address</span><span class="o">)</span> <span class="o">;;</span>
+
+<span class="k">let</span> <span class="n">hentry</span> <span class="o">=</span> <span class="n">gethostbyaddr</span> <span class="n">address</span> <span class="k">in</span>
+<span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;hostname : %s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="n">hentry</span><span class="o">.</span><span class="n">h_name</span> <span class="o">;;</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN946"
+>Closing a Socket After Forking</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span>
+<span class="c">(* Closing a Socket After Forking *)</span>
+
+<span class="c">(*-----------------------------*)</span>
+<span class="n">shutdown</span> <span class="n">sock</span> <span class="nc">SHUTDOWN_RECEIVE</span> <span class="o">;</span>    <span class="c">(* I/we have stopped reading data *)</span>
+<span class="n">shutdown</span> <span class="n">sock</span> <span class="nc">SHUTDOWN_SEND</span> <span class="o">;</span>       <span class="c">(* I/we have stopped writing data *)</span>
+<span class="n">shutdown</span> <span class="n">sock</span> <span class="nc">SHUTDOWN_ALL</span> <span class="o">;;</span>       <span class="c">(* I/we have stopped using this socket *)</span>
+
+<span class="c">(*-----------------------------*)</span>
+<span class="c">(* Using the sock_send and sock_recv functions from above. *)</span>
+
+<span class="n">sock_send</span> <span class="n">sock</span> <span class="s2">&quot;my request</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">;</span>    <span class="c">(* send some data *)</span>
+<span class="n">shutdown</span> <span class="n">sock</span> <span class="nc">SHUTDOWN_SEND</span> <span class="o">;</span>      <span class="c">(* send eof; no more writing *)</span>
+<span class="k">let</span> <span class="n">answer</span> <span class="o">=</span> <span class="n">sock_recv</span> <span class="n">sock</span> <span class="mi">4096</span> <span class="o">;;</span> <span class="c">(* but you can still read *)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN949"
+>Writing Bidirectional Clients</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="o">#!/</span><span class="n">usr</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">ocaml</span>
+<span class="c">(* biclient - bidirectional forking client *)</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+
+<span class="k">let</span> <span class="n">host</span><span class="o">,</span> <span class="n">port</span> <span class="o">=</span>
+  <span class="k">match</span> <span class="nn">Array</span><span class="p">.</span><span class="n">to_list</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="o">[_;</span> <span class="n">host</span><span class="o">;</span> <span class="n">port</span><span class="o">]</span> <span class="o">-&gt;</span> <span class="n">host</span><span class="o">,</span> <span class="n">int_of_string</span> <span class="n">port</span>
+    <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="nn">Printf</span><span class="p">.</span><span class="n">eprintf</span> <span class="s2">&quot;usage: %s host port</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span><span class="o">.(</span><span class="mi">0</span><span class="o">);</span> <span class="n">exit</span> <span class="mi">1</span>
+
+<span class="k">let</span> <span class="n">sockaddr</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">addr</span> <span class="o">=</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">gethostbyname</span> <span class="n">host</span><span class="o">).</span><span class="nn">Unix</span><span class="p">.</span><span class="n">h_addr_list</span><span class="o">.(</span><span class="mi">0</span><span class="o">)</span> <span class="k">in</span>
+  <span class="nn">Unix</span><span class="p">.</span><span class="nc">ADDR_INET</span> <span class="o">(</span><span class="n">addr</span><span class="o">,</span> <span class="n">port</span><span class="o">)</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">socket</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">socket</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">PF_INET</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">SOCK_STREAM</span> <span class="mi">0</span> <span class="k">in</span>
+  <span class="nn">Unix</span><span class="p">.</span><span class="n">connect</span> <span class="n">socket</span> <span class="n">sockaddr</span><span class="o">;</span>
+  <span class="nn">Printf</span><span class="p">.</span><span class="n">eprintf</span> <span class="s2">&quot;[Connected to %s:%d]</span><span class="se">\n</span><span class="s2">%!&quot;</span> <span class="n">host</span> <span class="n">port</span><span class="o">;</span>
+
+  <span class="c">(* split the program into two processes, identical twins *)</span>
+  <span class="k">match</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">fork</span> <span class="bp">()</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="mi">0</span> <span class="o">-&gt;</span>
+        <span class="c">(* child copies standard input to the socket *)</span>
+        <span class="k">let</span> <span class="n">output</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">out_channel_of_descr</span> <span class="n">socket</span> <span class="k">in</span>
+        <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+          <span class="k">let</span> <span class="n">line</span> <span class="o">=</span> <span class="n">input_line</span> <span class="n">stdin</span> <span class="k">in</span>
+          <span class="n">output_string</span> <span class="n">output</span> <span class="n">line</span><span class="o">;</span>
+          <span class="n">output_string</span> <span class="n">output</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">;</span>
+          <span class="n">flush</span> <span class="n">output</span>
+        <span class="k">done</span>
+    <span class="o">|</span> <span class="n">kidpid</span> <span class="o">-&gt;</span>
+        <span class="c">(* parent copies the socket to standard output *)</span>
+        <span class="k">let</span> <span class="n">input</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">in_channel_of_descr</span> <span class="n">socket</span> <span class="k">in</span>
+        <span class="k">try</span>
+          <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+            <span class="k">let</span> <span class="n">line</span> <span class="o">=</span> <span class="n">input_line</span> <span class="n">input</span> <span class="k">in</span>
+            <span class="n">output_string</span> <span class="n">stdout</span> <span class="n">line</span><span class="o">;</span>
+            <span class="n">output_string</span> <span class="n">stdout</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">;</span>
+            <span class="n">flush</span> <span class="n">stdout</span>
+          <span class="k">done</span>
+        <span class="k">with</span> <span class="nc">End_of_file</span> <span class="o">-&gt;</span>
+          <span class="nn">Unix</span><span class="p">.</span><span class="n">kill</span> <span class="n">kidpid</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigterm</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span> <span class="n">exit</span> <span class="mi">0</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN952"
+>Forking Servers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c">(* set up the socket SERVER, bind and listen ... *)</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+
+<span class="k">let</span> <span class="k">rec</span> <span class="n">reaper</span> <span class="n">signal</span> <span class="o">=</span>
+  <span class="k">try</span> <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span> <span class="n">ignore</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">waitpid</span> <span class="o">[</span><span class="nn">Unix</span><span class="p">.</span><span class="nc">WNOHANG</span><span class="o">]</span> <span class="o">(-</span><span class="mi">1</span><span class="o">))</span> <span class="k">done</span>
+  <span class="k">with</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">Unix_error</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="nc">ECHILD</span><span class="o">,</span> <span class="o">_,</span> <span class="o">_)</span> <span class="o">-&gt;</span> <span class="bp">()</span><span class="o">;</span>
+  <span class="nn">Sys</span><span class="p">.</span><span class="n">set_signal</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigchld</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="nc">Signal_handle</span> <span class="n">reaper</span><span class="o">)</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="nn">Sys</span><span class="p">.</span><span class="n">set_signal</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigchld</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="nc">Signal_handle</span> <span class="n">reaper</span><span class="o">)</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+    <span class="k">try</span>
+      <span class="k">let</span> <span class="o">(</span><span class="n">client</span><span class="o">,</span> <span class="n">addr</span><span class="o">)</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">accept</span> <span class="n">server</span> <span class="k">in</span>
+      <span class="k">let</span> <span class="n">pid</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">fork</span> <span class="bp">()</span> <span class="k">in</span>
+      <span class="k">if</span> <span class="n">pid</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">then</span>                   <span class="c">(* parent *)</span>
+        <span class="k">begin</span>
+          <span class="nn">Unix</span><span class="p">.</span><span class="n">close</span> <span class="n">server</span><span class="o">;</span>            <span class="c">(* no use to child *)</span>
+          <span class="c">(* ... do something *)</span>
+          <span class="n">exit</span> <span class="mi">0</span>                        <span class="c">(* child leaves *)</span>
+        <span class="k">end</span>
+      <span class="k">else</span>
+        <span class="k">begin</span>
+          <span class="nn">Unix</span><span class="p">.</span><span class="n">close</span> <span class="n">client</span>             <span class="c">(* no use to parent *)</span>
+        <span class="k">end</span>
+    <span class="k">with</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">Unix_error</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="nc">EINTR</span><span class="o">,</span> <span class="o">_,</span> <span class="o">_)</span> <span class="o">-&gt;</span> <span class="bp">()</span>
+  <span class="k">done</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN955"
+>Pre-Forking Servers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="o">#!/</span><span class="n">usr</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">ocaml</span>
+<span class="c">(* preforker - server who forks first *)</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+
+<span class="c">(* global variables *)</span>
+<span class="k">let</span> <span class="n">prefork</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="k">let</span> <span class="n">max_clients_per_child</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="k">module</span> <span class="nc">PidSet</span> <span class="o">=</span> <span class="nn">Set</span><span class="p">.</span><span class="nc">Make</span><span class="o">(</span><span class="k">struct</span> <span class="k">type</span> <span class="n">t</span> <span class="o">=</span> <span class="kt">int</span> <span class="k">let</span> <span class="n">compare</span> <span class="o">=</span> <span class="n">compare</span> <span class="k">end</span><span class="o">)</span>
+<span class="k">let</span> <span class="n">children</span> <span class="o">=</span> <span class="n">ref</span> <span class="nn">PidSet</span><span class="p">.</span><span class="n">empty</span>
+
+<span class="c">(* takes care of dead children *)</span>
+<span class="k">let</span> <span class="k">rec</span> <span class="n">reaper</span> <span class="o">_</span> <span class="o">=</span>
+  <span class="nn">Sys</span><span class="p">.</span><span class="n">set_signal</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigchld</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="nc">Signal_handle</span> <span class="n">reaper</span><span class="o">);</span>
+  <span class="k">match</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">wait</span> <span class="bp">()</span>
+  <span class="k">with</span> <span class="o">(</span><span class="n">pid</span><span class="o">,</span> <span class="o">_)</span> <span class="o">-&gt;</span> <span class="n">children</span> <span class="o">:=</span> <span class="nn">PidSet</span><span class="p">.</span><span class="n">remove</span> <span class="n">pid</span> <span class="o">!</span><span class="n">children</span>
+
+<span class="c">(* signal handler for SIGINT *)</span>
+<span class="k">let</span> <span class="k">rec</span> <span class="n">huntsman</span> <span class="o">_</span> <span class="o">=</span>
+  <span class="c">(* we&#39;re going to kill our children *)</span>
+  <span class="nn">Sys</span><span class="p">.</span><span class="n">set_signal</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigchld</span> <span class="nn">Sys</span><span class="p">.</span><span class="nc">Signal_ignore</span><span class="o">;</span>
+  <span class="nn">PidSet</span><span class="p">.</span><span class="n">iter</span>
+    <span class="o">(</span><span class="k">fun</span> <span class="n">pid</span> <span class="o">-&gt;</span>
+       <span class="k">try</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">kill</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigint</span> <span class="n">pid</span> <span class="k">with</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">Unix_error</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">()</span><span class="o">)</span>
+    <span class="o">!</span><span class="n">children</span><span class="o">;</span>
+  <span class="c">(* clean up with dignity *)</span>
+  <span class="n">exit</span> <span class="mi">0</span>
+
+<span class="k">let</span> <span class="n">make_new_child</span> <span class="n">server</span> <span class="o">=</span>
+  <span class="c">(* block signal for fork *)</span>
+  <span class="k">let</span> <span class="n">sigset</span> <span class="o">=</span> <span class="o">[</span><span class="nn">Sys</span><span class="p">.</span><span class="n">sigint</span><span class="o">]</span> <span class="k">in</span>
+  <span class="n">ignore</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">sigprocmask</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">SIG_BLOCK</span> <span class="n">sigset</span><span class="o">);</span>
+
+  <span class="k">match</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">fork</span> <span class="bp">()</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="mi">0</span> <span class="o">-&gt;</span>
+        <span class="c">(* Child can *not* return from this subroutine. *)</span>
+        <span class="c">(* make SIGINT kill us as it did before *)</span>
+        <span class="nn">Sys</span><span class="p">.</span><span class="n">set_signal</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigint</span> <span class="nn">Sys</span><span class="p">.</span><span class="nc">Signal_default</span><span class="o">;</span>
+
+        <span class="c">(* unblock signals *)</span>
+        <span class="n">ignore</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">sigprocmask</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">SIG_UNBLOCK</span> <span class="n">sigset</span><span class="o">);</span>
+
+        <span class="c">(* handle connections until we&#39;ve reached max_clients_per_child *)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">to</span> <span class="n">max_clients_per_child</span> <span class="k">do</span>
+          <span class="k">let</span> <span class="o">(</span><span class="n">client</span><span class="o">,</span> <span class="o">_)</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">accept</span> <span class="n">server</span> <span class="k">in</span>
+          <span class="c">(* do something with the connection *)</span>
+          <span class="bp">()</span>
+        <span class="k">done</span><span class="o">;</span>
+
+        <span class="c">(* tidy up gracefully and finish *)</span>
+
+        <span class="c">(* this exit is VERY important, otherwise the child will become</span>
+<span class="c">           a producer of more and more children, forking yourself into</span>
+<span class="c">           process death. *)</span>
+        <span class="n">exit</span> <span class="mi">0</span>
+    <span class="o">|</span> <span class="n">pid</span> <span class="o">-&gt;</span>
+        <span class="c">(* Parent records the child&#39;s birth and returns. *)</span>
+        <span class="n">ignore</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">sigprocmask</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">SIG_UNBLOCK</span> <span class="n">sigset</span><span class="o">);</span>
+        <span class="n">children</span> <span class="o">:=</span> <span class="nn">PidSet</span><span class="p">.</span><span class="n">add</span> <span class="n">pid</span> <span class="o">!</span><span class="n">children</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="c">(* establish SERVER socket, bind and listen. *)</span>
+  <span class="k">let</span> <span class="n">server</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">socket</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">PF_INET</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">SOCK_STREAM</span> <span class="mi">0</span> <span class="k">in</span>
+  <span class="nn">Unix</span><span class="p">.</span><span class="n">setsockopt</span> <span class="n">server</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">SO_REUSEADDR</span> <span class="bp">true</span><span class="o">;</span>
+  <span class="nn">Unix</span><span class="p">.</span><span class="n">bind</span> <span class="n">server</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="nc">ADDR_INET</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">inet_addr_any</span><span class="o">,</span> <span class="mi">6969</span><span class="o">));</span>
+  <span class="nn">Unix</span><span class="p">.</span><span class="n">listen</span> <span class="n">server</span> <span class="mi">10</span><span class="o">;</span>
+
+  <span class="c">(* Fork off our children. *)</span>
+  <span class="k">for</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">to</span> <span class="n">prefork</span> <span class="k">do</span>
+    <span class="n">make_new_child</span> <span class="n">server</span>
+  <span class="k">done</span><span class="o">;</span>
+
+  <span class="c">(* Install signal handlers. *)</span>
+  <span class="nn">Sys</span><span class="p">.</span><span class="n">set_signal</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigchld</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="nc">Signal_handle</span> <span class="n">reaper</span><span class="o">);</span>
+  <span class="nn">Sys</span><span class="p">.</span><span class="n">set_signal</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigint</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="nc">Signal_handle</span> <span class="n">huntsman</span><span class="o">);</span>
+
+  <span class="c">(* And maintain the population. *)</span>
+  <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+    <span class="c">(* wait for a signal (i.e., child&#39;s death) *)</span>
+    <span class="nn">Unix</span><span class="p">.</span><span class="n">pause</span> <span class="bp">()</span><span class="o">;</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="o">=</span> <span class="o">(</span><span class="nn">PidSet</span><span class="p">.</span><span class="n">cardinal</span> <span class="o">!</span><span class="n">children</span><span class="o">)</span> <span class="k">to</span> <span class="o">(</span><span class="n">prefork</span> <span class="o">-</span> <span class="mi">1</span><span class="o">)</span> <span class="k">do</span>
+      <span class="c">(* top up the child pool *)</span>
+      <span class="n">make_new_child</span> <span class="n">server</span>
+    <span class="k">done</span>
+  <span class="k">done</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN958"
+>Non-Forking Servers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="o">#!/</span><span class="n">usr</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">ocaml</span>
+<span class="c">(* nonforker - server who multiplexes without forking *)</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+
+<span class="k">let</span> <span class="n">port</span> <span class="o">=</span> <span class="mi">1685</span>                         <span class="c">(* change this at will *)</span>
+
+<span class="c">(* Listen to port. *)</span>
+<span class="k">let</span> <span class="n">server</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">socket</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">PF_INET</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">SOCK_STREAM</span> <span class="mi">0</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="nn">Unix</span><span class="p">.</span><span class="n">setsockopt</span> <span class="n">server</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">SO_REUSEADDR</span> <span class="bp">true</span><span class="o">;</span>
+  <span class="nn">Unix</span><span class="p">.</span><span class="n">bind</span> <span class="n">server</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="nc">ADDR_INET</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">inet_addr_any</span><span class="o">,</span> <span class="n">port</span><span class="o">));</span>
+  <span class="nn">Unix</span><span class="p">.</span><span class="n">listen</span> <span class="n">server</span> <span class="mi">10</span><span class="o">;</span>
+  <span class="nn">Unix</span><span class="p">.</span><span class="n">set_nonblock</span> <span class="n">server</span>
+
+<span class="k">module</span> <span class="nc">FDSet</span> <span class="o">=</span>
+  <span class="nn">Set</span><span class="p">.</span><span class="nc">Make</span><span class="o">(</span><span class="k">struct</span> <span class="k">type</span> <span class="n">t</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">file_descr</span> <span class="k">let</span> <span class="n">compare</span> <span class="o">=</span> <span class="n">compare</span> <span class="k">end</span><span class="o">)</span>
+<span class="k">let</span> <span class="n">clients</span> <span class="o">=</span> <span class="n">ref</span> <span class="o">(</span><span class="nn">FDSet</span><span class="p">.</span><span class="n">singleton</span> <span class="n">server</span><span class="o">)</span>
+
+<span class="c">(* begin with empty buffers *)</span>
+<span class="k">let</span> <span class="n">inbuffer</span> <span class="o">=</span> <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">create</span> <span class="mi">0</span>
+<span class="k">let</span> <span class="n">outbuffer</span> <span class="o">=</span> <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">create</span> <span class="mi">0</span>
+<span class="k">let</span> <span class="n">ready</span> <span class="o">=</span> <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">create</span> <span class="mi">0</span>
+
+<span class="k">let</span> <span class="n">buffer_size</span> <span class="o">=</span> <span class="mi">8192</span>
+<span class="k">let</span> <span class="n">buffer</span> <span class="o">=</span> <span class="nn">String</span><span class="p">.</span><span class="n">make</span> <span class="n">buffer_size</span> <span class="sc">&#39;\000&#39;</span>
+
+<span class="c">(* handle deals with all pending requests for client *)</span>
+<span class="k">let</span> <span class="n">handle</span> <span class="n">client</span> <span class="n">requests</span> <span class="o">=</span>
+  <span class="c">(* requests are in ready[client] *)</span>
+  <span class="c">(* send output to outbuffer[client] *)</span>
+  <span class="nn">List</span><span class="p">.</span><span class="n">iter</span>
+    <span class="o">(</span><span class="k">fun</span> <span class="n">request</span> <span class="o">-&gt;</span>
+       <span class="c">(* request is the text of the request *)</span>
+       <span class="k">let</span> <span class="n">data</span> <span class="o">=</span> <span class="nn">Printf</span><span class="p">.</span><span class="n">sprintf</span> <span class="s2">&quot;You said: %s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="n">request</span> <span class="k">in</span>
+       <span class="c">(* put text of reply into outbuffer[client] *)</span>
+       <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">replace</span> <span class="n">outbuffer</span> <span class="n">client</span>
+         <span class="o">(</span><span class="k">try</span> <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">find</span> <span class="n">outbuffer</span> <span class="n">client</span> <span class="o">^</span> <span class="n">data</span>
+          <span class="k">with</span> <span class="nc">Not_found</span> <span class="o">-&gt;</span> <span class="n">data</span><span class="o">))</span>
+    <span class="n">requests</span>
+
+<span class="c">(* Main loop: check reads/accepts, check writes, check ready to process *)</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+    <span class="c">(* check for new information on the connections we have *)</span>
+
+    <span class="k">let</span> <span class="o">(</span><span class="n">can_read</span><span class="o">,</span> <span class="o">_,</span> <span class="o">_)</span> <span class="o">=</span>
+      <span class="nn">Unix</span><span class="p">.</span><span class="n">select</span> <span class="o">(</span><span class="nn">FDSet</span><span class="p">.</span><span class="n">elements</span> <span class="o">!</span><span class="n">clients</span><span class="o">)</span> <span class="bp">[]</span> <span class="bp">[]</span> <span class="mi">1</span><span class="o">.</span><span class="mi">0</span> <span class="k">in</span>
+    <span class="nn">List</span><span class="p">.</span><span class="n">iter</span>
+      <span class="o">(</span><span class="k">fun</span> <span class="n">client</span> <span class="o">-&gt;</span>
+         <span class="k">if</span> <span class="n">client</span> <span class="o">=</span> <span class="n">server</span>
+         <span class="k">then</span>
+           <span class="k">begin</span>
+             <span class="c">(* accept a new connection *)</span>
+             <span class="k">let</span> <span class="o">(</span><span class="n">client</span><span class="o">,</span> <span class="n">addr</span><span class="o">)</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">accept</span> <span class="n">server</span> <span class="k">in</span>
+             <span class="n">clients</span> <span class="o">:=</span> <span class="nn">FDSet</span><span class="p">.</span><span class="n">add</span> <span class="n">client</span> <span class="o">!</span><span class="n">clients</span><span class="o">;</span>
+             <span class="nn">Unix</span><span class="p">.</span><span class="n">set_nonblock</span> <span class="n">client</span>
+           <span class="k">end</span>
+         <span class="k">else</span>
+           <span class="k">begin</span>
+             <span class="c">(* read data *)</span>
+             <span class="k">let</span> <span class="n">chars_read</span> <span class="o">=</span>
+               <span class="k">try</span>
+                 <span class="nc">Some</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">read</span> <span class="n">client</span> <span class="n">buffer</span> <span class="mi">0</span> <span class="n">buffer_size</span><span class="o">)</span>
+               <span class="k">with</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">Unix_error</span> <span class="o">(</span><span class="n">error</span><span class="o">,</span> <span class="o">_,</span> <span class="o">_)</span> <span class="o">-&gt;</span>
+                 <span class="n">prerr_endline</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">error_message</span> <span class="n">error</span><span class="o">);</span>
+                 <span class="nc">None</span> <span class="k">in</span>
+
+             <span class="k">match</span> <span class="n">chars_read</span> <span class="k">with</span>
+               <span class="o">|</span> <span class="nc">None</span> <span class="o">|</span> <span class="nc">Some</span> <span class="mi">0</span> <span class="o">-&gt;</span>
+                   <span class="c">(* This would be the end of file, so close the client *)</span>
+                   <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">remove</span> <span class="n">inbuffer</span> <span class="n">client</span><span class="o">;</span>
+                   <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">remove</span> <span class="n">outbuffer</span> <span class="n">client</span><span class="o">;</span>
+                   <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">remove</span> <span class="n">ready</span> <span class="n">client</span><span class="o">;</span>
+
+                   <span class="n">clients</span> <span class="o">:=</span> <span class="nn">FDSet</span><span class="p">.</span><span class="n">remove</span> <span class="n">client</span> <span class="o">!</span><span class="n">clients</span><span class="o">;</span>
+                   <span class="nn">Unix</span><span class="p">.</span><span class="n">close</span> <span class="n">client</span>
+
+               <span class="o">|</span> <span class="nc">Some</span> <span class="n">chars_read</span> <span class="o">-&gt;</span>
+                   <span class="k">let</span> <span class="n">data</span> <span class="o">=</span> <span class="nn">String</span><span class="p">.</span><span class="n">sub</span> <span class="n">buffer</span> <span class="mi">0</span> <span class="n">chars_read</span> <span class="k">in</span>
+                   <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">replace</span> <span class="n">inbuffer</span> <span class="n">client</span>
+                     <span class="o">(</span><span class="k">try</span> <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">find</span> <span class="n">inbuffer</span> <span class="n">client</span> <span class="o">^</span> <span class="n">data</span>
+                      <span class="k">with</span> <span class="nc">Not_found</span> <span class="o">-&gt;</span> <span class="n">data</span><span class="o">);</span>
+
+                   <span class="c">(* test whether the data in the buffer or the data we *)</span>
+                   <span class="c">(* just read means there is a complete request waiting *)</span>
+                   <span class="c">(* to be fulfilled.  If there is, set ready[client] *)</span>
+                   <span class="c">(* to the requests waiting to be fulfilled. *)</span>
+                   <span class="k">try</span>
+                     <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+                       <span class="k">let</span> <span class="n">data</span> <span class="o">=</span> <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">find</span> <span class="n">inbuffer</span> <span class="n">client</span> <span class="k">in</span>
+                       <span class="k">let</span> <span class="n">index</span> <span class="o">=</span> <span class="nn">String</span><span class="p">.</span><span class="n">index</span> <span class="n">data</span> <span class="sc">&#39;\n&#39;</span> <span class="k">in</span>
+                       <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">replace</span> <span class="n">inbuffer</span> <span class="n">client</span>
+                         <span class="o">(</span><span class="nn">String</span><span class="p">.</span><span class="n">sub</span> <span class="n">data</span>
+                            <span class="o">(</span><span class="n">index</span> <span class="o">+</span> <span class="mi">1</span><span class="o">)</span>
+                            <span class="o">(</span><span class="nn">String</span><span class="p">.</span><span class="n">length</span> <span class="n">data</span> <span class="o">-</span> <span class="n">index</span> <span class="o">-</span> <span class="mi">1</span><span class="o">));</span>
+                       <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">replace</span> <span class="n">ready</span> <span class="n">client</span>
+                         <span class="o">((</span><span class="k">try</span> <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">find</span> <span class="n">ready</span> <span class="n">client</span>
+                           <span class="k">with</span> <span class="nc">Not_found</span> <span class="o">-&gt;</span> <span class="bp">[]</span><span class="o">)</span>
+                          <span class="o">@</span> <span class="o">[</span><span class="nn">String</span><span class="p">.</span><span class="n">sub</span> <span class="n">data</span> <span class="mi">0</span> <span class="n">index</span><span class="o">])</span>
+                     <span class="k">done</span>
+                   <span class="k">with</span> <span class="nc">Not_found</span> <span class="o">-&gt;</span> <span class="bp">()</span>
+           <span class="k">end</span><span class="o">)</span>
+      <span class="n">can_read</span><span class="o">;</span>
+
+    <span class="c">(* Any complete requests to process? *)</span>
+    <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">iter</span> <span class="n">handle</span> <span class="n">ready</span><span class="o">;</span>
+    <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">clear</span> <span class="n">ready</span><span class="o">;</span>
+
+    <span class="c">(* Buffers to flush? *)</span>
+    <span class="k">let</span> <span class="o">(_,</span> <span class="n">can_write</span><span class="o">,</span> <span class="o">_)</span> <span class="o">=</span>
+      <span class="nn">Unix</span><span class="p">.</span><span class="n">select</span> <span class="bp">[]</span> <span class="o">(</span><span class="nn">FDSet</span><span class="p">.</span><span class="n">elements</span> <span class="o">!</span><span class="n">clients</span><span class="o">)</span> <span class="bp">[]</span> <span class="mi">1</span><span class="o">.</span><span class="mi">0</span> <span class="k">in</span>
+    <span class="c">(* Skip client if we have nothing to say *)</span>
+    <span class="k">let</span> <span class="n">can_write</span> <span class="o">=</span>
+      <span class="nn">List</span><span class="p">.</span><span class="n">filter</span> <span class="o">(</span><span class="nn">Hashtbl</span><span class="p">.</span><span class="n">mem</span> <span class="n">outbuffer</span><span class="o">)</span> <span class="n">can_write</span> <span class="k">in</span>
+    <span class="nn">List</span><span class="p">.</span><span class="n">iter</span>
+      <span class="o">(</span><span class="k">fun</span> <span class="n">client</span> <span class="o">-&gt;</span>
+         <span class="k">let</span> <span class="n">data</span> <span class="o">=</span> <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">find</span> <span class="n">outbuffer</span> <span class="n">client</span> <span class="k">in</span>
+         <span class="k">let</span> <span class="n">chars_written</span> <span class="o">=</span>
+           <span class="k">try</span>
+             <span class="nc">Some</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">single_write</span> <span class="n">client</span> <span class="n">data</span> <span class="mi">0</span> <span class="o">(</span><span class="nn">String</span><span class="p">.</span><span class="n">length</span> <span class="n">data</span><span class="o">))</span>
+           <span class="k">with</span>
+             <span class="o">|</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">Unix_error</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="nc">EAGAIN</span><span class="o">,</span> <span class="o">_,</span> <span class="o">_)</span>
+             <span class="o">|</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">Unix_error</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="nc">EWOULDBLOCK</span><span class="o">,</span> <span class="o">_,</span> <span class="o">_)</span> <span class="o">-&gt;</span>
+                 <span class="n">prerr_endline</span> <span class="s2">&quot;I was told I could write, but I can&#39;t.&quot;</span><span class="o">;</span>
+                 <span class="nc">Some</span> <span class="mi">0</span>
+             <span class="o">|</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">Unix_error</span> <span class="o">(</span><span class="n">error</span><span class="o">,</span> <span class="o">_,</span> <span class="o">_)</span> <span class="o">-&gt;</span>
+                 <span class="n">prerr_endline</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">error_message</span> <span class="n">error</span><span class="o">);</span>
+                 <span class="nc">None</span> <span class="k">in</span>
+
+         <span class="k">match</span> <span class="n">chars_written</span> <span class="k">with</span>
+           <span class="o">|</span> <span class="nc">Some</span> <span class="n">chars_written</span> <span class="o">-&gt;</span>
+               <span class="k">if</span> <span class="n">chars_written</span> <span class="o">=</span> <span class="nn">String</span><span class="p">.</span><span class="n">length</span> <span class="n">data</span>
+               <span class="k">then</span> <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">remove</span> <span class="n">outbuffer</span> <span class="n">client</span>
+               <span class="k">else</span> <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">replace</span> <span class="n">outbuffer</span> <span class="n">client</span>
+                 <span class="o">(</span><span class="nn">String</span><span class="p">.</span><span class="n">sub</span> <span class="n">data</span> <span class="n">chars_written</span>
+                    <span class="o">(</span><span class="nn">String</span><span class="p">.</span><span class="n">length</span> <span class="n">data</span> <span class="o">-</span> <span class="n">chars_written</span><span class="o">))</span>
+           <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span>
+               <span class="c">(* Couldn&#39;t write all the data, and it wasn&#39;t because *)</span>
+               <span class="c">(* it would have blocked.  Shutdown and move on. *)</span>
+               <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">remove</span> <span class="n">inbuffer</span> <span class="n">client</span><span class="o">;</span>
+               <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">remove</span> <span class="n">outbuffer</span> <span class="n">client</span><span class="o">;</span>
+               <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">remove</span> <span class="n">ready</span> <span class="n">client</span><span class="o">;</span>
+
+               <span class="n">clients</span> <span class="o">:=</span> <span class="nn">FDSet</span><span class="p">.</span><span class="n">remove</span> <span class="n">client</span> <span class="o">!</span><span class="n">clients</span><span class="o">;</span>
+               <span class="nn">Unix</span><span class="p">.</span><span class="n">close</span> <span class="n">client</span><span class="o">)</span>
+      <span class="n">can_write</span><span class="o">;</span>
+
+    <span class="k">let</span> <span class="o">(_,</span> <span class="o">_,</span> <span class="n">has_exception</span><span class="o">)</span> <span class="o">=</span>
+      <span class="nn">Unix</span><span class="p">.</span><span class="n">select</span> <span class="bp">[]</span> <span class="bp">[]</span> <span class="o">(</span><span class="nn">FDSet</span><span class="p">.</span><span class="n">elements</span> <span class="o">!</span><span class="n">clients</span><span class="o">)</span> <span class="mi">0</span><span class="o">.</span><span class="mi">0</span> <span class="k">in</span>
+    <span class="nn">List</span><span class="p">.</span><span class="n">iter</span>
+      <span class="o">(</span><span class="k">fun</span> <span class="n">client</span> <span class="o">-&gt;</span>
+         <span class="c">(* Deal with out-of-band data here, if you want to. *)</span>
+         <span class="bp">()</span><span class="o">)</span>
+      <span class="n">has_exception</span><span class="o">;</span>
+  <span class="k">done</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN961"
+>Writing a Multi-Homed Server</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+
+<span class="k">let</span> <span class="n">server</span> <span class="o">=</span>
+  <span class="nn">Unix</span><span class="p">.</span><span class="n">socket</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">PF_INET</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">SOCK_STREAM</span>
+    <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">getprotobyname</span> <span class="s2">&quot;tcp&quot;</span><span class="o">).</span><span class="nn">Unix</span><span class="p">.</span><span class="n">p_proto</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="nn">Unix</span><span class="p">.</span><span class="n">setsockopt</span> <span class="n">server</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">SO_REUSEADDR</span> <span class="bp">true</span><span class="o">;</span>
+  <span class="nn">Unix</span><span class="p">.</span><span class="n">bind</span> <span class="n">server</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="nc">ADDR_INET</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">inet_addr_any</span><span class="o">,</span> <span class="n">server_port</span><span class="o">));</span>
+  <span class="nn">Unix</span><span class="p">.</span><span class="n">listen</span> <span class="n">server</span> <span class="mi">10</span><span class="o">;</span>
+
+  <span class="c">(* accept loop *)</span>
+  <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+    <span class="k">let</span> <span class="n">client</span><span class="o">,</span> <span class="n">sockaddr</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">accept</span> <span class="n">server</span> <span class="k">in</span>
+    <span class="k">match</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">getsockname</span> <span class="n">client</span> <span class="k">with</span>
+      <span class="o">|</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">ADDR_INET</span> <span class="o">(</span><span class="n">addr</span><span class="o">,</span> <span class="n">port</span><span class="o">)</span> <span class="o">-&gt;</span>
+          <span class="n">print_endline</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">string_of_inet_addr</span> <span class="n">addr</span><span class="o">)</span>
+      <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="k">assert</span> <span class="bp">false</span>
+  <span class="k">done</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+
+<span class="k">let</span> <span class="n">port</span> <span class="o">=</span> <span class="mi">4269</span>                 <span class="c">(* port to bind to *)</span>
+<span class="k">let</span> <span class="n">host</span> <span class="o">=</span> <span class="s2">&quot;specific.host.com&quot;</span>  <span class="c">(* virtual host to listen on *)</span>
+
+<span class="k">let</span> <span class="n">server</span> <span class="o">=</span>
+  <span class="nn">Unix</span><span class="p">.</span><span class="n">socket</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">PF_INET</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">SOCK_STREAM</span>
+    <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">getprotobyname</span> <span class="s2">&quot;tcp&quot;</span><span class="o">).</span><span class="nn">Unix</span><span class="p">.</span><span class="n">p_proto</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">addr</span> <span class="o">=</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">gethostbyname</span> <span class="n">host</span><span class="o">).</span><span class="nn">Unix</span><span class="p">.</span><span class="n">h_addr_list</span><span class="o">.(</span><span class="mi">0</span><span class="o">)</span> <span class="k">in</span>
+  <span class="nn">Unix</span><span class="p">.</span><span class="n">bind</span> <span class="n">server</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="nc">ADDR_INET</span> <span class="o">(</span><span class="n">addr</span><span class="o">,</span> <span class="n">port</span><span class="o">));</span>
+  <span class="nn">Unix</span><span class="p">.</span><span class="n">listen</span> <span class="n">server</span> <span class="mi">10</span><span class="o">;</span>
+  <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+    <span class="k">let</span> <span class="n">client</span><span class="o">,</span> <span class="n">sockaddr</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">accept</span> <span class="n">server</span> <span class="k">in</span>
+    <span class="c">(* ... *)</span>
+    <span class="bp">()</span>
+  <span class="k">done</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN964"
+>Making a Daemon Server</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="c">(* for the paranoid *)</span>
+  <span class="c">(* Unix.handle_unix_error Unix.chroot &quot;/var/daemon&quot;; *)</span>
+
+  <span class="c">(* fork and let parent exit *)</span>
+  <span class="k">let</span> <span class="n">pid</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">fork</span> <span class="bp">()</span> <span class="k">in</span>
+  <span class="k">if</span> <span class="n">pid</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">then</span> <span class="n">exit</span> <span class="mi">0</span><span class="o">;</span>
+
+  <span class="c">(* create a new session and abandon the controlling process *)</span>
+  <span class="n">ignore</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">setsid</span> <span class="bp">()</span><span class="o">)</span>
+
+<span class="c">(* flag indicating it is time to exit *)</span>
+<span class="k">let</span> <span class="n">time_to_die</span> <span class="o">=</span> <span class="n">ref</span> <span class="bp">false</span>
+
+<span class="c">(* trap fatal signals *)</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">signal_handler</span> <span class="o">_</span> <span class="o">=</span> <span class="n">time_to_die</span> <span class="o">:=</span> <span class="bp">true</span> <span class="k">in</span>
+  <span class="nn">List</span><span class="p">.</span><span class="n">iter</span>
+    <span class="o">(</span><span class="k">fun</span> <span class="n">signal</span> <span class="o">-&gt;</span>
+       <span class="nn">Sys</span><span class="p">.</span><span class="n">set_signal</span> <span class="n">signal</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="nc">Signal_handle</span> <span class="n">signal_handler</span><span class="o">))</span>
+    <span class="o">[</span><span class="nn">Sys</span><span class="p">.</span><span class="n">sigint</span><span class="o">;</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigterm</span><span class="o">;</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sighup</span><span class="o">]</span>
+  <span class="c">(* trap or ignore Sys.sigpipe *)</span>
+
+<span class="c">(* server loop *)</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">while</span> <span class="n">not</span> <span class="o">!</span><span class="n">time_to_die</span> <span class="k">do</span>
+    <span class="c">(* ... *)</span>
+    <span class="bp">()</span>
+  <span class="k">done</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN967"
+>Restarting a Server on Demand</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+
+<span class="k">let</span> <span class="n">self</span> <span class="o">=</span> <span class="s2">&quot;/usr/bin/ocaml&quot;</span>
+<span class="k">let</span> <span class="n">args</span> <span class="o">=</span> <span class="n">self</span> <span class="o">::</span> <span class="nn">Array</span><span class="p">.</span><span class="n">to_list</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span>
+
+<span class="k">let</span> <span class="n">phoenix</span> <span class="o">_</span> <span class="o">=</span>
+  <span class="c">(* close all your connections, kill your children, and *)</span>
+  <span class="c">(* generally prepare to be reincarnated with dignity. *)</span>
+  <span class="k">try</span>
+    <span class="n">ignore</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">sigprocmask</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">SIG_UNBLOCK</span> <span class="o">[</span><span class="nn">Sys</span><span class="p">.</span><span class="n">sighup</span><span class="o">]);</span>
+    <span class="nn">Unix</span><span class="p">.</span><span class="n">execv</span> <span class="n">self</span> <span class="o">(</span><span class="nn">Array</span><span class="p">.</span><span class="n">of_list</span> <span class="n">args</span><span class="o">)</span>
+  <span class="k">with</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">Unix_error</span> <span class="o">(</span><span class="n">e</span><span class="o">,</span> <span class="o">_,</span> <span class="o">_)</span> <span class="o">-&gt;</span>
+    <span class="nn">Printf</span><span class="p">.</span><span class="n">eprintf</span> <span class="s2">&quot;Couldn&#39;t restart: %s</span><span class="se">\n</span><span class="s2">%!&quot;</span>
+      <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">error_message</span> <span class="n">e</span><span class="o">)</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="nn">Sys</span><span class="p">.</span><span class="n">set_signal</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sighup</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="nc">Signal_handle</span> <span class="n">phoenix</span><span class="o">)</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* This recipe uses the Ocaml-Syck YAML parser available at:</span>
+<span class="c">   http://ocaml-syck.sourceforge.net/ *)</span>
+
+<span class="o">#</span><span class="n">directory</span> <span class="s2">&quot;+yaml&quot;</span><span class="o">;;</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;yaml.cma&quot;</span><span class="o">;;</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+
+<span class="k">let</span> <span class="n">yaml_parser</span> <span class="o">=</span> <span class="nn">YamlParser</span><span class="p">.</span><span class="n">make</span> <span class="bp">()</span>
+
+<span class="k">let</span> <span class="n">config_file</span> <span class="o">=</span> <span class="s2">&quot;/usr/local/etc/myprog/server_conf.yaml&quot;</span>
+<span class="k">let</span> <span class="n">config</span> <span class="o">=</span> <span class="n">ref</span> <span class="o">(</span><span class="nn">YamlNode</span><span class="p">.</span><span class="nc">SCALAR</span> <span class="o">(</span><span class="s2">&quot;&quot;</span><span class="o">,</span> <span class="s2">&quot;&quot;</span><span class="o">))</span>
+
+<span class="k">let</span> <span class="n">read_config</span> <span class="o">_</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">in_channel</span> <span class="o">=</span> <span class="n">open_in</span> <span class="n">config_file</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="n">lines</span> <span class="o">=</span> <span class="n">ref</span> <span class="bp">[]</span> <span class="k">in</span>
+  <span class="k">try</span>
+    <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+      <span class="k">let</span> <span class="n">line</span> <span class="o">=</span> <span class="n">input_line</span> <span class="n">in_channel</span> <span class="k">in</span>
+      <span class="n">lines</span> <span class="o">:=</span> <span class="n">line</span> <span class="o">::</span> <span class="o">!</span><span class="n">lines</span>
+    <span class="k">done</span>
+  <span class="k">with</span> <span class="nc">End_of_file</span> <span class="o">-&gt;</span>
+    <span class="n">close_in</span> <span class="n">in_channel</span><span class="o">;</span>
+    <span class="n">config</span> <span class="o">:=</span>
+      <span class="nn">YamlParser</span><span class="p">.</span><span class="n">parse_string</span> <span class="n">yaml_parser</span>
+        <span class="o">(</span><span class="nn">String</span><span class="p">.</span><span class="n">concat</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">(</span><span class="nn">List</span><span class="p">.</span><span class="n">rev</span> <span class="o">!</span><span class="n">lines</span><span class="o">))</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="n">read_config</span> <span class="bp">()</span><span class="o">;</span>
+  <span class="nn">Sys</span><span class="p">.</span><span class="n">set_signal</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sighup</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="nc">Signal_handle</span> <span class="n">read_config</span><span class="o">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN970"
+>Program: backsniff</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="nc">Oct</span>  <span class="mi">4</span> <span class="mi">11</span><span class="o">:</span><span class="mi">01</span><span class="o">:</span><span class="mi">16</span> <span class="n">pedro</span> <span class="n">sniffer</span><span class="o">:</span> <span class="nc">Connection</span> <span class="n">from</span> <span class="mi">10</span><span class="o">.</span><span class="mi">0</span><span class="o">.</span><span class="mi">0</span><span class="o">.</span><span class="mi">4</span> <span class="k">to</span> <span class="mi">10</span><span class="o">.</span><span class="mi">0</span><span class="o">.</span><span class="mi">0</span><span class="o">.</span><span class="mi">1</span><span class="o">:</span><span class="n">echo</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="n">echo</span> <span class="n">stream</span> <span class="n">tcp</span> <span class="n">nowait</span> <span class="n">nobody</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">ocaml</span> <span class="n">ocaml</span> <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="k">to</span><span class="o">/</span><span class="n">backsniff</span><span class="o">.</span><span class="n">ml</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* backsniff - log attempts to connect to particular ports *)</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+
+<span class="c">(* This recipe uses syslog-ocaml, which is available at:</span>
+<span class="c">   http://www.cs.cmu.edu/~ecc/software.html *)</span>
+<span class="o">#</span><span class="n">directory</span> <span class="s2">&quot;+syslog&quot;</span><span class="o">;;</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;syslog.cma&quot;</span><span class="o">;;</span>
+
+<span class="c">(* identify my port and address *)</span>
+<span class="k">let</span> <span class="n">sockname</span> <span class="o">=</span>
+  <span class="k">try</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">getsockname</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">stdin</span>
+  <span class="k">with</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">Unix_error</span> <span class="o">(</span><span class="n">e</span><span class="o">,</span> <span class="o">_,</span> <span class="o">_)</span> <span class="o">-&gt;</span>
+    <span class="nn">Printf</span><span class="p">.</span><span class="n">eprintf</span> <span class="s2">&quot;Couldn&#39;t identify myself: %s</span><span class="se">\n</span><span class="s2">%!&quot;</span>
+      <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">error_message</span> <span class="n">e</span><span class="o">);</span>
+    <span class="n">exit</span> <span class="mi">1</span>
+<span class="k">let</span> <span class="n">iaddr</span><span class="o">,</span> <span class="n">port</span> <span class="o">=</span>
+  <span class="k">match</span> <span class="n">sockname</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">ADDR_INET</span> <span class="o">(</span><span class="n">iaddr</span><span class="o">,</span> <span class="n">port</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="n">iaddr</span><span class="o">,</span> <span class="n">port</span>
+    <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="k">assert</span> <span class="bp">false</span>
+<span class="k">let</span> <span class="n">my_address</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">string_of_inet_addr</span> <span class="n">iaddr</span>
+
+<span class="c">(* get a name for the service *)</span>
+<span class="k">let</span> <span class="n">service</span> <span class="o">=</span>
+  <span class="k">try</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">getservbyport</span> <span class="n">port</span> <span class="s2">&quot;tcp&quot;</span><span class="o">).</span><span class="nn">Unix</span><span class="p">.</span><span class="n">s_name</span>
+  <span class="k">with</span> <span class="nc">Not_found</span> <span class="o">-&gt;</span> <span class="n">string_of_int</span> <span class="n">port</span>
+
+<span class="c">(* now identify remote address *)</span>
+<span class="k">let</span> <span class="n">sockname</span> <span class="o">=</span>
+  <span class="k">try</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">getpeername</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">stdin</span>
+  <span class="k">with</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">Unix_error</span> <span class="o">(</span><span class="n">e</span><span class="o">,</span> <span class="o">_,</span> <span class="o">_)</span> <span class="o">-&gt;</span>
+    <span class="nn">Printf</span><span class="p">.</span><span class="n">eprintf</span> <span class="s2">&quot;Couldn&#39;t identify other end: %s</span><span class="se">\n</span><span class="s2">%!&quot;</span>
+      <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">error_message</span> <span class="n">e</span><span class="o">);</span>
+    <span class="n">exit</span> <span class="mi">1</span>
+<span class="k">let</span> <span class="n">iaddr</span><span class="o">,</span> <span class="n">port</span> <span class="o">=</span>
+  <span class="k">match</span> <span class="n">sockname</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">ADDR_INET</span> <span class="o">(</span><span class="n">iaddr</span><span class="o">,</span> <span class="n">port</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="n">iaddr</span><span class="o">,</span> <span class="n">port</span>
+    <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="k">assert</span> <span class="bp">false</span>
+<span class="k">let</span> <span class="n">ex_address</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">string_of_inet_addr</span> <span class="n">iaddr</span>
+
+<span class="c">(* and log the information *)</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">log</span> <span class="o">=</span> <span class="nn">Syslog</span><span class="p">.</span><span class="n">openlog</span> <span class="o">~</span><span class="n">flags</span><span class="o">:</span><span class="bp">[]</span> <span class="o">~</span><span class="n">facility</span><span class="o">:`</span><span class="nc">LOG_DAEMON</span> <span class="s2">&quot;sniffer&quot;</span> <span class="k">in</span>
+  <span class="nn">Syslog</span><span class="p">.</span><span class="n">syslog</span> <span class="n">log</span> <span class="o">`</span><span class="nc">LOG_NOTICE</span>
+    <span class="o">(</span><span class="nn">Printf</span><span class="p">.</span><span class="n">sprintf</span> <span class="s2">&quot;Connection from %s to %s:%s</span><span class="se">\n</span><span class="s2">&quot;</span>
+       <span class="n">ex_address</span> <span class="n">my_address</span> <span class="n">service</span><span class="o">);</span>
+  <span class="nn">Syslog</span><span class="p">.</span><span class="n">closelog</span> <span class="n">log</span><span class="o">;</span>
+  <span class="n">exit</span> <span class="mi">0</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN973"
+>Program: fwdport</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="o">#!/</span><span class="n">usr</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">ocaml</span>
+<span class="c">(* fwdport -- act as proxy forwarder for dedicated services *)</span>
+
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;str.cma&quot;</span><span class="o">;;</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+
+<span class="k">let</span> <span class="n">children</span> <span class="o">=</span> <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">create</span> <span class="mi">0</span>    <span class="c">(* hash of outstanding child processes *)</span>
+<span class="k">let</span> <span class="n">remote</span> <span class="o">=</span> <span class="n">ref</span> <span class="s2">&quot;&quot;</span>                <span class="c">(* whom we connect to on the outside *)</span>
+<span class="k">let</span> <span class="n">local</span> <span class="o">=</span> <span class="n">ref</span> <span class="s2">&quot;&quot;</span>                 <span class="c">(* where we listen to on the inside *)</span>
+<span class="k">let</span> <span class="n">service</span> <span class="o">=</span> <span class="n">ref</span> <span class="s2">&quot;&quot;</span>               <span class="c">(* our service name or port number *)</span>
+<span class="k">let</span> <span class="n">proxy_server</span> <span class="o">=</span> <span class="n">ref</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">stdin</span>  <span class="c">(* the socket we accept() from *)</span>
+
+<span class="c">(* process command line switches *)</span>
+<span class="k">let</span> <span class="n">check_args</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="nn">Arg</span><span class="p">.</span><span class="n">parse</span>
+    <span class="o">[</span>
+      <span class="s2">&quot;-r&quot;</span><span class="o">,</span>       <span class="nn">Arg</span><span class="p">.</span><span class="nc">Set_string</span> <span class="n">remote</span><span class="o">,</span>  <span class="s2">&quot;Remote host&quot;</span><span class="o">;</span>
+      <span class="s2">&quot;-remote&quot;</span><span class="o">,</span>  <span class="nn">Arg</span><span class="p">.</span><span class="nc">Set_string</span> <span class="n">remote</span><span class="o">,</span>  <span class="s2">&quot;Remote host&quot;</span><span class="o">;</span>
+      <span class="s2">&quot;-l&quot;</span><span class="o">,</span>       <span class="nn">Arg</span><span class="p">.</span><span class="nc">Set_string</span> <span class="n">local</span><span class="o">,</span>   <span class="s2">&quot;Local interface&quot;</span><span class="o">;</span>
+      <span class="s2">&quot;-local&quot;</span><span class="o">,</span>   <span class="nn">Arg</span><span class="p">.</span><span class="nc">Set_string</span> <span class="n">local</span><span class="o">,</span>   <span class="s2">&quot;Local interface&quot;</span><span class="o">;</span>
+      <span class="s2">&quot;-s&quot;</span><span class="o">,</span>       <span class="nn">Arg</span><span class="p">.</span><span class="nc">Set_string</span> <span class="n">service</span><span class="o">,</span> <span class="s2">&quot;Service&quot;</span><span class="o">;</span>
+      <span class="s2">&quot;-service&quot;</span><span class="o">,</span> <span class="nn">Arg</span><span class="p">.</span><span class="nc">Set_string</span> <span class="n">service</span><span class="o">,</span> <span class="s2">&quot;Service&quot;</span><span class="o">;</span>
+    <span class="o">]</span>
+    <span class="o">(</span><span class="k">fun</span> <span class="n">s</span> <span class="o">-&gt;</span>
+       <span class="k">raise</span> <span class="o">(</span><span class="nn">Arg</span><span class="p">.</span><span class="nc">Bad</span> <span class="o">(</span><span class="nn">Printf</span><span class="p">.</span><span class="n">sprintf</span> <span class="s2">&quot;unexpected argument `%s&#39;&quot;</span> <span class="n">s</span><span class="o">)))</span>
+    <span class="o">(</span><span class="nn">Printf</span><span class="p">.</span><span class="n">sprintf</span> <span class="s2">&quot;usage: %s [ -remote host ] [ -local interface ] [ -service service ]&quot;</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span><span class="o">.(</span><span class="mi">0</span><span class="o">));</span>
+  <span class="k">if</span> <span class="o">!</span><span class="n">remote</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+  <span class="k">then</span> <span class="o">(</span><span class="n">prerr_endline</span> <span class="s2">&quot;Need remote&quot;</span><span class="o">;</span> <span class="n">exit</span> <span class="mi">1</span><span class="o">);</span>
+  <span class="k">if</span> <span class="o">!</span><span class="n">local</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="n">service</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+  <span class="k">then</span> <span class="o">(</span><span class="n">prerr_endline</span> <span class="s2">&quot;Need local or service&quot;</span><span class="o">;</span> <span class="n">exit</span> <span class="mi">1</span><span class="o">);</span>
+  <span class="k">if</span> <span class="o">!</span><span class="n">local</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+  <span class="k">then</span> <span class="n">local</span> <span class="o">:=</span> <span class="s2">&quot;localhost&quot;</span>
+
+<span class="k">let</span> <span class="n">parse_host</span> <span class="n">host</span> <span class="o">=</span>
+  <span class="k">match</span> <span class="nn">Str</span><span class="p">.</span><span class="n">split</span> <span class="o">(</span><span class="nn">Str</span><span class="p">.</span><span class="n">regexp</span> <span class="s2">&quot;:&quot;</span><span class="o">)</span> <span class="n">host</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="bp">[]</span> <span class="o">-&gt;</span> <span class="s2">&quot;&quot;</span><span class="o">,</span> <span class="s2">&quot;&quot;</span>
+    <span class="o">|</span> <span class="n">host</span> <span class="o">::</span> <span class="bp">[]</span> <span class="o">-&gt;</span> <span class="n">host</span><span class="o">,</span> <span class="s2">&quot;&quot;</span>
+    <span class="o">|</span> <span class="n">host</span> <span class="o">::</span> <span class="n">service</span> <span class="o">::</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="n">host</span><span class="o">,</span> <span class="n">service</span>
+
+<span class="k">let</span> <span class="n">resolve_host</span> <span class="n">host</span> <span class="o">=</span>
+  <span class="k">try</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">gethostbyname</span> <span class="n">host</span><span class="o">).</span><span class="nn">Unix</span><span class="p">.</span><span class="n">h_addr_list</span><span class="o">.(</span><span class="mi">0</span><span class="o">)</span>
+  <span class="k">with</span> <span class="nc">Not_found</span> <span class="o">-&gt;</span>
+    <span class="nn">Printf</span><span class="p">.</span><span class="n">eprintf</span> <span class="s2">&quot;Host not found: %s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="n">host</span><span class="o">;</span>
+    <span class="n">exit</span> <span class="mi">1</span>
+
+<span class="k">let</span> <span class="n">resolve_service</span> <span class="n">service</span> <span class="o">=</span>
+  <span class="k">try</span> <span class="n">int_of_string</span> <span class="n">service</span>
+  <span class="k">with</span> <span class="nc">Failure</span> <span class="o">_</span> <span class="o">-&gt;</span>
+    <span class="k">try</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">getservbyname</span> <span class="n">service</span> <span class="s2">&quot;tcp&quot;</span><span class="o">).</span><span class="nn">Unix</span><span class="p">.</span><span class="n">s_port</span>
+    <span class="k">with</span> <span class="nc">Not_found</span> <span class="o">-&gt;</span>
+      <span class="nn">Printf</span><span class="p">.</span><span class="n">eprintf</span> <span class="s2">&quot;Service not found: %s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="n">service</span><span class="o">;</span>
+      <span class="n">exit</span> <span class="mi">1</span>
+
+<span class="c">(* begin our server *)</span>
+<span class="k">let</span> <span class="n">start_proxy</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">try</span>
+    <span class="k">let</span> <span class="n">proto</span> <span class="o">=</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">getprotobyname</span> <span class="s2">&quot;tcp&quot;</span><span class="o">).</span><span class="nn">Unix</span><span class="p">.</span><span class="n">p_proto</span> <span class="k">in</span>
+    <span class="k">let</span> <span class="n">addr</span><span class="o">,</span> <span class="n">port</span> <span class="o">=</span>
+      <span class="k">match</span> <span class="n">parse_host</span> <span class="o">(!</span><span class="n">local</span> <span class="o">^</span> <span class="s2">&quot;:&quot;</span> <span class="o">^</span> <span class="o">!</span><span class="n">service</span><span class="o">)</span> <span class="k">with</span>
+        <span class="o">|</span> <span class="n">host</span><span class="o">,</span> <span class="n">service</span> <span class="o">-&gt;</span>
+            <span class="o">(</span><span class="n">resolve_host</span> <span class="n">host</span><span class="o">,</span>
+             <span class="n">resolve_service</span> <span class="n">service</span><span class="o">)</span> <span class="k">in</span>
+    <span class="n">proxy_server</span> <span class="o">:=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">socket</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">PF_INET</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">SOCK_STREAM</span> <span class="n">proto</span><span class="o">;</span>
+    <span class="nn">Unix</span><span class="p">.</span><span class="n">setsockopt</span> <span class="o">!</span><span class="n">proxy_server</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">SO_REUSEADDR</span> <span class="bp">true</span><span class="o">;</span>
+    <span class="nn">Unix</span><span class="p">.</span><span class="n">bind</span> <span class="o">!</span><span class="n">proxy_server</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="nc">ADDR_INET</span> <span class="o">(</span><span class="n">addr</span><span class="o">,</span> <span class="n">port</span><span class="o">));</span>
+    <span class="nn">Unix</span><span class="p">.</span><span class="n">listen</span> <span class="o">!</span><span class="n">proxy_server</span> <span class="mi">128</span><span class="o">;</span>
+    <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;[Proxy server on %s initialized.]</span><span class="se">\n</span><span class="s2">%!&quot;</span>
+      <span class="o">(</span><span class="k">if</span> <span class="o">!</span><span class="n">local</span> <span class="o">&lt;&gt;</span> <span class="s2">&quot;&quot;</span> <span class="k">then</span> <span class="o">!</span><span class="n">local</span> <span class="k">else</span> <span class="o">!</span><span class="n">service</span><span class="o">)</span>
+  <span class="k">with</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">Unix_error</span> <span class="o">(</span><span class="n">e</span><span class="o">,</span> <span class="o">_,</span> <span class="o">_)</span> <span class="o">-&gt;</span>
+    <span class="nn">Printf</span><span class="p">.</span><span class="n">eprintf</span> <span class="s2">&quot;Can&#39;t create proxy server: %s</span><span class="se">\n</span><span class="s2">%!&quot;</span>
+      <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">error_message</span> <span class="n">e</span><span class="o">);</span>
+    <span class="n">exit</span> <span class="mi">1</span>
+
+<span class="c">(* helper function to produce a nice string in the form HOST:PORT *)</span>
+<span class="k">let</span> <span class="n">peerinfo</span> <span class="n">sock</span> <span class="o">=</span>
+  <span class="k">match</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">getpeername</span> <span class="n">sock</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">ADDR_INET</span> <span class="o">(</span><span class="n">addr</span><span class="o">,</span> <span class="n">port</span><span class="o">)</span> <span class="o">-&gt;</span>
+        <span class="k">let</span> <span class="n">hostinfo</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">gethostbyaddr</span> <span class="n">addr</span> <span class="k">in</span>
+        <span class="nn">Printf</span><span class="p">.</span><span class="n">sprintf</span> <span class="s2">&quot;%s:%d&quot;</span> <span class="n">hostinfo</span><span class="o">.</span><span class="nn">Unix</span><span class="p">.</span><span class="n">h_name</span> <span class="n">port</span>
+    <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="k">assert</span> <span class="bp">false</span>
+
+<span class="c">(* somebody just died.  keep harvesting the dead until  *)</span>
+<span class="c">(* we run out of them.  check how long they ran. *)</span>
+<span class="k">let</span> <span class="k">rec</span> <span class="n">reaper</span> <span class="n">signal</span> <span class="o">=</span>
+  <span class="k">begin</span>
+    <span class="k">let</span> <span class="n">result</span> <span class="o">=</span>
+      <span class="k">try</span> <span class="nc">Some</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">waitpid</span> <span class="o">[</span><span class="nn">Unix</span><span class="p">.</span><span class="nc">WNOHANG</span><span class="o">]</span> <span class="o">(-</span><span class="mi">1</span><span class="o">))</span>
+      <span class="k">with</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">Unix_error</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="nc">ECHILD</span><span class="o">,</span> <span class="o">_,</span> <span class="o">_)</span> <span class="o">-&gt;</span> <span class="nc">None</span> <span class="k">in</span>
+    <span class="k">match</span> <span class="n">result</span> <span class="k">with</span>
+      <span class="o">|</span> <span class="nc">Some</span> <span class="o">(</span><span class="n">child</span><span class="o">,</span> <span class="n">status</span><span class="o">)</span> <span class="k">when</span> <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">mem</span> <span class="n">children</span> <span class="n">child</span> <span class="o">-&gt;</span>
+          <span class="k">let</span> <span class="n">start</span> <span class="o">=</span> <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">find</span> <span class="n">children</span> <span class="n">child</span> <span class="k">in</span>
+          <span class="k">let</span> <span class="n">runtime</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">time</span> <span class="bp">()</span> <span class="o">-.</span> <span class="n">start</span> <span class="k">in</span>
+          <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;Child %d ran %dm%fs</span><span class="se">\n</span><span class="s2">%!&quot;</span>
+            <span class="n">child</span>
+            <span class="o">(</span><span class="n">int_of_float</span> <span class="o">(</span><span class="n">runtime</span> <span class="o">/.</span> <span class="mi">60</span><span class="o">.))</span>
+            <span class="o">(</span><span class="n">mod_float</span> <span class="n">runtime</span> <span class="mi">60</span><span class="o">.);</span>
+          <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">remove</span> <span class="n">children</span> <span class="n">child</span><span class="o">;</span>
+          <span class="n">reaper</span> <span class="n">signal</span>
+      <span class="o">|</span> <span class="nc">Some</span> <span class="o">(</span><span class="n">child</span><span class="o">,</span> <span class="n">status</span><span class="o">)</span> <span class="o">-&gt;</span>
+          <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;Bizarre kid %d exited with %s</span><span class="se">\n</span><span class="s2">%!&quot;</span>
+            <span class="n">child</span>
+            <span class="o">(</span><span class="k">match</span> <span class="n">status</span> <span class="k">with</span>
+               <span class="o">|</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">WEXITED</span> <span class="n">code</span> <span class="o">-&gt;</span>
+                   <span class="s2">&quot;code &quot;</span> <span class="o">^</span> <span class="n">string_of_int</span> <span class="n">code</span>
+               <span class="o">|</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">WSTOPPED</span> <span class="n">signal</span>
+               <span class="o">|</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">WSIGNALED</span> <span class="n">signal</span> <span class="o">-&gt;</span>
+                   <span class="s2">&quot;signal &quot;</span> <span class="o">^</span> <span class="n">string_of_int</span> <span class="n">signal</span><span class="o">);</span>
+          <span class="n">reaper</span> <span class="n">signal</span>
+      <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="bp">()</span>
+  <span class="k">end</span><span class="o">;</span>
+  <span class="c">(* If I had to choose between System V and 4.2, I&#39;d resign. *)</span>
+  <span class="c">(* --Peter Honeyman *)</span>
+  <span class="nn">Sys</span><span class="p">.</span><span class="n">set_signal</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigchld</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="nc">Signal_handle</span> <span class="n">reaper</span><span class="o">)</span>
+
+<span class="k">let</span> <span class="n">service_clients</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="c">(* harvest the moribund *)</span>
+  <span class="nn">Sys</span><span class="p">.</span><span class="n">set_signal</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigchld</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="nc">Signal_handle</span> <span class="n">reaper</span><span class="o">);</span>
+
+  <span class="c">(* an accepted connection here means someone inside wants out *)</span>
+  <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+    <span class="k">try</span>
+      <span class="k">begin</span>
+        <span class="k">let</span> <span class="n">local_client</span> <span class="o">=</span> <span class="n">fst</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">accept</span> <span class="o">!</span><span class="n">proxy_server</span><span class="o">)</span> <span class="k">in</span>
+        <span class="k">let</span> <span class="n">lc_info</span> <span class="o">=</span> <span class="n">peerinfo</span> <span class="n">local_client</span> <span class="k">in</span>
+        <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;[Connect from %s]</span><span class="se">\n</span><span class="s2">%!&quot;</span> <span class="n">lc_info</span><span class="o">;</span>
+
+        <span class="k">let</span> <span class="n">proto</span> <span class="o">=</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">getprotobyname</span> <span class="s2">&quot;tcp&quot;</span><span class="o">).</span><span class="nn">Unix</span><span class="p">.</span><span class="n">p_proto</span> <span class="k">in</span>
+        <span class="k">let</span> <span class="n">addr</span><span class="o">,</span> <span class="n">port</span> <span class="o">=</span>
+          <span class="k">match</span> <span class="n">parse_host</span> <span class="o">(!</span><span class="n">remote</span> <span class="o">^</span> <span class="s2">&quot;:&quot;</span> <span class="o">^</span> <span class="o">!</span><span class="n">service</span><span class="o">)</span> <span class="k">with</span>
+            <span class="o">|</span> <span class="n">host</span><span class="o">,</span> <span class="n">service</span> <span class="o">-&gt;</span>
+                <span class="o">(</span><span class="n">resolve_host</span> <span class="n">host</span><span class="o">,</span>
+                 <span class="n">resolve_service</span> <span class="n">service</span><span class="o">)</span> <span class="k">in</span>
+        <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;[Connecting to %s...%!&quot;</span> <span class="o">!</span><span class="n">remote</span><span class="o">;</span>
+        <span class="k">let</span> <span class="n">remote_server</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">socket</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">PF_INET</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">SOCK_STREAM</span> <span class="n">proto</span> <span class="k">in</span>
+        <span class="nn">Unix</span><span class="p">.</span><span class="n">connect</span> <span class="n">remote_server</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="nc">ADDR_INET</span> <span class="o">(</span><span class="n">addr</span><span class="o">,</span> <span class="n">port</span><span class="o">));</span>
+        <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;done]</span><span class="se">\n</span><span class="s2">%!&quot;</span><span class="o">;</span>
+
+        <span class="k">let</span> <span class="n">local_in</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">in_channel_of_descr</span> <span class="n">local_client</span> <span class="k">in</span>
+        <span class="k">let</span> <span class="n">local_out</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">out_channel_of_descr</span> <span class="n">local_client</span> <span class="k">in</span>
+        <span class="k">let</span> <span class="n">remote_in</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">in_channel_of_descr</span> <span class="n">remote_server</span> <span class="k">in</span>
+        <span class="k">let</span> <span class="n">remote_out</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">out_channel_of_descr</span> <span class="n">remote_server</span> <span class="k">in</span>
+
+        <span class="k">match</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">fork</span> <span class="bp">()</span> <span class="k">with</span>
+          <span class="o">|</span> <span class="mi">0</span> <span class="o">-&gt;</span>
+              <span class="c">(* at this point, we are the forked child process dedicated *)</span>
+              <span class="c">(* to the incoming client.  but we want a twin to make i/o *)</span>
+              <span class="c">(* easier. *)</span>
+
+              <span class="nn">Unix</span><span class="p">.</span><span class="n">close</span> <span class="o">!</span><span class="n">proxy_server</span><span class="o">;</span>  <span class="c">(* no use to slave *)</span>
+
+              <span class="c">(* now each twin sits around and ferries lines of data. *)</span>
+              <span class="c">(* see how simple the algorithm is when you can have *)</span>
+              <span class="c">(* multiple threads of control? *)</span>
+
+              <span class="o">(</span><span class="k">match</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">fork</span> <span class="bp">()</span> <span class="k">with</span>
+                 <span class="o">|</span> <span class="mi">0</span> <span class="o">-&gt;</span>
+                     <span class="c">(* this is the fork&#39;s child, the master&#39;s grandchild *)</span>
+                     <span class="o">(</span><span class="k">try</span>
+                          <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+                            <span class="k">let</span> <span class="n">line</span> <span class="o">=</span> <span class="n">input_line</span> <span class="n">local_in</span> <span class="k">in</span>
+                            <span class="nn">Printf</span><span class="p">.</span><span class="n">fprintf</span> <span class="n">remote_out</span> <span class="s2">&quot;%s</span><span class="se">\n</span><span class="s2">%!&quot;</span> <span class="n">line</span>
+                          <span class="k">done</span>
+                      <span class="k">with</span> <span class="nc">End_of_file</span> <span class="o">-&gt;</span>
+                        <span class="c">(* kill my twin cause we&#39;re done *)</span>
+                        <span class="nn">Unix</span><span class="p">.</span><span class="n">kill</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">getppid</span> <span class="bp">()</span><span class="o">)</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigterm</span><span class="o">)</span>
+                 <span class="o">|</span> <span class="n">kidpid</span> <span class="o">-&gt;</span>
+                     <span class="c">(* this is the fork&#39;s parent, the master&#39;s child *)</span>
+                     <span class="o">(</span><span class="k">try</span>
+                          <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+                            <span class="k">let</span> <span class="n">line</span> <span class="o">=</span> <span class="n">input_line</span> <span class="n">remote_in</span> <span class="k">in</span>
+                            <span class="nn">Printf</span><span class="p">.</span><span class="n">fprintf</span> <span class="n">local_out</span> <span class="s2">&quot;%s</span><span class="se">\n</span><span class="s2">%!&quot;</span> <span class="n">line</span>
+                          <span class="k">done</span>
+                      <span class="k">with</span> <span class="nc">End_of_file</span> <span class="o">-&gt;</span>
+                        <span class="c">(* kill my twin cause we&#39;re done *)</span>
+                        <span class="nn">Unix</span><span class="p">.</span><span class="n">kill</span> <span class="n">kidpid</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigterm</span><span class="o">));</span>
+
+              <span class="n">exit</span> <span class="mi">0</span>  <span class="c">(* whoever&#39;s still alive bites it *)</span>
+
+          <span class="o">|</span> <span class="n">kidpid</span> <span class="o">-&gt;</span>
+              <span class="c">(* remember his start time *)</span>
+              <span class="nn">Hashtbl</span><span class="p">.</span><span class="n">replace</span> <span class="n">children</span> <span class="n">kidpid</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">time</span> <span class="bp">()</span><span class="o">);</span>
+              <span class="nn">Unix</span><span class="p">.</span><span class="n">close</span> <span class="n">remote_server</span><span class="o">;</span>  <span class="c">(* no use to master *)</span>
+              <span class="nn">Unix</span><span class="p">.</span><span class="n">close</span> <span class="n">local_client</span><span class="o">;</span>   <span class="c">(* likewise *)</span>
+      <span class="k">end</span>
+    <span class="k">with</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">Unix_error</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="nc">EINTR</span><span class="o">,</span> <span class="s2">&quot;accept&quot;</span><span class="o">,</span> <span class="o">_)</span> <span class="o">-&gt;</span> <span class="bp">()</span>
+  <span class="k">done</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="n">check_args</span> <span class="bp">()</span><span class="o">;</span>                <span class="c">(* processing switches *)</span>
+  <span class="n">start_proxy</span> <span class="bp">()</span><span class="o">;</span>               <span class="c">(* launch our own server *)</span>
+  <span class="n">service_clients</span> <span class="bp">()</span><span class="o">;</span>           <span class="c">(* wait for incoming *)</span>
+  <span class="n">prerr_endline</span> <span class="s2">&quot;NOT REACHED&quot;</span><span class="o">;</span>  <span class="c">(* you can&#39;t get here from there *)</span>
+  <span class="n">exit</span> <span class="mi">1</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="processmanagementetc.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="internetservices.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Process Management and Communication</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Internet Services</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

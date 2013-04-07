@@ -1,0 +1,1181 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>File Contents</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Groovy"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="File Access"
+HREF="fileaccess.html"><LINK
+REL="NEXT"
+TITLE="Directories"
+HREF="directories.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Groovy</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="fileaccess.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="directories.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="FILECONTENTS"
+>8. File Contents</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN430"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">datafile = new File(&#39;Pleac/data/pleac8_0.txt&#39;) // change on your system</span>
+
+<span class="s">datafile.eachLine{ line -&gt; print line.size() }</span>
+
+<span class="s">lines = datafile.readLines()</span>
+
+<span class="s">wholeTextFile = datafile.text</span>
+
+<span class="s">// on command line Groovy use -a auto split pattern instead of record separator</span>
+<span class="s">// default pattern is /\s/</span>
+<span class="s">// groovy -a -e &#39;println &quot;First word is ${split[0][1]}&quot;&#39;</span>
+
+<span class="s">// (additional examples to original cookbook to illustrate -a)</span>
+<span class="s">// Print processes owned by root:</span>
+<span class="s">// ps aux|groovy -ane &quot;if(split[0][1] =~ &#39;root&#39;)println split[0][10..-1]&quot;</span>
+
+<span class="s">// Print all logins from /etc/passwd that are not commented:</span>
+<span class="s">// groovy -a&#39;:&#39; -ne &quot;if(!(split[0][1] =~ /^#/))println split[0][1]&quot; /etc/passwd</span>
+
+<span class="s">// Add the first and the penultimate column of a file:</span>
+<span class="s">// groovy -ape &quot;split[0][1].toInteger()+split[0][-2].toInteger()&quot; accounts.txt</span>
+
+<span class="s">// no BEGIN and END in Groovy (has been proposed, may be added soon)</span>
+
+<span class="s">datafile.withOutputStream{ stream -&gt;</span>
+<span class="s">    stream.print &quot;one&quot; + &quot;two&quot; + &quot;three&quot;    // &quot;onetwothree&quot; -&gt; file</span>
+<span class="s">    println &quot;Baa baa black sheep.&quot;          // sent to $stdout</span>
+<span class="s">}</span>
+
+<span class="s">// use streams or channels for advanced file handling</span>
+<span class="s">int size = datafile.size()</span>
+<span class="s">buffer = ByteBuffer.allocate(size) // for large files, use some block size, e.g. 4096</span>
+<span class="s">channel = new FileInputStream(datafile).channel</span>
+<span class="s">println &quot;Number of bytes read was: ${channel.read(buffer)}&quot; // -1 = EOF</span>
+
+<span class="s">channel = new FileOutputStream(File.createTempFile(&quot;pleac8&quot;, &quot;.junk&quot;)).channel</span>
+<span class="s">size = channel.size()</span>
+<span class="s">channel.truncate(size) // shrinks file (in our case to same size)</span>
+
+<span class="s">pos = channel.position()</span>
+<span class="s">println &quot;I&#39;m $pos bytes from the start of datafile&quot;</span>
+<span class="s">channel.position(pos)  // move to pos (in our case unchanged)</span>
+<span class="s">channel.position(0)    // move to start of file</span>
+<span class="s">channel.position(size) // move to end of file</span>
+
+<span class="s">// no sysread and syswrite are available but dataInput/output streams</span>
+<span class="s">// can be used to achieve similar functionality, see 8.15.</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN433"
+>Reading Lines with Continuation Characters</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">testfile = new File(&#39;Pleac/data/pleac8_1.txt&#39;) // change on your system</span>
+<span class="s">// contents of testfile:</span>
+<span class="s">// DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) \</span>
+<span class="s">//         $(TEXINFOS) $(INFOS) $(MANS) $(DATA)</span>
+<span class="s">// DEP_DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) \</span>
+<span class="s">//         $(TEXINFOS) $(INFO_DEPS) $(MANS) $(DATA) \</span>
+<span class="s">//         $(EXTRA_DIST)</span>
+
+<span class="s">lines = []</span>
+<span class="s">continuing = false</span>
+<span class="s">regex = /\\$/</span>
+<span class="s">testfile.eachLine{ line -&gt;</span>
+<span class="s">    stripped = line.replaceAll(regex,&#39;&#39;)</span>
+<span class="s">    if (continuing) lines[-1] += stripped</span>
+<span class="s">    else lines += stripped</span>
+<span class="s">    continuing = (line =~ regex)</span>
+<span class="s">}</span>
+<span class="s">println lines.join(&#39;\n&#39;)</span>
+<span class="s">// =&gt;</span>
+<span class="s">// DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS)         $(TEXINFOS) $(INFOS) $(MANS) $(DATA)</span>
+<span class="s">// DEP_DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS)         $(TEXINFOS) $(INFO_DEPS) $(MANS) $(DATA)         $(EXTRA_DIST)</span>
+
+<span class="s">// to remove hidden spaces after the slash (but keep the slash):</span>
+<span class="s">def trimtail(line) {</span>
+<span class="s">    line = line.replaceAll(/(?&lt;=\\)\s*$/, &#39;&#39;)</span>
+<span class="s">}</span>
+<span class="s">b = /\\/  // backslash</span>
+<span class="s">assert &quot;abc  $b&quot;   == trimtail(&quot;abc  $b&quot;)</span>
+<span class="s">assert &quot;abc  &quot;     == trimtail(&quot;abc  &quot;)</span>
+<span class="s">assert &quot;abc  $b&quot;   == trimtail(&quot;abc  $b  &quot;)</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN436"
+>Counting Lines (or Paragraphs or Records) in a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// unixScript:</span>
+<span class="s">println (&quot;wc -l &lt; $filename&quot;.execute().text)</span>
+
+<span class="s">// for small files which fit in memory</span>
+<span class="s">println testfile.readLines().size()</span>
+
+<span class="s">// streaming approach (lines and paras)</span>
+<span class="s">lines = 0; paras = 1</span>
+<span class="s">testfile.eachLine{ lines++; if (it =~ /^$/) paras++ }</span>
+<span class="s">println &quot;Found $lines lines and $paras paras.&quot;</span>
+<span class="s">// note: counts blank line at end as start of next empty para</span>
+
+<span class="s">// with a StreamTokenizer</span>
+<span class="s">st = new StreamTokenizer(testfile.newReader())</span>
+<span class="s">while (st.nextToken() != StreamTokenizer.TT_EOF) {}</span>
+<span class="s">println st.lineno()</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN439"
+>Processing Every Word in a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// general pattern</span>
+<span class="s">def processWordsInFile(file, processWord) {</span>
+<span class="s">    testfile.splitEachLine(/\W+/) { matched -&gt;</span>
+<span class="s">        matched.each{ w -&gt; if (w) processWord(w) }</span>
+<span class="s">    }</span>
+<span class="s">}</span>
+
+<span class="s">testfile = new File(&#39;Pleac/src/pleac8.groovy&#39;)  // change path on your system</span>
+
+<span class="s">// count words</span>
+<span class="s">count = 0</span>
+<span class="s">processWordsInFile(testfile){ count++ }</span>
+<span class="s">println count</span>
+
+<span class="s">// (variation to Perl example)</span>
+<span class="s">// with a StreamTokenizer (counting words and numbers in Pleac chapter 8 source file)</span>
+<span class="s">words = 0; numbers = 0</span>
+<span class="s">st = new StreamTokenizer(testfile.newReader())</span>
+<span class="s">st.slashSlashComments(true) // ignore words and numbers in comments</span>
+<span class="s">while (st.nextToken() != StreamTokenizer.TT_EOF) {</span>
+<span class="s">    if (st.ttype == StreamTokenizer.TT_WORD) words++</span>
+<span class="s">    else if (st.ttype == StreamTokenizer.TT_NUMBER) numbers++</span>
+<span class="s">}</span>
+<span class="s">println &quot;Found $words words and $numbers numbers.&quot;</span>
+
+
+<span class="s">// word frequency count</span>
+<span class="s">seen = [:]</span>
+<span class="s">processWordsInFile(testfile) {</span>
+<span class="s">    w = it.toLowerCase()</span>
+<span class="s">    if (seen.containsKey(w)) seen[w] += 1</span>
+<span class="s">    else seen[w] = 1</span>
+<span class="s">}</span>
+<span class="s">// output map in a descending numeric sort of its values</span>
+<span class="s">seen.entrySet().sort { a,b -&gt; b.value &lt;=&gt; a.value }.each{ e -&gt;</span>
+<span class="s">    printf(&quot;%5d %s\n&quot;, [e.value, e.key] )</span>
+<span class="s">}</span>
+<span class="s">// =&gt;</span>
+<span class="s">//    25 pleac</span>
+<span class="s">//    22 line</span>
+<span class="s">//    20 file</span>
+<span class="s">//    19 println</span>
+<span class="s">//    19 lines</span>
+<span class="s">//    13 testfile</span>
+<span class="s">//    ...</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN442"
+>Reading a File Backwards by Line or Paragraph</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">testfile.readLines().reverseEach{</span>
+<span class="s">    println it</span>
+<span class="s">}</span>
+
+<span class="s">lines = testfile.readLines()</span>
+<span class="s">// normally one would use the reverseEach, but you can use</span>
+<span class="s">// a numerical index if you want</span>
+<span class="s">((lines.size() - 1)..0).each{</span>
+<span class="s">    println lines[it]</span>
+<span class="s">}</span>
+
+<span class="s">// Paragraph-based processing could be done as in 8.2.</span>
+
+<span class="s">// A streaming-based solution could use random file access</span>
+<span class="s">// and have a sliding buffer working from the back of the</span>
+<span class="s">// file to the front.</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN445"
+>Trailing a Growing File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">logfile = new File(&#39;Pleac/data/sampleLog.txt&#39;)</span>
+<span class="s">// logTailingScript:</span>
+<span class="s">sampleInterval = 2000 // 2000 millis = 2 secs</span>
+<span class="s">file = new RandomAccessFile( logfile, &quot;r&quot; )</span>
+<span class="s">filePointer = 0 // set to logfile.size() to begin tailing from the end of the file</span>
+<span class="s">while( true ) {</span>
+<span class="s">    // Compare the length of the file to the file pointer</span>
+<span class="s">    long fileLength = logfile.size()</span>
+<span class="s">    if( fileLength &lt; filePointer ) {</span>
+<span class="s">        // Log file must have been rotated or deleted;</span>
+<span class="s">        System.err.println &quot;${new Date()}: Reopening $logfile&quot;</span>
+<span class="s">        file = new RandomAccessFile( logfile, &quot;r&quot; )</span>
+<span class="s">        filePointer = 0</span>
+<span class="s">    }</span>
+<span class="s">    if( fileLength &gt; filePointer ) {</span>
+<span class="s">        // There is data to read</span>
+<span class="s">        file.seek( filePointer )</span>
+<span class="s">        while( (line = file.readLine()) != null ) {</span>
+<span class="s">            println &#39;##&#39; + line</span>
+<span class="s">        }</span>
+<span class="s">        filePointer = file.filePointer</span>
+<span class="s">    }</span>
+<span class="s">    // Sleep for the specified interval</span>
+<span class="s">    Thread.sleep( sampleInterval )</span>
+<span class="s">}</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN448"
+>Picking a Random Line from a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">//testfile = newFile(&#39;/usr/share/fortune/humorists&#39;)</span>
+
+<span class="s">// small files:</span>
+<span class="s">random = new Random()</span>
+<span class="s">lines = testfile.readLines()</span>
+<span class="s">println lines[random.nextInt(lines.size())]</span>
+
+<span class="s">// streamed alternative</span>
+<span class="s">count = 0</span>
+<span class="s">def adage</span>
+<span class="s">testfile.eachLine{ line -&gt;</span>
+<span class="s">    count++</span>
+<span class="s">    if (random.nextInt(count) &lt; 1) adage = line</span>
+<span class="s">}</span>
+<span class="s">println adage</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN451"
+>Randomizing All Lines</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// non-streamed solution (like Perl and Ruby)</span>
+<span class="s">lines = testfile.readLines()</span>
+<span class="s">Collections.shuffle(lines)</span>
+<span class="s">println lines.join(&#39;\n&#39;)</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN454"
+>Reading a Particular Line in a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">desiredLine = 235</span>
+<span class="s">// for small files</span>
+<span class="s">lines = testfile.readLines()</span>
+<span class="s">println &quot;Line $desiredLine: ${lines[desiredLine-1]}&quot;</span>
+
+<span class="s">// streaming solution</span>
+<span class="s">reader = testfile.newReader()</span>
+<span class="s">count = 0</span>
+<span class="s">def line</span>
+<span class="s">while ((line = reader.readLine())!= null) {</span>
+<span class="s">    if (++count == desiredLine) break</span>
+<span class="s">}</span>
+<span class="s">println &quot;Line $desiredLine: $line&quot;</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN457"
+>Processing Variable-Length Text Fields</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">println testfile.text.split(/@@pleac@@_8./i).size()</span>
+<span class="s">// =&gt; 23 (21 sections .0 .. .20 plus before .0 plus line above)</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN460"
+>Removing the Last Line of a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">file = new RandomAccessFile( logfile, &quot;rw&quot; )</span>
+<span class="s">long previous, lastpos = 0</span>
+<span class="s">while( (line = file.readLine()) != null ) {</span>
+<span class="s">    previous = lastpos</span>
+<span class="s">    lastpos = file.filePointer</span>
+<span class="s">}</span>
+<span class="s">if (previous) file.setLength(previous)</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN463"
+>Processing Binary Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// Java&#39;s streams are binary at the lowest level if not processed with</span>
+<span class="s">// higher level stream mechanisms or readers/writers. Some additions</span>
+<span class="s">// to the Perl cookbook which illustrate the basics.</span>
+
+<span class="s">// Print first ten bytes of a binary file:</span>
+<span class="s">def dumpStart(filename) {</span>
+<span class="s">    bytes = new File(filename).newInputStream()</span>
+<span class="s">    10.times{</span>
+<span class="s">        print bytes.read() + &#39; &#39;</span>
+<span class="s">    }</span>
+<span class="s">    println()</span>
+<span class="s">}</span>
+<span class="s">dumpStart(System.getProperty(&#39;java.home&#39;)+&#39;/lib/rt.jar&#39;)</span>
+<span class="s">// =&gt; 80 75 3 4 10 0 0 0 0 0 (note first two bytes = PK - you might recognize this</span>
+<span class="s">// as the starting sequence of a zip file)</span>
+<span class="s">dumpStart(&#39;Pleac/classes/pleac8.class&#39;) // after running groovyc compiler in src directory</span>
+<span class="s">// =&gt; 202 254 186 190 0 0 0 47 2 20 (starting bytes in HEX: CAFEBABE)</span>
+
+<span class="s">binfile = new File(&#39;Pleac/data/temp.bin&#39;)</span>
+<span class="s">binfile.withOutputStream{ stream -&gt; (0..&lt;20).each{ stream.write(it) }}</span>
+<span class="s">binfile.eachByte{ print it + &#39; &#39; }; println()</span>
+<span class="s">// =&gt; 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN466"
+>Using Random-Access I/O</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// lets treat binfile as having 5 records of size 4, let&#39;s print out the 3rd record</span>
+<span class="s">recsize = 4</span>
+<span class="s">recno = 2 // index starts at 0</span>
+<span class="s">address = recsize * recno</span>
+<span class="s">randomaccess = new RandomAccessFile(binfile, &#39;r&#39;)</span>
+<span class="s">randomaccess.seek(address)</span>
+<span class="s">recsize.times{ print randomaccess.read() + &#39; &#39; }; println()  // =&gt; 8 9 10 11</span>
+<span class="s">randomaccess.close()</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN469"
+>Updating a Random-Access File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// let&#39;s take the example from 8.12 but replace the 3rd record with</span>
+<span class="s">// 90 - the original value in the file</span>
+<span class="s">// this is an alternative example to the Perl cookbook which is cross platform</span>
+<span class="s">// see chapter 1 regarding un/pack which could be combined with below</span>
+<span class="s">// to achieve the full functionality of the original 8.13</span>
+<span class="s">recsize = 4</span>
+<span class="s">recno = 2 // index starts at 0</span>
+<span class="s">address = recsize * recno</span>
+<span class="s">randomaccess = new RandomAccessFile(binfile, &#39;rw&#39;)</span>
+<span class="s">randomaccess.seek(address)</span>
+<span class="s">bytes = []</span>
+<span class="s">recsize.times{ bytes += randomaccess.read() }</span>
+<span class="s">randomaccess.seek(address)</span>
+<span class="s">bytes.each{ b -&gt; randomaccess.write(90 - b) }</span>
+<span class="s">randomaccess.close()</span>
+<span class="s">binfile.eachByte{ print it + &#39; &#39; }; println()</span>
+<span class="s">// =&gt; 0 1 2 3 4 5 6 7 82 81 80 79 12 13 14 15 16 17 18 19</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN472"
+>Reading a String from a Binary File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// reading a String would involve looping and collecting the read bytes</span>
+
+<span class="s">// simple bgets</span>
+<span class="s">// this is similar to the revised 8.13 but would look for the terminating 0</span>
+
+<span class="s">// simplistic strings functionality</span>
+<span class="s">binfile.eachByte{ b -&gt; if ((int)b in 32..126) print ((char)b) }; println() // =&gt; RQPO</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN475"
+>Reading Fixed-Length Records</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// You could combine the byte-level reading/writing mechanisms shown</span>
+<span class="s">// in 8.11 - 8.12 and combine that with the un/pack functionality from</span>
+<span class="s">// Chapter 1 to achieve the desired functionality. A more Java and Groovy</span>
+<span class="s">// friendly way to do this would be to use the Scattering and Gathering</span>
+<span class="s">// stream operations of channels for byte-oriented record fields or</span>
+<span class="s">// data-oriented records. Alternatively, the dataInput/output stream</span>
+<span class="s">// capabilities for data-oriented records. Finally, the</span>
+<span class="s">// objectInput/output stream capabilities could be used for object types.</span>
+<span class="s">// Note, these examples mix reading and writing even though the original</span>
+<span class="s">// Perl example was just about reading.</span>
+
+
+<span class="s">// fixed-length byte-oriented records using channels</span>
+<span class="s">// typical approach used with low-level protocols or file formats</span>
+<span class="s">import java.nio.*</span>
+<span class="s">binfile.delete(); binfile.createNewFile() // start from scratch</span>
+<span class="s">buf1 = ByteBuffer.wrap([10,11,12,13] as byte[]) // simulate 4 byte field</span>
+<span class="s">buf2 = ByteBuffer.wrap([44,45] as byte[])       // 2 byte field</span>
+<span class="s">buf3 = ByteBuffer.wrap(&#39;Hello&#39;.bytes)           // String</span>
+<span class="s">records = [buf1, buf2, buf3] as ByteBuffer[]</span>
+<span class="s">channel = new FileOutputStream(binfile).channel</span>
+<span class="s">channel.write(records) // gathering byte records</span>
+<span class="s">channel.close()</span>
+<span class="s">binfile.eachByte{ print it + &#39; &#39; }; println()</span>
+<span class="s">// =&gt; 10 11 12 13 44 45 72 101 108 108 111</span>
+<span class="s">// ScatteringInputStream would convert this back into an array of byte[]</span>
+
+
+<span class="s">// data-oriented streams using channels</span>
+<span class="s">binfile.delete(); binfile.createNewFile() // start from scratch</span>
+<span class="s">buf = ByteBuffer.allocate(24)</span>
+<span class="s">now = System.currentTimeMillis()</span>
+<span class="s">buf.put(&#39;PI=&#39;.bytes).putDouble(Math.PI).put(&#39;Date=&#39;.bytes).putLong(now)</span>
+<span class="s">buf.flip() // readies for writing: set length and point back to start</span>
+<span class="s">channel = new FileOutputStream(binfile).channel</span>
+<span class="s">channel.write(buf)</span>
+<span class="s">channel.close()</span>
+<span class="s">// now read it back in</span>
+<span class="s">channel = new FileInputStream(binfile).channel</span>
+<span class="s">buf = ByteBuffer.allocate(24)</span>
+<span class="s">channel.read(buf)</span>
+<span class="s">buf.flip()</span>
+<span class="s">3.times{ print ((char)buf.get()) }</span>
+<span class="s">println (buf.getDouble())</span>
+<span class="s">5.times{ print ((char)buf.get()) }</span>
+<span class="s">println (new Date(buf.getLong()))</span>
+<span class="s">channel.close()</span>
+<span class="s">// =&gt;</span>
+<span class="s">// PI=3.141592653589793</span>
+<span class="s">// Date=Sat Jan 13 00:14:50 EST 2007</span>
+
+<span class="s">// object-oriented streams</span>
+<span class="s">binfile.delete(); binfile.createNewFile() // start from scratch</span>
+<span class="s">class Person implements Serializable { def name, age }</span>
+<span class="s">binfile.withObjectOutputStream{ oos -&gt;</span>
+<span class="s">    oos.writeObject(new Person(name:&#39;Bernie&#39;,age:16))</span>
+<span class="s">    oos.writeObject([1:&#39;a&#39;, 2:&#39;b&#39;])</span>
+<span class="s">    oos.writeObject(new Date())</span>
+<span class="s">}</span>
+<span class="s">// now read it back in</span>
+<span class="s">binfile.withObjectInputStream{ ois -&gt;</span>
+<span class="s">    person = ois.readObject()</span>
+<span class="s">    println &quot;$person.name is $person.age&quot;</span>
+<span class="s">    println ois.readObject()</span>
+<span class="s">    println ois.readObject()</span>
+<span class="s">}</span>
+<span class="s">// =&gt;</span>
+<span class="s">// Bernie is 16</span>
+<span class="s">// [1:&quot;a&quot;, 2:&quot;b&quot;]</span>
+<span class="s">// Sat Jan 13 00:22:13 EST 2007</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN478"
+>Reading Configuration Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// use built-in Java property class</span>
+<span class="s">// suppose you have the following file:</span>
+<span class="s">// # set your database settings here</span>
+<span class="s">// server=localhost</span>
+<span class="s">// url=jdbc:derby:derbyDB;create=true</span>
+<span class="s">// user.name=me</span>
+<span class="s">// user.password=secret</span>
+<span class="s">props = new Properties()</span>
+<span class="s">propsfile=new File(&#39;Pleac/data/plain.properties&#39;)</span>
+<span class="s">props.load(propsfile.newInputStream())</span>
+<span class="s">props.list(System.out)</span>
+<span class="s">// =&gt;</span>
+<span class="s">// -- listing properties --</span>
+<span class="s">// user.name=me</span>
+<span class="s">// user.password=secret</span>
+<span class="s">// url=jdbc:derby:derbyDB;create=true</span>
+<span class="s">// server=localhost</span>
+
+<span class="s">// There are also provisions for writing properties file.</span>
+
+<span class="s">// (additional example to Perl)</span>
+<span class="s">// You can also read and write xml properties files.</span>
+<span class="s">new File(&#39;Pleac/data/props.xml&#39;).withOutputStream{ os -&gt;</span>
+<span class="s">    props.storeToXML(os, &quot;Database Settings&quot;)</span>
+<span class="s">}</span>
+<span class="s">// =&gt;</span>
+<span class="s">// &lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;</span>
+<span class="s">// &lt;!DOCTYPE properties SYSTEM &quot;http://java.sun.com/dtd/properties.dtd&quot;&gt;</span>
+<span class="s">// &lt;properties&gt;</span>
+<span class="s">// &lt;comment&gt;Database Settings&lt;/comment&gt;</span>
+<span class="s">// &lt;entry key=&quot;user.password&quot;&gt;secret&lt;/entry&gt;</span>
+<span class="s">// &lt;entry key=&quot;user.name&quot;&gt;me&lt;/entry&gt;</span>
+<span class="s">// &lt;entry key=&quot;url&quot;&gt;jdbc:derby:derbyDB;create=true&lt;/entry&gt;</span>
+<span class="s">// &lt;entry key=&quot;server&quot;&gt;localhost&lt;/entry&gt;</span>
+<span class="s">// &lt;/properties&gt;</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN481"
+>Testing a File for Trustworthiness</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// The File class provides canRead(), canWrite() and canExecute() (JDK6) methods</span>
+<span class="s">// for finding out about security information specific to the user. JSR 203</span>
+<span class="s">// (expected in Java 7) provides access to additional security related attributes.</span>
+
+<span class="s">// Another useful package to use when wondering about the trustworthiness of a</span>
+<span class="s">// file is the java.security package. It contains many classes. Just one is</span>
+<span class="s">// MessageDigest. This would allow you to create a strong checksum of a file.</span>
+<span class="s">// Your program could refuse to operate if a file it was accessing didn&#39;t have the</span>
+<span class="s">// checksum it was expecting - an indication that it may have been tampered with.</span>
+
+<span class="s">// (additional info)</span>
+<span class="s">// While getting file-based security permissions correct is important, it isn&#39;t the</span>
+<span class="s">// only mechanism to use for security when using Java based systems. Java provides</span>
+<span class="s">// policy files and an authorization and authentication API which lets you secure</span>
+<span class="s">// any reources (not just files) at various levels of granularity with various</span>
+<span class="s">// security mechanisms.</span>
+<span class="s">// Security policies may be universal, apply to a particular codebase, or</span>
+<span class="s">// using JAAS apply to individuals. Some indicative policy statements:</span>
+<span class="s">// grant {</span>
+<span class="s">//     permission java.net.SocketPermission &quot;*&quot;, &quot;connect&quot;;</span>
+<span class="s">//     permission java.io.FilePermission &quot;C:\\users\\cathy\\foo.bat&quot;, &quot;read&quot;;</span>
+<span class="s">// };</span>
+<span class="s">// grant codebase &quot;file:./*&quot;, Principal ExamplePrincipal &quot;Secret&quot; {</span>
+<span class="s">//     permission java.io.FilePermission &quot;dummy.txt&quot;, &quot;read&quot;;</span>
+<span class="s">// };</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN484"
+>Program: tailwtmp</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// general purpose utility methods</span>
+<span class="s">def getString(buf,size){</span>
+<span class="s">    // consider get(buf[]) instead of get(buf) for efficiency</span>
+<span class="s">    b=[]; size.times{b+=buf.get()}; new String(b as byte[]).trim()</span>
+<span class="s">}</span>
+<span class="s">def getInt(buf,size) {</span>
+<span class="s">    // normally in Java we would just use methods like getLong()</span>
+<span class="s">    // to read a long but wish to ignore platform issues here</span>
+<span class="s">    long val = 0</span>
+<span class="s">    for (n in 0..&lt;size) { val += ((int)buf.get() &amp; 0xFF) &lt;&lt; (n * 8) }</span>
+<span class="s">    return val</span>
+<span class="s">}</span>
+<span class="s">def getDate(buf) {</span>
+<span class="s">    return new Date(getInt(buf,4) * 1000) // Java uses millis</span>
+<span class="s">}</span>
+
+<span class="s">// specific utility method (wtmp file from ubuntu 6.10)</span>
+<span class="s">def processWtmpRecords(file, origpos) {</span>
+<span class="s">    channel = new RandomAccessFile(file, &#39;r&#39;).channel</span>
+<span class="s">    recsize = 4 + 4 + 32 + 4 + 32 + 256 + 8 + 4 + 40</span>
+<span class="s">    channel.position(origpos)</span>
+<span class="s">    newpos = origpos</span>
+<span class="s">    buf = ByteBuffer.allocate(recsize)</span>
+<span class="s">    while ((count = channel.read(buf)) != -1) {</span>
+<span class="s">        if (count != recsize) break</span>
+<span class="s">        buf.flip()</span>
+<span class="s">        print getInt(buf,4) + &#39; &#39;         // type</span>
+<span class="s">        print getInt(buf,4) + &#39; &#39;         // pid</span>
+<span class="s">        print getString(buf,32) + &#39; &#39;     // line</span>
+<span class="s">        print getString(buf,4) + &#39; &#39;      // inittab</span>
+<span class="s">        print getString(buf,32) + &#39; &#39;     // user</span>
+<span class="s">        print getString(buf,256) + &#39; &#39;    // hostname</span>
+<span class="s">        buf.position(buf.position() + 8)  // skip</span>
+<span class="s">        println &quot;${getDate(buf)} &quot;        // time</span>
+<span class="s">        buf.clear()</span>
+<span class="s">        newpos = channel.position()</span>
+<span class="s">    }</span>
+<span class="s">    return newpos</span>
+<span class="s">}</span>
+
+<span class="s">wtmp = new File(&#39;Pleac/data/wtmp&#39;)</span>
+<span class="s">// wtmpTailingScript:</span>
+<span class="s">sampleInterval = 2000 // 2000 millis = 2 secs</span>
+<span class="s">filePointer = wtmp.size() // begin tailing from the end of the file</span>
+<span class="s">while(true) {</span>
+<span class="s">    // Compare the length of the file to the file pointer</span>
+<span class="s">    long fileLength = wtmp.size()</span>
+<span class="s">    if( fileLength &gt; filePointer ) {</span>
+<span class="s">        // There is data to read</span>
+<span class="s">        filePointer = processWtmpRecords(wtmp, filePointer)</span>
+<span class="s">    }</span>
+<span class="s">    // Sleep for the specified interval</span>
+<span class="s">    Thread.sleep( sampleInterval )</span>
+<span class="s">}</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN487"
+>Program: tctee</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// contains most of the functionality of the original (not guaranteed to be perfect)</span>
+<span class="s">// -i ignores errors, e.g. if one target is write protected, the others will work</span>
+<span class="s">// -u writes files in unbuffered mode (ignore for &#39;|&#39;)</span>
+<span class="s">// -n not to stdout</span>
+<span class="s">// -a all files are in append mode</span>
+<span class="s">// &#39;&gt;&gt;file1&#39; turn on append for individual file</span>
+<span class="s">// &#39;|wc&#39; or &#39;|grep x&#39; etc sends output to forked process (only one at any time)</span>
+<span class="s">class MultiStream {</span>
+<span class="s">    private targets</span>
+<span class="s">    private ignoreErrors</span>
+<span class="s">    MultiStream(List targets, ignore) {</span>
+<span class="s">        this.targets = targets</span>
+<span class="s">        ignoreErrors = ignore</span>
+<span class="s">    }</span>
+<span class="s">    def println(String content) {</span>
+<span class="s">        targets.each{</span>
+<span class="s">            try {</span>
+<span class="s">                it?.write(content.bytes)</span>
+<span class="s">            } catch (Exception ex) {</span>
+<span class="s">                if (!ignoreErrors) throw ex</span>
+<span class="s">                targets -= it</span>
+<span class="s">                it?.close()</span>
+<span class="s">            }</span>
+<span class="s">        }</span>
+<span class="s">    }</span>
+<span class="s">    def close() { targets.each{ it?.close() } }</span>
+<span class="s">}</span>
+
+<span class="s">class TeeTarget {</span>
+<span class="s">    private filename</span>
+<span class="s">    private stream</span>
+<span class="s">    private p</span>
+
+<span class="s">    TeeTarget(String name, append, buffered, ignore) {</span>
+<span class="s">        if (name.startsWith(&#39;&gt;&gt;&#39;)) {</span>
+<span class="s">            createFileStream(name[2..-1],true,buffered,ignore)</span>
+<span class="s">        } else if (name.startsWith(&#39;|&#39;)) {</span>
+<span class="s">            createProcessReader(name[1..-1])</span>
+<span class="s">        } else {</span>
+<span class="s">            createFileStream(name,append,buffered,ignore)</span>
+<span class="s">        }</span>
+<span class="s">    }</span>
+
+<span class="s">    TeeTarget(OutputStream stream) { this.stream = stream }</span>
+
+<span class="s">    def write(bytes) { stream?.write(bytes) }</span>
+<span class="s">    def close() { stream?.close() }</span>
+
+<span class="s">    private createFileStream(name, append, buffered, ignore) {</span>
+<span class="s">        filename = name</span>
+<span class="s">        def fos</span>
+<span class="s">        try {</span>
+<span class="s">            fos = new FileOutputStream(name, append)</span>
+<span class="s">        } catch (Exception ex) {</span>
+<span class="s">            if (ignore) return</span>
+<span class="s">        }</span>
+<span class="s">        if (!buffered) stream = fos</span>
+<span class="s">        else stream = new BufferedOutputStream(fos)</span>
+<span class="s">    }</span>
+<span class="s">    private createWriter(os) {new PrintWriter(new BufferedOutputStream(os))}</span>
+<span class="s">    private createReader(is) {new BufferedReader(new InputStreamReader(is))}</span>
+<span class="s">    private createPiperThread(br, pw) {</span>
+<span class="s">        Thread.start{</span>
+<span class="s">            def next</span>
+<span class="s">            while((next = br.readLine())!=null) {</span>
+<span class="s">                pw.println(next)</span>
+<span class="s">            }</span>
+<span class="s">            pw.flush(); pw.close()</span>
+<span class="s">        }</span>
+<span class="s">    }</span>
+<span class="s">    private createProcessReader(name) {</span>
+<span class="s">        def readFromStream = new PipedInputStream()</span>
+<span class="s">        def r1 = createReader(readFromStream)</span>
+<span class="s">        stream = new BufferedOutputStream(new PipedOutputStream(readFromStream))</span>
+<span class="s">        p = Runtime.runtime.exec(name)</span>
+<span class="s">        def w1 = createWriter(p.outputStream)</span>
+<span class="s">        createPiperThread(r1, w1)</span>
+<span class="s">        def w2 = createWriter(System.out)</span>
+<span class="s">        def r2 = createReader(p.inputStream)</span>
+<span class="s">        createPiperThread(r2, w2)</span>
+<span class="s">    }</span>
+<span class="s">}</span>
+
+<span class="s">targets = []</span>
+<span class="s">append = false; ignore = false; includeStdout = true; buffer = true</span>
+<span class="s">(0..&lt;args.size()).each{</span>
+<span class="s">    arg = args[it]</span>
+<span class="s">    if (arg.startsWith(&#39;-&#39;)) {</span>
+<span class="s">        switch (arg) {</span>
+<span class="s">            case &#39;-a&#39;: append = true; break</span>
+<span class="s">            case &#39;-i&#39;: ignore = true; break</span>
+<span class="s">            case &#39;-n&#39;: includeStdout = false; break</span>
+<span class="s">            case &#39;-u&#39;: buffer = false; break</span>
+<span class="s">            default:</span>
+<span class="s">                println &quot;usage: tee [-ainu] [filenames] ...&quot;</span>
+<span class="s">                System.exit(1)</span>
+<span class="s">        }</span>
+<span class="s">    } else targets += arg</span>
+<span class="s">}</span>
+<span class="s">targets = targets.collect{ new TeeTarget(it, append, buffer, ignore) }</span>
+<span class="s">if (includeStdout) targets += new TeeTarget(System.out)</span>
+<span class="s">def tee = new MultiStream(targets, ignore)</span>
+<span class="s">while (line = System.in.readLine()) {</span>
+<span class="s">    tee.println(line)</span>
+<span class="s">}</span>
+<span class="s">tee.close()</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN490"
+>Program: laston</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// most of the functionality - uses an explicit uid - ran on ubuntu 6.10 on intel</span>
+<span class="s">lastlog = new File(&#39;Pleac/data/lastlog&#39;)</span>
+<span class="s">channel = new RandomAccessFile(lastlog, &#39;r&#39;).channel</span>
+<span class="s">uid = 1000</span>
+<span class="s">recsize = 4 + 32 + 256</span>
+<span class="s">channel.position(uid * recsize)</span>
+<span class="s">buf = ByteBuffer.allocate(recsize)</span>
+<span class="s">channel.read(buf)</span>
+<span class="s">buf.flip()</span>
+<span class="s">date = getDate(buf)</span>
+<span class="s">line = getString(buf,32)</span>
+<span class="s">host = getString(buf,256)</span>
+<span class="s">println &quot;User with uid $uid last logged on $date from ${host?host:&#39;unknown&#39;} on $line&quot;</span>
+<span class="s">// =&gt; User with uid 1000 last logged on Sat Jan 13 09:09:35 EST 2007 from unknown on :0</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="fileaccess.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="directories.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>File Access</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Directories</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

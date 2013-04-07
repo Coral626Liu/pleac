@@ -1,0 +1,1238 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Directories</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-REXX "
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="File Contents"
+HREF="filecontents.html"><LINK
+REL="NEXT"
+TITLE="Subroutines"
+HREF="subroutines.html"></HEAD
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-REXX </TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="filecontents.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="subroutines.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="DIRECTORIES"
+>9. Directories</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN495"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* Directories, that is, files which contain other files, is a concept*/
+/* unique to hierarchical file systems, something not universally     */
+/* implemented, most notably, in early versions of VM/CMS and MVS/TSO,*/
+/* notable mainframe operating systems, as well as desktop computer   */
+/* systems like CP/M. Though this is probably of little interest to   */
+/* most, it is mentioned because one of REXX's strengths is its true  */
+/* cross-platform operability [that is, across widely varying OS, not */
+/* *NIX variants and Win32 :) !]. The code examples shown here are not*/
+/* cross-platform but strongly tied to the *NIX environment in keep-  */
+/* with the Perl Cookbook's *NIX orientation.                         */
+/*                                                                    */
+/* Also, this section makes extensive use of both the 'rexxUtil' and  */
+/* 'rexxRe' libraries; scripts using this code will need to include   */
+/* the following at the start of the sript:                           */
+/*                                                                    */
+/*   call rxFuncAdd 'sysLoadFuncs', 'rexxUtil', 'sysLoadFuncs'        */
+/*   call sysLoadFuncs                                                */
+/*   call rxFuncAdd 'reLoadFuncs', 'rexxRE', 'reLoadFuncs'            */
+/*   call reLoadFuncs                                                 */
+/*                                                                    */
+/* and at the end:                                                    */
+/*                                                                    */
+/*   call reDropFuncs                                                 */
+/*   call sysDropFuncs                                                */
+/* ------------------------------------------------------------------ */
+
+/*
+   *NIX-specific approach: 'stat' utility
+
+   Rename 'entry' to 'statinfo', a compound variable; leaf '.1' is a
+   string containing:
+
+     filename filetype size access modification change
+
+   Other data may be obtained by altering value of 'statflds'
+*/
+
+filename = &quot;/usr/bin/vi&quot;
+statflds = &quot;%n %F %s %x %y %z&quot; ; cmd = &quot;stat --format '&quot; ||,
+            statflds || &quot;'&quot;
+
+address SYSTEM cmd filename with OUTPUT STEM statinfo.
+
+if RC \= 0 then do
+  say &quot;Couldn't 'stat' &quot; filename &quot;:&quot; RC ; exit RC
+end ; else do
+  /* Parse and display data */
+  parse var statinfo.1 filename filetype filesize atime mtime ctime
+  say &quot;Filname:     &quot; filename
+  say &quot;Type of file:&quot; filetype
+  /* ... */
+end
+
+/* ----------- */
+
+/*
+   Regina-only: also possible to utilise GCI facility to directly invoke
+   the 'stat' C library function. This could be wrapped up in a native
+   REXX function, as shown:
+
+     UNIXstat : procedure expose (globals)
+       filename = ARG(1) ; statinfo = NULL
+
+       ... setup 'stat' with GCI ...
+       ... invoke 'stat' ...
+       ... parse and reformat 'stat'-returned data ...
+
+       return statinfo
+
+   GCI implementations of both, 'stat' and 'utime', appear in the
+   Appendix
+*/
+
+filename = &quot;/usr/bin&quot; ; entry = UNIXstat(filename)
+
+if entry == NULL then do
+  say &quot;Couldn't 'stat' &quot; filename &quot;:&quot; 1 ; exit 1
+end ; else do
+  /* Parse and display data */
+  parse var entry filename filetype filesize atime mtime ctime
+  say &quot;Filname:     &quot; filename
+  say &quot;Type of file:&quot; filetype
+  /* ... */
+end
+
+/* ----------------------------- */
+
+/*
+   A more cross-platform [though with some Regina-specific options]
+   approach using 'STREAM' BIF. Note more data is obtainable but
+   not used in example, and only the modification time [not the
+   status change / revision time] obtainable in this manner
+*/
+
+parse value STREAM(filename, 'C', 'FSTAT') with . . . . . . filesize
+
+parse value STREAM(filename, 'C', 'QUERY SIZE'),
+            STREAM(filename, 'C', 'QUERY TIMESTAMP'),
+            with filesize mtime
+
+/* ----------------------------- */
+
+if STREAM(filename, 'C', 'OPEN READ') \= &quot;READY:&quot; then
+  say &quot;Error opening&quot; filename
+
+/* ----------- */
+
+/*
+   It is not possible to determine whether a file / stream has been
+   opened in 'text' or 'binary' mode, merely whether it contains
+   data or not. If needed, the stream can be read and checks for
+   the platform's 'line terminator' characters [usually CR, LF or
+   CRLF] made
+*/
+
+if STREAM(filename, 'C', 'QUERY SIZE') == 0 then
+  say filename &quot;does not have data in it&quot;
+
+/* ----------------------------- */
+
+/*
+   Hierarchical filesystem support cannot be assumed to exist on all
+   platforms [though with the widespread adoption of *NIX or *NIX-based
+   concepts on various platforms e.g. z/OS UNIX Sytem Services, Mac
+   OSX, this is not as true as in the past].
+
+   For 'directory traversal' tasks it is common to see use made of the
+   'rexxUtil' library's, 'sysFileTree', routine
+*/
+
+dirname = &quot;/usr/bin&quot;
+
+if sysFileTree(dirname||&quot;/&quot;, 'dirtree.', 'fso') \= 0 then do
+  say &quot;Couldn't open&quot; dirname &quot;:&quot; 1 ; exit 1
+end ; else do
+  do i = 1 to dirtree.0
+    say &quot;Inside&quot; dirname &quot;is something called&quot; dirtree.i
+  end
+end</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN498"
+>Getting and Setting Timestamps</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* Several library routines exist for querying file timestamps:       */
+/*                                                                    */
+/* * STREAM BIF                                                       */
+/* * RexxUtil library's: sysGetFileDateTime [mtime, ctime only]       */
+/*                       sysSetFileDateTime [mtime only]              */
+/*                                                                    */
+/* but there is no support for modifying timestamps, where one has to */
+/* resort to:                                                         */
+/*                                                                    */
+/* * Invoking [via ADDRESS SYSTEM] a utility such as 'touch'          */
+/* * Binding to a C library function such as 'stat' or 'utime' via an */
+/*   interpreter-specific mechanism [such as Regina's GCI]            */
+/*                                                                    */
+/* The 'UNIXstat' and 'UNIXutime' routines used below [code included  */
+/* in the Appendix] are examples of the latter.                       */
+/* ------------------------------------------------------------------ */
+
+/* Update both access and modification time */
+parse value UNIXstat(filename) with . . . READTIME WRITETIME .
+call UNIXutime NEWREADTIME, NEWWRITETIME, filename
+
+/* ----------------------------- */
+
+SECONDS_PER_DAY = 60 * 60 * 24
+
+parse value UNIXstat(file) with . . . atime mtime .
+parse value (atime - 7 * SECONDS_PER_DAY) (mtime - 7 * SECONDS_PER_DAY),
+            with atime mtime
+
+if \UNIXutime(atime, mtime, file) then do
+  say &quot;couldn't backdate&quot; file &quot;by a week w/ utime&quot; ; exit 1
+end
+
+/* ----------------------------- */
+
+/* Update access time only */
+parse value UNIXstat(filename) with . . . . mtime .
+call UNIXutime TIME('T'), mtime, file
+
+/* ----------------------------- */
+
+/* uvi - vi a file without changing its access times */
+if ARG() &lt; 1 then do ; say &quot;usage: uvi filename&quot; ; exit 1 ; end ; file =
+ARG(1)
+
+editor = VALUE(&quot;EDITOR&quot;,, SYSTEM)
+if editor == NULL then ; editor = &quot;vi&quot;
+address SYSTEM editor file
+
+if \UNIXutime(atime, mtime, file) then do
+  say &quot;couldn't restore&quot; file &quot;to orig times&quot; ; exit 1
+end
+
+exit 0</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN501"
+>Deleting a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/*
+   Cross platform approach using 'rexxUtil' library's, 'sysFileDelete',
+   routine. Whilst a zero return code indicates success, a non-zero
+   return code [actual value is platform-dependant] indicates the type
+   of problem encountered e.g. not found, still in use, etc
+*/
+
+call sysFileDelete FILENAME
+
+if RESULT \= 0 then do
+  say &quot;Can't delete&quot; FILENAME &quot;:&quot; RESULT ; exit RESULT
+end
+
+/* ----------------------------- */
+
+FILENAMES = &quot;f1 f2 f3 ...&quot; ; allFilesDeleted = TRUE
+
+do while FILENAMES &lt;&gt; NULL
+  parse var FILENAMES FILE FILENAMES
+  call sysFileDelete FILE ; if RESULT then ; allFilesDeleted = FALSE
+end
+
+if \allFilesDeleted then do
+  say &quot;Couldn't delete all of&quot; FILENAMES &quot;:&quot; 1 ; exit 1
+end
+
+/* ----------------------------- */
+
+filelist = &quot;f1 f2 f3 ...&quot; ; totfiles = WORDS(filelist)
+count = totfiles
+
+do while filelist &lt;&gt; NULL
+  parse var filelist file filelist
+  call sysFileDelete file ; if RESULT then ; count = count - 1
+end
+
+if count \= totfiles then
+  say &quot;Could only delete&quot; count &quot;of&quot; totfiles &quot;files&quot;</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN504"
+>Copying or Moving a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/*
+   Cross platform approach using 'rexxUtil' library's, 'sysCopyObject',
+   routine. Whilst a zero return code indicates success, a non-zero
+   return code [actual value is platform-dependant] indicates the type
+   of problem encountered e.g. not found, still in use, etc
+*/
+
+call sysCopyObject oldfile, newfile
+
+if RESULT \= 0 then do
+  say &quot;Can't copy&quot; oldfile &quot;to&quot; newfile &quot;:&quot; RESULT ; exit RESULT
+end
+
+/* ----------------------------- */
+
+/*
+   File copy effected by copying contents of an existing file to
+   a newly-created file. Note: implict opening of file(s), and optional
+   closing
+*/
+
+IN = 'oldfile' ; OUT = 'newfile' ; BUFSIZE = 256
+
+do while CHARS(IN) &gt; 0
+  char = CHARIN(IN,, BUFSIZE) ; if char &lt;&gt; NULL then ; call CHAROUT OUT,
+char
+end
+
+/* ----------------------------- */
+
+/*
+   Command-line utilities may easily be used for this task, but it is
+   important to consider how any output [i.e. stdout, stderr] will
+   be handled, and whether return codes are significant and whether
+   they should be checked.
+*/
+
+/* *NIX */
+dev = &quot;/dev/null&quot; ; cmd = &quot;cp -pvd&quot; oldfile newfile
+address SYSTEM cmd with OUTPUT STREAM dev ERROR STREAM dev
+if RC \= 0 then ; say &quot;Error ...&quot;
+
+/* OpenVMS */
+dev = &quot;NL:&quot; ; cmd = &quot;copy&quot; oldfile newfile
+address SYSTEM cmd with OUTPUT STREAM dev ERROR STREAM dev
+if RC \= 1 then ; say &quot;Error ...&quot;
+
+/* Win32 [Return codes unreliable, so best parse output for command
+   status]
+*/
+dev = &quot;NUL:&quot; ; cmd = &quot;copy/v/b/y&quot; oldfile newfile
+address SYSTEM cmd with OUTPUT STEM result. ERROR STREAM dev
+parse var result.1 numberCopied .
+if numberCopied \= 1 then ; say &quot;Error ...&quot;
+
+/* ----------------------------- */
+
+/*
+   Copies contents of source file to newly-created / truncated target
+   file
+*/
+
+call sysCopyObject &quot;datafile.dat&quot;, &quot;datafile.bak&quot;
+
+if RESULT \= 0 then do
+  say &quot;copy failed:&quot; RESULT ; exit RESULT
+end
+
+/* ----------- */
+
+/*
+   Adjusts behaviour to either rename source file to target file [if
+   they reside on the same device], or creates a new target file and
+   copies contents of source file into it
+*/
+
+call sysMoveObject &quot;datafile.new&quot;, &quot;datafile.dat&quot;
+
+if RESULT \= 0 then do
+  say &quot;move failed:&quot; RESULT ; exit RESULT
+end</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN507"
+>Recognizing Two Names for the Same File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* I'm not entirely sure what the code in this section is meant to do */
+/* but I've proceeded on the assumption that, for a group of filenames*/
+/* it is loading the corresponding device / inode pairs into a hash   */
+/* using those pairs as an alternate identifier for each file.        */
+/* ------------------------------------------------------------------ */
+
+do_my_thing : procedure expose (globals) seen.
+  filename = ARG(1) ; key = makeDeviceInodePair(filename)
+  if SYMBOL('seen.key') \= 'VAR' then do
+    /* Do something with 'filename' since not previously seen */
+    nop
+  end
+  return
+
+/* ----------------------------- */
+
+files = &quot;...&quot;
+
+drop seen. keys. ; i = 0
+
+do while files &lt;&gt; NULL
+  parse var files file files
+  key = makeDeviceInodePair(file)
+  /* Either add a new entry or append to exisitng entry */
+  if SYMBOL('seen.key') \= 'VAR' then do
+    seen.key = file ; i = i + 1 ; keys.i = key
+  end ; else ; seen.key = seen.key file
+end
+
+keys.0 = i
+
+/* Sort keys */
+call sysStemSort 'keys.', 'ascending'
+
+/* Traverse in sorted key order */
+do i = 1 for keys.0
+  key = keys.i
+
+  /* 'files' is a list of 1 or more filenames */
+  files = seen.key
+
+  do while files &lt;&gt; NULL
+    parse var files file files
+    /* Do something with each filename ... */
+  end
+end
+
+exit 0
+
+/* ----------- */
+
+makeDeviceInodePair : procedure expose (globals)
+  /* Could have used 'UNIXstat' custom function to do this */
+  cmd = &quot;stat --format '%D %i'&quot;
+  address SYSTEM cmd ARG(1) with OUTPUT STEM devinode.
+  if RC \= 0 then ; return NULL
+  return devinode.1</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN510"
+>Processing All Files in a Directory</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* Directory traversal is typically performed using the 'rexxUtil'    */
+/* library's, 'sysFileTree', routine. Whilst it's full capabilities   */
+/* are not illustrated here, it is possible to generate lists of only */
+/* files, only directories, or both, as well as the entire tree from  */
+/* the specified location; path can be a fully qualified name or a    */
+/* glob [e.g. *.*].                                                   */
+/* ------------------------------------------------------------------ */
+
+dirname = &quot;/tmp&quot;
+
+/* Directory names must with the path separator character */
+if sysFileTree(dirname||&quot;/&quot;, 'files.', 'fo') \= 0 then
+  say &quot;Can't open directory&quot; dirname
+
+/* Traverse file list */
+do i = 1 to files.0
+  /* Do something with each file, accessed as: 'files.i' ... */
+end
+
+/* ----------------------------- */
+
+dirname = &quot;/tmp&quot;
+
+say &quot;text files in&quot; dirname &quot;are:&quot;
+
+if sysFileTree(dirname||&quot;/&quot;, 'files.', 'fo') \= 0 then
+  say &quot;Can't open directory&quot; dirname
+
+/* Traverse file list selecting only text files */
+do i = 1 to files.0
+  if isTextFile(files.i) then say files.i
+end
+
+/* ----------- */
+
+isTextFile : procedure expose (globals)
+  /* No standard BIF for this task, so use 'file' utility [*NIX-only] */
+  cmd = &quot;file -bN&quot;
+  address SYSTEM cmd ARG(1) with OUTPUT STEM filetype.
+  if RC \= 0 then ; return FALSE
+  return filetype.1 == &quot;ASCII text&quot;
+
+/* ----------------------------- */
+
+/* '.' and '..' don't show up in 'sysFileTree' generated lists */
+
+/* ----------------------------- */
+
+plainFiles : procedure expose (globals)
+  dirname = ARG(1) ; filelist = NULL
+
+  /*
+     Generated file list:
+     - files only, via 'fo' option
+     - automatically exclude '.' and '..'
+  */
+  if sysFileTree(dirname||&quot;/&quot;, 'files.', 'fo') \= 0 then do
+    say &quot;Can't open directory&quot; dirname ; exit 1
+  end
+
+  /* Sort stem */
+  call sysStemSort 'files.', 'ascending'
+
+  /*
+     Traverse sorted file list, and generate list of only 'regular'
+     files
+  */
+  do i = 1 to files.0
+    if isRegularFile(files.i) then ; filelist = filelist files.i
+  end
+
+  return STRIP(filelist)
+
+/* ----------- */
+
+isRegularFile : procedure expose (globals)
+  fstatinfo = STREAM(ARG(1), 'C', 'FSTAT')
+  return WORD(fstatinfo, WORDS(fstatinfo)) == &quot;RegularFile&quot;</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN513"
+>Globbing, or Getting a List of Filenames Matching a Pattern</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* Filtering a list of files is performed via globbing [use made of   */
+/* the 'glob' system function, either directly, via a custom function */
+/* which itself uses it ('sysFileTree'), or by invoking the shell (a  */
+/* simple trick is to issue an 'echo PATTERN' command), or by applying*/
+/* regex patterns to a list of files.                                 */
+/*                                                                    */
+/* Whilst the Perl examples illustrate several variations of this bas-*/
+/* ic approach, the present code will only make use of two custom fun-*/
+/* ctions, 'glob' and 'grep', both of which may be found in the Appen-*/
+/* dix. As the names imply, 'glob' uses 'glob' functionality via the  */
+/* 'sysFileTree' utility routine, and 'grep' utlises the regex routine*/
+/* in the 'rexxRE' library.                                           */
+/* ------------------------------------------------------------------ */
+
+list = glob(&quot;*.c&quot;)
+
+/* ----------- */
+
+files = grep(&quot;\.c$&quot;, glob(path, 'NAME'))
+
+/* ----------------------------- */
+
+files = grep(&quot;\.[cChH]$&quot;, glob(path, 'NAME'))
+
+/* ----------------------------- */
+
+dirname = &quot;/tmp&quot; ; files = NULL
+
+if sysFileTree(dirname||&quot;/&quot;, 'files.', 'fo') \= 0 then
+  say &quot;Can't open directory&quot; dirname
+
+/* Traverse file list, and generate list of only 'text' files */
+do i = 1 to files.0
+  if isTextFile(files.i) then ; files = files files.i
+end
+
+files = STRIP(files)
+
+/* ----------- */
+
+isTextFile : procedure expose (globals)
+  /* No standard BIF for this task, so use 'file' utility [*NIX-only] */
+  cmd = &quot;file -bN&quot;
+  address SYSTEM cmd ARG(1) with OUTPUT STEM filetype.
+  if RC \= 0 then ; return FALSE
+  return filetype.1 == &quot;ASCII text&quot;
+
+/* ----------------------------- */
+
+dirname = &quot;/tmp&quot; ; dirs = NULL
+
+/* Extract subdirectories only */
+if sysFileTree(dirname||&quot;/&quot;, 'dirs.', 'do') \= 0 then
+  say &quot;Can't open directory&quot; dirname
+
+/* Traverse subdirectory building list of subdirectory names */
+do i = 1 to dirs.0
+  dirs = dirs extractPathComponent(dirs.i, 'NAME')
+end
+
+/* Include only numerics in final list */
+dirs = grep(&quot;^[[:digit:]].*$&quot;, STRIP(dirs))</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN516"
+>Processing All Files in a Directory Recursively</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* This section mainly illustrates various uses of the 'sysFileTree'  */
+/* 'sysFileTree' routine, the rough equivalent in functionality of    */
+/* Perl's 'File::Find' module.                                        */
+/* ------------------------------------------------------------------ */
+
+dirlist = &quot;...&quot;
+
+do while dirlist &lt;&gt; NULL
+  parse var dirlist dir dirlist
+  /*
+     'processFiles' implemented in next section - applies 'file_proc'
+     to each file
+  */
+  call processFiles dir &quot;file_proc&quot;
+end
+
+/* ----------- */
+
+file_proc : procedure expose (globals)
+  file = ARG(1)
+  /* ... do something to file ... */
+  return
+
+/* ----------------------------- */
+
+dirname = &quot;.&quot; ; if ARG(1, 'E') then ; dirname = ARG(1)
+
+if sysFileTree(dirname||&quot;/&quot;, 'filetree.', 'dso') \= 0 then
+  say &quot;Can't open directory&quot; dirname
+
+/* Traverse file tree ... */
+do i = 1 to filetree.0
+  say filetree.i || &quot;/&quot;
+end
+
+/* ----------------------------- */
+
+dirname = &quot;.&quot; ; if ARG(1, 'E') then ; dirname = ARG(1)
+
+dirsize = 0
+
+if sysFileTree(dirname||&quot;/&quot;, 'filetree.', 'fso') \= 0 then
+  say &quot;Can't open directory&quot; dirname
+
+/* Traverse file tree ... */
+do i = 1 to filetree.0
+  dirsize = dirsize + getFileSize(filetree.i)
+end
+
+say dirname &quot;contains&quot; dirsize &quot;bytes&quot;
+
+/* ----------- */
+
+getFileSize : procedure expose (globals)
+  fstatinfo = STREAM(ARG(1), 'C', 'FSTAT')
+  return WORD(fstatinfo, WORDS(fstatinfo) - 1)
+
+/* ----------------------------- */
+
+/*
+   fdirs - find all directories
+*/
+
+/* [1] - 'sysFileTree' reports only directories */
+dirname = &quot;.&quot; ; if ARG(1, 'E') then ; dirname = ARG(1)
+
+if sysFileTree(dirname||&quot;/&quot;, 'filetree.', 'dso') \= 0 then
+  say &quot;Can't open directory&quot; dirname
+
+/* Traverse file tree ... */
+do i = 1 to filetree.0
+  say filetree.i
+end
+
+/* ----------- */
+
+/*
+   [2] - 'sysFileTree' reports both files and directories; filter
+   directories out manually
+*/
+dirname = &quot;.&quot; ; if ARG(1, 'E') then ; dirname = ARG(1)
+
+if sysFileTree(dirname||&quot;/&quot;, 'filetree.', 'bso') \= 0 then
+  say &quot;Can't open directory&quot; dirname
+
+/* Traverse file tree ... */
+do i = 1 to filetree.0
+  if isDirectory(filetree.i) then ; say filetree.i
+end
+
+/* ----------- */
+
+isDirectory : procedure expose (globals)
+  fstatinfo = STREAM(ARG(1), 'C', 'FSTAT')
+  return WORD(fstatinfo, WORDS(fstatinfo)) == &quot;Directory&quot;</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN519"
+>Removing a Directory and Its Contents</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* This section utilises techniques earlier illustrated [use of the   */
+/* 'sysFileTree' routine, and custom functions 'glob' and 'grep']. Key*/
+/* difference here is that directory traversal is packaged into two   */
+/* custom functions ['processDirectories' and 'processFiles'] and use */
+/* of the 'interpret' instruction is made to apply functions to each  */
+/* directory / file [like a 'foreach' routine on a list or string].   */
+/* ------------------------------------------------------------------ */
+
+/* rmtree1 - remove whole directory trees like rm -r */
+if ARG() &lt; 1 then do ; say &quot;usage: rmtree1 dir ..&quot; ; exit 1 ; end
+
+do i = 1 for ARG()
+  call removeFileTree ARG(i)
+end
+
+exit 0
+
+/* ----------- */
+
+removeFileTree : procedure expose (globals)
+  dirname = ARG(1)
+
+  /* *NIX */
+  dev = &quot;/dev/null&quot; ; cmd = &quot;rm -fr&quot; dirname
+  address SYSTEM cmd with OUTPUT STREAM dev ERROR STREAM dev
+
+  return
+
+/* ----------------------------- */
+
+/* rmtree2 - remove whole directory trees like rm -r */
+if ARG() &lt; 1 then do ; say &quot;usage: rmtree2 dir ..&quot; ; exit 1 ; end
+
+do i = 1 for ARG()
+  call removeFileTree ARG(i)
+end
+
+exit 0
+
+/* ----------- */
+
+removeFileTree : procedure expose (globals)
+  dirname = ARG(1)
+
+  call processDirectories dirname, &quot;removeDir&quot;, &quot;removeFile&quot;
+  call removeDir dirname
+
+  return
+
+/* ----------- */
+
+removeDir : ; call sysRMDir ARG(1) ; return
+removeFile : ; call sysFileDelete ARG(1) ; return
+
+/* ----------- */
+
+processDirectories : procedure expose (globals)
+  dirname = ARG(1) ; dirproc = ARG(2) ; fileproc = ARG(3)
+
+  cmd = &quot;call&quot; dirproc &quot;dir&quot;
+
+  call sysFileTree dirname||&quot;/&quot;, 'dirtree.', 'do'
+
+  if dirtree.0 &gt; 0 then do
+    do i = 1 to dirtree.0
+      call processDirectories dirtree.i, dirproc, fileproc
+      dir = dirtree.i ; interpret cmd
+    end
+  end
+
+  call processFiles dirname, fileproc
+
+  return
+
+/* ----------- */
+
+processFiles : procedure expose (globals)
+  dirname = ARG(1) ; proc = ARG(2) ; cmd = &quot;call&quot; proc &quot;file&quot;
+
+  call sysFileTree dirname||&quot;/&quot;, 'files.', 'fo'
+  do i = 1 to files.0
+    file = files.i ; interpret cmd
+  end
+
+  return</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN522"
+>Renaming Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">NAMES = &quot;f1 f2 f3 ...&quot;
+
+do while NAMES &lt;&gt; NULL
+  parse var NAMES file NAMES ; newname = &quot; ... &quot;
+  call sysMoveObject file, newname
+  if RESULT \= 0 then
+    say &quot;Couldn't rename&quot; file &quot;to&quot; newname &quot;:&quot; RESULT
+end
+
+/* ----------------------------- */
+
+/*
+   Command-line utilities may easily be used for this task, but it
+   is important to consider how any output [i.e. stdout, stderr]
+   will be handled, and whether return codes are significant and
+   whether they should be checked.
+*/
+
+/* *NIX */
+dev = &quot;/dev/null&quot; ; cmd = &quot;mv&quot; oldfile newfile
+address SYSTEM cmd with OUTPUT STREAM dev ERROR STREAM dev
+if RC \= 0 then ; say &quot;Error ...&quot;
+
+/* OpenVMS */
+dev = &quot;NL:&quot; ; cmd = &quot;rename&quot; oldfile newfile
+address SYSTEM cmd with OUTPUT STREAM dev ERROR STREAM dev
+if RC \= 1 then ; say &quot;Error ...&quot;
+
+/*
+   Win32 [Return codes unreliable, so best parse output for command
+   status]
+*/
+dev = &quot;NUL:&quot; ; cmd = &quot;ren&quot; oldfile newfile
+address SYSTEM cmd with OUTPUT STEM result. ERROR STREAM dev
+parse var result.1 numberCopied .
+if numberCopied \= 1 then ; say &quot;Error ...&quot;
+
+/* ----------------------------- */
+
+/*
+   Note: Implementation is barely functionally equivalent to Perl's
+   [owing to Perl's superior regex facilities], and is not as flexible,
+   in particular it:
+
+   * Expects a list of files on the command-line
+   * Requires the 'expr' to be a regex because it will be passed to
+     the 'subst' routine
+   * Requires that 'expr' be passed as two arguments:
+     - 'from' -&gt; regex
+     - 'to'   -&gt; new name
+*/
+
+/* rename - Larry's filename fixer */
+if ARG() &lt; 1 then do ; say &quot;usage: rename from to files&quot; ; exit 1 ; end
+from = ARG(1) ; to = ARG(2) ; files = ARG()
+
+do i = 3 to files
+  old = ARG(i) ; new = subst(old, from, to)
+  if new \= old then ; call sysMoveObject old, new
+end
+
+exit 0</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN525"
+>Splitting a Filename into Its Component Parts</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* This is no more than a parsing task, easily performed using PARSE  */
+/* in combination with BIF's such as POS and LASTPOS. A simple example*/
+/* follows:                                                           */
+/*                                                                    */
+/*   PATHSEP = &quot;\&quot; ; path = &quot;c:\d1\d2\d3\file.ext&quot;                    */
+/*                                                                    */
+/*   drive = &quot;-1&quot;                                                     */
+/*   if POS(&quot;:&quot;, path) == 2 then do                                   */
+/*     parse var path drive &quot;:&quot; name &quot;.&quot; extension                    */
+/*   end ; else do                                                    */
+/*     parse var path name &quot;.&quot; extension                              */
+/*   end                                                              */
+/*                                                                    */
+/*   basename = SUBSTR(name, LASTPOS(PATHSEP, name) + 1)              */
+/*   subdir = LEFT(name, LASTPOS(PATHSEP, name))                      */
+/*                                                                    */
+/*   say &quot;[&quot; || drive || &quot;|&quot; || name || &quot;|&quot; || extension || &quot;|&quot;,      */
+/*       || basename || &quot;]&quot;                                           */
+/*   say subdir                                                       */
+/*                                                                    */
+/* For convenience this functionality has been included as the:       */
+/*                                                                    */
+/*   extractPathComponent                                             */
+/*   extractPathComponents                                            */
+/*                                                                    */
+/* routines included in the Appendix. These routines currently only   */
+/* recognise *NIX and Win32 paths, so cannot be said to be cross-     */
+/* platform. It should not be too difficult to extend them to also    */
+/* recognise paths / filespecs on other platforms such as:            */
+/*                                                                    */
+/*   VMS:   NODE&quot;user pass&quot;::device:[dir.subdir]filename.type;ver     */
+/*   MacOS: drv:dir:file                                              */
+/*   MVS:   dsnlvl1.dsnlvl2.dsnlvl3(member)                           */
+/*          dsnlvl1.dsnlvl2.dsnlvl3                                   */
+/*   CMS:   fn fmode ftype                                            */
+/* ------------------------------------------------------------------ */
+
+base = extractPathComponent(path, 'NAME')
+dir = extractPathComponent(path, 'SUB')
+
+parse value extractPathComponents(path, &quot;NAME SUB EXT&quot;),
+      with base dir ext
+
+/* ----------- */
+
+path = &quot;/usr/lib/libc.a&quot;
+
+file = extractPathComponent(path, 'NAME')
+dir = extractPathComponent(path, 'SUB')
+
+say &quot;dir is&quot; BL(dir) || &quot;, file is&quot; file
+
+/* ----------- */
+
+path = &quot;/usr/lib/libc.a&quot;
+
+parse value extractPathComponents(path, &quot;NAME SUB EXT&quot;),
+      with name dir ext
+
+say &quot;dir is&quot; BL(dir) || &quot;, name is&quot; name || &quot;, extension is .&quot; || ext
+
+/* ----------- */
+
+path = &quot;Hard%20Drive:System%20Folder:README.txt&quot;
+
+parse var path drive &quot;:&quot; folder &quot;:&quot; name &quot;.&quot; ext
+
+dir = drive || &quot;:&quot; || folder
+
+say &quot;dir is&quot; dir || &quot;, name is&quot; name || &quot;, extension is .&quot; || ext</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN528"
+>Program: symirror</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* Program: symirror                                                  */
+/* ------------------------------------------------------------------ */
+
+@@INCOMPLETE@@
+@@INCOMPLETE@@</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN531"
+>Program: lst</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* Program: lst                                                       */
+/* ------------------------------------------------------------------ */
+
+@@INCOMPLETE@@
+@@INCOMPLETE@@</PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="filecontents.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="subroutines.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>File Contents</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Subroutines</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

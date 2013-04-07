@@ -1,0 +1,1136 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Hashes</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Pike"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Arrays"
+HREF="arrays.html"><LINK
+REL="NEXT"
+TITLE="Pattern Matching"
+HREF="patternmatching.html"></HEAD
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Pike</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="arrays.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="patternmatching.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="HASHES"
+>5. Hashes</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN232"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// creating a mapping from arrays
+mapping age = mkmapping( ({ &quot;Nat&quot;, &quot;Jules&quot;, &quot;Josh&quot;, }), ({ 24, 25, 17 }) );
+
+// initialize one index at a time
+mapping age = ([]);
+age[&quot;Nat&quot;] = 24;
+age[&quot;Jules&quot;] = 25;
+age[&quot;Josh&quot;] = 17;
+
+// if your index names are valid identifiers:
+age-&gt;Nat = 24;
+age-&gt;Jules = 25;
+age-&gt;Josh = 17;
+
+// the traditional way to initialize mappings
+mapping age = ([ &quot;Nat&quot;:24, &quot;Jules&quot;:25, &quot;Josh&quot;:17 ]);
+
+mapping(string:string) food_color = ([ 
+                                      &quot;Apple&quot;:&quot;red&quot;,
+                                      &quot;Banana&quot;:&quot;yellow&quot;,
+                                      &quot;Lemon&quot;:&quot;yellow&quot;,
+                                      &quot;Carrot&quot;:&quot;orange&quot;
+                                     ]);
+
+// a index may be of any type
+mapping any = ([ &quot;1&quot;:&quot;a string&quot;, 1:&quot;an int&quot;, 1.0:&quot;a float&quot; ]);
+
+// you may use other types too, but be aware that they are matched by
+// reference, and not by value.</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN235"
+>Adding an Element to a Hash</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">
+mapping[mixed] = mixed;
+mapping-&gt;string = mixed;  //any string that is a valid identifier
+
+// food_color as per section 5.0
+food_color-&gt;Raspberry = &quot;pink&quot;;
+write(&quot;Known foods:\n&quot;);
+foreach(food_color; string food; )
+{
+  write(food+&quot;\n&quot;);
+}
+// Lemon
+// Banana
+// Apple
+// Carrot
+// Raspberry</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN238"
+>Testing for the Presence of a Key in a Hash</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// an undefined value in a mapping gets turned to 0.
+// assigning 0 as a value is allowed and will not remove the index.
+// checking for the index will of course return 0 and be interpreted as false.
+// to check if the index is really there, use zero_type()
+
+if(!zero_type(mapping-&gt;index))
+{
+  // it exists
+}
+else
+{
+  // it doesn't
+}
+
+// food_color as per section 5.0
+foreach( ({ &quot;Banana&quot;, &quot;Milk&quot; }) ;; string name)
+{
+  if(!zero_type(food_color[name]))
+    write(&quot;%s is a food.\n&quot;, name);
+  else
+    write(&quot;%s is a drink.\n&quot;, name);
+}
+// Banana is a food.
+// Milk is a drink.
+
+// ---------------------------------------------------------
+mapping age = ([ &quot;Toddler&quot;:3, 
+                 &quot;Unborn&quot;:0, 
+                 &quot;Newborn&quot;:0.0, 
+                 &quot;Phantasm&quot;:UNDEFINED ]);
+
+foreach( ({ &quot;Toddler&quot;, &quot;Unborn&quot;, &quot;Newborn&quot;, &quot;Phantasm&quot;, &quot;Relic&quot; });; string thing) 
+{
+    write(thing+&quot;:&quot;);
+    if(!zero_type(age[thing]))
+      write(&quot; Exists&quot;);
+    if(age[thing])
+      write(&quot; True&quot;);
+    write(&quot;\n&quot;);
+}
+// Toddler: Exists True
+// Unborn: Exists
+// Newborn: Exists True
+// Phantasm: Exists
+// Relic:
+
+// age-&gt;Toddler exists, because zero_type() is only true if the index is not in
+// the mapping. it is true because the value is not 0.
+// age-&gt;Unborn exists, but is false because 0 is false
+// age-&gt;Newborn exists and is true, because 0.0 is not false
+// age-&gt;Phantasm exists and is false, like Unborn
+// age-&gt;Relic does not exist
+
+// we can not test for defined. UNDEFINED is a special value used internally by
+// the compiler. it gets converted to 0 as soon as it is assigned in a mapping
+
+// however we can create something equivalent that can be treated like any
+// other value, except that it is false:
+
+class Nil
+{
+  // this is a minimal example. 
+  // a more complete one would also handle casting
+
+  int `!() {return 1;}
+  string _sprintf() {return &quot;Nil&quot;;}
+
+  // we could have this function externally, but this is more convenient
+  int defined(mixed var)
+  {
+    return !zero_type(var) &amp;&amp; var!=this;
+  }
+}
+
+Nil NIL = Nil();                    // create an instance so we can use it
+function defined = NIL-&gt;defined;  // just for symetry
+ 
+mapping age = ([ &quot;Toddler&quot;:3, 
+                 &quot;Unborn&quot;:0, 
+                 &quot;Phantasm&quot;:NIL ]);
+
+foreach( ({ &quot;Toddler&quot;, &quot;Unborn&quot;, &quot;Phantasm&quot;, &quot;Relic&quot; });; string thing) 
+{
+    write(thing+&quot;:&quot;);
+    if(!zero_type(age[thing]))
+      write(&quot; Exists&quot;);
+    if(defined(age[thing]))
+      write(&quot; Defined&quot;);
+    if(age[thing])
+      write(&quot; True&quot;);
+    write(&quot;\n&quot;);
+}
+
+// Toddler: Exists Defined True
+// Unborn: Exists Defined
+// Phantasm: Exists
+// Relic:
+ 
+// age-&gt;Toddler exists, because zero_type() is only true if the index is not in
+// the mapping. it is defined because it exists an is not NIL. 
+// it is true because the value is not 0.
+// age-&gt;Unborn exists, and is defined, but is false because 0 is false
+// age-&gt;Phantasm exists, is not defined because it is NIL, 
+// it is not true because NIL is false.
+// age-&gt;Relic does not exist, it is not defined even though it is not NIL
+// because it doesn't exist. it is also not true, because it does not exist.
+
+// ----------------------------------------------------
+mapping size = ([]);
+string filename;
+while(filename = Stdio.stdin-&gt;gets())
+{
+  filename -= &quot;\n&quot;;
+  if(size[filename])                // wrong
+    continue;
+  if(!zero_type(size[filename]))    // right
+    continue
+  object stat = file_stat(filename)  
+  if(stat)
+    size[filename] = stat-&gt;size;
+  else
+    size[filename] = -1; // since sizes can't be negative, this will do.
+                         // if -1 is a valid value, use NIL
+}</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN241"
+>Deleting from a Hash</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// users occasionally may get the idea that mapping[index]=0; may remove index
+// from mapping. the normal way to remove a index from a mapping is to
+// subtract: mapping -= ([ index:0 ]); the following shall demonstrate the
+// difference between subtracting a index and assigning 0 to it.
+
+// food_color as per section 5.0
+void print_foods()
+{
+  write(&quot;Foods:%{ %s%}\n&quot;, indices(food_color));
+  write(&quot;Values: &quot;);
+
+  foreach(food_color; string food; string color)
+  {
+    if(color)
+      write(color+&quot; &quot;);
+    else
+      write(&quot;(no value) &quot;);
+  }
+  write(&quot;\n&quot;);
+}
+
+write(&quot;Initially:\n&quot;);
+print_foods();
+
+write(&quot;\nWith Banana set to 0\n&quot;);
+food_color-&gt;Banana = 0;
+print_foods();
+
+write(&quot;\nWith Banana deleted\n&quot;);
+food_color -= ([ &quot;Banana&quot;:&quot;the value is irrelevant&quot; ]);
+print_foods();
+
+// Initially:
+// Foods: Lemon Banana Apple Carrot
+// Values: yellow yellow red orange
+//
+// With Banana set to 0
+// Foods: Banana Lemon Apple Carrot
+// Values: (no value) yellow red orange 
+//  
+// With Banana deleted
+// Foods: Lemon Carrot Apple
+// Values: yellow orange red
+
+// you can also subtract multiple indices:
+food_color -= ([ &quot;Banana&quot;:0, &quot;Apple&quot;:0, &quot;Cabbage&quot;:0 ]);
+
+// note that subtracting a mapping from another creates a new mapping.
+// thus any references you have to a mapping will be broken.
+// in most cases this is what you want anyways. if it is not, you can also
+// remove indices using m_delete();
+
+m_delete(food_color, &quot;Banana&quot;);</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN244"
+>Traversing a Hash</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">
+foreach( mapping; type index; type value)
+{
+  //do something with index and value
+}
+
+// food_color as per 5.0
+foreach(food_color; string food; string color)
+{
+  write(&quot;%s is %s.\n&quot;, food, color);
+}
+
+// Banana is yellow.
+// Lemon is yellow.
+// Carrot is orange.
+// Apple is red.
+
+
+foreach(sort(indices(food_color));; string food)
+{
+  write(&quot;%s is %s.\n&quot;, food, food_color[food]);
+}
+
+// Apple is red.
+// Banana is yellow.
+// Carrot is orange.
+// Lemon is yellow.
+
+// since pike does not have any equivalent to each() its problems do not apply
+
+// <font size="-1"><a href="http://pleac.sourceforge.net/include/pike/ch05/countfrom">download the following standalone program</a></font>
+#!/usr/bin/pike
+// countfrom - count number of messages from each sender
+
+void main(int argc, array argv)
+{
+  object file;
+  mapping from = ([]);
+
+  if(sizeof(argv)&gt;1)
+    file = Stdio.File(argv[1], &quot;r&quot;);
+  else
+    file = Stdio.stdin;
+
+  
+  foreach(file; int count; string line)
+  {
+    array email = array_sscanf(line, &quot;From: %s&quot;);
+    if(sizeof(email))
+      from[email[0]]++;
+  }
+  write(&quot;end\n&quot;);
+
+  foreach(sort(indices(from));; string person)
+  {
+    write(&quot;%s: %d\n&quot;, person, from[person]);
+  }
+}</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN247"
+>Printing a Hash</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// perls problems and solutions do not apply to pike
+// here are a few ways to print a mapping:
+// food_color as per 5.0
+
+// debugging style
+write(&quot;%O\n&quot;, food_color);
+// ([ /* 4 elements */
+//   &quot;Apple&quot;: &quot;red&quot;,
+//   &quot;Banana&quot;: &quot;yellow&quot;,
+//   &quot;Carrot&quot;: &quot;orange&quot;,
+//   &quot;Lemon&quot;: &quot;yellow&quot;
+// ])
+
+// one element at a time:
+foreach(food_color; string food; string color)
+{
+  write(&quot;%s is %s\n&quot;, food, color);
+}
+// Lemon is yellow
+// Carrot is orange
+// Banana is yellow
+// Apple is red
+
+// with the help of an array
+write(&quot;%{%s is %s\n%}&quot;, sort((array)food_color));
+// Apple is red
+// Banana is yellow
+// Carrot is orange
+// Lemon is yellow</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN250"
+>Retrieving from a Hash in Insertion Order</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// for this we need to first create an OrderedMapping class.
+// work for this is in progress
+// @@INCOMPLETE@@
+// @@INCOMPLETE@@</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN253"
+>Hashes with Multiple Values Per Key</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">
+mapping(string:array(string)) ttys = ([]);
+
+object pipe = Stdio.File();
+Process.create_process(({ &quot;who&quot; }), ([ &quot;stdout&quot;:pipe-&gt;pipe() ]));
+
+foreach(pipe-&gt;line_iterator();; string line)
+{
+  array tty=(line/&quot; &quot;)-({ &quot;&quot; });
+  if(!ttys[tty[0]])
+    ttys[tty[0]] = ({ tty[1] });
+  else
+    ttys[tty[0]] += ({ tty[1] });
+}
+
+foreach(sort(indices(ttys));; string user)
+{
+  write(&quot;%s: %{%s %}\n&quot;, user, ttys[user]);
+}
+
+foreach(sort(indices(ttys));; string user)
+{
+  write(&quot;%s: %d ttys.\n&quot;, user, sizeof(ttys[user]));
+  foreach(ttys[user];; string tty)
+  {
+    object stat = file_stat(&quot;/dev/&quot;+tty);
+    string user;
+    if(stat)
+      user = getpwuid(stat-&gt;uid)[0];
+    else
+      user = &quot;(not available)&quot;;
+    write(&quot;\t%s (owned by %s)\n&quot;, tty, user);
+  }
+}
+
+mapping multihash_delete(mapping hash, mixed key, mixed value)
+{
+  if(arrayp(hash[key]))
+    hash[key]-=({ value });
+  if(!sizeof(hash[key]))
+    m_delete(hash, key);
+  return hash;
+}</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN256"
+>Inverting a Hash</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// search for a value in a mapping
+mapping lookup;
+mixed value;
+mixed key = search(lookup, value);
+
+// transposing: (this will break if there are multiple occurances of a value)
+mapping lookup;
+mapping reverse = mkmapping(values(lookup), indices(lookup));
+//----------------------------------------------------------
+mapping surname = ([ &quot;Mickey&quot;:&quot;Mantle&quot;, &quot;Babe&quot;:&quot;Ruth&quot; ]);
+write(&quot;%s\n&quot;, search(surname, &quot;Mantle&quot;));
+// Mikey
+
+// with a transposed mapping (only worth doing if you'd have to search a lot)
+mapping first_name = mkmapping(values(surname), indices(surname));
+write(&quot;%s\n&quot;, first_name-&gt;Mantle);
+// Mikey
+//----------------------------------------------------------
+// <font size="-1"><a href="http://pleac.sourceforge.net/include/pike/ch05/foodfind">download the following standalone program</a></font>
+#!/usr/bin/pike
+
+void main(int argc, array(string) argv)
+{
+  if(argc &lt; 2)
+  {
+    write(&quot;usage: foodfind food_or_color\n&quot;);
+  }
+
+  string given = argv[1];
+  mapping color = ([ &quot;Apple&quot;:&quot;red&quot;,
+                     &quot;Banana&quot;:&quot;yellow&quot;,
+                     &quot;Lemon&quot;:&quot;yellow&quot;,
+                     &quot;Carrot&quot;:&quot;orange&quot;
+                  ]);
+  if(color[given])
+    write(&quot;%s is a food with color %s\n&quot;, given, color[given]);
+    
+  string food = search(color, given);
+  if(food)
+    write(&quot;%s is a food with color %s\n&quot;, food, given);
+
+// search will only find one value, 
+// but it can be given a place where it should start searching
+
+  array foods = ({ search(color, given) });
+  food = 0;
+  while(food = search(color, given, foods[-1]))
+  { 
+    foods += ({ food });
+  }
+  write(&quot;%{%s %}were %s foods.\n&quot;, foods, given);
+
+}
+
+//----------------------------------------------------------
+
+// food_color as per 5.0
+mapping foods_with_color = ([]);
+foreach(food_color; string food; string color)
+{
+  if(!foods_with_color[color])
+    foods_with_color[color] = ({ food });
+  else
+    foods_with_color[color] += ({ food });
+}
+
+write(&quot;%{%s %}were yellow foods.\n&quot;, foods_with_color-&gt;yellow);</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN259"
+>Sorting a Hash</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">mapping hash;
+foreach(sort(indices(hash));; mixed key)
+{
+  mixed value = hash[key];
+  // do something with key, value
+}
+
+foreach(sort(indices(food_color));; string food)
+{
+  write(&quot;%s is %s.\n&quot;, food, food_color[food]);
+}
+
+array foods = indices(food_color);
+sort(sizeof(values(food_color)[*]), foods);
+
+foreach(foods;; string food)
+{
+  write(&quot;%s is %s.\n&quot;, food, food_color[food]);
+}</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN262"
+>Merging Hashes</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// the natural way to merge two mappings is to use + or |
+// for mappings both operations are equivalent.
+mapping A, B;
+mapping merged = A + B;
+mapping merged = A | B;
+
+// if an index is in both mappings, the value will be taken from the second
+// one. 
+
+mapping drink_color = ([ &quot;Milk&quot;:&quot;white&quot;,
+                         &quot;Tomato juice&quot;:&quot;red&quot; ]);
+
+mapping ingested_color = drink_color + food_color;
+
+//  Result: ([ /* 6 elements */
+//             &quot;Apple&quot;: &quot;red&quot;,
+//             &quot;Banana&quot;: &quot;yellow&quot;,
+//             &quot;Carrot&quot;: &quot;orange&quot;,
+//             &quot;Lemon&quot;: &quot;yellow&quot;,
+//             &quot;Milk&quot;: &quot;white&quot;,
+//             &quot;Tomato juice&quot;: &quot;red&quot;
+//           ])</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN265"
+>Finding Common or Different Keys in Two Hashes</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">
+// create a mapping where indices are in both A and B
+mapping both = A &amp; B;
+
+// in A or B, but not in both
+mapping one = A ^ B;
+
+// in A, but not in B
+mapping exA = A - B;
+
+mapping citrus_color = ([ &quot;Lemon&quot;:&quot;yellow&quot;,
+                          &quot;Orange&quot;:&quot;orange&quot;,
+                          &quot;Lime&quot;:&quot;green&quot; 
+                       ]);
+
+array non_citrus = indices(food_color - citrus_color);</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN268"
+>Hashing References</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// this problem does not apply to pike
+// any value may be used as an index, if you get an object reference from
+// anywhere, if will work, if the index in the mapping is actually the same
+// object.
+// however note that the same value is not the same reference:
+array a = ({ 1,2 });
+array b = ({ 1,2 });
+mapping m = ([ a:&quot;a&quot; ]);
+m[b];  
+// Result: 0 (b will not be found.)
+m[b]=&quot;b&quot;;
+m;
+// Result: ([ ({ 1, 2 }): &quot;a&quot;,
+//            ({ 1, 2 }): &quot;b&quot;
+//           ])
+// this looks as if the mapping has the same index twice
+// but since they are references this is not the case.</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN271"
+>Presizing a Hash</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// this problem does not apply to pike
+// pike uses a smart preallocation algorythm that will avoid the need to
+// allocate memory everytime an element is added</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN274"
+>Finding the Most Common Anything</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">mapping count = ([]);
+foreach(ARRAY;; mixed element)
+{
+    count[element]++;
+}</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN277"
+>Representing Relationships Between Data</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">mapping father = ([ &quot;Cain&quot;:&quot;Adam&quot;,
+                    &quot;Abel&quot;:&quot;Adam&quot;,
+                    &quot;Seth&quot;:&quot;Adam&quot;,
+                    &quot;Enoch&quot;:&quot;Cain&quot;,
+                    &quot;Irad&quot;:&quot;Enoch&quot;,
+                    &quot;Mehujael&quot;:&quot;Irad&quot;,
+                    &quot;Methusael&quot;:&quot;Mehujael&quot;,
+                    &quot;Lamech&quot;:&quot;Methusael&quot;,
+                    &quot;Jabal&quot;:&quot;Lamech&quot;,
+                    &quot;Jubal&quot;:&quot;Lamech&quot;,
+                    &quot;Tubalcain&quot;:&quot;Lamech&quot;,
+                    &quot;Enos&quot;:&quot;Seth&quot; 
+                 ]);
+
+foreach(Stdio.stdin;; string name)
+{
+  do
+  {
+    write(&quot;%s &quot;, name);
+  } while(name = father[name]);
+  write(&quot;\n&quot;);
+}
+
+mapping children = ([]);
+foreach(father; string k; string v)
+{
+  if(!children[v])
+    children[v] = ({ k });
+  else
+    children[v] += ({ k });
+}
+
+foreach(Stdio.stdin;; string name)
+{
+  write(&quot;%s begat %s.\n&quot;, name, (children[name]||({ &quot;nobody&quot; }))*&quot;, &quot;);
+}
+
+//-----------------------------------------------------
+
+mapping includes = ([]);
+foreach(files, string file)
+{
+  string F = Stdio.read_file(file);
+  if(!F)
+    werror(&quot;Couldn't read %s; skipping.\n&quot;, file);
+
+  foreach(F/&quot;\n&quot;;; string line)
+  {
+    array included = array_sscanf(line, &quot;%*[ \t]#include%*[ \t]%*[&lt;\&quot;]%s%*[&gt;\&quot;]%*[ \t]&quot;);
+    if(sizeof(included))
+    {
+      if(!includes[included[0]])
+        includes[included[0]] = ({ file });
+      else
+        includes[included[0]] += ({ file });
+    }
+  }
+}
+//-----------------------------------------------------
+
+array uniq = `|( @values(includes) );
+array include_free = sort( uniq - indices(includes) );
+
+// values(includes) is an array of arrays.
+// @ splices values(includes) as arguments into `|()
+// `|() is a function that represents the | operator: a|b|c is `|(a,b,c)
+// | on arrays creates a new array with elements in a or b
+// the resulting array is unique as long as each array only has unique elements
+// from the uniq array we remove all those that are used as indices in the
+// includes mapping.
+// at last we sort the remaining list.</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN280"
+>Program: dutree</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// <font size="-1"><a href="http://pleac.sourceforge.net/include/pike/ch05/dutree">download the following standalone program</a></font>
+#!/usr/bin/pike
+// dutree - print sorted indented rendition of du output
+// as a slight deviation from the perl version, the sizes are still in one
+// column, to make it more readable.
+
+array input(array(string) args)
+{
+  mapping Dirsize=([]);
+  mapping Kids=([]);
+
+  object pipe = Stdio.File();
+  Process.create_process(({ &quot;du&quot; })+args, ([ &quot;stdout&quot;:pipe-&gt;pipe() ]));
+
+  string name;
+  foreach(pipe-&gt;line_iterator();; string line)
+  {
+    int size;
+    [size, name] = array_sscanf(line, &quot;%d%*[ \t]%s&quot;);
+    Dirsize[name] = size;
+    array path = name/&quot;/&quot;;
+    string parent = path[..sizeof(path)-2]*&quot;/&quot;;
+    if(!Kids[parent])
+      Kids[parent] = ({ name });
+    else
+      Kids[parent] += ({ name });
+  }
+  return ({ name, Dirsize, Kids });
+}
+
+void getdots(string root, mapping Dirsize, mapping Kids)
+{
+  int size, cursize;
+  size = cursize = Dirsize[root];
+  if(Kids[root])
+  {
+    foreach(Kids[root];; string kid)
+    {
+      cursize -= Dirsize[kid]; 
+      getdots(kid, Dirsize, Kids);
+    }
+  }
+  else
+    Kids[root] = ({});
+
+  if(size != cursize)
+  {
+    string dot = root+&quot;/.&quot;;    
+    Dirsize[dot] = cursize;
+    Kids[root] += ({ dot });
+  }
+}
+
+void output(string root, mapping Dirsize, mapping Kids, 
+            int width, void|string prefix)
+{
+  if(!prefix)
+    prefix=&quot;&quot;;
+  string path = (root/&quot;/&quot;)[-1];
+  int size = Dirsize[root];
+  write(&quot;%*d %s%s\n&quot;, width, size, prefix, path);
+  prefix += &quot;|&quot; + &quot; &quot;*(sizeof(path)-1);
+  if(Kids[root])
+  {
+    array kids = Kids[root];
+    // get the dirsize for each kid and sort by that
+    sort(Dirsize[kids[*]], kids); 
+    
+    // make the output for each kid
+    output(kids[*], Dirsize, Kids, width, prefix);
+  }
+}
+
+void main(int argc, array(string) argv)
+{
+  mapping Dirsize;
+  mapping Kids;
+  string topdir;
+
+  [ topdir, Dirsize, Kids ] = input(argv[1..]);
+  getdots(topdir, Dirsize, Kids);
+  output(topdir, Dirsize, Kids, sizeof((string)sort(values(Dirsize))[-1]));
+}</PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="arrays.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="patternmatching.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Arrays</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Pattern Matching</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

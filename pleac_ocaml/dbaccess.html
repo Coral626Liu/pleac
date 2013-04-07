@@ -1,0 +1,949 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Database Access</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Objective CAML "
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Classes, Objects, and Ties"
+HREF="classesetc.html"><LINK
+REL="NEXT"
+TITLE="User Interfaces"
+HREF="userinterfaces.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Objective CAML </TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="classesetc.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="userinterfaces.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="DBACCESS"
+>14. Database Access</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN754"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c">(* OCaml&#39;s standard library includes bindings to the NDBM database.</span>
+<span class="c">   Bindings to other database systems can be found on the web. *)</span>
+
+<span class="nc">MySQL</span><span class="o">:</span>
+<span class="n">http</span><span class="o">://</span><span class="n">raevnos</span><span class="o">.</span><span class="n">pennmush</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">code</span><span class="o">/</span><span class="n">ocaml</span><span class="o">-</span><span class="n">mysql</span><span class="o">/</span><span class="n">index</span><span class="o">.</span><span class="n">html</span>
+
+<span class="nc">PostgreSQL</span><span class="o">:</span>
+<span class="n">http</span><span class="o">://</span><span class="n">www</span><span class="o">.</span><span class="n">ocaml</span><span class="o">.</span><span class="n">info</span><span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">ocaml_sources</span><span class="o">.</span><span class="n">html</span><span class="o">#</span><span class="n">postgresql</span><span class="o">-</span><span class="n">ocaml</span>
+
+<span class="nc">SQLite</span><span class="o">:</span>
+<span class="n">http</span><span class="o">://</span><span class="n">www</span><span class="o">.</span><span class="n">ocaml</span><span class="o">.</span><span class="n">info</span><span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">ocaml_sources</span><span class="o">.</span><span class="n">html</span><span class="o">#</span><span class="n">ocaml</span><span class="o">-</span><span class="n">sqlite3</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN757"
+>Making and Using a DBM File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;dbm.cma&quot;</span><span class="o">;;</span>
+
+<span class="c">(* open database *)</span>
+<span class="k">let</span> <span class="n">db</span> <span class="o">=</span> <span class="nn">Dbm</span><span class="p">.</span><span class="n">opendbm</span> <span class="n">filename</span> <span class="o">[</span><span class="nn">Dbm</span><span class="p">.</span><span class="nc">Dbm_rdwr</span><span class="o">;</span> <span class="nn">Dbm</span><span class="p">.</span><span class="nc">Dbm_create</span><span class="o">]</span> <span class="mo">0o666</span>
+
+<span class="c">(* retrieve from database *)</span>
+<span class="k">let</span> <span class="n">v</span> <span class="o">=</span> <span class="nn">Dbm</span><span class="p">.</span><span class="n">find</span> <span class="n">db</span> <span class="n">key</span>
+
+<span class="c">(* put value into database *)</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span> <span class="nn">Dbm</span><span class="p">.</span><span class="n">replace</span> <span class="n">db</span> <span class="n">key</span> <span class="k">value</span>
+
+<span class="c">(* check whether in database *)</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">try</span>
+    <span class="n">ignore</span> <span class="o">(</span><span class="nn">Dbm</span><span class="p">.</span><span class="n">find</span> <span class="n">db</span> <span class="n">key</span><span class="o">);</span>
+    <span class="c">(* ... *)</span>
+    <span class="bp">()</span>
+  <span class="k">with</span> <span class="nc">Not_found</span> <span class="o">-&gt;</span>
+    <span class="c">(* ... *)</span>
+    <span class="bp">()</span>
+
+<span class="c">(* delete from database *)</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span> <span class="nn">Dbm</span><span class="p">.</span><span class="n">remove</span> <span class="n">db</span> <span class="n">key</span>
+
+<span class="c">(* close the database *)</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span> <span class="nn">Dbm</span><span class="p">.</span><span class="n">close</span> <span class="n">db</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* userstats - generates statistics on who is logged in. *)</span>
+<span class="c">(* call with an argument to display totals *)</span>
+
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;dbm.cma&quot;</span><span class="o">;;</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;str.cma&quot;</span><span class="o">;;</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+
+<span class="k">let</span> <span class="n">db_file</span> <span class="o">=</span> <span class="s2">&quot;/tmp/userstats.db&quot;</span>  <span class="c">(* where data is kept between runs *)</span>
+<span class="k">let</span> <span class="n">db</span> <span class="o">=</span> <span class="nn">Dbm</span><span class="p">.</span><span class="n">opendbm</span> <span class="n">db_file</span> <span class="o">[</span><span class="nn">Dbm</span><span class="p">.</span><span class="nc">Dbm_rdwr</span><span class="o">;</span> <span class="nn">Dbm</span><span class="p">.</span><span class="nc">Dbm_create</span><span class="o">]</span> <span class="mo">0o666</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">if</span> <span class="nn">Array</span><span class="p">.</span><span class="n">length</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span> <span class="o">&gt;</span> <span class="mi">1</span>
+  <span class="k">then</span>
+    <span class="k">begin</span>
+      <span class="k">let</span> <span class="n">sort</span> <span class="n">a</span> <span class="o">=</span> <span class="nn">Array</span><span class="p">.</span><span class="n">sort</span> <span class="n">compare</span> <span class="n">a</span><span class="o">;</span> <span class="n">a</span> <span class="k">in</span>
+      <span class="k">let</span> <span class="n">keys</span> <span class="n">db</span> <span class="o">=</span> <span class="nn">Array</span><span class="p">.</span><span class="n">of_list</span>
+        <span class="o">(</span><span class="k">let</span> <span class="n">accu</span> <span class="o">=</span> <span class="n">ref</span> <span class="bp">[]</span> <span class="k">in</span>
+         <span class="nn">Dbm</span><span class="p">.</span><span class="n">iter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">key</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="n">accu</span> <span class="o">:=</span> <span class="n">key</span> <span class="o">::</span> <span class="o">!</span><span class="n">accu</span><span class="o">)</span> <span class="n">db</span><span class="o">;</span>
+         <span class="o">!</span><span class="n">accu</span><span class="o">)</span> <span class="k">in</span>
+      <span class="k">let</span> <span class="n">users</span> <span class="o">=</span> <span class="nn">Array</span><span class="p">.</span><span class="n">sub</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span> <span class="mi">1</span> <span class="o">(</span><span class="nn">Array</span><span class="p">.</span><span class="n">length</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span> <span class="o">-</span> <span class="mi">1</span><span class="o">)</span> <span class="k">in</span>
+      <span class="k">let</span> <span class="n">users</span> <span class="o">=</span> <span class="k">if</span> <span class="n">users</span> <span class="o">=</span> <span class="o">[|</span><span class="s2">&quot;ALL&quot;</span><span class="o">|]</span> <span class="k">then</span> <span class="n">sort</span> <span class="o">(</span><span class="n">keys</span> <span class="n">db</span><span class="o">)</span> <span class="k">else</span> <span class="n">users</span> <span class="k">in</span>
+      <span class="nn">Array</span><span class="p">.</span><span class="n">iter</span>
+        <span class="o">(</span><span class="k">fun</span> <span class="n">user</span> <span class="o">-&gt;</span>
+           <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;%s</span><span class="se">\t</span><span class="s2">%s</span><span class="se">\n</span><span class="s2">&quot;</span>
+             <span class="n">user</span> <span class="o">(</span><span class="k">try</span> <span class="nn">Dbm</span><span class="p">.</span><span class="n">find</span> <span class="n">db</span> <span class="n">user</span> <span class="k">with</span> <span class="nc">Not_found</span> <span class="o">-&gt;</span> <span class="s2">&quot;&quot;</span><span class="o">))</span>
+        <span class="n">users</span>
+    <span class="k">end</span>
+  <span class="k">else</span>
+    <span class="k">begin</span>
+      <span class="k">let</span> <span class="n">who</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">open_process_in</span> <span class="s2">&quot;who&quot;</span> <span class="k">in</span>
+      <span class="k">let</span> <span class="n">regexp</span> <span class="o">=</span> <span class="nn">Str</span><span class="p">.</span><span class="n">regexp</span> <span class="s2">&quot;[ </span><span class="se">\t</span><span class="s2">]+&quot;</span> <span class="k">in</span>
+      <span class="k">try</span>
+        <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+          <span class="c">(* extract username (first thing on the line) and update *)</span>
+          <span class="k">let</span> <span class="n">line</span> <span class="o">=</span> <span class="n">input_line</span> <span class="n">who</span> <span class="k">in</span>
+          <span class="k">let</span> <span class="n">user</span> <span class="o">=</span> <span class="nn">List</span><span class="p">.</span><span class="n">hd</span> <span class="o">(</span><span class="nn">Str</span><span class="p">.</span><span class="n">split_delim</span> <span class="n">regexp</span> <span class="n">line</span><span class="o">)</span> <span class="k">in</span>
+          <span class="k">let</span> <span class="n">count</span> <span class="o">=</span>
+            <span class="k">try</span> <span class="n">int_of_string</span> <span class="o">(</span><span class="nn">Dbm</span><span class="p">.</span><span class="n">find</span> <span class="n">db</span> <span class="n">user</span><span class="o">)</span>
+            <span class="k">with</span> <span class="nc">Not_found</span> <span class="o">-&gt;</span> <span class="mi">0</span> <span class="k">in</span>
+          <span class="nn">Dbm</span><span class="p">.</span><span class="n">replace</span> <span class="n">db</span> <span class="n">user</span> <span class="o">(</span><span class="n">string_of_int</span> <span class="o">(</span><span class="n">count</span> <span class="o">+</span> <span class="mi">1</span><span class="o">))</span>
+        <span class="k">done</span>
+      <span class="k">with</span> <span class="nc">End_of_file</span> <span class="o">-&gt;</span>
+        <span class="n">ignore</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">close_process_in</span> <span class="n">who</span><span class="o">)</span>
+    <span class="k">end</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span> <span class="nn">Dbm</span><span class="p">.</span><span class="n">close</span> <span class="n">db</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN760"
+>Emptying a DBM File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">db</span> <span class="o">=</span> <span class="nn">Dbm</span><span class="p">.</span><span class="n">opendbm</span> <span class="n">filename</span> <span class="o">[</span><span class="nn">Dbm</span><span class="p">.</span><span class="nc">Dbm_rdwr</span><span class="o">;</span> <span class="nn">Dbm</span><span class="p">.</span><span class="nc">Dbm_create</span><span class="o">]</span> <span class="mo">0o666</span> <span class="k">in</span>
+    <span class="k">let</span> <span class="n">keys</span> <span class="o">=</span> <span class="n">ref</span> <span class="bp">[]</span> <span class="k">in</span>
+    <span class="nn">Dbm</span><span class="p">.</span><span class="n">iter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">key</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="n">keys</span> <span class="o">:=</span> <span class="n">key</span> <span class="o">::</span> <span class="o">!</span><span class="n">keys</span><span class="o">)</span> <span class="n">db</span><span class="o">;</span>
+    <span class="nn">List</span><span class="p">.</span><span class="n">iter</span> <span class="o">(</span><span class="nn">Dbm</span><span class="p">.</span><span class="n">remove</span> <span class="n">db</span><span class="o">)</span> <span class="o">!</span><span class="n">keys</span><span class="o">;</span>
+    <span class="nn">Dbm</span><span class="p">.</span><span class="n">close</span> <span class="n">db</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="nn">Sys</span><span class="p">.</span><span class="n">remove</span> <span class="n">filename</span><span class="o">;</span>
+  <span class="n">ignore</span> <span class="o">(</span><span class="nn">Dbm</span><span class="p">.</span><span class="n">opendbm</span> <span class="n">filename</span> <span class="o">[</span><span class="nn">Dbm</span><span class="p">.</span><span class="nc">Dbm_rdwr</span><span class="o">;</span> <span class="nn">Dbm</span><span class="p">.</span><span class="nc">Dbm_create</span><span class="o">]</span> <span class="mo">0o666</span><span class="o">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN763"
+>Converting Between DBM Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c">(* OCaml does not come with support for any DBM-style databases other</span>
+<span class="c">   than NDBM, and no third-party libraries appear to be available. *)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN766"
+>Merging DBM Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="k">let</span> <span class="bp">()</span> <span class="o">=</span> <span class="nn">Dbm</span><span class="p">.</span><span class="n">iter</span> <span class="o">(</span><span class="nn">Dbm</span><span class="p">.</span><span class="n">replace</span> <span class="n">output</span><span class="o">)</span> <span class="n">input</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="nn">Dbm</span><span class="p">.</span><span class="n">iter</span>
+    <span class="o">(</span><span class="k">fun</span> <span class="n">key</span> <span class="k">value</span> <span class="o">-&gt;</span>
+       <span class="k">try</span>
+         <span class="k">let</span> <span class="n">existing</span> <span class="o">=</span> <span class="nn">Dbm</span><span class="p">.</span><span class="n">find</span> <span class="n">output</span> <span class="n">key</span> <span class="k">value</span> <span class="k">in</span>
+         <span class="c">(* decide which value to use and replace if necessary *)</span>
+         <span class="bp">()</span>
+       <span class="k">with</span> <span class="nc">Not_found</span> <span class="o">-&gt;</span>
+         <span class="nn">Dbm</span><span class="p">.</span><span class="n">replace</span> <span class="n">output</span> <span class="n">key</span> <span class="k">value</span><span class="o">)</span>
+    <span class="n">input</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN769"
+>Locking DBM Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c">(* dblockdemo - demo locking dbm databases *)</span>
+<span class="c">(* Thanks to Janne Hellsten for posting sample code on caml-list! *)</span>
+
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;dbm.cma&quot;</span><span class="o">;;</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+
+<span class="k">let</span> <span class="n">db_file</span> <span class="o">=</span> <span class="s2">&quot;/tmp/foo.db&quot;</span>
+<span class="k">let</span> <span class="n">lock_file</span> <span class="o">=</span> <span class="s2">&quot;/tmp/foo.lock&quot;</span>
+
+<span class="k">let</span> <span class="n">key</span> <span class="o">=</span> <span class="k">try</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span><span class="o">.(</span><span class="mi">1</span><span class="o">)</span> <span class="k">with</span> <span class="nc">Invalid_argument</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="s2">&quot;default&quot;</span>
+<span class="k">let</span> <span class="k">value</span> <span class="o">=</span> <span class="k">try</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span><span class="o">.(</span><span class="mi">2</span><span class="o">)</span> <span class="k">with</span> <span class="nc">Invalid_argument</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="s2">&quot;magic&quot;</span>
+<span class="k">let</span> <span class="k">value</span> <span class="o">=</span> <span class="k">value</span> <span class="o">^</span> <span class="s2">&quot; &quot;</span> <span class="o">^</span> <span class="o">(</span><span class="n">string_of_int</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">getpid</span> <span class="bp">()</span><span class="o">))</span>
+
+<span class="k">let</span> <span class="n">finally</span> <span class="n">handler</span> <span class="n">f</span> <span class="n">x</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">result</span> <span class="o">=</span> <span class="k">try</span> <span class="n">f</span> <span class="n">x</span> <span class="k">with</span> <span class="n">e</span> <span class="o">-&gt;</span> <span class="n">handler</span> <span class="bp">()</span><span class="o">;</span> <span class="k">raise</span> <span class="n">e</span> <span class="k">in</span> <span class="n">handler</span> <span class="bp">()</span><span class="o">;</span> <span class="n">result</span>
+
+<span class="k">let</span> <span class="n">create_lock</span> <span class="n">name</span> <span class="o">=</span>
+  <span class="k">if</span> <span class="n">not</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="n">file_exists</span> <span class="n">name</span><span class="o">)</span> <span class="k">then</span>
+    <span class="k">let</span> <span class="n">out_channel</span> <span class="o">=</span> <span class="n">open_out</span> <span class="n">name</span> <span class="k">in</span> <span class="n">close_out</span> <span class="n">out_channel</span>
+
+<span class="k">let</span> <span class="n">with_lock</span> <span class="n">name</span> <span class="n">command</span> <span class="n">f</span> <span class="o">=</span>
+  <span class="n">create_lock</span> <span class="n">name</span><span class="o">;</span>
+  <span class="k">let</span> <span class="n">fd</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">openfile</span> <span class="n">name</span> <span class="o">[</span><span class="nn">Unix</span><span class="p">.</span><span class="nc">O_RDWR</span><span class="o">]</span> <span class="mo">0o660</span> <span class="k">in</span>
+  <span class="n">finally</span>
+    <span class="o">(</span><span class="k">fun</span> <span class="bp">()</span> <span class="o">-&gt;</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">close</span> <span class="n">fd</span><span class="o">)</span>
+    <span class="o">(</span><span class="k">fun</span> <span class="bp">()</span> <span class="o">-&gt;</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">lockf</span> <span class="n">fd</span> <span class="n">command</span> <span class="mi">0</span><span class="o">;</span> <span class="n">f</span> <span class="bp">()</span><span class="o">)</span> <span class="bp">()</span>
+
+<span class="k">let</span> <span class="n">create_db</span> <span class="n">name</span> <span class="o">=</span>
+  <span class="k">if</span> <span class="n">not</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="n">file_exists</span> <span class="o">(</span><span class="n">name</span> <span class="o">^</span> <span class="s2">&quot;.dir&quot;</span><span class="o">))</span> <span class="k">then</span>
+    <span class="k">let</span> <span class="n">db</span> <span class="o">=</span> <span class="nn">Dbm</span><span class="p">.</span><span class="n">opendbm</span> <span class="n">name</span> <span class="o">[</span><span class="nn">Dbm</span><span class="p">.</span><span class="nc">Dbm_rdwr</span><span class="o">;</span> <span class="nn">Dbm</span><span class="p">.</span><span class="nc">Dbm_create</span><span class="o">]</span> <span class="mo">0o660</span> <span class="k">in</span>
+    <span class="nn">Dbm</span><span class="p">.</span><span class="n">close</span> <span class="n">db</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="n">create_db</span> <span class="n">db_file</span><span class="o">;</span>
+
+  <span class="k">let</span> <span class="n">do_read</span> <span class="bp">()</span> <span class="o">=</span>
+    <span class="k">let</span> <span class="n">db</span> <span class="o">=</span> <span class="nn">Dbm</span><span class="p">.</span><span class="n">opendbm</span> <span class="n">db_file</span> <span class="o">[</span><span class="nn">Dbm</span><span class="p">.</span><span class="nc">Dbm_rdonly</span><span class="o">]</span> <span class="mo">0o660</span> <span class="k">in</span>
+    <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;%d: Read lock granted</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">getpid</span> <span class="bp">()</span><span class="o">);</span>
+    <span class="n">flush</span> <span class="n">stdout</span><span class="o">;</span>
+    <span class="k">let</span> <span class="n">oldval</span> <span class="o">=</span> <span class="k">try</span> <span class="nn">Dbm</span><span class="p">.</span><span class="n">find</span> <span class="n">db</span> <span class="n">key</span> <span class="k">with</span> <span class="nc">Not_found</span> <span class="o">-&gt;</span> <span class="s2">&quot;&quot;</span> <span class="k">in</span>
+    <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;%d: Old value was %s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">getpid</span> <span class="bp">()</span><span class="o">)</span> <span class="n">oldval</span><span class="o">;</span>
+    <span class="n">flush</span> <span class="n">stdout</span><span class="o">;</span>
+    <span class="nn">Dbm</span><span class="p">.</span><span class="n">close</span> <span class="n">db</span> <span class="k">in</span>
+
+  <span class="k">let</span> <span class="n">do_write</span> <span class="bp">()</span> <span class="o">=</span>
+    <span class="k">let</span> <span class="n">db</span> <span class="o">=</span> <span class="nn">Dbm</span><span class="p">.</span><span class="n">opendbm</span> <span class="n">db_file</span> <span class="o">[</span><span class="nn">Dbm</span><span class="p">.</span><span class="nc">Dbm_rdwr</span><span class="o">]</span> <span class="mo">0o660</span> <span class="k">in</span>
+    <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;%d: Write lock granted</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">getpid</span> <span class="bp">()</span><span class="o">);</span>
+    <span class="n">flush</span> <span class="n">stdout</span><span class="o">;</span>
+    <span class="nn">Dbm</span><span class="p">.</span><span class="n">replace</span> <span class="n">db</span> <span class="n">key</span> <span class="k">value</span><span class="o">;</span>
+    <span class="nn">Unix</span><span class="p">.</span><span class="n">sleep</span> <span class="mi">10</span><span class="o">;</span>
+    <span class="nn">Dbm</span><span class="p">.</span><span class="n">close</span> <span class="n">db</span> <span class="k">in</span>
+
+  <span class="k">begin</span>
+    <span class="k">try</span>
+      <span class="n">with_lock</span> <span class="n">lock_file</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">F_TRLOCK</span> <span class="n">do_read</span><span class="o">;</span>
+    <span class="k">with</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">Unix_error</span> <span class="o">(</span><span class="n">error</span><span class="o">,</span> <span class="s2">&quot;lockf&quot;</span><span class="o">,</span> <span class="o">_)</span> <span class="o">-&gt;</span>
+      <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;%d: CONTENTION; can&#39;t read during write update! \</span>
+<span class="s2">                         Waiting for read lock (%s) ...</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">getpid</span> <span class="bp">()</span><span class="o">)</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">error_message</span> <span class="n">error</span><span class="o">);</span>
+      <span class="n">flush</span> <span class="n">stdout</span><span class="o">;</span>
+      <span class="n">with_lock</span> <span class="n">lock_file</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">F_RLOCK</span> <span class="n">do_read</span>
+  <span class="k">end</span><span class="o">;</span>
+
+  <span class="k">begin</span>
+    <span class="k">try</span>
+      <span class="n">with_lock</span> <span class="n">lock_file</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">F_TLOCK</span> <span class="n">do_write</span><span class="o">;</span>
+    <span class="k">with</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">Unix_error</span> <span class="o">(</span><span class="n">error</span><span class="o">,</span> <span class="s2">&quot;lockf&quot;</span><span class="o">,</span> <span class="o">_)</span> <span class="o">-&gt;</span>
+      <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;%d: CONTENTION; must have exclusive lock! \</span>
+<span class="s2">                         Waiting for write lock (%s) ...</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">getpid</span> <span class="bp">()</span><span class="o">)</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">error_message</span> <span class="n">error</span><span class="o">);</span>
+      <span class="n">flush</span> <span class="n">stdout</span><span class="o">;</span>
+      <span class="n">with_lock</span> <span class="n">lock_file</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">F_LOCK</span> <span class="n">do_write</span>
+  <span class="k">end</span><span class="o">;</span>
+
+  <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;%d: Updated db to %s=%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">getpid</span> <span class="bp">()</span><span class="o">)</span> <span class="n">key</span> <span class="k">value</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN772"
+>Sorting Large DBM Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c">(* OCaml&#39;s Dbm module does not provide any mechanism for a custom</span>
+<span class="c">   comparison function. If you need the keys in a particular order</span>
+<span class="c">   you can load them into memory and use List.sort, Array.sort, or</span>
+<span class="c">   a Set. This may not be practical for very large data sets. *)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN775"
+>Treating a Text File as a Database Array</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="k">let</span> <span class="n">with_lines_in_file</span> <span class="n">name</span> <span class="n">f</span> <span class="o">=</span>
+  <span class="k">if</span> <span class="n">not</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="n">file_exists</span> <span class="n">name</span><span class="o">)</span>
+  <span class="k">then</span> <span class="o">(</span><span class="k">let</span> <span class="n">out_channel</span> <span class="o">=</span> <span class="n">open_out</span> <span class="n">name</span> <span class="k">in</span> <span class="n">close_out</span> <span class="n">out_channel</span><span class="o">);</span>
+
+  <span class="k">let</span> <span class="n">in_channel</span> <span class="o">=</span> <span class="n">open_in</span> <span class="n">name</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="n">in_lines</span> <span class="o">=</span> <span class="n">ref</span> <span class="bp">[]</span> <span class="k">in</span>
+  <span class="k">begin</span>
+    <span class="k">try</span>
+      <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+        <span class="n">in_lines</span> <span class="o">:=</span> <span class="n">input_line</span> <span class="n">in_channel</span> <span class="o">::</span> <span class="o">!</span><span class="n">in_lines</span>
+      <span class="k">done</span>
+    <span class="k">with</span> <span class="nc">End_of_file</span> <span class="o">-&gt;</span>
+      <span class="n">close_in</span> <span class="n">in_channel</span>
+  <span class="k">end</span><span class="o">;</span>
+
+  <span class="k">let</span> <span class="n">out_lines</span> <span class="o">=</span> <span class="n">f</span> <span class="o">(</span><span class="nn">List</span><span class="p">.</span><span class="n">rev</span> <span class="o">!</span><span class="n">in_lines</span><span class="o">)</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="n">out_channel</span> <span class="o">=</span> <span class="n">open_out</span> <span class="n">name</span> <span class="k">in</span>
+  <span class="nn">List</span><span class="p">.</span><span class="n">iter</span>
+    <span class="o">(</span><span class="k">fun</span> <span class="n">line</span> <span class="o">-&gt;</span>
+       <span class="n">output_string</span> <span class="n">out_channel</span> <span class="n">line</span><span class="o">;</span>
+       <span class="n">output_string</span> <span class="n">out_channel</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">)</span>
+    <span class="n">out_lines</span><span class="o">;</span>
+  <span class="n">flush</span> <span class="n">out_channel</span><span class="o">;</span>
+  <span class="n">close_out</span> <span class="n">out_channel</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="c">(* first create a text file to play with *)</span>
+  <span class="n">with_lines_in_file</span> <span class="s2">&quot;/tmp/textfile&quot;</span>
+    <span class="o">(</span><span class="k">fun</span> <span class="n">lines</span> <span class="o">-&gt;</span>
+       <span class="o">[</span><span class="s2">&quot;zero&quot;</span><span class="o">;</span> <span class="s2">&quot;one&quot;</span><span class="o">;</span> <span class="s2">&quot;two&quot;</span><span class="o">;</span> <span class="s2">&quot;three&quot;</span><span class="o">;</span> <span class="s2">&quot;four&quot;</span><span class="o">]);</span>
+
+  <span class="n">with_lines_in_file</span> <span class="s2">&quot;/tmp/textfile&quot;</span>
+    <span class="o">(</span><span class="k">fun</span> <span class="n">lines</span> <span class="o">-&gt;</span>
+       <span class="c">(* print the records in order. *)</span>
+       <span class="n">print_endline</span> <span class="s2">&quot;ORIGINAL</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">;</span>
+       <span class="nn">Array</span><span class="p">.</span><span class="n">iteri</span> <span class="o">(</span><span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;%d: %s</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">)</span> <span class="o">(</span><span class="nn">Array</span><span class="p">.</span><span class="n">of_list</span> <span class="n">lines</span><span class="o">);</span>
+
+       <span class="c">(* operate on the end of the list *)</span>
+       <span class="k">let</span> <span class="n">lines</span> <span class="o">=</span> <span class="nn">List</span><span class="p">.</span><span class="n">rev</span> <span class="n">lines</span> <span class="k">in</span>
+       <span class="k">let</span> <span class="n">a</span> <span class="o">=</span> <span class="nn">List</span><span class="p">.</span><span class="n">hd</span> <span class="n">lines</span> <span class="k">in</span>
+       <span class="k">let</span> <span class="n">lines</span> <span class="o">=</span> <span class="nn">List</span><span class="p">.</span><span class="n">rev</span> <span class="o">(</span><span class="s2">&quot;last&quot;</span> <span class="o">::</span> <span class="n">lines</span><span class="o">)</span> <span class="k">in</span>
+       <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">The last record was [%s]</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="n">a</span><span class="o">;</span>
+
+       <span class="c">(* and the beginning of the list *)</span>
+       <span class="k">let</span> <span class="n">a</span> <span class="o">=</span> <span class="nn">List</span><span class="p">.</span><span class="n">hd</span> <span class="n">lines</span> <span class="k">in</span>
+       <span class="k">let</span> <span class="n">lines</span> <span class="o">=</span> <span class="s2">&quot;first&quot;</span> <span class="o">::</span> <span class="o">(</span><span class="nn">List</span><span class="p">.</span><span class="n">tl</span> <span class="n">lines</span><span class="o">)</span> <span class="k">in</span>
+       <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">The first record was [%s]</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="n">a</span><span class="o">;</span>
+
+       <span class="c">(* remove the record &quot;four&quot; *)</span>
+       <span class="k">let</span> <span class="n">lines</span> <span class="o">=</span>
+         <span class="nn">List</span><span class="p">.</span><span class="n">filter</span> <span class="o">(</span><span class="k">function</span> <span class="s2">&quot;four&quot;</span> <span class="o">-&gt;</span> <span class="bp">false</span> <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">true</span><span class="o">)</span> <span class="n">lines</span> <span class="k">in</span>
+
+       <span class="c">(* replace the record &quot;two&quot; with &quot;Newbie&quot; *)</span>
+       <span class="k">let</span> <span class="n">lines</span> <span class="o">=</span>
+         <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">function</span> <span class="s2">&quot;two&quot;</span> <span class="o">-&gt;</span> <span class="s2">&quot;Newbie&quot;</span> <span class="o">|</span> <span class="n">x</span> <span class="o">-&gt;</span> <span class="n">x</span><span class="o">)</span> <span class="n">lines</span> <span class="k">in</span>
+
+       <span class="c">(* add a new record after &quot;first&quot; *)</span>
+       <span class="k">let</span> <span class="n">lines</span> <span class="o">=</span>
+         <span class="nn">List</span><span class="p">.</span><span class="n">fold_right</span>
+           <span class="o">(</span><span class="k">fun</span> <span class="n">x</span> <span class="n">a</span> <span class="o">-&gt;</span>
+              <span class="k">if</span> <span class="n">x</span> <span class="o">=</span> <span class="s2">&quot;first&quot;</span>
+              <span class="k">then</span> <span class="n">x</span> <span class="o">::</span> <span class="s2">&quot;New One&quot;</span> <span class="o">::</span> <span class="n">a</span>
+              <span class="k">else</span> <span class="n">x</span> <span class="o">::</span> <span class="n">a</span><span class="o">)</span>
+           <span class="n">lines</span> <span class="bp">[]</span> <span class="k">in</span>
+
+       <span class="c">(* now print the records in reverse order *)</span>
+       <span class="n">print_endline</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">REVERSE</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">;</span>
+       <span class="nn">List</span><span class="p">.</span><span class="n">iter</span> <span class="n">print_string</span>
+         <span class="o">(</span><span class="nn">List</span><span class="p">.</span><span class="n">rev</span>
+            <span class="o">(</span><span class="nn">Array</span><span class="p">.</span><span class="n">to_list</span>
+               <span class="o">(</span><span class="nn">Array</span><span class="p">.</span><span class="n">mapi</span>
+                  <span class="o">(</span><span class="k">fun</span> <span class="n">i</span> <span class="n">line</span> <span class="o">-&gt;</span> <span class="nn">Printf</span><span class="p">.</span><span class="n">sprintf</span> <span class="s2">&quot;%d: %s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="n">i</span> <span class="n">line</span><span class="o">)</span>
+                  <span class="o">(</span><span class="nn">Array</span><span class="p">.</span><span class="n">of_list</span> <span class="n">lines</span><span class="o">))));</span>
+
+       <span class="c">(* return the new list, which will be written back to the file *)</span>
+       <span class="n">lines</span><span class="o">)</span>
+
+<span class="c">(*-----------------------------</span>
+<span class="c">ORIGINAL</span>
+
+<span class="c">0: zero</span>
+<span class="c">1: one</span>
+<span class="c">2: two</span>
+<span class="c">3: three</span>
+<span class="c">4: four</span>
+
+<span class="c">The last record was [four]</span>
+
+<span class="c">The first record was [zero]</span>
+
+<span class="c">REVERSE</span>
+
+<span class="c">5: last</span>
+<span class="c">4: three</span>
+<span class="c">3: Newbie</span>
+<span class="c">2: one</span>
+<span class="c">1: New One</span>
+<span class="c">0: first</span>
+<span class="c">-----------------------------*)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN778"
+>Storing Complex Data in a DBM File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c">(* OCaml includes a Marshal module which does binary serialization and</span>
+<span class="c">   deserialization of arbitrary data structures. However, it is not</span>
+<span class="c">   type-safe, so coding errors can result in segmentation faults.</span>
+
+<span class="c">   One way to eliminate this risk is to use functors. The following</span>
+<span class="c">   example builds a functor called &quot;MakeSerializedDbm&quot; which extends</span>
+<span class="c">   the Dbm module to provide type-safe serialization of values using</span>
+<span class="c">   a user-defined method such as (but not limited to) Marshal. *)</span>
+
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;dbm.cma&quot;</span><span class="o">;;</span>
+
+<span class="c">(* This module type defines a serialization method. It contains a type</span>
+<span class="c">   and functions to convert values of that type to and from strings. *)</span>
+<span class="k">module</span> <span class="k">type</span> <span class="nc">SerializedDbmMethod</span> <span class="o">=</span>
+<span class="k">sig</span>
+  <span class="k">type</span> <span class="k">value</span>
+  <span class="k">val</span> <span class="n">serialize</span> <span class="o">:</span> <span class="k">value</span> <span class="o">-&gt;</span> <span class="kt">string</span>
+  <span class="k">val</span> <span class="n">deserialize</span> <span class="o">:</span> <span class="kt">string</span> <span class="o">-&gt;</span> <span class="k">value</span>
+<span class="k">end</span>
+
+<span class="c">(* This module type defines an enhanced Dbm interface that includes a</span>
+<span class="c">   type for values to be used instead of strings. *)</span>
+<span class="k">module</span> <span class="k">type</span> <span class="nc">SerializedDbm</span> <span class="o">=</span>
+<span class="k">sig</span>
+  <span class="k">type</span> <span class="n">t</span>
+  <span class="k">type</span> <span class="k">value</span>
+  <span class="k">val</span> <span class="n">opendbm</span> <span class="o">:</span> <span class="kt">string</span> <span class="o">-&gt;</span> <span class="nn">Dbm</span><span class="p">.</span><span class="n">open_flag</span> <span class="kt">list</span> <span class="o">-&gt;</span> <span class="kt">int</span> <span class="o">-&gt;</span> <span class="n">t</span>
+  <span class="k">val</span> <span class="n">close</span> <span class="o">:</span> <span class="n">t</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
+  <span class="k">val</span> <span class="n">find</span> <span class="o">:</span> <span class="n">t</span> <span class="o">-&gt;</span> <span class="kt">string</span> <span class="o">-&gt;</span> <span class="k">value</span>
+  <span class="k">val</span> <span class="n">add</span> <span class="o">:</span> <span class="n">t</span> <span class="o">-&gt;</span> <span class="kt">string</span> <span class="o">-&gt;</span> <span class="k">value</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
+  <span class="k">val</span> <span class="n">replace</span> <span class="o">:</span> <span class="n">t</span> <span class="o">-&gt;</span> <span class="kt">string</span> <span class="o">-&gt;</span> <span class="k">value</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
+  <span class="k">val</span> <span class="n">remove</span> <span class="o">:</span> <span class="n">t</span> <span class="o">-&gt;</span> <span class="kt">string</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
+  <span class="k">val</span> <span class="n">firstkey</span> <span class="o">:</span> <span class="n">t</span> <span class="o">-&gt;</span> <span class="kt">string</span>
+  <span class="k">val</span> <span class="n">nextkey</span> <span class="o">:</span> <span class="n">t</span> <span class="o">-&gt;</span> <span class="kt">string</span>
+  <span class="k">val</span> <span class="n">iter</span> <span class="o">:</span> <span class="o">(</span><span class="kt">string</span> <span class="o">-&gt;</span> <span class="k">value</span> <span class="o">-&gt;</span> <span class="k">&#39;</span><span class="n">a</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="n">t</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
+<span class="k">end</span>
+
+<span class="c">(* Here is the functor itself. It takes a SerializedDbmMethod as an</span>
+<span class="c">   argument and returns a SerializedDbm module instance as a result.</span>
+<span class="c">   It is defined mainly in terms of Dbm, with a few overridden</span>
+<span class="c">   definitions where the value type is needed. *)</span>
+<span class="k">module</span> <span class="nc">MakeSerializedDbm</span> <span class="o">(</span><span class="nc">Method</span> <span class="o">:</span> <span class="nc">SerializedDbmMethod</span><span class="o">)</span>
+  <span class="o">:</span> <span class="nc">SerializedDbm</span> <span class="k">with</span> <span class="k">type</span> <span class="k">value</span> <span class="o">=</span> <span class="nn">Method</span><span class="p">.</span><span class="n">value</span> <span class="o">=</span>
+<span class="k">struct</span>
+  <span class="k">include</span> <span class="nc">Dbm</span>
+  <span class="k">type</span> <span class="k">value</span> <span class="o">=</span> <span class="nn">Method</span><span class="p">.</span><span class="n">value</span>
+  <span class="k">let</span> <span class="n">find</span> <span class="n">db</span> <span class="n">key</span> <span class="o">=</span> <span class="nn">Method</span><span class="p">.</span><span class="n">deserialize</span> <span class="o">(</span><span class="n">find</span> <span class="n">db</span> <span class="n">key</span><span class="o">)</span>
+  <span class="k">let</span> <span class="n">add</span> <span class="n">db</span> <span class="n">key</span> <span class="k">value</span> <span class="o">=</span> <span class="n">add</span> <span class="n">db</span> <span class="n">key</span> <span class="o">(</span><span class="nn">Method</span><span class="p">.</span><span class="n">serialize</span> <span class="k">value</span><span class="o">)</span>
+  <span class="k">let</span> <span class="n">replace</span> <span class="n">db</span> <span class="n">key</span> <span class="k">value</span> <span class="o">=</span> <span class="n">replace</span> <span class="n">db</span> <span class="n">key</span> <span class="o">(</span><span class="nn">Method</span><span class="p">.</span><span class="n">serialize</span> <span class="k">value</span><span class="o">)</span>
+  <span class="k">let</span> <span class="n">iter</span> <span class="n">f</span> <span class="n">db</span> <span class="o">=</span> <span class="n">iter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">key</span> <span class="k">value</span> <span class="o">-&gt;</span> <span class="n">f</span> <span class="n">key</span> <span class="o">(</span><span class="nn">Method</span><span class="p">.</span><span class="n">deserialize</span> <span class="k">value</span><span class="o">))</span> <span class="n">db</span>
+<span class="k">end</span>
+
+<span class="c">(* Now, we can easily build typed Dbm interfaces by providing the type</span>
+<span class="c">   and conversion functions. In this case, we use Marshal, but we could</span>
+<span class="c">   also use other string-based serialization formats like JSON or XML. *)</span>
+<span class="k">module</span> <span class="nc">StringListDbm</span> <span class="o">=</span>
+  <span class="nc">MakeSerializedDbm</span><span class="o">(</span><span class="k">struct</span>
+                      <span class="k">type</span> <span class="k">value</span> <span class="o">=</span> <span class="kt">string</span> <span class="kt">list</span>
+                      <span class="k">let</span> <span class="n">serialize</span> <span class="n">x</span> <span class="o">=</span> <span class="nn">Marshal</span><span class="p">.</span><span class="n">to_string</span> <span class="n">x</span> <span class="bp">[]</span>
+                      <span class="k">let</span> <span class="n">deserialize</span> <span class="n">x</span> <span class="o">=</span> <span class="nn">Marshal</span><span class="p">.</span><span class="n">from_string</span> <span class="n">x</span> <span class="mi">0</span>
+                    <span class="k">end</span><span class="o">)</span>
+
+<span class="k">let</span> <span class="n">db</span> <span class="o">=</span> <span class="nn">StringListDbm</span><span class="p">.</span><span class="n">opendbm</span> <span class="s2">&quot;data.db&quot;</span> <span class="o">[</span><span class="nn">Dbm</span><span class="p">.</span><span class="nc">Dbm_rdwr</span><span class="o">;</span> <span class="nn">Dbm</span><span class="p">.</span><span class="nc">Dbm_create</span><span class="o">]</span> <span class="mo">0o666</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="nn">StringListDbm</span><span class="p">.</span><span class="n">replace</span> <span class="n">db</span> <span class="s2">&quot;Tom Christiansen&quot;</span>
+    <span class="o">[</span> <span class="s2">&quot;book author&quot;</span><span class="o">;</span> <span class="s2">&quot;tchrist@perl.com&quot;</span> <span class="o">];</span>
+  <span class="nn">StringListDbm</span><span class="p">.</span><span class="n">replace</span> <span class="n">db</span> <span class="s2">&quot;Tom Boutell&quot;</span>
+    <span class="o">[</span> <span class="s2">&quot;shareware author&quot;</span><span class="o">;</span> <span class="s2">&quot;boutell@boutell.com&quot;</span> <span class="o">];</span>
+
+  <span class="c">(* names to compare *)</span>
+  <span class="k">let</span> <span class="n">name1</span> <span class="o">=</span> <span class="s2">&quot;Tom Christiansen&quot;</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="n">name2</span> <span class="o">=</span> <span class="s2">&quot;Tom Boutell&quot;</span> <span class="k">in</span>
+
+  <span class="k">let</span> <span class="n">tom1</span> <span class="o">=</span> <span class="nn">StringListDbm</span><span class="p">.</span><span class="n">find</span> <span class="n">db</span> <span class="n">name1</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="n">tom2</span> <span class="o">=</span> <span class="nn">StringListDbm</span><span class="p">.</span><span class="n">find</span> <span class="n">db</span> <span class="n">name2</span> <span class="k">in</span>
+
+  <span class="k">let</span> <span class="n">show</span> <span class="n">strings</span> <span class="o">=</span>
+    <span class="s2">&quot;[&quot;</span> <span class="o">^</span> <span class="o">(</span><span class="nn">String</span><span class="p">.</span><span class="n">concat</span> <span class="s2">&quot;; &quot;</span>
+             <span class="o">(</span><span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">s</span> <span class="o">-&gt;</span> <span class="s2">&quot;</span><span class="se">\&quot;</span><span class="s2">&quot;</span> <span class="o">^</span> <span class="n">s</span> <span class="o">^</span> <span class="s2">&quot;</span><span class="se">\&quot;</span><span class="s2">&quot;</span><span class="o">)</span> <span class="n">strings</span><span class="o">))</span> <span class="o">^</span> <span class="s2">&quot;]&quot;</span> <span class="k">in</span>
+  <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;Two Toming: %s %s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">(</span><span class="n">show</span> <span class="n">tom1</span><span class="o">)</span> <span class="o">(</span><span class="n">show</span> <span class="n">tom2</span><span class="o">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN781"
+>Persistent Data</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="k">type</span> <span class="n">data</span> <span class="o">=</span> <span class="o">{</span><span class="k">mutable</span> <span class="n">variable1</span><span class="o">:</span> <span class="kt">string</span><span class="o">;</span> <span class="k">mutable</span> <span class="n">variable2</span><span class="o">:</span> <span class="kt">string</span><span class="o">}</span>
+
+<span class="k">module</span> <span class="nc">PersistentStore</span> <span class="o">=</span>
+  <span class="nc">MakeSerializedDbm</span><span class="o">(</span><span class="k">struct</span>
+                      <span class="k">type</span> <span class="k">value</span> <span class="o">=</span> <span class="n">data</span>
+                      <span class="k">let</span> <span class="n">serialize</span> <span class="n">x</span> <span class="o">=</span> <span class="nn">Marshal</span><span class="p">.</span><span class="n">to_string</span> <span class="n">x</span> <span class="bp">[]</span>
+                      <span class="k">let</span> <span class="n">deserialize</span> <span class="n">x</span> <span class="o">=</span> <span class="nn">Marshal</span><span class="p">.</span><span class="n">from_string</span> <span class="n">x</span> <span class="mi">0</span>
+                    <span class="k">end</span><span class="o">)</span>
+
+<span class="k">let</span> <span class="n">with_persistent_data</span> <span class="n">f</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">db</span> <span class="o">=</span>
+    <span class="nn">PersistentStore</span><span class="p">.</span><span class="n">opendbm</span> <span class="s2">&quot;data.db&quot;</span> <span class="o">[</span><span class="nn">Dbm</span><span class="p">.</span><span class="nc">Dbm_rdwr</span><span class="o">;</span> <span class="nn">Dbm</span><span class="p">.</span><span class="nc">Dbm_create</span><span class="o">]</span> <span class="mo">0o666</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="n">data</span> <span class="o">=</span>
+    <span class="k">try</span> <span class="nn">PersistentStore</span><span class="p">.</span><span class="n">find</span> <span class="n">db</span> <span class="s2">&quot;data&quot;</span>
+    <span class="k">with</span> <span class="nc">Not_found</span> <span class="o">-&gt;</span> <span class="o">{</span><span class="n">variable1</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="o">;</span> <span class="n">variable2</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="o">}</span> <span class="k">in</span>
+  <span class="n">f</span> <span class="n">data</span><span class="o">;</span>
+  <span class="nn">PersistentStore</span><span class="p">.</span><span class="n">replace</span> <span class="n">db</span> <span class="s2">&quot;data&quot;</span> <span class="n">data</span>
+  <span class="nn">PersistentStore</span><span class="p">.</span><span class="n">close</span> <span class="n">db</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="n">with_persistent_data</span>
+    <span class="o">(</span><span class="k">fun</span> <span class="n">data</span> <span class="o">-&gt;</span>
+       <span class="k">begin</span>
+         <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;variable1 = %s</span><span class="se">\n</span><span class="s2">variable2 = %s</span><span class="se">\n</span><span class="s2">&quot;</span>
+           <span class="n">data</span><span class="o">.</span><span class="n">variable1</span> <span class="n">data</span><span class="o">.</span><span class="n">variable2</span><span class="o">;</span>
+         <span class="n">data</span><span class="o">.</span><span class="n">variable1</span> <span class="o">&lt;-</span> <span class="s2">&quot;foo&quot;</span><span class="o">;</span>
+         <span class="n">data</span><span class="o">.</span><span class="n">variable2</span> <span class="o">&lt;-</span> <span class="s2">&quot;bar&quot;</span><span class="o">;</span>
+       <span class="k">end</span><span class="o">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN784"
+>Executing an SQL Command Using DBI and DBD</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c">(* This example uses OCaml DBI, a component of the mod_caml web development</span>
+<span class="c">   library that provides a database abstraction API very similar to that of</span>
+<span class="c">   Perl DBI. It is available for download here:</span>
+
+<span class="c">   http://merjis.com/developers/mod_caml</span>
+
+<span class="c">   Drivers for particular databases are listed in the introduction. *)</span>
+
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;nums.cma&quot;</span><span class="o">;;</span>
+<span class="o">#</span><span class="n">directory</span> <span class="s2">&quot;+num-top&quot;</span><span class="o">;;</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;num_top.cma&quot;</span><span class="o">;;</span>
+
+<span class="o">#</span><span class="n">directory</span> <span class="s2">&quot;+mysql&quot;</span><span class="o">;;</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;mysql.cma&quot;</span><span class="o">;;</span>
+
+<span class="o">#</span><span class="n">directory</span> <span class="s2">&quot;+dbi&quot;</span><span class="o">;;</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;dbi.cma&quot;</span><span class="o">;;</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;dbi_mysql.cmo&quot;</span><span class="o">;;</span>
+
+<span class="c">(* With dbi installed via findlib, the above can be shortened to:</span>
+
+<span class="c">   #use &quot;topfind&quot;;;</span>
+<span class="c">   #require &quot;dbi.mysql&quot;;;</span>
+<span class="c">*)</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">dbh</span> <span class="o">=</span>
+    <span class="nn">Dbi_mysql</span><span class="p">.</span><span class="n">connect</span>
+      <span class="o">~</span><span class="n">user</span><span class="o">:</span><span class="s2">&quot;user&quot;</span>
+      <span class="o">~</span><span class="n">password</span><span class="o">:</span><span class="s2">&quot;auth&quot;</span>
+      <span class="s2">&quot;database&quot;</span> <span class="k">in</span>
+
+  <span class="k">let</span> <span class="o">_</span> <span class="o">=</span> <span class="n">dbh</span><span class="o">#</span><span class="n">ex</span> <span class="n">sql</span> <span class="bp">[]</span> <span class="k">in</span>
+
+  <span class="k">let</span> <span class="n">sth</span> <span class="o">=</span> <span class="n">dbh</span><span class="o">#</span><span class="n">prepare</span> <span class="n">sql</span> <span class="k">in</span>
+  <span class="n">sth</span><span class="o">#</span><span class="n">execute</span> <span class="bp">[]</span><span class="o">;</span>
+  <span class="n">sth</span><span class="o">#</span><span class="n">iter</span>
+    <span class="o">(</span><span class="k">fun</span> <span class="n">row</span> <span class="o">-&gt;</span>
+       <span class="n">print_endline</span> <span class="o">(</span><span class="nn">Dbi</span><span class="p">.</span><span class="n">sdebug</span> <span class="n">row</span><span class="o">);</span>
+       <span class="c">(* ... *)</span>
+       <span class="bp">()</span><span class="o">);</span>
+
+  <span class="n">sth</span><span class="o">#</span><span class="n">finish</span> <span class="bp">()</span><span class="o">;</span>
+  <span class="n">dbh</span><span class="o">#</span><span class="n">close</span> <span class="bp">()</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* dbusers - manage MySQL user table *)</span>
+
+<span class="c">(* This example uses the Mysql module directly rather than going through</span>
+<span class="c">   OCaml DBI. See the introduction for a link to the Mysql library. *)</span>
+
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+<span class="o">#</span><span class="n">directory</span> <span class="s2">&quot;+mysql&quot;</span><span class="o">;;</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;mysql.cma&quot;</span><span class="o">;;</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">db</span> <span class="o">=</span>
+    <span class="nn">Mysql</span><span class="p">.</span><span class="n">quick_connect</span>
+      <span class="o">~</span><span class="n">user</span><span class="o">:</span><span class="s2">&quot;user&quot;</span>
+      <span class="o">~</span><span class="n">password</span><span class="o">:</span><span class="s2">&quot;password&quot;</span>
+      <span class="o">~</span><span class="n">database</span><span class="o">:</span><span class="s2">&quot;dbname&quot;</span> <span class="bp">()</span> <span class="k">in</span>
+
+  <span class="n">ignore</span> <span class="o">(</span><span class="nn">Mysql</span><span class="p">.</span><span class="n">exec</span> <span class="n">db</span> <span class="s2">&quot;CREATE TABLE users (uid INT, login CHAR(8))&quot;</span><span class="o">);</span>
+
+  <span class="k">let</span> <span class="n">passwd</span> <span class="o">=</span> <span class="n">open_in</span> <span class="s2">&quot;/etc/passwd&quot;</span> <span class="k">in</span>
+  <span class="k">begin</span>
+    <span class="k">try</span>
+      <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+        <span class="k">let</span> <span class="n">line</span> <span class="o">=</span> <span class="n">input_line</span> <span class="n">passwd</span> <span class="k">in</span>
+        <span class="k">let</span> <span class="n">user</span> <span class="o">=</span> <span class="nn">String</span><span class="p">.</span><span class="n">sub</span> <span class="n">line</span> <span class="mi">0</span> <span class="o">(</span><span class="nn">String</span><span class="p">.</span><span class="n">index</span> <span class="n">line</span> <span class="sc">&#39;:&#39;</span><span class="o">)</span> <span class="k">in</span>
+        <span class="k">let</span> <span class="o">{</span><span class="nn">Unix</span><span class="p">.</span><span class="n">pw_uid</span><span class="o">=</span><span class="n">uid</span><span class="o">;</span> <span class="n">pw_name</span><span class="o">=</span><span class="n">name</span><span class="o">}</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">getpwnam</span> <span class="n">user</span> <span class="k">in</span>
+        <span class="k">let</span> <span class="n">sql</span> <span class="o">=</span>
+          <span class="nn">Printf</span><span class="p">.</span><span class="n">sprintf</span> <span class="s2">&quot;INSERT INTO users VALUES( %s, %s )&quot;</span>
+            <span class="o">(</span><span class="nn">Mysql</span><span class="p">.</span><span class="n">ml2int</span> <span class="n">uid</span><span class="o">)</span>
+            <span class="o">(</span><span class="nn">Mysql</span><span class="p">.</span><span class="n">ml2str</span> <span class="n">name</span><span class="o">)</span> <span class="k">in</span>
+        <span class="n">ignore</span> <span class="o">(</span><span class="nn">Mysql</span><span class="p">.</span><span class="n">exec</span> <span class="n">db</span> <span class="n">sql</span><span class="o">)</span>
+      <span class="k">done</span>
+    <span class="k">with</span> <span class="nc">End_of_file</span> <span class="o">-&gt;</span>
+      <span class="n">close_in</span> <span class="n">passwd</span>
+  <span class="k">end</span><span class="o">;</span>
+
+  <span class="n">ignore</span> <span class="o">(</span><span class="nn">Mysql</span><span class="p">.</span><span class="n">exec</span> <span class="n">db</span> <span class="s2">&quot;DROP TABLE users&quot;</span><span class="o">);</span>
+
+  <span class="nn">Mysql</span><span class="p">.</span><span class="n">disconnect</span> <span class="n">db</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN787"
+>Program: ggh - Grep Netscape Global History</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c">(* Search the history using the Places SQLite database, new in Firefox 3.</span>
+<span class="c">   Pattern-matching uses simple substrings, but it could be expanded to use</span>
+<span class="c">   Str or Pcre by installing a user-defined function. *)</span>
+
+<span class="o">#</span><span class="n">directory</span> <span class="s2">&quot;+sqlite3&quot;</span><span class="o">;;</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;sqlite3.cma&quot;</span><span class="o">;;</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+
+<span class="k">type</span> <span class="n">history</span> <span class="o">=</span> <span class="o">{</span> <span class="n">visit_date</span> <span class="o">:</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">tm</span><span class="o">;</span>
+                 <span class="n">url</span>        <span class="o">:</span> <span class="kt">string</span><span class="o">;</span>
+                 <span class="n">title</span>      <span class="o">:</span> <span class="kt">string</span><span class="o">;</span> <span class="o">}</span>
+
+<span class="k">let</span> <span class="n">days</span> <span class="o">=</span> <span class="o">[|</span> <span class="s2">&quot;Sun&quot;</span><span class="o">;</span> <span class="s2">&quot;Mon&quot;</span><span class="o">;</span> <span class="s2">&quot;Tue&quot;</span><span class="o">;</span> <span class="s2">&quot;Wed&quot;</span><span class="o">;</span> <span class="s2">&quot;Thu&quot;</span><span class="o">;</span> <span class="s2">&quot;Fri&quot;</span><span class="o">;</span> <span class="s2">&quot;Sat&quot;</span> <span class="o">|]</span>
+<span class="k">let</span> <span class="n">months</span> <span class="o">=</span> <span class="o">[|</span> <span class="s2">&quot;Jan&quot;</span><span class="o">;</span> <span class="s2">&quot;Feb&quot;</span><span class="o">;</span> <span class="s2">&quot;Mar&quot;</span><span class="o">;</span> <span class="s2">&quot;Apr&quot;</span><span class="o">;</span> <span class="s2">&quot;May&quot;</span><span class="o">;</span> <span class="s2">&quot;Jun&quot;</span><span class="o">;</span>
+                <span class="s2">&quot;Jul&quot;</span><span class="o">;</span> <span class="s2">&quot;Aug&quot;</span><span class="o">;</span> <span class="s2">&quot;Sep&quot;</span><span class="o">;</span> <span class="s2">&quot;Oct&quot;</span><span class="o">;</span> <span class="s2">&quot;Nov&quot;</span><span class="o">;</span> <span class="s2">&quot;Dec&quot;</span> <span class="o">|]</span>
+
+<span class="k">let</span> <span class="n">string_of_tm</span> <span class="n">tm</span> <span class="o">=</span>
+  <span class="nn">Printf</span><span class="p">.</span><span class="n">sprintf</span> <span class="s2">&quot;%s %s %2d %02d:%02d:%02d %04d&quot;</span>
+    <span class="n">days</span><span class="o">.(</span><span class="n">tm</span><span class="o">.</span><span class="nn">Unix</span><span class="p">.</span><span class="n">tm_wday</span><span class="o">)</span>
+    <span class="n">months</span><span class="o">.(</span><span class="n">tm</span><span class="o">.</span><span class="nn">Unix</span><span class="p">.</span><span class="n">tm_mon</span><span class="o">)</span>
+    <span class="n">tm</span><span class="o">.</span><span class="nn">Unix</span><span class="p">.</span><span class="n">tm_mday</span>
+    <span class="n">tm</span><span class="o">.</span><span class="nn">Unix</span><span class="p">.</span><span class="n">tm_hour</span>
+    <span class="n">tm</span><span class="o">.</span><span class="nn">Unix</span><span class="p">.</span><span class="n">tm_min</span>
+    <span class="n">tm</span><span class="o">.</span><span class="nn">Unix</span><span class="p">.</span><span class="n">tm_sec</span>
+    <span class="o">(</span><span class="n">tm</span><span class="o">.</span><span class="nn">Unix</span><span class="p">.</span><span class="n">tm_year</span> <span class="o">+</span> <span class="mi">1900</span><span class="o">)</span>
+
+<span class="k">let</span> <span class="n">tm_of_micros</span> <span class="n">micros</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">time</span> <span class="o">=</span> <span class="n">float_of_string</span> <span class="n">micros</span> <span class="o">/.</span> <span class="mi">1000000</span><span class="o">.</span> <span class="k">in</span>
+  <span class="nn">Unix</span><span class="p">.</span><span class="n">localtime</span> <span class="n">time</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">if</span> <span class="nn">Array</span><span class="p">.</span><span class="n">length</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span> <span class="o">&lt;</span> <span class="mi">2</span> <span class="k">then</span>
+    <span class="k">begin</span>
+      <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;Usage: %s path/to/places.sqlite [pattern]</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span><span class="o">.(</span><span class="mi">0</span><span class="o">);</span>
+      <span class="n">exit</span> <span class="mi">0</span>
+    <span class="k">end</span>
+
+<span class="k">let</span> <span class="n">file</span> <span class="o">=</span>
+  <span class="k">if</span> <span class="nn">Array</span><span class="p">.</span><span class="n">length</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">then</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span><span class="o">.(</span><span class="mi">1</span><span class="o">)</span> <span class="k">else</span> <span class="s2">&quot;places.sqlite&quot;</span>
+
+<span class="k">let</span> <span class="n">pattern</span> <span class="o">=</span>
+  <span class="k">if</span> <span class="nn">Array</span><span class="p">.</span><span class="n">length</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="k">then</span> <span class="nc">Some</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span><span class="o">.(</span><span class="mi">2</span><span class="o">)</span> <span class="k">else</span> <span class="nc">None</span>
+
+<span class="k">let</span> <span class="n">db</span> <span class="o">=</span> <span class="nn">Sqlite3</span><span class="p">.</span><span class="n">db_open</span> <span class="n">file</span>
+
+<span class="k">let</span> <span class="n">sql</span> <span class="o">=</span>
+  <span class="nn">Printf</span><span class="p">.</span><span class="n">sprintf</span>
+    <span class="s2">&quot;SELECT   visit_date, url, title</span>
+<span class="s2">     FROM     moz_places p</span>
+<span class="s2">     JOIN     moz_historyvisits v</span>
+<span class="s2">     ON       p.id = v.place_id</span>
+<span class="s2">     %s</span>
+<span class="s2">     ORDER BY visit_date DESC&quot;</span>
+    <span class="o">(</span><span class="k">match</span> <span class="n">pattern</span> <span class="k">with</span>
+       <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="s2">&quot;&quot;</span>
+       <span class="o">|</span> <span class="nc">Some</span> <span class="n">s</span> <span class="o">-&gt;</span>
+           <span class="o">(</span><span class="nn">Printf</span><span class="p">.</span><span class="n">sprintf</span> <span class="s2">&quot;WHERE url LIKE &#39;%%%s%%&#39; OR title LIKE &#39;%%%s%%&#39;&quot;</span>
+              <span class="n">s</span> <span class="n">s</span><span class="o">))</span>
+
+<span class="k">let</span> <span class="n">data</span> <span class="o">=</span> <span class="n">ref</span> <span class="bp">[]</span>
+
+<span class="k">let</span> <span class="n">res</span> <span class="o">=</span>
+  <span class="nn">Sqlite3</span><span class="p">.</span><span class="n">exec_not_null_no_headers</span> <span class="n">db</span>
+    <span class="o">~</span><span class="n">cb</span><span class="o">:(</span><span class="k">fun</span> <span class="n">row</span> <span class="o">-&gt;</span>
+           <span class="n">data</span> <span class="o">:=</span> <span class="o">{</span><span class="n">visit_date</span> <span class="o">=</span> <span class="n">tm_of_micros</span> <span class="n">row</span><span class="o">.(</span><span class="mi">0</span><span class="o">);</span>
+                    <span class="n">url</span> <span class="o">=</span> <span class="n">row</span><span class="o">.(</span><span class="mi">1</span><span class="o">);</span>
+                    <span class="n">title</span> <span class="o">=</span> <span class="n">row</span><span class="o">.(</span><span class="mi">2</span><span class="o">)}</span> <span class="o">::</span> <span class="o">!</span><span class="n">data</span><span class="o">)</span> <span class="n">sql</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">match</span> <span class="n">res</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="nn">Sqlite3</span><span class="p">.</span><span class="nn">Rc</span><span class="p">.</span><span class="nc">OK</span> <span class="o">-&gt;</span>
+        <span class="nn">List</span><span class="p">.</span><span class="n">iter</span>
+          <span class="o">(</span><span class="k">fun</span> <span class="n">history</span> <span class="o">-&gt;</span>
+             <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;[%s] %s </span><span class="se">\&quot;</span><span class="s2">%s</span><span class="se">\&quot;\n</span><span class="s2">&quot;</span>
+               <span class="o">(</span><span class="n">string_of_tm</span> <span class="n">history</span><span class="o">.</span><span class="n">visit_date</span><span class="o">)</span>
+               <span class="n">history</span><span class="o">.</span><span class="n">url</span>
+               <span class="n">history</span><span class="o">.</span><span class="n">title</span><span class="o">)</span>
+          <span class="o">!</span><span class="n">data</span>
+    <span class="o">|</span> <span class="n">r</span> <span class="o">-&gt;</span>
+        <span class="nn">Printf</span><span class="p">.</span><span class="n">eprintf</span> <span class="s2">&quot;%s: %s</span><span class="se">\n</span><span class="s2">&quot;</span>
+          <span class="o">(</span><span class="nn">Sqlite3</span><span class="p">.</span><span class="nn">Rc</span><span class="p">.</span><span class="n">to_string</span> <span class="n">r</span><span class="o">)</span>
+          <span class="o">(</span><span class="nn">Sqlite3</span><span class="p">.</span><span class="n">errmsg</span> <span class="n">db</span><span class="o">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="classesetc.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="userinterfaces.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Classes, Objects, and Ties</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>User Interfaces</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

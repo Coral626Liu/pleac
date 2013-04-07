@@ -1,0 +1,758 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Dates and Times</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Pike"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Numbers"
+HREF="numbers.html"><LINK
+REL="NEXT"
+TITLE="Arrays"
+HREF="arrays.html"></HEAD
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Pike</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="numbers.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="arrays.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="DATESANDTIMES"
+>3. Dates and Times</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN132"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// Pike has an extensive Calendar module that provides all manners of
+// manipulating dates and times.
+write(&quot;Today is day %d of the current year.\n&quot;, localtime(time())-&gt;yday+1);
+// Today is day 325 of the current year.
+
+write(&quot;Today is day %d of the current year.\n&quot;, Calendar.now()-&gt;year_day());
+// Today is day 325 of the current year.</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN135"
+>Finding Today's Date</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">int day, month, year;
+mapping now=localtime(time());
+year  = now-&gt;year+1900;
+month = now-&gt;mon+1;
+day   = now-&gt;mday;
+
+write(&quot;The current date is %04d %02d %02d\n&quot;, year, month, day);
+
+object now=Calendar.now();
+year  = now-&gt;year_no();
+month = now-&gt;month_no();
+day   = now-&gt;month_day();
+
+write(&quot;The current date is %04d %02d %02d\n&quot;, year, month, day);
+
+write(&quot;The current date is %04d %02d %02d\n&quot;, @lambda(){ return ({ now-&gt;year_no(), now-&gt;month_no(), now-&gt;month_day() }); }(Calendar.now()));
+// this is essentially the same as the respective perl code:
+// lambda creates an anonymous function, which in this case takes one argument 
+// and returns an array. the array is the spliced into the arguments of write().
+// if the goal is to get by without a temporary variable this is a rather
+// pointless exercise, as there is still a temporary variable (in the function)
+// and the temporary function on top of that. more interresting is the
+// functional approach aspect.</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN138"
+>Converting DMYHMS to Epoch Seconds</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// dwim_time() handles most common date and time formats.
+Calendar.dwim_time(&quot;2:40:25 23.11.2004&quot;);
+// Result: Second(Tue 23 Nov 2004 2:40:25 CET)
+Calendar.dwim_time(&quot;2:40:25 23.11.2004&quot;)-&gt;unix_time();
+// Result: 1101174025
+
+Calendar.dwim_time(&quot;2:40:25 UTC 23.11.2004&quot;);
+// Result: Second(Tue 23 Nov 2004 2:40:25 UTC)
+
+// faster, because there is no need for guessing:
+Calendar.parse(&quot;%Y-%M-%D %h:%m:%s %z&quot;,&quot;2004-11-23 2:40:25 UTC&quot;);
+// Result: Second(Tue 23 Nov 2004 2:40:25 UTC)
+
+// without parsing
+Calendar.Second(2004, 11, 23, 2, 40, 25);
+// Result: Second(Tue 23 Nov 2004 2:40:25 CET)
+
+// functional
+Calendar.Year(2004)-&gt;month(11)-&gt;day(23)-&gt;hour(2)-&gt;minute(40)-&gt;second(25);
+// Result: Second(Tue 23 Nov 2004 2:40:25 CET)
+
+Calendar.Day(2004, 11, 23)-&gt;set_timezone(&quot;UTC&quot;)-&gt;hour(2)-&gt;minute(40)-&gt;second(25);
+// Result: Second(Tue 23 Nov 2004 2:40:25 UTC)
+
+// set a time today
+Calendar.dwim_time(&quot;2:40:25&quot;);    
+// Result: Second(Tue 23 Nov 2004 2:40:25 CET)
+Calendar.dwim_time(&quot;2:40:25 UTC&quot;);           
+// Result: Second(Tue 23 Nov 2004 2:40:25 UTC)
+
+Calendar.parse(&quot;%h:%m:%s %z&quot;,&quot;2:40:25 UTC&quot;);                    
+// Result: Second(Tue 23 Nov 2004 2:40:25 UTC)
+Calendar.Day()-&gt;set_timezone(&quot;UTC&quot;)-&gt;hour(2)-&gt;minute(40)-&gt;second(25);
+// Result: Second(Tue 23 Nov 2004 2:40:25 UTC)</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN141"
+>Converting Epoch Seconds to DMYHMS</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">int unixtime=1101174025;
+int day, month, year;
+mapping then=localtime(unixtime);
+year  = then-&gt;year+1900;
+month = then-&gt;mon+1;
+day   = then-&gt;mday;
+
+write(&quot;Dateline: %02d:%02d:%02d-%04d/%02d/%02d\n&quot;, then-&gt;hour, then-&gt;min, then-&gt;sec, then-&gt;year+1900, then-&gt;mon+1, then-&gt;mday);
+// Dateline: 02:40:25-2004/11/23
+
+object othen=Calendar.Second(unixtime);
+// Result: Second(Tue 23 Nov 2004 2:40:25 CET)
+
+write(&quot;Dateline: %02d:%02d:%02d-%04d/%02d/%02d\n&quot;, othen-&gt;hour_no(), 
+      othen-&gt;minute_no(), othen-&gt;second_no(), othen-&gt;year_no(), 
+      othen-&gt;month_no(), othen-&gt;month_day());
+// Dateline: 02:40:25-2004/11/23</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN144"
+>Adding to or Subtracting from a Date</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">int days_offet=55;
+int hour_offset=2;
+int minute_offset=17;
+int second_offset=5;
+
+object then=Calendar.parse(&quot;%D/%M/%Y, %h:%m:%s %p&quot;,&quot;18/Jan/1973, 3:45:50 pm&quot;)
+            +Calendar.Day()*days_offet
+            +Calendar.Hour()*hour_offset
+            +Calendar.Minute()*minute_offset
+            +Calendar.Second()*second_offset;
+write(&quot;Then is %s\n&quot;, then-&gt;format_ctime());
+// Then is Wed Mar 14 18:02:55 1973
+write(&quot;To be precise: %d:%d:%d, %d/%d/%d\n&quot;, 
+             then-&gt;hour_no(), then-&gt;minute_no(), then-&gt;second_no(),
+             then-&gt;month_no(), then-&gt;month_day(), then-&gt;year_no());
+// To be precise: 18:2:55, 3/14/1973
+
+int years   = 1973;
+int months  = 1;
+int days    = 18;
+int offset  = 55;
+object then = Calendar.Day(years, months, days)+offset;
+write(&quot;Nat was 55 days old on: %d/%d/%d\n&quot;, then-&gt;month_no(), then-&gt;month_day(),then-&gt;year_no());
+// Nat was 55 days old on: 3/14/1973</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN147"
+>Difference of Two Dates</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">int bree = 361535725;         // 16 Jun 1981, 4:35:25
+int nat  = 96201950;          // 18 Jan 1973, 3:45:50
+
+int difference = bree-nat;
+write(&quot;There were %d seconds between Nat and Bree\n&quot;, difference);
+// There were 265333775 seconds between Nat and Bree
+
+int seconds =  difference                % 60;
+int minutes = (difference / 60)          % 60;
+int hours   = (difference / (60*60) )    % 24;
+int days    = (difference / (60*60*24) ) % 7;
+int weeks   =  difference / (60*60*24*7);
+
+write(&quot;(%d weeks, %d days, %d:%d:%d)\n&quot;, weeks, days, hours, minutes, seconds);
+// (438 weeks, 4 days, 23:49:35)
+
+object bree = Calendar.dwim_time(&quot;16 Jun 1981, 4:35:25&quot;);
+// Result: Second(Tue 16 Jun 1981 4:35:25 CEST)
+object nat  = Calendar.dwim_time(&quot;18 Jan 1973, 3:45:50&quot;);
+// Result: Second(Thu 18 Jan 1973 3:45:50 CET)
+object difference = nat-&gt;range(bree);
+// Result: Second(Thu 18 Jan 1973 3:45:50 CET - Tue 16 Jun 1981 4:35:26 CEST)
+
+write(&quot;There were %d days between Nat and Bree\n&quot;, difference/Calendar.Day());
+// There were 3071 days between Nat and Bree
+
+int days=difference/Calendar.Day();
+object left=difference-&gt;add(days,Calendar.Day)-&gt;range(difference-&gt;end());
+
+// Calendar handles timezone differences, and since the range crosses from
+// normal to daylight savings time, there is one day which has only 23 hours.
+// by adding the number of days we effectively move the beginning of the range
+// to the same day as the end, leaving us with a range that is less than a day
+// long. when adding the days, the daylight savings switch will be taken into
+// account.
+
+write(&quot;Bree came %d days, %d:%d:%d after Nat\n&quot;, 
+                   days, 
+                   (left/Calendar.Hour())%24,
+                   (left/Calendar.Minute())%60,
+                   (left/Calendar.Second())%60,
+                   );
+
+// Bree came 3071 days, 0:49:36 after Nat
+
+// the following is more accurate, taking into account that the days where
+// daylight savings time is switched do not have 24, but 23 and 25 hours.
+// thanks to mirar on the pike list for pointing this out and providing a
+// correct solution.
+
+array(int) breakdown_elapsed(object u, void|array on)
+{  
+  array res=({});
+  if (!on) on=({Day,Hour,Minute,Second});
+  foreach (on;;program|TimeRange p)
+  {  
+    if (u==u-&gt;end()) { res+=({0}); continue; }
+    int x=u/p;
+    u=u-&gt;add(x,p)-&gt;range(u-&gt;end());
+    res+=({x});
+  }
+  return res;
+}
+
+write(&quot;Bree came %d days, %d:%d:%d after Nat\n&quot;,
+      @breakdown_elapsed(difference));
+
+// Bree came 3071 days, 0:49:36 after Nat</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN150"
+>Day in a Week/Month/Year or Week Number</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">mapping day=localtime(time());
+day-&gt;mday;
+// Result: 2
+day-&gt;wday;
+// Result: 4
+day-&gt;yday;
+// Result: 336
+
+int year=1981;
+int month=6;
+int day=16;
+object date;
+date = Calendar.Day(year, month, day);
+// Result: Day(Tue 16 Jun 1981)
+
+date-&gt;week_day();
+// Result: 3
+date-&gt;week_no();
+// Result: 24
+date-&gt;year_day();
+// Result: 167
+write(&quot;%d/%d/%d was a %s\n&quot;, month, day, year, date-&gt;week_day_name());
+// 6/16/1981 was a Tuesday
+
+write(&quot;in the week number %d.\n&quot;, date-&gt;week_no());
+// in the week number 25.</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN153"
+>Parsing Dates and Times from Strings</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">string date = &quot;1998-06-03&quot;;
+int yyyy;
+int mm;
+int dd;
+[yyyy, mm, dd] = array_sscanf(date, &quot;%d-%d-%d&quot;);
+
+object day;
+day=Calendar.dwim_day(date);
+day=Calendar.parse(&quot;%Y-%M-%D&quot;, date);
+
+day-&gt;unix_time();
+// Result: 896824800
+day-&gt;year_no();                      
+// Result: 1998
+day-&gt;month_no();
+// Result: 6
+day-&gt;month_day();
+// Result: 3</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN156"
+>Printing a Date</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">object now=Calendar.dwim_time(&quot;Sun Sep 21 15:33:36 1997&quot;);
+// Result: Second(Sun 21 Sep 1997 15:33:36 CEST)
+
+now-&gt;format_ctime();
+// Result: &quot;Sun Sep 21 15:33:36 1997\n&quot;
+
+// there is no equivalent to scalar localtime
+
+now = Calendar.Second(1973, 1, 18, 3, 45, 50);
+write(&quot;strftime gives: %s %02d/%02d/%!2d\n&quot;, now-&gt;week_day_name(), 
+        now-&gt;month_no(), now-&gt;month_day(), now-&gt;year_no());
+// strftime gives: Sunday 01/18/73
+// pike doesn't have strftime, but hey.
+
+// instead Calendar provides a large array of predefined formats:
+
+// format_nice() and format_nicez() depend on the unit:
+now-&gt;format_nice();           // &quot;18 Jan 1973 3:45:50&quot;
+now-&gt;week()-&gt;format_nice();   // &quot;w3 1973&quot;
+now-&gt;format_nicez();          // &quot;18 Jan 1973 3:45:50 CET&quot;
+now-&gt;hour()-&gt;format_nicez();  // &quot;18 Jan 1973 3:00 CET&quot;
+
+// others are unit independant.
+now-&gt;format_ext_time();       // &quot;Thursday, 18 January 1973 03:45:50&quot;
+now-&gt;format_ext_ymd();        // &quot;Thursday, 18 January 1973&quot;
+now-&gt;format_iso_time();       // &quot;1973-01-18 (Jan) -W03-4 (Thu) 03:45:50 UTC+1&quot;
+now-&gt;format_iso_ymd();        // &quot;1973-01-18 (Jan) -W03-4 (Thu)&quot;
+now-&gt;format_mod();            // &quot;03:45&quot;
+now-&gt;format_month();          // &quot;1973-01&quot;
+now-&gt;format_month_short();    // &quot;197301&quot;
+now-&gt;format_mtime();          // &quot;1973-01-18 03:45&quot;
+now-&gt;format_time();           // &quot;1973-01-18 03:45:50&quot;
+now-&gt;format_time_short();     // &quot;19730118 03:45:50&quot;
+now-&gt;format_time_xshort();    // &quot;730118 03:45:50&quot;
+now-&gt;format_tod();            // &quot;03:45:50&quot;
+now-&gt;format_tod_short();      // &quot;034550&quot;
+now-&gt;format_todz();           // &quot;03:45:50 CET&quot;
+now-&gt;format_todz_iso();       // &quot;03:45:50 UTC+1&quot;
+now-&gt;format_week();           // &quot;1973-w3&quot;
+now-&gt;format_week_short();     // &quot;1973w3&quot;
+now-&gt;format_iso_week();       // &quot;1973-W03&quot;
+now-&gt;format_iso_week_short(); // &quot;197303&quot;
+now-&gt;format_xtime();          // &quot;1973-01-18 03:45:50.000000&quot;
+now-&gt;format_xtod();           // &quot;03:45:50.000000&quot;
+now-&gt;format_ymd();            // &quot;1973-01-18&quot;
+now-&gt;format_ymd_short();      // &quot;19730118&quot;
+now-&gt;format_ymd_xshort();     // &quot;730118&quot;
+
+now-&gt;format_ctime();          // &quot;Thu Jan 18 03:45:50 1973\n&quot;
+now-&gt;format_smtp();           // &quot;Thu, 18 Jan 1973 3:45:50 +0100&quot;
+now-&gt;format_http();           // &quot;Thu, 18 Jan 1973 02:45:50 GMT&quot;</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN159"
+>High-Resolution Timers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">int t=time();                 // current time in unixtime seconds
+float t0=time(t);             // higher precision time passed since t
+float t1=time(t);
+float elapsed=t1-t0;
+// Result: 0.009453
+
+//-------------------------------------------
+write(&quot;Press return when ready: &quot;);
+array(int) before=System.gettimeofday();
+Stdio.stdin-&gt;gets();
+array(int) after=System.gettimeofday();
+int elapsed_sec=after[0]-before[0];
+int elapsed_usec=after[1]-before[1];
+if(elapsed_usec&lt;0)
+{
+  elapsed_sec--;
+  elapsed_usec+=1000000;
+}
+
+write(&quot;You took %d.%d seconds.\n&quot;, elapsed_sec, elapsed_usec);
+//-------------------------------------
+// this is an expanded example compared to the one given for perl
+// to allow comparison of different types.
+// bignum are objects of the gmp library, which are seamlessly integrated with
+// regular integers.
+
+int main()
+{
+  // size values are adjusted so that each run takes about the same length.
+  gaugethis(5000000, 100, lambda(){ return random(pow(2,31)-1); });
+               // values to fit into a signed 32bit int.
+  gaugethis(50000, 100, lambda(){ return pow(2,64)+random(pow(2,64)); });
+               // make sure values are bignum even in case 64bit ints are used.
+  gaugethis(500000, 100, lambda(){ return random_string(10); });
+               // might be interresting to compare longer strings too.
+}
+
+void gaugethis(int size, int number_of_times, function rand)
+{
+  array gauged_times = ({});
+  float average;
+
+  int swidth=sizeof((string)size);
+  int nwidth=sizeof((string)number_of_times);
+  for(int i; i&lt;number_of_times; i++)
+  { 
+    write(&quot;%*d: &quot;, nwidth, i);
+    array(int) arr=({});
+    write(&quot;creating array: &quot;);
+    for(int j; j&lt;size; j++)
+    {
+      arr += ({ rand() }); 
+    }
+    write(&quot; sorting: &quot;);
+
+    float gaugetime=gauge // gauge measures cpu time, giving better results
+    { 
+      arr=sort(arr);
+    };
+    gauged_times += ({ gaugetime });
+    write(&quot; %f          \r&quot;, gaugetime);
+  }
+  average=`+(@gauged_times)/(float)number_of_times;
+  gauged_times=sort(gauged_times);
+
+  write(&quot;average: %O, min: %O, max: %O                           \n&quot;, 
+        average, gauged_times[0], gauged_times[-1]);
+}</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN162"
+>Short Sleeps</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">int abort_on_signal=1;         // if true, aport on signal
+sleep(0.25, abort_on_signal);
+
+delay(0.25); // uses busy-wait for accuracy,
+             // may be interrupted by signal handlers</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN165"
+>Program: hopdelta</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">Calendar.dwim_time(&quot;Tue, 26 May 1998 23:57:38 -0400&quot;)-&gt;distance(
+    Calendar.dwim_time(&quot;Wed, 27 May 1998 05:04:03 +0100&quot;))-&gt;format_elapsed();   
+// Result: &quot;0:06:25&quot;
+
+// <font size="-1"><a href="http://pleac.sourceforge.net/include/pike/ch03/hopdelta">download the following standalone program</a></font>
+#!/usr/bin/pike
+// chapter 3.11
+// hopdelta - feed mail header, produce lines
+//            showing delay at each hop.
+int main()
+{
+  MIME.Message        mail = MIME.Message(Stdio.stdin.read());
+  
+  array           received = reverse(mail-&gt;headers-&gt;received/&quot;\0&quot;);
+  Calendar.Second lasttime = Calendar.dwim_time(mail-&gt;headers-&gt;date);
+
+  array delays=({ ({ &quot;Sender&quot;, &quot;Recipient&quot;, &quot;Time&quot;, &quot;Delta&quot; }) });
+  delays+=({ ({ mail-&gt;headers-&gt;from, 
+                array_sscanf(received[0], &quot;from %[^ ]&quot;)[0], 
+                mail-&gt;headers-&gt;date, 
+                &quot;&quot; 
+          }) });
+          
+
+  foreach(received;; string hop)
+  {
+    string fromby, date;
+    [fromby, date] = hop/&quot;;&quot;;
+    Calendar.Second thistime = Calendar.dwim_time(date);
+
+    delays+= ({ array_sscanf(fromby, &quot;from %[^ ]%*sby %[^ ]%*s&quot;) + 
+                ({ date, lasttime-&gt;distance(thistime)-&gt;format_elapsed() }) 
+             });
+
+    lasttime=thistime;
+  }
+
+  write(&quot;%{%-=22s %-=22s %-=20s %=10s\n%}\n&quot;, delays);
+  return 0;
+}</PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="numbers.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="arrays.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Numbers</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Arrays</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

@@ -1,0 +1,1299 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Arrays</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Pike"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Dates and Times"
+HREF="datesandtimes.html"><LINK
+REL="NEXT"
+TITLE="Hashes"
+HREF="hashes.html"></HEAD
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Pike</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="datesandtimes.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="hashes.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="ARRAYS"
+>4. Arrays</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN170"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// nested arrays are supported
+array flat = ({ &quot;this&quot;, &quot;that&quot;, &quot;the&quot;, &quot;other&quot; });
+array nested = ({ &quot;this&quot;, &quot;that&quot;, ({ &quot;the&quot;, &quot;other&quot; }) });
+
+
+array tune = ({ &quot;The&quot;, &quot;Star-Spangled&quot;, &quot;Banner&quot; });
+tune[0];
+// Result: &quot;The&quot;
+tune[1];
+// Result: &quot;Star-Spangled&quot;
+
+
+// the typing may be more specific
+// only strings allowed in the array (thus no nesting!)
+array(string) flat = ({ &quot;this&quot;, &quot;that&quot;, &quot;the&quot;, &quot;other&quot; });
+
+// allow one level of nesting
+array(string|array(string)) admit1 = ({ &quot;this&quot;, &quot;that&quot;, ({ &quot;the&quot;, &quot;other&quot; }) });
+
+// the first level may only contain arrays, other levels may contain anything
+array(array) require1 ({ ({ &quot;this&quot;, &quot;that&quot; }), ({ &quot;the&quot;, &quot;other&quot; }) });</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN173"
+>Specifying a List In Your Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// list
+array(string) a = ({ &quot;quick&quot;, &quot;brown&quot;, &quot;fox&quot; });
+
+// words
+array(string) a = &quot;Why are you teasing me?&quot;/&quot; &quot;;
+
+// lines
+array(string) lines = #&quot;The boy stood on the burning deck,
+It was as hot as glass.&quot;/&quot;\n&quot;;
+
+// file
+array(string) bigarray = Stdio.read_file(&quot;mydatafile&quot;)/&quot;\n&quot;;
+
+// the quoting issues do not apply.
+
+array(string) ships = &quot;Nińa Pinta Santa María&quot;/&quot; &quot;;         // wrong
+array(string) ships = ({ &quot;Nińa&quot;, &quot;Pinta&quot;, &quot;Santa María&quot; }); // right
+
+ </PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN176"
+>Printing a List with Commas</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// <font size="-1"><a href="http://pleac.sourceforge.net/include/pike/ch04/commify_series">download the following standalone program</a></font>
+#!/usr/bin/pike
+// chapter 4.2
+// commify_series - show proper comma insertion in list output
+
+array(array(string)) lists =
+  ({
+    ({ &quot;just one thing&quot; }),
+    ({ &quot;Mutt&quot;, &quot;Jeff&quot; }),
+    ({ &quot;Peter&quot;, &quot;Paul&quot;, &quot;Mary&quot; }),
+    ({ &quot;To our parents&quot;, &quot;Mother Theresa&quot;, &quot;God&quot; }),
+    ({ &quot;pastrami&quot;, &quot;ham and cheese&quot;, &quot;peanut butter and jelly&quot;, &quot;tuna&quot; }),
+    ({ &quot;recycle tired, old phrases&quot;, &quot;ponder big, happy thoughts&quot; }),
+    ({ &quot;recycle tired, old phrases&quot;,
+       &quot;ponder big, happy thoughts&quot;,
+       &quot;sleep and dream peacefully&quot; }),
+  });
+
+void main()
+{
+  write(&quot;The list is: %s.\n&quot;, commify_list(lists[*])[*]);
+}
+
+string commify_list(array(string) list)
+{
+  switch(sizeof(list))
+  {
+    case 1: return list[0];
+    case 2: return sprintf(&quot;%s and %s&quot;, @list);
+    default: 
+      string seperator=&quot;,&quot;;
+      int count;
+      while(count&lt;sizeof(list) &amp;&amp; search(list[count], seperator)==-1)
+        count++;
+      if(count&lt;sizeof(list))
+        seperator=&quot;;&quot;;
+      return sprintf(&quot;%{%s&quot;+seperator+&quot; %}and %s&quot;, 
+                     list[..sizeof(list)-2], list[-1]);
+  }
+}</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN179"
+>Changing Array Size</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">void what_about_that_array(array list)
+{
+    write(&quot;The array now has %d elements.\n&quot;, sizeof(list));
+    write(&quot;The index of the last element is %d.\n&quot;, sizeof(list)-1);
+    write(&quot;Element #3 is %O.\n&quot;, list[3]);
+}
+
+array people = ({ &quot;Crosby&quot;, &quot;Stills&quot;, &quot;Nash&quot;, &quot;Young&quot; });
+what_about_that_array(people);
+// The array now has 4 elements.
+// The index of the last element is 3.
+// Element #3 is &quot;Young&quot;.
+
+people=people[..sizeof(people)-2];
+what_about_that_array(people);
+// The array now has 3 elements.
+// The index of the last element is 2.
+// Index 3 is out of array range -3..2.
+
+people+=allocate(10001-sizeof(people));
+what_about_that_array(people);
+// The array now has 10001 elements.
+// The index of the last element is 10000.
+// Element #3 is 0.
+
+array people = ({ &quot;Crosby&quot;, &quot;Stills&quot;, &quot;Nash&quot;, &quot;Young&quot; }); // resetting the array
+people[10000]=0;
+// Index 10000 is out of array range -4..3.
+// accessing a nonexisting index is always an error.
+// arrays can not be enlarged this way.</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN182"
+>Doing Something with Every Element in a List</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">foreach(list; int index; mixed item)
+{
+  // do something with item (and possibly index)
+}
+
+foreach(bad_users;; object user)
+{
+  complain(user);
+}
+
+// for such simple cases pike provides a convenient automap feature:
+complain(bad_users[*]);
+// will do the same as the foreach above.
+
+foreach(sort(indices(getenv()));; string var)
+{
+  write(&quot;%s=%s\n&quot;, var, getenv(var));
+}
+
+// if you don't need an assurance that the indices are sorted (they most likely
+// are sorted anyways) you may use:
+foreach(getenv(); string var; string value)
+{
+  write(&quot;%s=%s\n&quot;, var, value);
+}
+
+foreach(all_users;; string user)
+{
+  int disk_space = get_usage(user);
+  if(disk_space &gt; MAX_QUOTA)
+    complain(user);
+}
+
+// continue; to jump to the next
+// break; to stop the loop
+// redo can be done by doing a loop with the proper checks in the block
+
+object pipe=Stdio.File();
+Process.create_process(({ &quot;who&quot; }), ([ &quot;stdout&quot;:pipe-&gt;pipe() ]));
+foreach(pipe-&gt;line_iterator();; string line)
+{
+  if(search(line, &quot;tchrist&quot;)&gt;-1)
+    write(line+&quot;\n&quot;);
+}
+
+object fh=Stdio.File(&quot;somefile&quot;);
+foreach(fh-&gt;line_iterator(); int linenr; string line)
+{
+  foreach(Process.split_quoted_string(line);; string word)//split on whitespace
+  {
+    write(reverse(word));
+  }
+}
+
+
+array(int) list = ({ 1,2,3 });
+foreach(list;; int item)
+{
+  item--;
+}
+write(&quot;%{%d %}\n&quot;, list);
+// Result: 1 2 3 
+
+// we can still use foreach instead of for, 
+// because foreach gives us the index as well:
+foreach(list; int index;)
+{
+  list[index]--;
+}
+write(&quot;%{%d %}\n&quot;, list);
+// Result: 0 1 2
+
+array a = ({ 0.5, 3 });
+array b = ({ 0, 1 });
+// foreach handles only one array so there is nothing to gain here. 
+// better use automap:
+array a_ = a[*]*7;
+array b_ = b[*]*7;
+write(&quot;%{%O %}\n&quot;, a_+b_);
+// 3.500000 21 0 7
+
+string scalar = &quot; abc &quot;;
+array(string) list = ({ &quot; a &quot;, &quot; b &quot; });
+mapping(mixed:string) hash = ([ &quot;a&quot;:&quot; a &quot;, &quot;b&quot;:&quot; b &quot; ]);
+
+scalar = String.trim_whites(scalar);
+list = String.trim_whites(list[*]);
+foreach(hash; int key;)
+{
+  hash[key]=String.trim_whites(hash[key]);
+}</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN185"
+>Iterating Over an Array by Reference</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// pike does not distinguish between arrays and array references 
+// (they are all references anyways) so this section does not apply</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN188"
+>Extracting Unique Elements from a List</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">mapping seen = ([]);
+array   uniq = ({});
+foreach(list;; mixed item)
+{
+  if(!seen[item])
+    seen[item] = 1;
+  else
+    uniq += ({ item });
+}
+
+
+mapping seen = ([]);
+array   uniq = ({});
+foreach(list;; mixed item)
+{
+  if(!seen[item]++)
+    uniq += ({ item });
+}
+
+mapping seen = ([]);
+array   uniq = ({});
+foreach(list;; mixed item)
+{
+  if(!seen[item]++)
+    some_func(item);
+}
+
+// the following is probably the most natural for pike
+mapping seen = ([]);
+array   uniq = ({});
+foreach(list;; mixed item)
+{
+  seen[item]++;
+}
+uniq = indices(seen);
+
+
+// not necessarily faster but shorter:
+array uniq = indices(({ list[*],1 }));
+
+// also short, and preserving the originaal order:
+array uniq = list&amp;indices(({ list[*],1 }));
+
+
+object pipe = Stdio.File();
+Process.create_process(({ &quot;who&quot; }), ([ &quot;stdout&quot;:pipe-&gt;pipe() ]));
+mapping ucnt = ([]);
+foreach(pipe-&gt;line_iterator();; string line)
+{
+  ucnt[(line/&quot; &quot;)[0]]++;
+}
+
+array users = sort(indices(ucnt));
+write(&quot;users logged in: %s\n&quot;, users*&quot; &quot;);</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN191"
+>Finding Elements in One Array but Not Another</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// one of pikes strenghts are operators.
+// the following are the only idiomatic solutions to the problem
+
+array A = ({ 1, 2, 3 });
+array B = ({ 2, 3, 4 });
+array aonly = A-B;
+// Result: ({ 1 });</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN194"
+>Computing Union, Intersection, or Difference of Unique Lists</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">array a = ({ 1, 3, 5, 6, 7, 8 });
+array b = ({ 2, 3, 5, 7, 9 });
+
+// union:
+array union = a|b;
+// ({ 1, 3, 5, 6, 7, 8, 2, 9 })
+
+// intersection
+array intersection = a&amp;b;
+// ({ 3, 5, 7 })
+
+// difference
+array difference = a-b; 
+// ({ 1, 6, 8 })
+
+// symetric difference
+array symdiff= a^b;
+// ({ 1, 6, 8, 2, 9 })</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN197"
+>Appending One Array to Another</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// join arrays
+
+// appending to an array will always create a new array and pike is designed to
+// handle this efficiently.
+
+array members = ({ &quot;Time&quot;, &quot;Flies&quot; });
+array initiates = ({ &quot;An&quot;, &quot;Arrow&quot; });
+members += initiates;
+// members is now ({ &quot;Time&quot;, &quot;Flies&quot;, &quot;An&quot;, &quot;Arrow&quot; })
+
+members = members[..1]+({ &quot;Like&quot; })+members[2..];
+write(&quot;%s\n&quot;, members*&quot; &quot;);
+
+members[0] = &quot;Fruit&quot;;
+members = members[..sizeof(members)-3]+({ &quot;A&quot;, &quot;Banana&quot; });
+write(&quot;%s\n&quot;, members*&quot; &quot;);
+
+// Time Flies Like An Arrow
+// Fruit Flies Like A Banana</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN200"
+>Reversing an Array</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// almost any operation you do on the elements will add more overhead than
+// reversing the array, if there is any possible optimization, pike will do it
+// for you.
+
+array reversed = reverse(arr);
+
+// unless you were going to use for anyways then foreach(reverse( ...)) is
+// preferable.
+foreach(reverse(arr);; mixed item)
+{
+  // do something with item
+}
+
+for(int i=sizeof(arr)-1; i&lt;=0; i--)
+{
+  // so something with arr[i]
+}
+
+array ascending = sort(users);
+array descending = reverse(sort(users));
+
+// reverse(sort()) is faster by a magnitude
+array descending = Array.sort_array(users, lambda(mixed a, mixed b)
+                                           { 
+                                             return a&lt;b; 
+                                           }
+                                   );</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN203"
+>Processing Multiple Elements of an Array</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">array arr = ({ 0,1,2,3,4,5,6,7,8,9 });
+int n=3;
+array front = arr[..n-1];
+arr = arr[n..];
+
+array back = arr[sizeof(arr)-n..];
+arr = arr[..sizeof(arr)-(n+1)];
+
+// since new arrays are created if elements are added or removed
+// shift and pop are not usefull here.
+
+// if you need shift and pop capabilities use the ADT classes:
+
+array shift2(ADT.Queue queue)
+{
+  return ({ queue-&gt;read(), queue-&gt;read() });
+}
+
+ADT.Queue friends = ADT.Queue(&quot;Peter&quot;, &quot;Paul&quot;, &quot;Mary&quot;, &quot;Jim&quot;, &quot;Tim&quot;);
+string this, that;
+[this, that] = shift2(friends);
+// this contains Peter, that has Paul, and
+// friends has Mary, Jim, and Tim
+
+ADT.Stack beverages = ADT.Stack();
+beverages-&gt;set_stack(({ &quot;Dew&quot;, &quot;Jolt&quot;, &quot;Cola&quot;, &quot;Sprite&quot;, &quot;Fresca&quot; }));
+array pair = beverages-&gt;pop(2); // implementing pop2 would gain nothing here
+// pair[0] contains Sprite, pair[1] has Fresca,
+// and beverages has (Dew, Jolt, Cola)
+
+
+// to be able to shift and pop on the same list use the following:
+
+array shift2(ADT.CircularList list)
+{
+  return ({ list-&gt;pop_front(), list-&gt;pop_front() });
+}
+
+array pop2(ADT.CircularList list)
+{
+  return reverse( ({ list-&gt;pop_back(), list-&gt;pop_back() }) );
+}
+  
+ADT.CircularList friends = ADT.CircularList( ({&quot;Peter&quot;, &quot;Paul&quot;, &quot;Mary&quot;, &quot;Jim&quot;, &quot;Tim&quot;}) );
+string this, that;
+[this, that] = shift2(friends);
+// this contains Peter, that has Paul, and
+// friends has Mary, Jim, and Tim
+
+ADT.CircularList beverages = ADT.CircularList( ({ &quot;Dew&quot;, &quot;Jolt&quot;, &quot;Cola&quot;, &quot;Sprite&quot;, &quot;Fresca&quot; }) );
+array pair = pop2(beverates);
+// pair[0] contains Sprite, pair[1] has Fresca,
+// and beverages has (Dew, Jolt, Cola)</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN206"
+>Finding the First List Element That Passes a Test</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">mixed match = search(arr, element);
+
+int test(mixed element)
+{
+  if(sizeof(element)==5)
+    return 1;
+  else
+    return 0;
+}
+
+mixed match = Array.search_array(arr, test);
+
+if(match != -1)
+{
+  // do something with arr[match]
+}
+else
+{
+  // do something else
+}
+
+// another convenient way if you do many tests on the same list,
+// and you do not care for the position is:
+
+if( (multiset)arr[element] )
+{
+  // found
+}
+else
+{
+  // not found
+}</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN209"
+>Finding All Elements in an Array Matching Certain Criteria</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">array matching=({});
+
+foreach(list;; mixed element)
+{
+  if(test(element))
+    matching+=({ element });
+}
+
+array matching = map(list, test)-({ 0 });
+array matching = test(list[*])-({ 0 }); 
+// apply test() on each element in list, collect the results, and remove
+// results that are 0.</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN212"
+>Sorting an Array Numerically</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// since pike has different types for strings and numbers, ints and floats are
+// of course sorted numerically 
+// (sort() is destructive, the original array is changed)
+
+array(int) unsorted = ...;
+array(int) sorted = sort(unsorted);
+
+
+// but suppose you want to sort an array of strings by their numeric value then
+// things get a bit more interresting:
+
+array(string) unsorted = ({ &quot;123asdf&quot;, &quot;3poiu&quot;, &quot;23qwert&quot;, &quot;3ayxcv&quot; });
+
+sort((array(int))unsorted, unsorted);
+// unsorted is now sorted.</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN215"
+>Sorting a List by Computable Field</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">array unordered;
+int compare(mixed a, mixed b)
+{
+  // return comparison of a and b
+}
+array ordered = Array.sort_array(unordered, compare);
+
+//-------------------------------------------------------------
+int compute(mixed element)
+{
+  // return computation from element
+}
+array precomputed = map(unordered, compute);
+sort(precomputed, unordered); // will destructively sort unordered in the same
+array ordered = unordered;    // manner as precomputed.
+
+//-------------------------------------------------------------
+sort(map(unordered, compute), unordered); // without a temp variable
+sort(compute(unordered[*]), unordered);   // using the automap operator
+                                          // both get compiled to the same code
+
+
+//-------------------------------------------------------------
+array ordered = sort(employees, lambda(mixed a, mixed b)
+                                { 
+                                  return a-&gt;name &gt; b-&gt;name;
+                                }
+                    );
+
+//-------------------------------------------------------------
+foreach(Array.sort_array(employees, 
+                         lambda(mixed a, mixed b){ return a-&gt;name &gt; b-&gt;name; })
+        ;; mixed employee)
+{
+  write(&quot;%s earns $%d\n&quot;, employee-&gt;name, employee-&gt;salary);
+}
+
+//-------------------------------------------------------------
+array ordered_employees = 
+        Array.sort_array(employees, 
+                         lambda(mixed a, mixed b){ return a-&gt;name &gt; b-&gt;name; });
+foreach(ordered_employees;; mixed employee)
+{
+  write(&quot;%s earns $%d\n&quot;, employee-&gt;name, employee-&gt;salary);
+}
+
+mapping bonus;
+foreach(ordered_employees;; mixed employee)
+{
+  // you are not supposed to use the social security number as an id
+  if(bonus[employee-&gt;id])  
+    write(&quot;%s got a bonus!\n&quot;, employee-&gt;name);
+}
+
+//-------------------------------------------------------------
+array sorted = Array.sort_array(employees, 
+                                lambda(mixed a, mixed b)
+                                {
+                                  if(a-&gt;name!=b-&gt;name)
+                                    return (a-&gt;name &lt; b-&gt;name)
+                                  return (b-&gt;age &lt; a-&gt;age);
+                                }
+                               );
+
+//-------------------------------------------------------------
+array(array) users = System.get_all_users();
+
+sort(users); 
+// System.get_all_users() returns an array of arrays, with the name as the
+// first element in each inner array, sort handles multidimensional arrays, so
+// we can skip creating our own sort function.
+
+// if we wanted to sort on something else one could rearrange the array:
+array user;
+while(user=System.getpwent())
+{
+  users += ({ user[2], user });
+}
+System.endpwent();
+sort(users);  // now we are sorting by uid.
+
+// alternative:
+array(array) users = System.get_all_users();
+sort(users[*][2], users);
+
+write(users[*][0]*&quot;\n&quot;);
+write(&quot;\n&quot;);
+
+//-------------------------------------------------------------
+array names;
+array sorted = Array.sort_array(names, lambda(mixed a, mixed b)
+                                       {
+                                         return a[1] &lt; b[1];
+                                       }
+                               );
+// faster:
+sort(names[*][1], names);
+sorted=names;
+//-------------------------------------------------------------
+array strings;
+array sorted = Array.sort_array(strings, lambda(mixed a, mixed b)
+                                       {
+                                         return sizeof(a) &lt; sizeof(b);
+                                       }
+                               );
+// faster:
+sort(sizeof(strings[*]), strings);
+sorted=strings;
+//-------------------------------------------------------------
+array strings;
+array temp = map(strings, sizeof);
+sort(temp, strings); 
+array sorted = strings;
+//-------------------------------------------------------------
+array strings;
+sort(map(strings, sizeof), strings);   // pick one
+sort(sizeof(strings[*]), strings);
+sorted=strings;
+//-------------------------------------------------------------
+array fields;
+array temp = map(fields, array_sscanf, &quot;%*s%d%*s&quot;);
+sort(temp, fields);
+array sorted_fields=fields;
+
+//-------------------------------------------------------------
+sort(array_sscanf(fields[*], &quot;%*s%d%*s&quot;), fields);
+array sorted_fields=fields;
+//-------------------------------------------------------------
+array passwd_lines = (Stdio.read_file(&quot;/etc/passwd&quot;)/&quot;\n&quot;)-({&quot;&quot;});
+array(array) passwd = passwd_lines[*]/&quot;:&quot;;
+
+int compare(mixed a, mixed b)
+{ 
+  if(a[3]!=b[3])
+    return (int)a[3]&lt;(int)b[3];
+  if(a[2]!=b[2])
+    return (int)a[2]&lt;(int)b[2];
+  return a[0]&lt;b[0];
+}
+
+array sorted_passwd = Array.sort_array(passwd, compare);
+
+// alternatively the following uses the builtin sort
+sort( passwd[*][0], passwd);
+sort( ((array(int))passwd[*][2]), passwd);
+sort( ((array(int))passwd[*][3]), passwd);</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN218"
+>Implementing a Circular List</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">ADT.CircularList circular;
+circular-&gt;push_front(circular-&gt;pop_back());
+circular-&gt;push_back(circular-&gt;pop_front());
+//-------------------------------------------------------------
+mixed grab_and_rotate(ADT.CircularList list)
+{
+  mixed element = list-&gt;pop_front();
+  list-&gt;push_back(element);
+  return element;
+}
+
+ADT.CircularList processes = ADT.CircularList( ({ 1, 2, 3, 4, 5 }) );
+while(1)
+{
+  int process = grab_and_rotate(processes);
+  write(&quot;Handling process %d\n&quot;, process);
+  sleep(1);
+}</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN221"
+>Randomizing an Array</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">array arr;
+Array.shuffle(arr);  // this uses the fisher-yates shuffle
+
+
+//-------------------------------------------------------------
+
+// being creative with the algorithm, this is not as memory efficient,
+// but it shows the utility of multisets.
+array set_shuffle(array list)
+{
+  multiset elements=(multiset)list;
+  list=({});                     // reset the list
+  while(sizeof(elements))        // while we still have elements left
+  {
+    mixed pick=random(elements); // pick a random element
+    list+=({ pick });            // add it to the new list
+    elements[pick]--;            // remove the element we picked
+  }
+  return list;
+}
+
+array list;
+list=set_shuffle(list);
+
+//-------------------------------------------------------------
+
+inherit &quot;mjd_permute&quot;;
+int permutations = factorial(sizeof(list));
+array shuffle = list[n2perm(random(permutations)+1, sizeof(list))[*]];
+
+//-------------------------------------------------------------
+
+void naive_shuffle(array list)
+{
+  for(int i=0; i&lt;sizeof(list); i++)
+  {
+    int j=random(sizeof(list)-1);
+    [ list[i], list[j] ] = ({ list[j], list[i] });
+  }
+}</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN224"
+>Program: words</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// <font size="-1"><a href="http://pleac.sourceforge.net/include/pike/ch04/words">download the following standalone program</a></font>
+#!/usr/bin/pike
+// section 4.18 example 4.2
+// words - gather lines, present in columns
+
+void main()
+{
+  array words=Stdio.stdin.read()/&quot;\n&quot;;   // get all input
+  int maxlen=sort(sizeof(words[*]))[-1]; // sort by size and pick the largest
+  maxlen++;                              // add space
+
+  // get boundaries, this should be portable
+  int cols = Stdio.stdout-&gt;tcgetattr()-&gt;columns/maxlen;
+  int rows = (sizeof(words)/cols) + 1;
+
+  string mask=&quot;%{%-&quot;+maxlen+&quot;s%}\n&quot;;     // compute format
+
+  words=Array.transpose(words/rows);     // split into groups as large as the
+                                         // number of rows and then transpose
+  write(mask, words[*]);                 // apply mask to each group
+}</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN227"
+>Program: permute</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">int factorial(int n)
+{
+  int s=1;
+  while(n)
+    s*=n--;
+  return s;
+}
+write(&quot;%d\n&quot;, factorial(500));
+// TODO: provide a short example using Array.permute()
+//-------------------------------------------------------------
+// <font size="-1"><a href="http://pleac.sourceforge.net/include/pike/ch04/permute">download the following standalone program</a></font>
+#!/usr/bin/pike
+
+void main()
+{
+  string line;
+  while(line=Stdio.stdin-&gt;gets())
+  {
+    permute(line/&quot; &quot;);
+  }
+}
+
+void permute(array items, array|void perms)
+{
+  if(!perms)
+    perms=({});
+  if(!sizeof(items))
+    write((perms*&quot; &quot;)+&quot;\n&quot;);
+  else
+  {
+    foreach(items; int i;)
+    {
+      array newitems=items[..i-1]+items[i+1..];
+      array newperms=items[i..i]+perms;
+      permute(newitems, newperms);
+    }
+  }
+}
+
+//-------------------------------------------------------------
+// <font size="-1"><a href="http://pleac.sourceforge.net/include/pike/ch04/mjd_permute">download the following standalone program</a></font>
+#!/usr/bin/pike
+
+mapping fact=([ 1:1 ]);
+
+int factorial(int n)
+{
+  if(!fact[n])
+    fact[n]=n*factorial(n-1);
+  return fact[n];
+}
+
+array n2pat(int N, int len)
+{
+  int i=1;
+  array pat=({});
+
+  while(i &lt;= len)
+  {
+    pat += ({ N%i });
+    N/=i;
+    i++;
+  }
+  return pat;
+}
+
+array pat2perm(array pat)
+{
+  array source=indices(pat);
+  array perm=({});
+  while(sizeof(pat))
+  {
+    perm += ({ source[pat[-1]] });
+    source = source[..pat[-1]-1]+source[pat[-1]+1..];
+    pat=pat[..sizeof(pat)-2];
+  }
+  return perm;
+}
+
+array n2perm(int N, int len)
+{
+  return pat2perm(n2pat(N, len));
+}
+
+void main()
+{
+  array data;
+  while(data=Stdio.stdin-&gt;gets()/&quot; &quot;)
+  {
+    int num_permutations = factorial(sizeof(data));
+    for(int i; i&lt;num_permutations; i++)
+    {
+      array permutation = data[n2perm(i, sizeof(data))[*]];
+      write(permutation*&quot; &quot;+&quot;\n&quot;);
+    }
+  }
+}</PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="datesandtimes.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="hashes.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Dates and Times</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Hashes</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

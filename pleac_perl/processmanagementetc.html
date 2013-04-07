@@ -1,0 +1,1614 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Process Management and Communication</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Perl"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="User Interfaces"
+HREF="userinterfaces.html"><LINK
+REL="NEXT"
+TITLE="Sockets"
+HREF="sockets.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Perl</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="userinterfaces.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="sockets.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="PROCESSMANAGEMENTETC"
+>16. Process Management and Communication</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN851"
+>Gathering Output from a Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">$output = `program args`;   # collect output into one multiline string</span>
+<span class="cp">@output = `program args`;   # collect output into array, one line per element</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">open(README, &quot;program args |&quot;) or die &quot;Can&#39;t run program: $!\n&quot;;</span>
+<span class="cp">while(&lt;README&gt;) {</span>
+<span class="cp">    $output .= $_;</span>
+<span class="cp">}</span>
+<span class="cp">close(README);</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">`fsck -y /dev/rsd1a`;       # BAD AND SCARY</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">use POSIX qw(:sys_wait_h);</span>
+
+<span class="cp">pipe(README, WRITEME);</span>
+<span class="cp">if ($pid = fork) {</span>
+<span class="cp">    # parent</span>
+<span class="cp">    $SIG{CHLD} = sub { 1 while ( waitpid(-1, WNOHANG)) &gt; 0 };</span>
+<span class="cp">    close(WRITEME);</span>
+<span class="cp">} else {</span>
+<span class="cp">    die &quot;cannot fork: $!&quot; unless defined $pid;</span>
+<span class="cp">    # child</span>
+<span class="cp">    open(STDOUT, &quot;&gt;&amp;=WRITEME&quot;)      or die &quot;Couldn&#39;t redirect STDOUT: $!&quot;;</span>
+<span class="cp">    close(README);</span>
+<span class="cp">    exec($program, $arg1, $arg2)    or die &quot;Couldn&#39;t run $program : $!\n&quot;;</span>
+<span class="cp">}</span>
+
+<span class="cp">while (&lt;README&gt;) {</span>
+<span class="cp">    $string .= $_;</span>
+<span class="cp">    # or  push(@strings, $_);</span>
+<span class="cp">}</span>
+<span class="cp">close(README);</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN854"
+>Running Another Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">$status = system(&quot;vi $myfile&quot;);</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$status = system(&quot;vi&quot;, $myfile);</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">system(&quot;cmd1 args | cmd2 | cmd3 &gt;outfile&quot;);</span>
+<span class="cp">system(&quot;cmd args &lt;infile &gt;outfile 2&gt;errfile&quot;);</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$status = system($program, $arg1, $arg);</span>
+<span class="cp">die &quot;$program exited funny: $?&quot; unless $status == 0;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">if (($signo = system(@arglist)) &amp;= 127) { </span>
+<span class="cp">    die &quot;program killed by signal $signo\n&quot;;</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">if ($pid = fork) {</span>
+<span class="cp">    # parent catches INT and berates user</span>
+<span class="cp">    local $SIG{INT} = sub { print &quot;Tsk tsk, no process interruptus\n&quot; };</span>
+<span class="cp">    waitpid($pid, 0);</span>
+<span class="cp">} else {</span>
+<span class="cp">    die &quot;cannot fork: $!&quot; unless defined $pid;</span>
+<span class="cp">    # child ignores INT and does its thing</span>
+<span class="cp">    $SIG{INT} = &quot;IGNORE&quot;;</span>
+<span class="cp">    exec(&quot;summarize&quot;, &quot;/etc/logfiles&quot;)             or die &quot;Can&#39;t exec: $!\n&quot;;</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$shell = &#39;/bin/tcsh&#39;;</span>
+<span class="cp">system $shell &#39;-csh&#39;;           # pretend it&#39;s a login shell</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">system {&#39;/bin/tcsh&#39;} &#39;-csh&#39;;    # pretend it&#39;s a login shell</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># call expn as vrfy</span>
+<span class="cp">system {&#39;/home/tchrist/scripts/expn&#39;} &#39;vrfy&#39;, @ADDRESSES;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">@args = ( &quot;echo surprise&quot; );</span>
+
+<span class="cp">system @args;               # subject to shell escapes if @args == 1</span>
+<span class="cp">system { $args[0] } @args;  # safe even with one-arg list</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN857"
+>Replacing the Current Program with a Different One</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">exec(&quot;archive *.data&quot;)</span>
+<span class="cp">    or die &quot;Couldn&#39;t replace myself with archive: $!\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">exec(&quot;archive&quot;, &quot;accounting.data&quot;)</span>
+<span class="cp">    or die &quot;Couldn&#39;t replace myself with archive: $!\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">exec(&quot;archive accounting.data&quot;)</span>
+<span class="cp">    or die &quot;Couldn&#39;t replace myself with archive: $!\n&quot;;</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN860"
+>Reading or Writing to Another Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">$pid = open(README, &quot;program arguments |&quot;)  or die &quot;Couldn&#39;t fork: $!\n&quot;;</span>
+<span class="cp">while (&lt;README&gt;) {</span>
+<span class="cp">    # ...</span>
+<span class="cp">}</span>
+<span class="cp">close(README)                               or die &quot;Couldn&#39;t close: $!\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$pid = open(WRITEME, &quot;| program arguments&quot;) or die &quot;Couldn&#39;t fork: $!\n&quot;;</span>
+<span class="cp">print WRITEME &quot;data\n&quot;;</span>
+<span class="cp">close(WRITEME)                              or die &quot;Couldn&#39;t close: $!\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$pid = open(F, &quot;sleep 100000|&quot;);    # child goes to sleep</span>
+<span class="cp">close(F);                           # and the parent goes to lala land</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$pid = open(WRITEME, &quot;| program args&quot;);</span>
+<span class="cp">print WRITEME &quot;hello\n&quot;;            # program will get hello\n on STDIN</span>
+<span class="cp">close(WRITEME);                     # program will get EOF on STDIN</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$pager = $ENV{PAGER} || &#39;/usr/bin/less&#39;;  # XXX: might not exist</span>
+<span class="cp">open(STDOUT, &quot;| $pager&quot;);</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN863"
+>Filtering Your Own Output</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">head(100);</span>
+<span class="cp">while (&lt;&gt;) {</span>
+<span class="cp">    print;</span>
+<span class="cp">} </span>
+
+<span class="cp">sub head {</span>
+<span class="cp">    my $lines = shift || 20;</span>
+<span class="cp">    return if $pid = open(STDOUT, &quot;|-&quot;);</span>
+<span class="cp">    die &quot;cannot fork: $!&quot; unless defined $pid;</span>
+<span class="cp">    while (&lt;STDIN&gt;) {</span>
+<span class="cp">        print;</span>
+<span class="cp">        last unless --$lines ;</span>
+<span class="cp">    } </span>
+<span class="cp">    exit;</span>
+<span class="cp">} </span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">1: &gt; Welcome to Linux, version 2.0.33 on a i686</span>
+
+<span class="cp">2: &gt; </span>
+
+<span class="cp">3: &gt;     &quot;The software required `Windows 95 or better&#39;, </span>
+
+<span class="cp">4: &gt;      so I installed Linux.&quot;  </span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">&gt; 1: Welcome to Linux, Kernel version 2.0.33 on a i686</span>
+
+<span class="cp">&gt; 2: </span>
+
+<span class="cp">&gt; 3:     &quot;The software required `Windows 95 or better&#39;, </span>
+
+<span class="cp">&gt; 4:      so I installed Linux.&quot;  </span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch16/qnumcat</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl</span>
+<span class="cp"># qnumcat - demo additive output filters</span>
+
+<span class="cp">number();                   # push number filter on STDOUT</span>
+<span class="cp">quote();                    # push quote filter on STDOUT</span>
+
+<span class="cp">while (&lt;&gt;) {                # act like /bin/cat</span>
+<span class="cp">    print;</span>
+<span class="cp">} </span>
+
+<span class="cp">close STDOUT;               # tell kids we&#39;re done--politely</span>
+<span class="cp">exit;</span>
+
+<span class="cp">sub number {</span>
+<span class="cp">    my $pid;</span>
+<span class="cp">    return if $pid = open(STDOUT, &quot;|-&quot;);</span>
+<span class="cp">    die &quot;cannot fork: $!&quot; unless defined $pid;</span>
+<span class="cp">    while (&lt;STDIN&gt;) { printf &quot;%d: %s&quot;, $., $_ } </span>
+<span class="cp">    exit;</span>
+<span class="cp">} </span>
+
+<span class="cp">sub quote {</span>
+<span class="cp">    my $pid;</span>
+<span class="cp">    return if $pid = open(STDOUT, &quot;|-&quot;);</span>
+<span class="cp">    die &quot;cannot fork: $!&quot; unless defined $pid;</span>
+<span class="cp">    while (&lt;STDIN&gt;) { print &quot;&gt; $_&quot; } </span>
+<span class="cp">    exit;</span>
+<span class="cp">} </span>
+
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN866"
+>Preprocessing Input</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">@ARGV = map { /\.(gz|Z)$/ ? &quot;gzip -dc $_ |&quot; : $_  } @ARGV;</span>
+<span class="cp">while (&lt;&gt;) {</span>
+<span class="cp">    # .......</span>
+<span class="cp">} </span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">@ARGV = map { m#^\w+://# ? &quot;GET $_ |&quot; : $_ } @ARGV;</span>
+<span class="cp">while (&lt;&gt;) {</span>
+<span class="cp">    # .......</span>
+<span class="cp">} </span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$pwdinfo = `domainname` =~ /^(\(none\))?$/</span>
+<span class="cp">                ? &#39;&lt; /etc/passwd&#39;</span>
+<span class="cp">                : &#39;ypcat  passwd |&#39;;</span>
+
+<span class="cp">open(PWD, $pwdinfo)                 or die &quot;can&#39;t open $pwdinfo: $!&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">print &quot;File, please? &quot;;</span>
+<span class="cp">chomp($file = &lt;&gt;);</span>
+<span class="cp">open (FH, $file)                    or die &quot;can&#39;t open $file: $!&quot;;</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN869"
+>Reading STDERR from a Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">$output = `cmd 2&gt;&amp;1`;                          # with backticks</span>
+<span class="cp"># or</span>
+<span class="cp">$pid = open(PH, &quot;cmd 2&gt;&amp;1 |&quot;);                 # with an open pipe</span>
+<span class="cp">while (&lt;PH&gt;) { }                               # plus a read</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$output = `cmd 2&gt;/dev/null`;                   # with backticks</span>
+<span class="cp"># or</span>
+<span class="cp">$pid = open(PH, &quot;cmd 2&gt;/dev/null |&quot;);          # with an open pipe</span>
+<span class="cp">while (&lt;PH&gt;) { }                               # plus a read</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$output = `cmd 2&gt;&amp;1 1&gt;/dev/null`;              # with backticks</span>
+<span class="cp"># or</span>
+<span class="cp">$pid = open(PH, &quot;cmd 2&gt;&amp;1 1&gt;/dev/null |&quot;);     # with an open pipe</span>
+<span class="cp">while (&lt;PH&gt;) { }                               # plus a read</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$output = `cmd 3&gt;&amp;1 1&gt;&amp;2 2&gt;&amp;3 3&gt;&amp;-`;           # with backticks</span>
+<span class="cp"># or</span>
+<span class="cp">$pid = open(PH, &quot;cmd 3&gt;&amp;1 1&gt;&amp;2 2&gt;&amp;3 3&gt;&amp;-|&quot;);   # with an open pipe</span>
+<span class="cp">while (&lt;PH&gt;) { }                               # plus a read</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">system(&quot;program args 1&gt;/tmp/program.stdout 2&gt;/tmp/program.stderr&quot;);</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$output = `cmd 3&gt;&amp;1 1&gt;&amp;2 2&gt;&amp;3 3&gt;&amp;-`;        </span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$fd3 = $fd1;</span>
+<span class="cp">$fd1 = $fd2;</span>
+<span class="cp">$fd2 = $fd3;</span>
+<span class="cp">$fd3 = undef;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">system(&quot;prog args 1&gt;tmpfile 2&gt;&amp;1&quot;);</span>
+<span class="cp">system(&quot;prog args 2&gt;&amp;1 1&gt;tmpfile&quot;);</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># system (&quot;prog args 1&gt;tmpfile 2&gt;&amp;1&quot;);</span>
+<span class="cp">$fd1 = &quot;tmpfile&quot;;        # change stdout destination first</span>
+<span class="cp">$fd2 = $fd1;             # now point stderr there, too</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># system(&quot;prog args 2&gt;&amp;1 1&gt;tmpfile&quot;);</span>
+<span class="cp">$fd2 = $fd1;             # stderr same destination as stdout</span>
+<span class="cp">$fd1 = &quot;tmpfile&quot;;        # but change stdout destination </span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN872"
+>Controlling Input and Output of Another Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">use IPC::Open2;</span>
+
+<span class="cp">open2(*README, *WRITEME, $program);</span>
+<span class="cp">print WRITEME &quot;here&#39;s your input\n&quot;;</span>
+<span class="cp">$output = &lt;README&gt;;</span>
+<span class="cp">close(WRITEME);</span>
+<span class="cp">close(README);</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">open(DOUBLE_HANDLE, &quot;| program args |&quot;)     # WRONG</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">use IPC::Open2;</span>
+<span class="cp">use IO::Handle;</span>
+
+<span class="cp">($reader, $writer) = (IO::Handle-&gt;new, IO::Handle-&gt;new);</span>
+<span class="cp">open2($reader, $writer, $program);</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">eval {</span>
+<span class="cp">    open2($readme, $writeme, @program_and_arguments);</span>
+<span class="cp">};</span>
+<span class="cp">if ($@) { </span>
+<span class="cp">    if ($@ =~ /^open2/) {</span>
+<span class="cp">        warn &quot;open2 failed: $!\n$@\n&quot;;</span>
+<span class="cp">        return;</span>
+<span class="cp">    }</span>
+<span class="cp">    die;            # reraise unforeseen exception</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN875"
+>Controlling the Input, Output, and Error of Another Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">@all = `($cmd | sed -e &#39;s/^/stdout: /&#39; ) 2&gt;&amp;1`;</span>
+<span class="cp">for (@all) { push @{ s/stdout: // ? \@outlines : \@errlines }, $_ }</span>
+<span class="cp">print &quot;STDOUT:\n&quot;, @outlines, &quot;\n&quot;;</span>
+<span class="cp">print &quot;STDERR:\n&quot;, @errlines, &quot;\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">open3(*WRITEHANDLE, *READHANDLE, *ERRHANDLE, &quot;program to run&quot;);</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">use IPC::Open3;</span>
+<span class="cp">$pid = open3(*HIS_IN, *HIS_OUT, *HIS_ERR, $cmd);</span>
+<span class="cp">close(HIS_IN);  # give end of file to kid, or feed him</span>
+<span class="cp">@outlines = &lt;HIS_OUT&gt;;              # read till EOF</span>
+<span class="cp">@errlines = &lt;HIS_ERR&gt;;              # XXX: block potential if massive</span>
+<span class="cp">print &quot;STDOUT:\n&quot;, @outlines, &quot;\n&quot;;</span>
+<span class="cp">print &quot;STDERR:\n&quot;, @errlines, &quot;\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch16/cmd3sel</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl</span>
+<span class="cp"># cmd3sel - control all three of kids in, out, and error.</span>
+<span class="cp">use IPC::Open3;</span>
+<span class="cp">use IO::Select;</span>
+
+<span class="cp">$cmd = &quot;grep vt33 /none/such - /etc/termcap&quot;;</span>
+<span class="cp">$pid = open3(*CMD_IN, *CMD_OUT, *CMD_ERR, $cmd);</span>
+
+<span class="cp">$SIG{CHLD} = sub {</span>
+<span class="cp">    print &quot;REAPER: status $? on $pid\n&quot; if waitpid($pid, 0) &gt; 0</span>
+<span class="cp">};</span>
+
+<span class="cp">print CMD_IN &quot;This line has a vt33 lurking in it\n&quot;;</span>
+<span class="cp">close(CMD_IN);</span>
+
+<span class="cp">$selector = IO::Select-&gt;new();</span>
+<span class="cp">$selector-&gt;add(*CMD_ERR, *CMD_OUT);</span>
+
+<span class="cp">while (@ready = $selector-&gt;can_read) {</span>
+<span class="cp">    foreach $fh (@ready) {</span>
+<span class="cp">        if (fileno($fh) == fileno(CMD_ERR)) {print &quot;STDERR: &quot;, scalar &lt;CMD_ERR&gt;}</span>
+<span class="cp">        else                                {print &quot;STDOUT: &quot;, scalar &lt;CMD_OUT&gt;}</span>
+<span class="cp">        $selector-&gt;remove($fh) if eof($fh);</span>
+<span class="cp">    }</span>
+<span class="cp">}</span>
+
+<span class="cp">close(CMD_CUT);</span>
+<span class="cp">close(CMD_ERR);</span>
+
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN878"
+>Communicating Between Related Processes</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">pipe(READER, WRITER);</span>
+<span class="cp">if (fork) {</span>
+<span class="cp">    # run parent code, either reading or writing, not both</span>
+<span class="cp">} else {</span>
+<span class="cp">    # run child code, either reading or writing, not both</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">if ($pid = open(CHILD, &quot;|-&quot;)) {</span>
+<span class="cp">        # run parent code, writing to child</span>
+<span class="cp">} else {</span>
+<span class="cp">    die &quot;cannot fork: $!&quot; unless defined $pid;</span>
+<span class="cp">    # otherwise run child code here, reading from parent</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">if ($pid = open(CHILD, &quot;-|&quot;)) {</span>
+<span class="cp">    # run parent code, reading from child</span>
+<span class="cp">} else {</span>
+<span class="cp">    die &quot;cannot fork: $!&quot; unless defined $pid;</span>
+<span class="cp">    # otherwise run child code here, writing to parent</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch16/pipe1</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl -w</span>
+<span class="cp"># pipe1 - use pipe and fork so parent can send to child</span>
+
+<span class="cp">use IO::Handle;</span>
+<span class="cp">pipe(READER, WRITER);</span>
+<span class="cp">WRITER-&gt;autoflush(1);</span>
+
+<span class="cp">if ($pid = fork) {</span>
+<span class="cp">    close READER;</span>
+<span class="cp">    print WRITER &quot;Parent Pid $$ is sending this\n&quot;;</span>
+<span class="cp">    close WRITER;</span>
+<span class="cp">    waitpid($pid,0);</span>
+<span class="cp">} else {</span>
+<span class="cp">    die &quot;cannot fork: $!&quot; unless defined $pid;</span>
+<span class="cp">    close WRITER;</span>
+<span class="cp">    chomp($line = &lt;READER&gt;);</span>
+<span class="cp">    print &quot;Child Pid $$ just read this: `$line&#39;\n&quot;;</span>
+<span class="cp">    close READER;  # this will happen anyway</span>
+<span class="cp">    exit;</span>
+<span class="cp">}</span>
+
+<span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch16/pipe2</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl -w</span>
+<span class="cp"># pipe2 - use pipe and fork so child can send to parent</span>
+
+<span class="cp">use IO::Handle;</span>
+<span class="cp">pipe(READER, WRITER);</span>
+<span class="cp">WRITER-&gt;autoflush(1);</span>
+
+<span class="cp">if ($pid = fork) {</span>
+<span class="cp">    close WRITER;</span>
+<span class="cp">    chomp($line = &lt;READER&gt;);</span>
+<span class="cp">    print &quot;Parent Pid $$ just read this: `$line&#39;\n&quot;;</span>
+<span class="cp">    close READER;</span>
+<span class="cp">    waitpid($pid,0);</span>
+<span class="cp">} else {</span>
+<span class="cp">    die &quot;cannot fork: $!&quot; unless defined $pid;</span>
+<span class="cp">    close READER;</span>
+<span class="cp">    print WRITER &quot;Child Pid $$ is sending this\n&quot;;</span>
+<span class="cp">    close WRITER;  # this will happen anyway</span>
+<span class="cp">    exit;</span>
+<span class="cp">}</span>
+
+<span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch16/pipe3</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl -w</span>
+<span class="cp"># pipe3 - use forking open so parent can send to child</span>
+
+<span class="cp">use IO::Handle;</span>
+<span class="cp">if ($pid = open(CHILD, &quot;|-&quot;)) {</span>
+<span class="cp">    CHILD-&gt;autoflush(1);</span>
+<span class="cp">    print CHILD &quot;Parent Pid $$ is sending this\n&quot;;</span>
+<span class="cp">    close(CHILD);</span>
+<span class="cp">} else {</span>
+<span class="cp">    die &quot;cannot fork: $!&quot; unless defined $pid;</span>
+<span class="cp">    chomp($line = &lt;STDIN&gt;);</span>
+<span class="cp">    print &quot;Child Pid $$ just read this: `$line&#39;\n&quot;;</span>
+<span class="cp">    exit;</span>
+<span class="cp">}</span>
+
+<span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch16/pipe4</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl -w</span>
+<span class="cp"># pipe4 - use forking open so child can send to parent</span>
+
+<span class="cp">use IO::Handle;</span>
+<span class="cp">if ($pid = open(CHILD, &quot;-|&quot;)) {</span>
+<span class="cp">    chomp($line = &lt;CHILD&gt;);</span>
+<span class="cp">    print &quot;Parent Pid $$ just read this: `$line&#39;\n&quot;;</span>
+<span class="cp">    close(CHILD);</span>
+<span class="cp">} else {</span>
+<span class="cp">    die &quot;cannot fork: $!&quot; unless defined $pid;</span>
+<span class="cp">    STDOUT-&gt;autoflush(1);</span>
+<span class="cp">    print STDOUT &quot;Child Pid $$ is sending this\n&quot;;</span>
+<span class="cp">    exit;</span>
+<span class="cp">}</span>
+
+<span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch16/pipe5</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl -w</span>
+<span class="cp"># pipe5 - bidirectional communication using two pipe pairs</span>
+<span class="cp">#         designed for the socketpair-challenged</span>
+<span class="cp">use IO::Handle;</span>
+<span class="cp">pipe(PARENT_RDR, CHILD_WTR);</span>
+<span class="cp">pipe(CHILD_RDR,  PARENT_WTR);</span>
+<span class="cp">CHILD_WTR-&gt;autoflush(1);</span>
+<span class="cp">PARENT_WTR-&gt;autoflush(1);</span>
+
+<span class="cp">if ($pid = fork) {</span>
+<span class="cp">    close PARENT_RDR; close PARENT_WTR;</span>
+<span class="cp">    print CHILD_WTR &quot;Parent Pid $$ is sending this\n&quot;;</span>
+<span class="cp">    chomp($line = &lt;CHILD_RDR&gt;);</span>
+<span class="cp">    print &quot;Parent Pid $$ just read this: `$line&#39;\n&quot;;</span>
+<span class="cp">    close CHILD_RDR; close CHILD_WTR;</span>
+<span class="cp">    waitpid($pid,0);</span>
+<span class="cp">} else {</span>
+<span class="cp">    die &quot;cannot fork: $!&quot; unless defined $pid;</span>
+<span class="cp">    close CHILD_RDR; close CHILD_WTR;</span>
+<span class="cp">    chomp($line = &lt;PARENT_RDR&gt;);</span>
+<span class="cp">    print &quot;Child Pid $$ just read this: `$line&#39;\n&quot;;</span>
+<span class="cp">    print PARENT_WTR &quot;Child Pid $$ is sending this\n&quot;;</span>
+<span class="cp">    close PARENT_RDR; close PARENT_WTR;</span>
+<span class="cp">    exit;</span>
+<span class="cp">}</span>
+
+<span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch16/pipe6</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl -w</span>
+<span class="cp"># pipe6 - bidirectional communication using socketpair</span>
+<span class="cp">#   &quot;the best ones always go both ways&quot;</span>
+
+<span class="cp">use Socket;</span>
+<span class="cp">use IO::Handle;</span>
+<span class="cp"># We say AF_UNIX because although *_LOCAL is the</span>
+<span class="cp"># POSIX 1003.1g form of the constant, many machines</span>
+<span class="cp"># still don&#39;t have it.</span>
+<span class="cp">socketpair(CHILD, PARENT, AF_UNIX, SOCK_STREAM, PF_UNSPEC)</span>
+<span class="cp">    or  die &quot;socketpair: $!&quot;;</span>
+
+<span class="cp">CHILD-&gt;autoflush(1);</span>
+<span class="cp">PARENT-&gt;autoflush(1);</span>
+
+<span class="cp">if ($pid = fork) {</span>
+<span class="cp">    close PARENT;</span>
+<span class="cp">    print CHILD &quot;Parent Pid $$ is sending this\n&quot;;</span>
+<span class="cp">    chomp($line = &lt;CHILD&gt;);</span>
+<span class="cp">    print &quot;Parent Pid $$ just read this: `$line&#39;\n&quot;;</span>
+<span class="cp">    close CHILD;</span>
+<span class="cp">    waitpid($pid,0);</span>
+<span class="cp">} else {</span>
+<span class="cp">    die &quot;cannot fork: $!&quot; unless defined $pid;</span>
+<span class="cp">    close CHILD;</span>
+<span class="cp">    chomp($line = &lt;PARENT&gt;);</span>
+<span class="cp">    print &quot;Child Pid $$ just read this: `$line&#39;\n&quot;;</span>
+<span class="cp">    print PARENT &quot;Child Pid $$ is sending this\n&quot;;</span>
+<span class="cp">    close PARENT;</span>
+<span class="cp">    exit;</span>
+<span class="cp">}</span>
+
+<span class="cp">#-----------------------------</span>
+<span class="cp">socketpair(READER, WRITER, AF_UNIX, SOCK_STREAM, PF_UNSPEC);</span>
+<span class="cp">shutdown(READER, 1);        # no more writing for reader</span>
+<span class="cp">shutdown(WRITER, 0);        # no more reading for writer</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN881"
+>Making a Process Look Like a File with Named Pipes</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">#% mkfifo /path/to/named.pipe</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">open(FIFO, &quot;&lt; /path/to/named.pipe&quot;)         or die $!;</span>
+<span class="cp">while (&lt;FIFO&gt;) {</span>
+<span class="cp">    print &quot;Got: $_&quot;;</span>
+<span class="cp">}</span>
+<span class="cp">close(FIFO);</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">open(FIFO, &quot;&gt; /path/to/named.pipe&quot;)         or die $!;</span>
+<span class="cp">print FIFO &quot;Smoke this.\n&quot;;</span>
+<span class="cp">close(FIFO);</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#% mkfifo ~/.plan                    # isn&#39;t this everywhere yet?</span>
+<span class="cp">#% mknod  ~/.plan p                  # in case you don&#39;t have mkfifo</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch16/dateplan</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl -w</span>
+<span class="cp"># dateplan - place current date and time in .plan file</span>
+<span class="cp">while (1) {</span>
+<span class="cp">    open(FIFO, &quot;&gt; $ENV{HOME}/.plan&quot;)</span>
+<span class="cp">        or die &quot;Couldn&#39;t open $ENV{HOME}/.plan for writing: $!\n&quot;;</span>
+<span class="cp">    print FIFO &quot;The current time is &quot;, scalar(localtime), &quot;\n&quot;;</span>
+<span class="cp">    close FIFO;</span>
+<span class="cp">    sleep 1;</span>
+<span class="cp">}</span>
+
+<span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch16/fifolog</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl -w</span>
+<span class="cp"># fifolog - read and record log msgs from fifo</span>
+
+<span class="cp">use IO::File;</span>
+
+<span class="cp">$SIG{ALRM} = sub { close(FIFO) };   # move on to the next queued process</span>
+
+<span class="cp">while (1) {</span>
+<span class="cp">    alarm(0);                       # turn off alarm for blocking open</span>
+<span class="cp">    open(FIFO, &quot;&lt; /tmp/log&quot;)        or die &quot;Can&#39;t open /tmp/log : $!\n&quot;;</span>
+<span class="cp">    alarm(1);                       # you have 1 second to log</span>
+
+<span class="cp">    $service = &lt;FIFO&gt;;</span>
+<span class="cp">    next unless defined $service;   # interrupted or nothing logged</span>
+<span class="cp">    chomp $service;</span>
+
+<span class="cp">    $message = &lt;FIFO&gt;;</span>
+<span class="cp">    next unless defined $message;   # interrupted or nothing logged</span>
+<span class="cp">    chomp $message;</span>
+
+<span class="cp">    alarm(0);                       # turn off alarms for message processing</span>
+
+<span class="cp">    if ($service eq &quot;http&quot;) {</span>
+<span class="cp">        # ignoring</span>
+<span class="cp">    } elsif ($service eq &quot;login&quot;) {</span>
+<span class="cp">        # log to /var/log/login</span>
+<span class="cp">        if ( open(LOG, &quot;&gt;&gt; /tmp/login&quot;) ) {</span>
+<span class="cp">            print LOG scalar(localtime), &quot; $service $message\n&quot;;</span>
+<span class="cp">            close(LOG);</span>
+<span class="cp">        } else {</span>
+<span class="cp">            warn &quot;Couldn&#39;t log $service $message to /var/log/login : $!\n&quot;;</span>
+<span class="cp">        }</span>
+<span class="cp">    }</span>
+<span class="cp">}</span>
+
+<span class="cp">#-----------------------------</span>
+<span class="cp">use POSIX qw(:errno_h);</span>
+
+<span class="cp">$SIG{PIPE} = &#39;IGNORE&#39;;</span>
+<span class="cp"># ...</span>
+<span class="cp">$status = print FIFO &quot;Are you there?\n&quot;;</span>
+<span class="cp">if (!$status &amp;&amp; $! == EPIPE) {</span>
+<span class="cp">    warn &quot;My reader has forsaken me!\n&quot;;</span>
+<span class="cp">    next;</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">use POSIX;</span>
+<span class="cp">print _POSIX_PIPE_BUF, &quot;\n&quot;;</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN884"
+>Sharing Variables in Different Processes</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch16/sharetest</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl </span>
+<span class="cp"># sharetest - test shared variables across forks</span>
+<span class="cp">use IPC::Shareable;</span>
+
+<span class="cp">$handle = tie $buffer, &#39;IPC::Shareable&#39;, undef, { destroy =&gt; 1 };</span>
+<span class="cp">$SIG{INT} = sub { die &quot;$$ dying\n&quot; };</span>
+
+<span class="cp">for (1 .. 10) { </span>
+<span class="cp">    unless ($child = fork) {        # i&#39;m the child</span>
+<span class="cp">        die &quot;cannot fork: $!&quot; unless defined $child;</span>
+<span class="cp">        squabble();</span>
+<span class="cp">        exit;</span>
+<span class="cp">    } </span>
+<span class="cp">    push @kids, $child;  # in case we care about their pids</span>
+<span class="cp">}</span>
+
+<span class="cp">while (1) {</span>
+<span class="cp">    print &quot;Buffer is $buffer\n&quot;;</span>
+<span class="cp">    sleep 1;</span>
+<span class="cp">} </span>
+<span class="cp">die &quot;Not reached&quot;;</span>
+
+<span class="cp">sub squabble {</span>
+<span class="cp">    my $i = 0;</span>
+<span class="cp">    while (1) { </span>
+<span class="cp">        next if $buffer =~ /^$$\b/o;  </span>
+<span class="cp">        $handle-&gt;shlock();</span>
+<span class="cp">        $i++;</span>
+<span class="cp">        $buffer = &quot;$$ $i&quot;;</span>
+<span class="cp">        $handle-&gt;shunlock();</span>
+<span class="cp">    }</span>
+<span class="cp">} </span>
+
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN887"
+>Listing Available Signals</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">#% kill -l</span>
+<span class="cp">#HUP INT QUIT ILL TRAP ABRT BUS FPE KILL USR1 SEGV USR2 PIPE </span>
+<span class="cp">#</span>
+<span class="cp">#ALRM TERM CHLD CONT STOP TSTP TTIN TTOU URG XCPU XFSZ VTALRM </span>
+<span class="cp">#</span>
+<span class="cp">#PROF WINCH POLL PWR</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#% perl -e &#39;print join(&quot; &quot;, keys %SIG), &quot;\n&quot;&#39;</span>
+<span class="cp">#XCPU ILL QUIT STOP EMT ABRT BUS USR1 XFSZ TSTP INT IOT USR2 INFO TTOU</span>
+<span class="cp">#</span>
+<span class="cp">#ALRM KILL HUP URG PIPE CONT SEGV VTALRM PROF TRAP IO TERM WINCH CHLD</span>
+<span class="cp">#</span>
+<span class="cp">#FPE TTIN SYS</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#% perl -MConfig -e &#39;print $Config{sig_name}&#39;</span>
+<span class="cp">#ZERO HUP INT QUIT ILL TRAP ABRT EMT FPE KILL BUS SEGV SYS PIPE ALRM</span>
+<span class="cp">#</span>
+<span class="cp">#TERM URG STOP TSTP CONT CHLD TTIN TTOU IO XCPU XFSZ VTALRM PROF WINCH</span>
+<span class="cp">#</span>
+<span class="cp">#INFO USR1 USR2 IOT</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">use Config;</span>
+<span class="cp">defined $Config{sig_name} or die &quot;No sigs?&quot;;</span>
+<span class="cp">$i = 0;                     # Config prepends fake 0 signal called &quot;ZERO&quot;.</span>
+<span class="cp">foreach $name (split(&#39; &#39;, $Config{sig_name})) {</span>
+<span class="cp">    $signo{$name} = $i;</span>
+<span class="cp">    $signame[$i] = $name;</span>
+<span class="cp">    $i++;</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN890"
+>Sending a Signal</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">kill  9     =&gt; $pid;                    # send $pid a signal 9</span>
+<span class="cp">kill -1     =&gt; $pgrp;                   # send whole job a signal 1</span>
+<span class="cp">kill  USR1  =&gt; $$;                      # send myself a SIGUSR1</span>
+<span class="cp">kill  HUP   =&gt; @pids;                   # send a SIGHUP to processes in @pids</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">use POSIX qw(:errno_h);</span>
+
+<span class="cp">if (kill 0 =&gt; $minion) {</span>
+<span class="cp">    print &quot;$minion is alive!\n&quot;;</span>
+<span class="cp">} elsif ($! == EPERM) {             # changed uid</span>
+<span class="cp">    print &quot;$minion has escaped my control!\n&quot;;</span>
+<span class="cp">} elsif ($! == ESRCH) {</span>
+<span class="cp">    print &quot;$minion is deceased.\n&quot;;  # or zombied</span>
+<span class="cp">} else {</span>
+<span class="cp">    warn &quot;Odd; I couldn&#39;t check on the status of $minion: $!\n&quot;;</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN893"
+>Installing a Signal Handler</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">$SIG{QUIT} = \&amp;got_sig_quit;     # call &amp;got_sig_quit for every SIGQUIT </span>
+<span class="cp">$SIG{PIPE} = &#39;got_sig_pipe&#39;;     # call main::got_sig_pipe for every SIGPIPE </span>
+<span class="cp">$SIG{INT}  = sub { $ouch++ };    # increment $ouch for every SIGINT</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$SIG{INT} = &#39;IGNORE&#39;;            # ignore the signal INT</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$SIG{STOP} = &#39;DEFAULT&#39;;          # restore default STOP signal handling</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN896"
+>Temporarily Overriding a Signal Handler</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp"># the signal handler</span>
+<span class="cp">sub ding {</span>
+<span class="cp">    $SIG{INT} = \&amp;ding;</span>
+<span class="cp">    warn &quot;\aEnter your name!\n&quot;;</span>
+<span class="cp">}</span>
+
+<span class="cp"># prompt for name, overriding SIGINT</span>
+<span class="cp">sub get_name {</span>
+<span class="cp">    local $SIG{INT} = \&amp;ding;</span>
+<span class="cp">    my $name;</span>
+
+<span class="cp">    print &quot;Kindly Stranger, please enter your name: &quot;;</span>
+<span class="cp">    chomp( $name = &lt;&gt; );</span>
+<span class="cp">    return $name;</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN899"
+>Writing a Signal Handler</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">$SIG{INT} = \&amp;got_int;</span>
+<span class="cp">sub got_int {</span>
+<span class="cp">    $SIG{INT} = \&amp;got_int;          # but not for SIGCHLD!</span>
+<span class="cp">    # ...</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">my $interrupted = 0;</span>
+
+<span class="cp">sub got_int {</span>
+<span class="cp">    $interrupted = 1;</span>
+<span class="cp">    $SIG{INT} = &#39;DEFAULT&#39;;          # or &#39;IGNORE&#39;</span>
+<span class="cp">    die;</span>
+<span class="cp">}</span>
+
+<span class="cp">eval {</span>
+<span class="cp">    $SIG{INT} = \&amp;got_int;</span>
+<span class="cp">    # ... long-running code that you don&#39;t want to restart</span>
+<span class="cp">};</span>
+
+<span class="cp">if ($interrupted) {</span>
+<span class="cp">    # deal with the signal</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$SIG{INT} = \&amp;catcher;</span>
+<span class="cp">sub catcher {</span>
+<span class="cp">    $SIG{INT} = \&amp;catcher;</span>
+<span class="cp">    # ...</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">use Config;</span>
+<span class="cp">print &quot;Hurrah!\n&quot; if $Config{d_sigaction};</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#% egrep &#39;S[AV]_(RESTART|INTERRUPT)&#39; /usr/include/*/signal.h</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN902"
+>Catching Ctrl-C</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">$SIG{INT} = &#39;IGNORE&#39;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$SIG{INT} = \&amp;tsktsk;</span>
+
+<span class="cp">sub tsktsk {</span>
+<span class="cp">    $SIG{INT} = \&amp;tsktsk;           # See ``Writing A Signal Handler&#39;&#39;</span>
+<span class="cp">    warn &quot;\aThe long habit of living indisposeth us for dying.\n&quot;;</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#% stty -a</span>
+<span class="cp">#speed 9600 baud; 38 rows; 80 columns;</span>
+<span class="cp">#</span>
+<span class="cp">#lflags: icanon isig iexten echo echoe -echok echoke -echonl echoctl</span>
+<span class="cp">#</span>
+<span class="cp">#	-echoprt -altwerase -noflsh -tostop -flusho pendin -nokerninfo</span>
+<span class="cp">#</span>
+<span class="cp">#	-extproc</span>
+<span class="cp">#</span>
+<span class="cp">#iflags: -istrip icrnl -inlcr -igncr ixon -ixoff ixany imaxbel -ignbrk</span>
+<span class="cp">#</span>
+<span class="cp">#	 brkint -inpck -ignpar -parmrk</span>
+<span class="cp">#</span>
+<span class="cp">#oflags: opost onlcr oxtabs</span>
+<span class="cp">#</span>
+<span class="cp">#cflags: cread cs8 -parenb -parodd hupcl -clocal -cstopb -crtscts -dsrflow</span>
+<span class="cp">#</span>
+<span class="cp">#	 -dtrflow -mdmbuf</span>
+<span class="cp">#</span>
+<span class="cp">#cchars: discard = ^O; dsusp = ^Y; eof = ^D; eol = &lt;undef;&gt;</span>
+<span class="cp">#</span>
+<span class="cp">#	 eol2 = &lt;undef; erase = ^H; intr = ^C; kill = ^U; lnext = ^V;&gt;</span>
+<span class="cp">#</span>
+<span class="cp">#	 min = 1; quit = ^\; reprint = ^R; start = ^Q; status = &lt;undef;&gt;</span>
+<span class="cp">#</span>
+<span class="cp">#	 stop = ^S; susp = ^Z; time = 0; werase = ^W;</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN905"
+>Avoiding Zombie Processes</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">$SIG{CHLD} = &#39;IGNORE&#39;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">use POSIX &quot;:sys_wait_h&quot;;</span>
+
+<span class="cp">$SIG{CHLD} = \&amp;REAPER;</span>
+<span class="cp">sub REAPER {</span>
+<span class="cp">    my $stiff;</span>
+<span class="cp">    while (($stiff = waitpid(-1, &amp;WNOHANG)) &gt; 0) {</span>
+<span class="cp">        # do something with $stiff if you want</span>
+<span class="cp">    }</span>
+<span class="cp">    $SIG{CHLD} = \&amp;REAPER;                  # install *after* calling waitpid</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$exit_value  = $? &gt;&gt; 8;</span>
+<span class="cp">$signal_num  = $? &amp; 127;</span>
+<span class="cp">$dumped_core = $? &amp; 128;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">use POSIX qw(:signal_h :errno_h :sys_wait_h);</span>
+
+<span class="cp">$SIG{CHLD} = \&amp;REAPER;</span>
+<span class="cp">sub REAPER {</span>
+<span class="cp">    my $pid;</span>
+
+<span class="cp">    $pid = waitpid(-1, &amp;WNOHANG);</span>
+
+<span class="cp">    if ($pid == -1) {</span>
+<span class="cp">        # no child waiting.  Ignore it.</span>
+<span class="cp">    } elsif (WIFEXITED($?)) {</span>
+<span class="cp">        print &quot;Process $pid exited.\n&quot;;</span>
+<span class="cp">    } else {</span>
+<span class="cp">        print &quot;False alarm on $pid.\n&quot;;</span>
+<span class="cp">    }</span>
+<span class="cp">    $SIG{CHLD} = \&amp;REAPER;          # in case of unreliable signals</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">use Config;</span>
+<span class="cp">$has_nonblocking = $Config{d_waitpid} eq &quot;define&quot; ||</span>
+<span class="cp">                   $Config{d_wait4}   eq &quot;define&quot;;</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN908"
+>Blocking Signals</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">use POSIX qw(:signal_h);</span>
+
+<span class="cp">$sigset = POSIX::SigSet-&gt;new(SIGINT);    # define the signals to block</span>
+<span class="cp">$old_sigset = POSIX::SigSet-&gt;new;        # where the old sigmask will be kept</span>
+
+<span class="cp">unless (defined sigprocmask(SIG_BLOCK, $sigset, $old_sigset)) {</span>
+<span class="cp">    die &quot;Could not block SIGINT\n&quot;;</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">unless (defined sigprocmask(SIG_UNBLOCK, $old_sigset)) {</span>
+<span class="cp">    die &quot;Could not unblock SIGINT\n&quot;;</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">use POSIX qw(:signal_h);</span>
+
+<span class="cp">$sigset = POSIX::SigSet-&gt;new( SIGINT, SIGKILL );</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN911"
+>Timing Out an Operation</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">$SIG{ALRM} = sub { die &quot;timeout&quot; };</span>
+
+<span class="cp">eval {</span>
+<span class="cp">    alarm(3600);</span>
+<span class="cp">    # long-time operations here</span>
+<span class="cp">    alarm(0);</span>
+<span class="cp">};</span>
+
+<span class="cp">if ($@) {</span>
+<span class="cp">    if ($@ =~ /timeout/) {</span>
+<span class="cp">                            # timed out; do what you will here</span>
+<span class="cp">    } else {</span>
+<span class="cp">        alarm(0);           # clear the still-pending alarm</span>
+<span class="cp">        die;                # propagate unexpected exception</span>
+<span class="cp">    } </span>
+<span class="cp">} </span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN914"
+>Program: sigrand</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">#Make is like Pascal: everybody likes it, so they go in and change it.</span>
+<span class="cp">#					     --Dennis Ritchie</span>
+<span class="cp">#%%</span>
+<span class="cp">#I eschew embedded capital letters in names; to my prose-oriented eyes,</span>
+<span class="cp">#they are too awkward to read comfortably. They jangle like bad typography.</span>
+<span class="cp">#					     --Rob Pike</span>
+<span class="cp">#%%</span>
+<span class="cp">#God made the integers; all else is the work of Man.  </span>
+<span class="cp">#					     --Kronecker</span>
+<span class="cp">#%%</span>
+<span class="cp">#I&#39;d rather have :rofix than const.          --Dennis Ritchie</span>
+<span class="cp">#%%</span>
+<span class="cp">#If you want to program in C, program in C.  It&#39;s a nice language.</span>
+<span class="cp">#I use it occasionally...   :-)              --Larry Wall</span>
+<span class="cp">#%%</span>
+<span class="cp">#Twisted cleverness is my only skill as a programmer.       </span>
+<span class="cp">#					     --Elizabeth Zwicky</span>
+<span class="cp">#%%</span>
+<span class="cp">#Basically, avoid comments. If your code needs a comment to be understood,</span>
+<span class="cp">#it would be better to rewrite it so it&#39;s easier to understand.  </span>
+<span class="cp">#					     --Rob Pike</span>
+<span class="cp">#%%</span>
+<span class="cp">#Comments on data are usually much more helpful than on algorithms.  </span>
+<span class="cp">#					     --Rob Pike</span>
+<span class="cp">#%% </span>
+<span class="cp">#Programs that write programs are the happiest programs in the world.</span>
+<span class="cp">#					     --Andrew Hume </span>
+<span class="cp">#%%</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch16/sigrand</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl -w</span>
+<span class="cp"># sigrand - supply random fortunes for .signature file</span>
+
+<span class="cp">use strict;</span>
+
+<span class="cp"># config section variables</span>
+<span class="cp">use vars qw( $NG_IS_DIR $MKNOD $FULLNAME $FIFO $ART $NEWS $SIGS $SEMA</span>
+<span class="cp">    	        $GLOBRAND $NAME );</span>
+
+<span class="cp"># globals</span>
+<span class="cp">use vars qw( $Home $Fortune_Path @Pwd );</span>
+
+<span class="cp">################################################################</span>
+<span class="cp"># begin configuration section </span>
+<span class="cp"># should really read from ~/.sigrandrc</span>
+
+<span class="cp">gethome();</span>
+
+<span class="cp"># for rec/humor/funny instead of rec.humor.funny</span>
+<span class="cp">$NG_IS_DIR      = 1;    </span>
+
+<span class="cp">$MKNOD          = &quot;/bin/mknod&quot;;</span>
+<span class="cp">$FULLNAME       = &quot;$Home/.fullname&quot;;</span>
+<span class="cp">$FIFO           = &quot;$Home/.signature&quot;;</span>
+<span class="cp">$ART            = &quot;$Home/.article&quot;;</span>
+<span class="cp">$NEWS           = &quot;$Home/News&quot;;</span>
+<span class="cp">$SIGS           = &quot;$NEWS/SIGNATURES&quot;;</span>
+<span class="cp">$SEMA           = &quot;$Home/.sigrandpid&quot;;</span>
+<span class="cp">$GLOBRAND       = 1/4;  # chance to use global sigs anyway</span>
+
+<span class="cp"># $NAME should be (1) left undef to have program guess</span>
+<span class="cp"># read address for signature maybe looking in ~/.fullname,</span>
+<span class="cp"># (2) set to an exact address, or (3) set to empty string</span>
+<span class="cp"># to be omitted entirely.</span>
+
+<span class="cp">$NAME           = &#39;&#39;;           # means no name used</span>
+<span class="cp">## $NAME        = &quot;me\@home.org\n&quot;;     </span>
+
+<span class="cp"># end configuration section -- HOME and FORTUNE get autoconf&#39;d</span>
+<span class="cp">################################################################</span>
+
+<span class="cp">setup();                # pull in inits</span>
+<span class="cp">justme();               # make sure program not already running</span>
+<span class="cp">fork &amp;&amp; exit;           # background ourself and go away</span>
+
+<span class="cp">open (SEMA, &quot;&gt; $SEMA&quot;)      	or die &quot;can&#39;t write $SEMA: $!&quot;;</span>
+<span class="cp">print SEMA &quot;$$\n&quot;;</span>
+<span class="cp">close(SEMA)                 	or die &quot;can&#39;t close $SEMA: $!&quot;;</span>
+
+<span class="cp"># now loop forever, writing a signature into the </span>
+<span class="cp"># fifo file.  if you don&#39;t have real fifos, change</span>
+<span class="cp"># sleep time at bottom of loop to like 10 to update</span>
+<span class="cp"># only every 10 seconds.</span>
+<span class="cp">for (;;) {</span>
+<span class="cp">    open (FIFO, &quot;&gt; $FIFO&quot;)		or die &quot;can&#39;t write $FIFO: $!&quot;;</span>
+<span class="cp">    my $sig = pick_quote();</span>
+<span class="cp">    for ($sig) { </span>
+<span class="cp">        s/^((:?[^\n]*\n){4}).*$/$1/s;   # trunc to 4 lines</span>
+<span class="cp">        s/^(.{1,80}).*? *$/$1/gm;       # trunc long lines</span>
+<span class="cp">    }</span>
+<span class="cp">    # print sig, with name if present, padded to four lines</span>
+<span class="cp">    if ($NAME) { </span>
+<span class="cp">        print FIFO $NAME, &quot;\n&quot; x (3 - ($sig =~ tr/\n//)), $sig;</span>
+<span class="cp">    } else {</span>
+<span class="cp">        print FIFO $sig;</span>
+<span class="cp">    }</span>
+<span class="cp">    close FIFO;</span>
+
+<span class="cp">    # Without a microsleep, the reading process doesn&#39;t finish before</span>
+<span class="cp">    # the writer tries to open it again, which since the reader exists,</span>
+<span class="cp">    # succeeds.  They end up with multiple signatures.  Sleep a tiny bit</span>
+<span class="cp">    # between opens to give readers a chance to finish reading and close</span>
+<span class="cp">    # our pipe so we can block when opening it the next time.</span>
+
+<span class="cp">    select(undef, undef, undef, 0.2);   # sleep 1/5 second</span>
+<span class="cp">}</span>
+<span class="cp">die &quot;XXX: NOT REACHED&quot;;         # you can&#39;t get here from anywhere</span>
+
+<span class="cp">################################################################</span>
+
+<span class="cp"># Ignore SIGPIPE in case someone opens us up and then closes the fifo</span>
+<span class="cp"># without reading it; look in a .fullname file for their login name.</span>
+<span class="cp"># Try to determine the fully qualified hostname.  Look our for silly</span>
+<span class="cp"># ampersands in passwd entries.  Make sure we have signatures or fortunes.</span>
+<span class="cp"># Build a fifo if we need to.</span>
+
+<span class="cp">sub setup {</span>
+<span class="cp">    $SIG{PIPE} = &#39;IGNORE&#39;;              </span>
+
+<span class="cp">    unless (defined $NAME) {            # if $NAME undef in config</span>
+<span class="cp">        if (-e $FULLNAME) {</span>
+<span class="cp">    	        $NAME = `cat $FULLNAME`;</span>
+<span class="cp">    	        die &quot;$FULLNAME should contain only 1 line, aborting&quot; </span>
+<span class="cp">    	            if $NAME =~ tr/\n// &gt; 1;</span>
+<span class="cp">        } else {</span>
+<span class="cp">    	        my($user, $host);</span>
+<span class="cp">    	        chop($host = `hostname`);</span>
+<span class="cp">    	        ($host) = gethostbyname($host) unless $host =~ /\./;</span>
+<span class="cp">    	        $user = $ENV{USER} || $ENV{LOGNAME} || $Pwd[0]</span>
+<span class="cp">    	            or die &quot;intruder alert&quot;;</span>
+<span class="cp">    	        ($NAME = $Pwd[6]) =~ s/,.*//;</span>
+<span class="cp">    	        $NAME =~ s/&amp;/\u\L$user/g; # can&#39;t believe some folks still do this</span>
+<span class="cp">    	        $NAME = &quot;\t$NAME\t$user\@$host\n&quot;;</span>
+<span class="cp">        } </span>
+<span class="cp">    }</span>
+
+<span class="cp">    check_fortunes() if !-e $SIGS;</span>
+
+<span class="cp">    unless (-p $FIFO) {         # -p checks whether it&#39;s a named pipe</span>
+<span class="cp">        if (!-e _) {</span>
+<span class="cp">    	         system(&quot;$MKNOD $FIFO p&quot;) &amp;&amp; die &quot;can&#39;t mknod $FIFO&quot;;</span>
+<span class="cp">    	         warn &quot;created $FIFO as a named pipe\n&quot;;</span>
+<span class="cp">        } else {</span>
+<span class="cp">    	         die &quot;$0: won&#39;t overwrite file .signature\n&quot;;</span>
+<span class="cp">        } </span>
+<span class="cp">    } else {</span>
+<span class="cp">        warn &quot;$0: using existing named pipe $FIFO\n&quot;;</span>
+<span class="cp">    } </span>
+
+<span class="cp">    # get a good random number seed.  not needed if 5.004 or better.</span>
+<span class="cp">    srand(time() ^ ($$ + ($$ &lt;&lt; 15)));</span>
+<span class="cp">}</span>
+
+<span class="cp"># choose a random signature</span>
+<span class="cp">sub pick_quote {</span>
+<span class="cp">    my $sigfile = signame();</span>
+<span class="cp">    if (!-e $sigfile) {</span>
+<span class="cp">        return fortune();</span>
+<span class="cp">    } </span>
+<span class="cp">    open (SIGS, &quot;&lt; $sigfile&quot; )		or die &quot;can&#39;t open $sigfile&quot;;</span>
+<span class="cp">    local $/  = &quot;%%\n&quot;;</span>
+<span class="cp">    local $_;</span>
+<span class="cp">    my $quip;</span>
+<span class="cp">    rand($.) &lt; 1 &amp;&amp; ($quip = $_) while &lt;SIGS&gt;;</span>
+<span class="cp">    close SIGS;</span>
+<span class="cp">    chomp $quip;</span>
+<span class="cp">    return $quip || &quot;ENOSIG: This signature file is empty.\n&quot;;</span>
+<span class="cp">} </span>
+
+<span class="cp"># See whether ~/.article contains a Newsgroups line.  if so, see the first</span>
+<span class="cp"># group posted to and find out whether it has a dedicated set of fortunes.</span>
+<span class="cp"># otherwise return the global one.  also, return the global one randomly</span>
+<span class="cp"># now and then to spice up the sigs.</span>
+<span class="cp">sub signame {</span>
+<span class="cp">     (rand(1.0) &gt; ($GLOBRAND) &amp;&amp; open ART) || return $SIGS;   </span>
+<span class="cp">     local $/  = &#39;&#39;;</span>
+<span class="cp">     local $_  = &lt;ART&gt;;</span>
+<span class="cp">     my($ng)   = /Newsgroups:\s*([^,\s]*)/;</span>
+<span class="cp">     $ng =~ s!\.!/!g if $NG_IS_DIR;     # if rn -/,  or SAVEDIR=%p/%c</span>
+<span class="cp">     $ng = &quot;$NEWS/$ng/SIGNATURES&quot;;</span>
+<span class="cp">     return -f $ng ? $ng : $SIGS;</span>
+<span class="cp">} </span>
+
+<span class="cp"># Call the fortune program with -s for short flag until</span>
+<span class="cp"># we get a small enough fortune or ask too much.</span>
+<span class="cp">sub fortune {</span>
+<span class="cp">   local $_;</span>
+<span class="cp">   my $tries = 0;</span>
+<span class="cp">   do { </span>
+<span class="cp">       $_ = `$Fortune_Path -s`; </span>
+<span class="cp">   } until tr/\n// &lt; 5 || $tries++ &gt; 20;</span>
+<span class="cp">   s/^/ /mg;</span>
+<span class="cp">   $_ || &quot; SIGRAND: deliver random signals to all processes.\n&quot;;</span>
+<span class="cp">} </span>
+
+<span class="cp"># Make sure there&#39;s a fortune program.  Search </span>
+<span class="cp"># for its full path and set global to that.</span>
+<span class="cp">sub check_fortunes {</span>
+<span class="cp">    return if $Fortune_Path;    # already set</span>
+<span class="cp">    for my $dir (split(/:/, $ENV{PATH}), &#39;/usr/games&#39;) {</span>
+<span class="cp">        return if -x ($Fortune_Path = &quot;$dir/fortune&quot;);</span>
+<span class="cp">    } </span>
+<span class="cp">    die &quot;Need either $SIGS or a fortune program, bailing out&quot;;</span>
+<span class="cp">} </span>
+
+<span class="cp"># figure out our directory</span>
+<span class="cp">sub gethome {</span>
+<span class="cp">    @Pwd = getpwuid($&lt;);</span>
+<span class="cp">    $Home = $ENV{HOME} || $ENV{LOGDIR} || $Pwd[7]</span>
+<span class="cp">    		   or die &quot;no home directory for user $&lt;&quot;;</span>
+<span class="cp">}</span>
+
+<span class="cp"># &quot;There can be only one.&quot;  --the Highlander</span>
+<span class="cp">sub justme {</span>
+<span class="cp">    if (open SEMA) {</span>
+<span class="cp">        my $pid;</span>
+<span class="cp">        chop($pid = &lt;SEMA&gt;);</span>
+<span class="cp">        kill(0, $pid)		and die &quot;$0 already running (pid $pid), bailing out&quot;;</span>
+<span class="cp">        close SEMA;</span>
+<span class="cp">    } </span>
+<span class="cp">} </span>
+
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="userinterfaces.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="sockets.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>User Interfaces</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Sockets</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

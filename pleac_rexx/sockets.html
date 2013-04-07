@@ -1,0 +1,1070 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Sockets</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-REXX "
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Process Management and Communication"
+HREF="processmanagementetc.html"><LINK
+REL="NEXT"
+TITLE="Internet Services"
+HREF="internetservices.html"></HEAD
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-REXX </TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="processmanagementetc.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="internetservices.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="SOCKETS"
+>17. Sockets</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN919"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* REXX socket support is via third-party library. The one utilised   */
+/* in this chapter is the RxSock Library [see Appendix for details],  */
+/* an implementation which, because it is so widely available, and on */
+/* so many different platforms, can be taken as being the standard    */
+/* [albeit a 'defacto' one] approach to socket handling. Its use      */
+/* [on most platforms] assumes the following prologue code is used:   */
+/*                                                                    */
+/*     call rxFuncAdd 'sockLoadFuncs', 'rxSock', 'SockLoadFuncs'      */
+/*     call sockLoadFuncs                                             */
+/*                                                                    */
+/* and the following epilogue code [usually at program's end]:        */
+/*                                                                    */
+/*     call sockDropFuncs                                             */
+/*                                                                    */
+/* Please note that the name of the library may be case-sensitive in  */
+/* some environments e.g. in *NIX / Linux environments the name may   */
+/* need to be changed to, 'rxsock' to match part of the file name,    */
+/* 'librxsock.so'. Other RxSock library issues are discussed below.   */
+/*                                                                    */
+/* Like similar libraries in other languages, the RxSock library is   */
+/* basically a set of routines that map to the TCP/IP Socket API [i.e */
+/* they are 'wrappers' around  C functions] that is available on prob-*/
+/* ably every Internet-connected computer. Using this library will be */
+/* quite straightforward for those already familiar with this API. For*/
+/* others it should be no more difficult than learning file handling  */
+/* and related techniques. The following tutorials may be of use:     */
+/*                                                                    */
+/* * http://www.frostbytes.com/~jimf/papers/sockets/winsock.html      */
+/* * http://wi.wu-wien.ac.at/rgf/rexx/tmp/socktut.pdf                 */
+/*                                                                    */
+/* The RxSock library is notable for being easy to use partly because */
+/* there are fewer data conversion issues with which to contend. For  */
+/* example an issue needing handling in even high-level languages like*/
+/* Perl and Python is the conversion of a host address in a 'packed'  */
+/* format [i.e. 32 bit binary value] to / from human-readable string. */
+/* In REXX both hostnames and IP addresses are represented in string  */
+/* form [from the programmer's perspective], thus eliminating one area*/
+/* of potential difficulty.                                           */
+/*                                                                    */
+/* RxSock library issues:                                             */
+/*                                                                    */
+/* * Behavioural and syntax variations among implementations:         */
+/*   - Not all socket options universally applicable                  */
+/*   - Not all socket routines work on all platforms                  */
+/*   - Protocal inconsistancies such as UDP working well in one imple-*/
+/*     mentation but not on another                                   */
+/*   - Routine name/parameter differences                             */
+/*                                                                    */
+/* * Minimal and/or inconsistent raw socket support. Whilst &quot;SOCK_RAW&quot;*/
+/*   type sockets may be specified in 'sockSocket' calls, not all     */
+/*   implementations create such sockets; some simply return an error */
+/*   value in place of a socket. Also, there is no support for either */
+/*   IPPROTO_RAW or IPPROTO_ICMP protocols, thus, effectively, there  */
+/*   really is *no* raw socket support                                */
+/*                                                                    */
+/* * Error handling differs between implementations. Some update the  */
+/*   'errNo' variable, whilst others implement a 'sockErrNo' variable;*/
+/*   safest to rely on checking for negative return value as an error */
+/*   indicator                                                        */
+/*                                                                    */
+/* It is probably safe to say that the RxSock library is suitable for */
+/* conventional socket programming [i.e. projects involving either TCP*/
+/* or UDP transports]. If anything more specialist is required either */
+/* the library needs to be modified [possible: source code supplied], */
+/* or access to suitable wrapper functions or another external library*/
+/* be made available.                                                 */
+/*                                                                    */
+/* Some comments on forking ...                                       */
+/*                                                                    */
+/* Finally, it is possible to use the General Call Interface [GCI] to */
+/* directly access socket-related functions [e.g. 'gethostname']; it  */
+/* is safest to avoid this practice because it can see the avoidance  */
+/* of sometimes vital initialisation steps. For example, in the Win32 */
+/* environment, the 'WSAStartup' function needs to be called prior to */
+/* using any socket-related functions, and, for proper cleanup, the   */
+/* corresponding 'WSACleanup' function should be called. Such steps   */
+/* are performed as part of 'rxSock' external library housekeeping,   */
+/* so best use those routines for such functionality.                 */
+/* ------------------------------------------------------------------ */
+
+/* Load general-purpose functions from external library */
+call rxFuncAdd 'sysLoadFuncs', 'rexxUtil', 'sysLoadFuncs'
+call sysLoadFuncs
+
+/* Load rxSock functions from external library */
+call rxFuncAdd 'sockLoadFuncs', 'rxSock', 'SockLoadFuncs'
+call sockLoadFuncs
+
+/* ----------------------------- */
+
+/*
+   RxSock library does not use 'packed' IP addresses, so the custom
+   subroutines, 'inet_aton', and 'inet_ntoa', whilst having been
+   implemented [to illustrate byte &lt;=&gt; string conversion in REXX],
+   are not actually required for socket-based communication
+*/
+
+/* Convert human readable form to 32 bit value */
+packed_ip = inet_aton(&quot;208.201.239.36&quot;)
+
+drop host. ; call sockGetHostByName &quot;www.oreilly.com&quot;, 'host.!'
+packed_ip = inet_aton(host.!ADDR)
+
+/* ----------------------------- */
+
+/* Convert 32 bit value to ip address */
+ip_address = inet_ntoa(packed_ip)
+
+/* ----------------------------- */
+
+/* Create socket object */
+family = 'AF_INET' ; type = 'SOCK_STREAM'
+protocol = 'IPPROTO_TCP' /* or '0' for default */
+
+socketobj = sockSocket(family, type, protocol)
+
+/* ----------- */
+
+/* Extract local-side details of this socket */ 
+drop host. ; call sockGetSockName socketobj, 'host.!'
+
+/*
+   host.!ADDR =&gt; 0.0.0.0 unless connected
+   host.!PORT =&gt; 0 unless connected
+*/
+
+/* ----------------------------- */
+
+/*
+   Helper functions
+*/
+
+die : procedure expose (globals)
+  call LINEOUT , ARG(1) ; exit ARG(2) ; return NULL
+
+/* ----------- */
+
+isValidIP : procedure expose (globals)
+  ip = ARG(1) ; lastType = DATATYPE(SUBSTR(ip, LASTPOS(&quot;.&quot;, ip) + 1))
+  if ip == NULL | COUNTSTR(&quot;.&quot;, ip) \= 3 | lastType \= 'NUM' then
+    return FALSE
+  do while ip &lt;&gt; NULL
+    parse var ip octet &quot;.&quot; ip
+    if DATATYPE(octet) \= 'NUM' then ; return FALSE
+    if octet &lt; 0 | octet &gt; 255 then ; return FALSE
+  end
+  return TRUE
+
+/* ----------- */
+
+inet_aton : procedure expose (globals)
+  ip = ARG(1) ; packed = NULL
+  do while ip &lt;&gt; NULL
+    parse var ip octet &quot;.&quot; ip
+    packed = packed || D2X(octet, 2)
+  end
+  return X2C(packed)
+
+/* ----------- */
+
+inet_ntoa : procedure expose (globals)
+  packed = C2X(ARG(1)) ; parse var packed octet +2 packed
+  ip = X2D(octet)
+  do while packed &lt;&gt; NULL
+    parse var packed octet +2 packed
+    ip = ip || &quot;.&quot; || X2D(octet)
+  end
+  return ip</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN922"
+>Writing a TCP Client</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/*
+   Establishing a simple, TCP-based client connection to a host
+*/
+
+/* Create socket */
+peer = sockSocket('AF_INET', 'SOCK_STREAM', '0')
+
+if peer &lt; 0 then
+  call die &quot;Couldn't create socket :&quot; socksock_errno(), 1
+
+/* Set up for peer connection */
+drop peer.
+peer.!FAMILY = 'AF_INET'
+peer.!ADDR = &quot;192.168.1.1&quot;  /* Target ipaddr */
+peer.!PORT = 13             /* Target port */
+
+/* Make the connection */
+if sockConnect(peer, 'peer.!') &lt; 0 then
+  call die &quot;Couldn't connect socket to&quot; peer.!ADDR || &quot;:&quot; ||,
+           peer.!PORT, &quot;:&quot; socksock_errno(), 1
+
+/* Do something with the socket ... */
+if sockSend(peer, &quot;Why don't you call anymore?&quot; || NEWLINE) &lt; 0 then
+  call die &quot;Error sending data on socket :&quot; socksock_errno(), 1
+
+MAX_BYTES = 256
+
+if sockRecv(peer, 'answer', MAX_BYTES) &lt; 0 then
+  call die &quot;Error receiving data from socket :&quot; socksock_errno(), 1
+
+/* Terminate when done - close socket, releasing all its resources */
+if sockClose(peer) &lt; 0 then
+  call die &quot;Error closing socket :&quot; socksock_errno(), 1
+
+/* ----------------------------- */
+
+/*
+   Additional Perl examples either redundant because with RxSock:
+   * It is not possible to specify host information as part of the socket
+     creation call
+   * There is only one set of procedures for setting up and handling
+     connections
+*/
+
+/* ----------------------------- */
+
+/* Set up for listening on specified port */
+drop assoc.
+assoc.!FAMILY = 'AF_INET'
+assoc.!ADDR = 'INADDR_ANY'   /* Use first defined [local] ipaddr */
+assoc.!PORT = 23             /* Port on which to listen */
+
+/* Bind to socket */
+if sockBind(socket, 'assoc.!') &lt; 0 then
+  call die &quot;Error binding to socket :&quot; socksock_errno(), 1
+
+/* ----------- */
+
+drop assoc. ; call sockGetHostByName &quot;www.oreilly.com&quot;, 'assoc.!'
+
+/* Bind to socket */
+if sockBind(socket, 'assoc.!') &lt; 0 then
+  call die &quot;Error binding to socket :&quot; socksock_errno(), 1</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN925"
+>Writing a TCP Server</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/*
+   Implementing a simple, TCP-based server
+
+   The Perl examples are consolidated into the following, single code,
+   example because, while Perl offers multiple socket libraries and
+   options, REXX uses 'rxSock', a set of wrapper functions, whose use
+   varies little except for argument-passing differences 
+*/
+
+/* Service will be available on port 1996 */
+port = 1996
+
+/* Create socket */
+server = sockSocket('AF_INET', 'SOCK_STREAM', '0')
+
+if server &lt; 0 then
+  call die &quot;Couldn't create server socket :&quot; socksock_errno(), 1
+
+/* Allow socket reuse */
+if sockSetSockOpt(server, 'SOL_SOCKET', 'SO_REUSEADDR', 1) &lt; 0 then
+  call die &quot;Couldn't set options on server socket :&quot; socksock_errno(), 1
+
+/* Set up for server connection */
+drop server.
+server.!FAMILY = 'AF_INET'
+server.!ADDR = 'INADDR_ANY'   /* Use first defined [local] ipaddr */
+server.!PORT = port           /* Port on which to listen */
+
+/* Need to bind socket to port, then commence listening on that port */
+if sockBind(server, 'server.') &lt; 0 then
+  call die &quot;Couldn't bind server socket to port :&quot; socksock_errno(), 1
+
+/* Queue up 1 connection only */
+if sockListen(server, 1) &lt; 0 then
+  call die &quot;Couldn't commence listening on server socket :&quot;,
+           socksock_errno(), 1
+
+MAX_BYTES = 256
+
+/* Poll for client connections */
+do forever
+  /* Block until a connection comes in */
+  client = sockAccept(server)
+
+  if client &lt; 0 then
+    call die &quot;Error accepting client connection :&quot; sockErrNo, 1
+  
+  /* Service client ... */
+
+  if sockRecv(client, 'buffer', MAX_BYTES) &lt; 0 then
+    call die &quot;Error receiving data from client socket :&quot;,
+             socksock_errno(), 1
+
+  say &quot;|&quot; buffer &quot;|&quot;
+
+  if sockSend(client, &quot;...&quot; || NEWLINE) &lt; 0 then
+    call die &quot;Error responding on client socket :&quot; socksock_errno(), 1
+
+  if sockShutDown(client) &lt; 0 then
+    call die &quot;Error shutting down client socket :&quot; socksock_errno(), 1
+
+  if sockClose(client) &lt; 0 then
+    call die &quot;Error closing client socket :&quot; socksock_errno(), 1
+
+  leave
+
+  /* ... */
+end
+
+/*
+   Terminate when done - shutdown, close the socket, and release all
+   its resources
+*/
+if sockShutDown(server) &lt; 0 then
+  call die &quot;Error shutting down server socket :&quot; socksock_errno(), 1
+
+if sockClose(server) &lt; 0 then
+  call die &quot;Error closing server socket :&quot; socksock_errno(), 1</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN928"
+>Communicating over TCP</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* Once a socket is created, and a TCP-based connection established,  */
+/* it may be used for *bidirectional* communication, that is, for both*/
+/* writing to, and reading data from, a host.                         */
+/*                                                                    */
+/* Perl allows the use of 'file descriptor semantics' for this task in*/
+/* addition to specialised subroutines / methods. This is not the case*/
+/* in REXX where the following 'rxSock' library routines must be used:*/
+/*                                                                    */
+/* * Reading: sockRecv, sockRecvFrom [datagrams]                      */
+/* * Writing: sockSend, sockSendTo [datagrams]                        */
+/*                                                                    */
+/* ------------------------------------------------------------------ */
+
+/*
+   No REXX equivalent to Perl 'file descriptor semantics':
+
+       print $SERVER &quot;What is your name?\n&quot;;
+       chomp ($response = &lt;SERVER&gt;);
+*/
+
+/* ----------------------------- */
+
+/*
+   Examples assume same names / values from previous two examples:
+
+   peer    --&gt; client-side socket connected to server; peer reads and
+               writes to server using this socket 
+   server  --&gt; server-side socket; waits for clients to call, then
+               creates a client socket for each new client
+   client  --&gt; server-side socket representing connection from peer;
+               server reads and writes to peer using this socket
+*/
+
+/* ----------------------------- */
+
+data_to_send = &quot;...&quot;
+
+call sockSend peer, data_to_send || NEWLINE
+
+if sockErrNo \= 0 then
+  call die &quot;Error sending data on socket :&quot; sockErrNo, 1
+
+/* ----------- */
+
+data_read_buffer = NULL ; MAX_BYTES = 256
+
+call sockRecv peer, 'data_read_buffer', MAX_BYTES
+
+if sockErrNo \= 0 then
+  call die &quot;Error receiving data from socket :&quot; sockErrNo, 1
+
+/* ----------------------------- */
+
+/*
+  'select' [using 'sockSelect'] example
+  ---
+  's1', 's2', and 's3' are previously-created sockets. The compound
+  variable contains the sockets for which 'readable' status is to be
+  determined
+*/
+reads.0 = 3 ; reads.1 = s1 ; reads.2 = s2 ; reads.3 = s3
+
+/* 5 second timeout [omit argument to have 'sockSelect' block] */
+timeout = 5
+
+/* Issue call; success sees 'count' &gt; 0, 'reads.' updated */
+count = sockSelect('reads.',,, timeout)
+
+/* Check 'select' status */
+select
+  when count == -1 then
+    /* Same as checking for 'sockErrNo' \= 0 */
+    call die &quot;Error in 'sockSelect' call :&quot; sockErrNo, 1
+
+  when count == 0 then
+    /* ... handle timeout ...*/
+    say &quot;'sockSelect' timeout&quot;
+
+  when count &gt; 0 then
+    /*
+       Successful status update:
+
+       reads.0       --&gt; Number of 'readable' sockets 
+       reads.1 ... N --&gt; Set of sockets that are 'readable' [input
+                         values have been overwritten]
+    */
+
+    /* ... handle success ...*/
+
+end
+
+/* ----------------------------- */
+
+/* Enable TCP_NODELAY on socket */
+call sockSetSockOpt server, 'SOL_SOCKET', 'TCP_NODELAY', 1
+
+if sockErrNo \= 0 then
+  call die &quot;Couldn't disable Nagle's algorithm :&quot; sockErrNo, 1
+
+/* ----------- */
+
+/* Disable TCP_NODELAY on socket */
+call sockSetSockOpt server, 'SOL_SOCKET', 'TCP_NODELAY', 2
+
+if sockErrNo \= 0 then
+  call die &quot;Couldn't enable Nagle's algorithm :&quot; sockErrNo, 1</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN931"
+>Setting Up a UDP Client</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN934"
+>Setting Up a UDP Server</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN937"
+>Using UNIX Domain Sockets</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* 'rxSock' library supports Internet Domain sockets [AF_INET]; there */
+/* is no support for UNIX Domain Sockets [AF_UNIX].                   */
+/*                                                                    */
+/* It is, however, possible [*NIX-only] to use GCI to access C library*/
+/* functions like 'socketpair' to handle such entities, an approach   */
+/* that will not be shown here. See section 6.9 of UNIX Network Progr-*/
+/* amming by W. R. Stevens for an in-depth treatment of this topic.   */
+/* ------------------------------------------------------------------ */
+
+/* *** Translation skipped *** */</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN940"
+>Identifying the Other End of a Socket</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* This task relies on the 'getpeername' functionality commonly found */
+/* in socket libraries. Rather than tap into this directly via GCI, an*/
+/* intermediary in the form of an external library wrapper function is*/
+/* more commonly used.                                                */
+/* ------------------------------------------------------------------ */
+
+/*
+   RxSock library does not use 'packed' IP addresses, so the custom
+   subroutines, 'inet_aton', and 'inet_ntoa', whilst having been
+   implemented [to illustrate byte &lt;=&gt; string conversion in REXX],
+   are not actually required for socket-based communication
+*/
+
+/* Default socket: blocking, 'AF_INET', 'SOCK_STREAM' */
+socket = sockSocket()
+
+if sockErrNo \= 0 then
+  call die &quot;Couldn't create socket :&quot; sockErrNo, 1
+
+/* Retrieve peer [i.e. remote side] information from socket */
+drop host. ; call sockGetPeerName socket, 'host.!'
+if sockErrNo \= 0 then
+  call die &quot;Couldn't identify other end :&quot; sockErrNo, 1
+
+iaddr = host.!ADDR ; port = host.!PORT
+
+/* ----------------------------- */
+
+drop host. ; call sockGetHostByAddr iaddr, 'host.!'
+if sockErrNo \= 0 then
+  call die &quot;Couldn't identify other end :&quot; sockErrNo, 1
+
+claimed_hostname = host.!NAME
+
+drop host. ; call sockGetHostByName claimed_hostname, 'host.!'
+if sockErrNo \= 0 then
+  call die &quot;Couldn't look up&quot; claimed_hostname &quot;:&quot; sockErrNo, 1
+
+if iaddr \== host.!ADDR then
+  call die &quot;Mismatch between&quot; claimed_hostname &quot;and&quot; iaddr &quot;:&quot;,
+           sockErrNo, 1</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN943"
+>Finding Your Own Name and Address</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* This task relies on the 'gethostname' functionality commonly found */
+/* in socket libraries. Rather than tap into this directly via GCI, an*/
+/* intermediary, be it a system command or wrapper functions, is more */
+/* commonly used.                                                     */
+/* ------------------------------------------------------------------ */
+
+/* Execute system command, 'hostname', placing output in 'hostname.1' */
+address SYSTEM &quot;hostname&quot; with OUTPUT STEM hostname.
+
+/* ----------------------------- */
+
+/* Call the non-ANSI [*NIX-only] 'UNAME' BIF extracting all data */
+parse value UNAME() with kernel, hostname, release, version, hardware
+
+/* Alternatively, call 'UNAME' for a specified field */
+hostname = UNAME('N')
+
+/* ----------------------------- */
+
+hostname = &quot;sparx.net&quot;
+
+drop host. ; call sockGetHostByName hostname, 'host.!'
+if sockErrNo \= 0 then
+  call die &quot;Couldn't resolve&quot; hostname &quot;:&quot; sockErrNo, 1
+
+iaddr = host.!ADDR
+
+drop host. ; call sockGetHostByAddr iaddr, 'host.!'
+if sockErrNo \= 0 then
+  call die &quot;Couldn't re-resolve&quot; hostname &quot;:&quot; sockErrNo, 1
+
+/* 'host.!NAME' should now be the same value as: 'hostname' */</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN946"
+>Closing a Socket After Forking</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* Two caveats when using 'sockShutdown':                             */
+/*                                                                    */
+/* * Non-blocking call, so a delay may be needed after calling it     */
+/* * A call to 'sockClose' is still required at some point to release */
+/*   socket resources [it does not replace this function]             */
+/* ------------------------------------------------------------------ */
+
+call sockShutdown socket, 0             /* Stopped reading data */
+call sockShutdown socket, 1             /* Stopped writing data */
+call sockShutdown socket, 2             /* Stopped using this socket */
+
+/* ----------------------------- */
+
+call sockShutdown socket, 0
+
+if sockErrNo \= 0 then
+  call die &quot;Couldn't effect socket shutdown :&quot; sockErrNo, 1
+else
+  say &quot;I have stopped reading&quot;
+
+/* ----------------------------- */
+
+/* Send some data */
+buffer = &quot;my request&quot;||NEWLINE
+call sockSend SERVER, buffer
+
+/* Send eof; no more writing */
+call sockShutdown SERVER, 1                  
+
+/* Can, however, still read */ 
+call sockRecv SERVER, 'answer', MAX_BYTES
+
+
+</PRE>
+<HR>
+<ADDRESS>Generated by <A HREF="http://www.iki.fi/~mtr/genscript/">GNU Enscript 1.6.5.90</A>.</ADDRESS>
+</BODY>
+</HTML></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN949"
+>Writing Bidirectional Clients</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN952"
+>Forking Servers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN955"
+>Pre-Forking Servers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN958"
+>Non-Forking Servers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN961"
+>Writing a Multi-Homed Server</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN964"
+>Making a Daemon Server</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN967"
+>Restarting a Server on Demand</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN970"
+>Program: backsniff</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN973"
+>Program: fwdport</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="processmanagementetc.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="internetservices.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Process Management and Communication</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Internet Services</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

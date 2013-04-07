@@ -1,0 +1,830 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Internet Services</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Perl"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Sockets"
+HREF="sockets.html"><LINK
+REL="NEXT"
+TITLE="CGI Programming"
+HREF="cgiprogramming.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Perl</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="sockets.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="cgiprogramming.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="INTERNETSERVICES"
+>18. Internet Services</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN978"
+>Simple DNS Lookups</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">use Socket;</span>
+
+<span class="cp">@addresses = gethostbyname($name)   or die &quot;Can&#39;t resolve $name: $!\n&quot;;</span>
+<span class="cp">@addresses = map { inet_ntoa($_) } @addresses[4 .. $#addresses];</span>
+<span class="cp"># @addresses is a list of IP addresses (&quot;208.201.239.48&quot;, &quot;208.201.239.49&quot;)</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">use Socket;</span>
+
+<span class="cp">$address = inet_ntoa(inet_aton($name));</span>
+<span class="cp"># $address is a single IP address &quot;208.201.239.48&quot;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">use Socket;</span>
+
+<span class="cp">$name = gethostbyaddr(inet_aton($address), AF_INET)</span>
+<span class="cp">            or die &quot;Can&#39;t resolve $address: $!\n&quot;;</span>
+<span class="cp"># $name is the hostname (&quot;www.perl.com&quot;)</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">use Socket;</span>
+<span class="cp">$packed_address = inet_aton(&quot;208.146.140.1&quot;);</span>
+<span class="cp">$ascii_address  = inet_ntoa($packed_address);</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$packed = gethostbyname($hostname)</span>
+<span class="cp">            or die &quot;Couldn&#39;t resolve address for $hostname: $!\n&quot;;</span>
+<span class="cp">$address = inet_ntoa($packed);</span>
+<span class="cp">print &quot;I will use $address as the address for $hostname\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># $address is the IP address I&#39;m checking, like &quot;128.138.243.20&quot;</span>
+<span class="cp">use Socket;</span>
+<span class="cp">$name    = gethostbyaddr(inet_aton($address), AF_INET)</span>
+<span class="cp">                or die &quot;Can&#39;t look up $address : $!\n&quot;;</span>
+<span class="cp">@addr    = gethostbyname($name)</span>
+<span class="cp">                or die &quot;Can&#39;t look up $name : $!\n&quot;;</span>
+<span class="cp">$found   = grep { $address eq inet_ntoa($_) } @addr[4..$#addr];</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch18/mxhost</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl</span>
+<span class="cp"># mxhost - find mx exchangers for a host</span>
+<span class="cp">use Net::DNS;</span>
+
+<span class="cp">$host = shift;</span>
+<span class="cp">$res = Net::DNS::Resolver-&gt;new();</span>
+<span class="cp">@mx = mx($res, $host)</span>
+<span class="cp">   or die &quot;Can&#39;t find MX records for $host (&quot;.$res-&gt;errorstring,&quot;)\n&quot;;</span>
+
+<span class="cp">foreach $record (@mx) {</span>
+<span class="cp">    print $record-&gt;preference, &quot; &quot;, $record-&gt;exchange, &quot;\n&quot;;</span>
+<span class="cp">}</span>
+
+<span class="cp">#-----------------------------</span>
+<span class="cp">#% mxhost cnn.com</span>
+<span class="cp">#10 mail.turner.com</span>
+<span class="cp">#</span>
+<span class="cp">#30 alfw2.turner.com</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch18/hostaddrs</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl</span>
+<span class="cp"># hostaddrs - canonize name and show addresses</span>
+<span class="cp">use Socket;</span>
+<span class="cp">use Net::hostent;</span>
+<span class="cp">$name = shift;</span>
+<span class="cp">if ($hent = gethostbyname($name)) {</span>
+<span class="cp">    $name      = $hent-&gt;name;                # in case different</span>
+<span class="cp">    $addr_ref  = $hent-&gt;addr_list;</span>
+<span class="cp">    @addresses = map { inet_ntoa($_) } @$addr_ref;</span>
+<span class="cp">}</span>
+<span class="cp">print &quot;$name =&gt; @addresses\n&quot;;</span>
+
+<span class="cp">#-----------------------------</span>
+<span class="cp">#% hostaddrs www.ora.com</span>
+<span class="cp">#helio.ora.com =&gt; 204.148.40.9</span>
+<span class="cp">#</span>
+<span class="cp">#</span>
+<span class="cp">#% hostaddrs www.whitehouse.gov</span>
+<span class="cp">#www.whitehouse.gov =&gt; 198.137.240.91 198.137.240.92</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN981"
+>Being an FTP Client</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">use Net::FTP;</span>
+
+<span class="cp">$ftp = Net::FTP-&gt;new(&quot;ftp.host.com&quot;)    or die &quot;Can&#39;t connect: $@\n&quot;;</span>
+<span class="cp">$ftp-&gt;login($username, $password)       or die &quot;Couldn&#39;t login\n&quot;;</span>
+<span class="cp">$ftp-&gt;cwd($directory)                   or die &quot;Couldn&#39;t change directory\n&quot;;</span>
+<span class="cp">$ftp-&gt;get($filename)                    or die &quot;Couldn&#39;t get $filename\n&quot;;</span>
+<span class="cp">$ftp-&gt;put($filename)                    or die &quot;Couldn&#39;t put $filename\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$ftp = Net::FTP-&gt;new(&quot;ftp.host.com&quot;,</span>
+<span class="cp">                     Timeout =&gt; 30,</span>
+<span class="cp">                     Debug   =&gt; 1)</span>
+<span class="cp">    or die &quot;Can&#39;t connect: $@\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$ftp-&gt;</span>
+<span class="cp">login()</span>
+
+<span class="cp">    or die &quot;Couldn&#39;t authenticate.\n&quot;;</span>
+
+<span class="cp">$ftp-&gt;login($username)</span>
+<span class="cp">    or die &quot;Still couldn&#39;t authenticate.\n&quot;;</span>
+
+<span class="cp">$ftp-&gt;login($username, $password)</span>
+<span class="cp">    or die &quot;Couldn&#39;t authenticate, even with explicit username</span>
+<span class="cp">            and password.\n&quot;;</span>
+
+<span class="cp">$ftp-&gt;login($username, $password, $account)</span>
+<span class="cp">    or die &quot;No dice.  It hates me.\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$ftp-&gt;put($localfile, $remotefile)</span>
+<span class="cp">    or die &quot;Can&#39;t send $localfile: $!\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$ftp-&gt;put(*STDIN, $remotefile)</span>
+<span class="cp">    or die &quot;Can&#39;t send from STDIN: $!\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$ftp-&gt;get($remotefile, $localfile)</span>
+<span class="cp">    or die &quot;Can&#39;t fetch $remotefile : $!\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$ftp-&gt;get($remotefile, *STDOUT)</span>
+<span class="cp">    or die &quot;Can&#39;t fetch $remotefile: $!\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$ftp-&gt;cwd(&quot;/pub/perl/CPAN/images/g-rated&quot;);</span>
+<span class="cp">print &quot;I&#39;m in the directory &quot;, $ftp-&gt;pwd(), &quot;\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">   $ftp-&gt;mkdir(&quot;/pub/gnat/perl&quot;, 1)</span>
+<span class="cp">    or die &quot;Can&#39;t create /pub/gnat/perl recursively: $!\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">@lines = $ftp-&gt;ls(&quot;/pub/gnat/perl&quot;)</span>
+<span class="cp">    or die &quot;Can&#39;t get a list of files in /pub/gnat/perl: $!&quot;;</span>
+<span class="cp">$ref_to_lines = $ftp-&gt;dir(&quot;/pub/perl/CPAN/src/latest.tar.gz&quot;)</span>
+<span class="cp">    or die &quot;Can&#39;t check status of latest.tar.gz: $!\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$ftp-&gt;quit()    or warn &quot;Couldn&#39;t quit.  Oh well.\n&quot;;</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN984"
+>Sending Mail</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">use Mail::Mailer;</span>
+
+<span class="cp">$mailer = Mail::Mailer-&gt;new(&quot;sendmail&quot;);</span>
+<span class="cp">$mailer-&gt;open({ From    =&gt; $from_address,</span>
+<span class="cp">                To      =&gt; $to_address,</span>
+<span class="cp">                Subject =&gt; $subject,</span>
+<span class="cp">              })</span>
+<span class="cp">    or die &quot;Can&#39;t open: $!\n&quot;;</span>
+<span class="cp">print $mailer $body;</span>
+<span class="cp">$mailer-&gt;</span>
+<span class="cp">close();</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">open(SENDMAIL, &quot;|/usr/lib/sendmail -oi -t -odq&quot;)</span>
+<span class="cp">                    or die &quot;Can&#39;t fork for sendmail: $!\n&quot;;</span>
+<span class="cp">print SENDMAIL &lt;&lt;&quot;EOF&quot;;</span>
+<span class="cp">From: User Originating Mail &lt;me\@host&gt;</span>
+<span class="cp">To: Final Destination &lt;you\@otherhost&gt;</span>
+<span class="cp">Subject: A relevant subject line</span>
+
+<span class="cp">Body of the message goes here, in as many lines as you like.</span>
+<span class="cp">EOF</span>
+<span class="cp">close(SENDMAIL)     or warn &quot;sendmail didn&#39;t close nicely&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$mailer = Mail::Mailer-&gt;new(&quot;sendmail&quot;);</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$mailer = Mail::Mailer-&gt;new(&quot;mail&quot;, &quot;/u/gnat/bin/funkymailer&quot;);</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$mailer = Mail::Mailer-&gt;new(&quot;smtp&quot;, &quot;mail.myisp.com&quot;);</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">eval {</span>
+<span class="cp">    $mailer = Mail::Mailer-&gt;new(&quot;bogus&quot;, &quot;arguments&quot;);</span>
+<span class="cp">    # ...</span>
+<span class="cp">};</span>
+<span class="cp">if ($@) {</span>
+<span class="cp">    # the eval failed</span>
+<span class="cp">    print &quot;Couldn&#39;t send mail: $@\n&quot;;</span>
+<span class="cp">} else {</span>
+<span class="cp">    # the eval succeeded</span>
+<span class="cp">    print &quot;The authorities have been notified.\n&quot;;</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$mailer-&gt;open( &#39;From&#39;    =&gt; &#39;Nathan Torkington &lt;gnat@frii.com&gt;&#39;,</span>
+<span class="cp">               &#39;To&#39;      =&gt; &#39;Tom Christiansen &lt;tchrist@perl.com&gt;&#39;,</span>
+<span class="cp">               &#39;Subject&#39; =&gt; &#39;The Perl Cookbook&#39; );</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">print $mailer &lt;&lt;EO_SIG;</span>
+<span class="cp">Are we ever going to finish this book?</span>
+<span class="cp">My wife is threatening to leave me.</span>
+<span class="cp">She says I love EMACS more than I love her.</span>
+<span class="cp">Do you have a recipe that can help me?</span>
+
+<span class="cp">Nat</span>
+<span class="cp">EO_SIG</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">close($mailer)                      or die &quot;can&#39;t close mailer: $!&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">open(SENDMAIL, &quot;|/usr/sbin/sendmail -oi -t -odq&quot;)</span>
+<span class="cp">            or die &quot;Can&#39;t fork for sendmail: $!\n&quot;;</span>
+<span class="cp">print SENDMAIL &lt;&lt;&quot;EOF&quot;;</span>
+<span class="cp">From: Tom Christiansen &lt;tchrist\@perl.com&gt;</span>
+<span class="cp">To: Nathan Torkington &lt;gnat\@frii.com&gt;</span>
+<span class="cp">Subject: Re: The Perl Cookbook</span>
+
+<span class="cp">(1) We will never finish the book.</span>
+<span class="cp">(2) No man who uses EMACS is deserving of love.</span>
+<span class="cp">(3) I recommend coq au vi.</span>
+
+<span class="cp">tom</span>
+<span class="cp">EOF</span>
+<span class="cp">close(SENDMAIL);</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN987"
+>Reading and Posting Usenet News Messages</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">use Net::NNTP;</span>
+
+<span class="cp">$server = Net::NNTP-&gt;new(&quot;news.host.dom&quot;)</span>
+<span class="cp">    or die &quot;Can&#39;t connect to news server: $@\n&quot;;</span>
+<span class="cp">($narticles, $first, $last, $name) = $server-&gt;group( &quot;misc.test&quot; )</span>
+<span class="cp">    or die &quot;Can&#39;t select misc.test\n&quot;;</span>
+<span class="cp">$headers  = $server-&gt;head($first)</span>
+<span class="cp">    or die &quot;Can&#39;t get headers from article $first in $name\n&quot;;</span>
+<span class="cp">$bodytext = $server-&gt;body($first)</span>
+<span class="cp">    or die &quot;Can&#39;t get body from article $first in $name\n&quot;;</span>
+<span class="cp">$article  = $server-&gt;article($first)</span>
+<span class="cp">    or die &quot;Can&#39;t get article $first from $name\n&quot;;</span>
+
+<span class="cp">$server-&gt;</span>
+<span class="cp">postok()</span>
+
+<span class="cp">    or warn &quot;Server didn&#39;t tell me I could post.\n&quot;;</span>
+
+<span class="cp">$server-&gt;post( [ @lines ] )</span>
+<span class="cp">    or die &quot;Can&#39;t post: $!\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">&lt;0401@jpl-devvax.JPL.NASA.GOV&gt;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$server = Net::NNTP-&gt;new(&quot;news.mycompany.com&quot;)</span>
+<span class="cp">    or die &quot;Couldn&#39;t connect to news.mycompany.com: $@\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$grouplist = $server-&gt;</span>
+<span class="cp">list()</span>
+
+<span class="cp">    or die &quot;Couldn&#39;t fetch group list\n&quot;;</span>
+
+<span class="cp">foreach $group (keys %$grouplist) {</span>
+<span class="cp">    if ($grouplist-&gt;{$group}-&gt;[2] eq &#39;y&#39;) {</span>
+<span class="cp">        # I can post to $group</span>
+<span class="cp">    }</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">($narticles, $first, $last, $name) = $server-&gt;group(&quot;comp.lang.perl.misc&quot;)</span>
+<span class="cp">    or die &quot;Can&#39;t select comp.lang.perl.misc\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">@lines = $server-&gt;article($message_id)</span>
+<span class="cp">    or die &quot;Can&#39;t fetch article $message_id: $!\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">@group = $server-&gt;group(&quot;comp.lang.perl.misc&quot;)</span>
+<span class="cp">    or die &quot;Can&#39;t select group comp.lang.perl.misc\n&quot;;</span>
+<span class="cp">@lines = $server-&gt;head($group[1])</span>
+<span class="cp">    or die &quot;Can&#39;t get headers from first article in comp.lang.perl.misc\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$server-&gt;post(@message)</span>
+<span class="cp">    or die &quot;Can&#39;t post\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">unless ($server-&gt;</span>
+<span class="cp">postok()</span>
+<span class="cp">) {</span>
+<span class="cp">    warn &quot;You may not post.\n&quot;;</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN990"
+>Reading Mail with POP3</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">$pop = Net::POP3-&gt;new($mail_server)</span>
+<span class="cp">    or die &quot;Can&#39;t open connection to $mail_server : $!\n&quot;;</span>
+<span class="cp">defined ($pop-&gt;login($username, $password))</span>
+<span class="cp">    or die &quot;Can&#39;t authenticate: $!\n&quot;;</span>
+<span class="cp">$messages = $pop-&gt;list</span>
+<span class="cp">    or die &quot;Can&#39;t get list of undeleted messages: $!\n&quot;;</span>
+<span class="cp">foreach $msgid (keys %$messages) {</span>
+<span class="cp">    $message = $pop-&gt;get($msgid);</span>
+<span class="cp">    unless (defined $message) {</span>
+<span class="cp">        warn &quot;Couldn&#39;t fetch $msgid from server: $!\n&quot;;</span>
+<span class="cp">        next;</span>
+<span class="cp">    }</span>
+<span class="cp">    # $message is a reference to an array of lines</span>
+<span class="cp">    $pop-&gt;delete($msgid);</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$pop = Net::POP3-&gt;new( &quot;pop.myisp.com&quot; )</span>
+<span class="cp">    or die &quot;Can&#39;t connect to pop.myisp.com: $!\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$pop = Net::POP3-&gt;new( &quot;pop.myisp.com&quot;,</span>
+<span class="cp">                       Timeout =&gt; 30 )</span>
+<span class="cp">    or die &quot;Can&#39;t connect to pop.myisp.com : $!\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">defined ($pop-&gt;login(&quot;gnat&quot;, &quot;S33kr1T Pa55w0rD&quot;))</span>
+<span class="cp">    or die &quot;Hey, my username and password didn&#39;t work!\n&quot;;</span>
+
+<span class="cp">defined ($pop-&gt;login( &quot;midget&quot; ))           # use Net::Netrc to find password</span>
+<span class="cp">    or die &quot;Authentication failed.\n&quot;;</span>
+
+<span class="cp">defined ($pop-&gt;</span>
+<span class="cp">login())</span>
+<span class="cp">                     # current username and Net::Netrc</span>
+<span class="cp">    or die &quot;Authentication failed.  Miserably.\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$pop-&gt;apop( $username, $password )</span>
+<span class="cp">    or die &quot;Couldn&#39;t authenticate: $!\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">%undeleted = $pop-&gt;</span>
+<span class="cp">list();</span>
+
+<span class="cp">foreach $msgnum (keys %undeleted) {</span>
+<span class="cp">    print &quot;Message $msgnum is $undeleted{$msgnum} bytes long.\n&quot;;</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">print &quot;Retrieving $msgnum : &quot;;</span>
+<span class="cp">$message = $pop-&gt;get($msgnum);</span>
+<span class="cp">if ($message) {</span>
+<span class="cp">    # succeeded</span>
+<span class="cp">    print &quot;\n&quot;;</span>
+<span class="cp">    print @$message;                # print the message</span>
+<span class="cp">} else {</span>
+<span class="cp">        # failed</span>
+<span class="cp">    print &quot;failed ($!)\n&quot;;</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN993"
+>Simulating Telnet from a Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">use Net::Telnet;</span>
+
+<span class="cp">$t = Net::Telnet-&gt;new( Timeout =&gt; 10,</span>
+<span class="cp">                       Prompt  =&gt; &#39;/%/&#39;,</span>
+<span class="cp">                       Host    =&gt; $hostname );</span>
+
+<span class="cp">$t-&gt;login($username, $password);</span>
+<span class="cp">@files = $t-&gt;cmd(&quot;ls&quot;);</span>
+<span class="cp">$t-&gt;print(&quot;top&quot;);</span>
+<span class="cp">(undef, $process_string) = $t-&gt;waitfor(&#39;/\d+ processes/&#39;);</span>
+<span class="cp">$t-&gt;close;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">/[\$%#&gt;] $/</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$telnet = Net::Telnet-&gt;new( Errmode =&gt; sub { main::log(@_) }, ... );</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$telnet-&gt;login($username, $password)</span>
+<span class="cp">    or die &quot;Login failed: @{[ $telnet-&gt;errmsg() ]}\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$telnet-&gt;waitfor(&#39;/--more--/&#39;)</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$telnet-&gt;waitfor(String =&gt; &#39;greasy smoke&#39;, Timeout =&gt; 30)</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN996"
+>Pinging a Machine</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">use Net::Ping;</span>
+
+<span class="cp">$p = Net::Ping-&gt;new()</span>
+<span class="cp">    or die &quot;Can&#39;t create new ping object: $!\n&quot;;</span>
+<span class="cp">print &quot;$host is alive&quot; if $p-&gt;ping($host);</span>
+<span class="cp">$p-&gt;close;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># use TCP if we&#39;re not root, ICMP if we are</span>
+<span class="cp">$pong = Net::Ping-&gt;new( $&gt; ? &quot;tcp&quot; : &quot;icmp&quot; );</span>
+
+<span class="cp">(defined $pong)</span>
+<span class="cp">    or die &quot;Couldn&#39;t create Net::Ping object: $!\n&quot;;</span>
+
+<span class="cp">if ($pong-&gt;ping(&quot;kingkong.com&quot;)) {</span>
+<span class="cp">    print &quot;The giant ape lives!\n&quot;;</span>
+<span class="cp">} else {</span>
+<span class="cp">    print &quot;All hail mighty Gamera, friend of children!\n&quot;;</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN999"
+>Using Whois to Retrieve Information from the InterNIC</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">use Net::Whois;</span>
+
+<span class="cp">$domain_obj = Net::Whois::Domain-&gt;new($domain_name)</span>
+<span class="cp">    or die &quot;Couldn&#39;t get information on $domain_name: $!\n&quot;;</span>
+
+<span class="cp"># call methods on $domain_obj to get name, tag, address, etc.</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$d = Net::Whois::Domain-&gt;new( &quot;perl.org&quot; )</span>
+<span class="cp">    or die &quot;Can&#39;t get information on perl.org\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">print &quot;The domain is called &quot;, $d-&gt;domain, &quot;\n&quot;;</span>
+<span class="cp">print &quot;Its tag is &quot;, $d-&gt;tag, &quot;\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">print &quot;Mail for &quot;, $d-&gt;name, &quot; should be sent to:\n&quot;;</span>
+<span class="cp">print map { &quot;\t$_\n&quot; } $d-&gt;address;</span>
+<span class="cp">print &quot;\t&quot;, $d-&gt;country, &quot;\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$contact_hash = $d-&gt;contacts;</span>
+<span class="cp">if ($contact_hash) {</span>
+<span class="cp">    print &quot;Contacts:\n&quot;;</span>
+<span class="cp">    foreach $type (sort keys %$contact_hash) {</span>
+<span class="cp">        print &quot;  $type:\n&quot;;</span>
+<span class="cp">        foreach $line (@{$contact_hash-&gt;{$type}}) {</span>
+<span class="cp">            print &quot;    $line\n&quot;;</span>
+<span class="cp">        }</span>
+<span class="cp">    }</span>
+<span class="cp">} else {</span>
+<span class="cp">    print &quot;No contact information.\n&quot;;</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN1002"
+>Program: expn and vrfy</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">#% cat &gt; expn</span>
+<span class="cp">#!/usr/bin/perl -w</span>
+<span class="cp">#...</span>
+<span class="cp">#^D</span>
+<span class="cp">#% ln expn vrfy</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#% expn gnat@frii.com</span>
+<span class="cp">#Expanding gnat at frii.com (gnat@frii.com):</span>
+<span class="cp">#</span>
+<span class="cp">#calisto.frii.com Hello coprolith.frii.com [207.46.130.14],</span>
+<span class="cp">#</span>
+<span class="cp">#    pleased to meet you</span>
+<span class="cp">#</span>
+<span class="cp">#&lt;gnat@mail.frii.com&gt;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#% expn gnat@frii.com</span>
+<span class="cp">#Expanding gnat at mail.frii.net (gnat@frii.com):</span>
+<span class="cp">#</span>
+<span class="cp">#deimos.frii.com Hello coprolith.frii.com [207.46.130.14],</span>
+<span class="cp">#</span>
+<span class="cp">#    pleased to meet you</span>
+<span class="cp">#</span>
+<span class="cp">#Nathan Torkington &lt;gnat@deimos.frii.com&gt;</span>
+<span class="cp">#</span>
+<span class="cp">#</span>
+<span class="cp">#Expanding gnat at mx1.frii.net (gnat@frii.com):</span>
+<span class="cp">#</span>
+<span class="cp">#phobos.frii.com Hello coprolith.frii.com [207.46.130.14],</span>
+<span class="cp">#</span>
+<span class="cp">#    pleased to meet you</span>
+<span class="cp">#</span>
+<span class="cp">#&lt;gnat@mail.frii.com&gt;</span>
+<span class="cp">#</span>
+<span class="cp">#</span>
+<span class="cp">#E</span>
+<span class="cp">#xpanding gnat at mx2.frii.net (gnat@frii.com):</span>
+<span class="cp">#</span>
+<span class="cp">#europa.frii.com Hello coprolith.frii.com [207.46.130.14],</span>
+<span class="cp">#</span>
+<span class="cp">#    pleased to meet you</span>
+<span class="cp">#</span>
+<span class="cp">#&lt;gnat@mail.frii.com&gt;</span>
+<span class="cp">#</span>
+<span class="cp">#</span>
+<span class="cp">#Expanding gnat at mx3.frii.net (gnat@frii.com):</span>
+<span class="cp">#</span>
+<span class="cp">#ns2.winterlan.com Hello coprolith.frii.com [207.46.130.14],</span>
+<span class="cp">#</span>
+<span class="cp">#    pleased to meet you</span>
+<span class="cp">#</span>
+<span class="cp">#550 gnat... User unknown</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch18/expn</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl -w</span>
+<span class="cp"># expn -- convince smtp to divulge an alias expansion</span>
+<span class="cp">use strict;</span>
+<span class="cp">use IO::Socket;</span>
+<span class="cp">use Sys::Hostname;</span>
+
+<span class="cp">my $fetch_mx = 0;</span>
+<span class="cp"># try loading the module, but don&#39;t blow up if missing</span>
+<span class="cp">eval {    </span>
+<span class="cp">    require Net::DNS;</span>
+<span class="cp">    Net::DNS-&gt;import(&#39;mx&#39;);</span>
+<span class="cp">    $fetch_mx = 1;</span>
+<span class="cp">};</span>
+
+<span class="cp">my $selfname = hostname();</span>
+<span class="cp">die &quot;usage: $0 address\@host ...\n&quot; unless @ARGV;</span>
+
+<span class="cp"># Find out whether called as &quot;vrfy&quot; or &quot;expn&quot;.</span>
+<span class="cp">my $VERB = ($0 =~ /ve?ri?fy$/i)  ? &#39;VRFY&#39; : &#39;EXPN&#39;;</span>
+<span class="cp">my $multi = @ARGV &gt; 1;</span>
+<span class="cp">my $remote;</span>
+
+<span class="cp"># Iterate over addresses give on command line.</span>
+<span class="cp">foreach my $combo (@ARGV) {</span>
+<span class="cp">    my ($name, $host) = split(/\@/, $combo);</span>
+<span class="cp">    my @hosts;</span>
+<span class="cp">    $host ||= &#39;localhost&#39;;</span>
+<span class="cp">    @hosts = map { $_-&gt;exchange } mx($host)     if $fetch_mx;</span>
+<span class="cp">    @hosts = ($host)   unless @hosts;</span>
+
+<span class="cp">    foreach my $host (@hosts) { </span>
+<span class="cp">        print $VERB eq &#39;VRFY&#39; ? &quot;Verify&quot; : &quot;Expand&quot;, </span>
+<span class="cp">            &quot;ing $name at $host ($combo):&quot;;</span>
+
+<span class="cp">        $remote = IO::Socket::INET-&gt;new(</span>
+<span class="cp">    		       Proto    =&gt; &quot;tcp&quot;,</span>
+<span class="cp">    		       PeerAddr =&gt; $host,</span>
+<span class="cp">    		       PeerPort =&gt; &quot;smtp(25)&quot;,</span>
+<span class="cp">    		   ); </span>
+
+<span class="cp">        unless ($remote) { </span>
+<span class="cp">            warn &quot;cannot connect to $host\n&quot;;</span>
+<span class="cp">            next;</span>
+<span class="cp">        }</span>
+<span class="cp">        print &quot;\n&quot;;</span>
+
+<span class="cp">        $remote-&gt;autoflush(1);</span>
+
+<span class="cp">        # use CRLF network line terminators</span>
+<span class="cp">        print $remote &quot;HELO $selfname\015\012&quot;;</span>
+<span class="cp">        print $remote &quot;$VERB $name\015\012&quot;;</span>
+<span class="cp">        print $remote &quot;quit\015\012&quot;;</span>
+<span class="cp">        while (&lt;$remote&gt;) {</span>
+<span class="cp">    	        /^220\b/ &amp;&amp; next;</span>
+<span class="cp">    	        /^221\b/ &amp;&amp; last;</span>
+<span class="cp">    	        s/250\b[\-\s]+//;</span>
+<span class="cp">    	        print;</span>
+<span class="cp">        } </span>
+<span class="cp">        close($remote)			or die &quot;can&#39;t close socket: $!&quot;;</span>
+<span class="cp">        print &quot;\n&quot;; #  if @ARGV;</span>
+<span class="cp">    }</span>
+<span class="cp">} </span>
+
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="sockets.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="cgiprogramming.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Sockets</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>CGI Programming</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

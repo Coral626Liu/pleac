@@ -1,0 +1,1295 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Hashes</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Guile 1.8"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Arrays"
+HREF="arrays.html"><LINK
+REL="NEXT"
+TITLE="Pattern Matching"
+HREF="patternmatching.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Guile 1.8</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="arrays.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="patternmatching.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="HASHES"
+>5. Hashes</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN232"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;; ---------------------------------------------------------------------</span>
+<span class="c1">;; Scheme offers two dictionary types:</span>
+<span class="c1">;;</span>
+<span class="c1">;; * Association list [list of pairs e.g. &#39;((k1 . v1) (k2 . v2) ...)]</span>
+<span class="c1">;; * Hash table [vector of pairs plus hash algorithm]</span>
+<span class="c1">;;</span>
+<span class="c1">;; Implementation differences aside, they are remarkably similar in that</span>
+<span class="c1">;; the functions operating on them are similar named, and offer the same</span>
+<span class="c1">;; interface. Examples:</span>
+<span class="c1">;;</span>
+<span class="c1">;; * Retrieve an item: (assoc-ref hash key)</span>
+<span class="c1">;;                     (hash-ref hash key)</span>
+<span class="c1">;;</span>
+<span class="c1">;; * Update an item:   (assoc-set! hash key value)</span>
+<span class="c1">;;                     (hash-set! hash key value)</span>
+<span class="c1">;;</span>
+<span class="c1">;; Hash tables would tend to be used where performance was critical e.g.</span>
+<span class="c1">;; near constant-time lookups, or where entry updates are frequent,</span>
+<span class="c1">;; whilst association lists would be used where table-level traversals</span>
+<span class="c1">;; and manipulations require maximum flexibility</span>
+<span class="c1">;;</span>
+<span class="c1">;; Many of the sections include examples using both association lists</span>
+<span class="c1">;; and hash tables. However, where only one of these is shown,</span>
+<span class="c1">;; implementing the other is usually a trivial exercise. Finally, any</span>
+<span class="c1">;; helper functions will be included in the Appendix</span>
+<span class="c1">;; ---------------------------------------------------------------------</span>
+
+<span class="c1">; Association lists</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">*age*</span>
+  <span class="p">(</span><span class="nf">list</span>
+    <span class="p">(</span><span class="nb">cons </span><span class="ss">&#39;Nat</span> <span class="mi">24</span><span class="p">)</span>
+    <span class="p">(</span><span class="nb">cons </span><span class="ss">&#39;Jules</span> <span class="mi">25</span><span class="p">)</span>
+    <span class="p">(</span><span class="nb">cons </span><span class="ss">&#39;Josh</span> <span class="mi">17</span><span class="p">)))</span>
+
+<span class="c1">;; or, perhaps more compactly:</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">*age*</span>
+  <span class="p">(</span><span class="nf">list</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Nat</span> <span class="o">.</span> <span class="mi">24</span><span class="p">)</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Jules</span> <span class="o">.</span> <span class="mi">25</span><span class="p">)</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Josh</span> <span class="o">.</span> <span class="mi">17</span><span class="p">)))</span>
+
+<span class="c1">;; ------------</span>
+
+<span class="c1">; Guile built-in association list support</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">*age*</span> <span class="p">(</span><span class="nf">acons</span> <span class="ss">&#39;Nat</span> <span class="mi">24</span> <span class="o">&#39;</span><span class="p">()))</span>
+<span class="p">(</span><span class="k">set! </span><span class="nv">*age*</span> <span class="p">(</span><span class="nf">acons</span> <span class="ss">&#39;Jules</span> <span class="mi">25</span> <span class="nv">*age*</span><span class="p">))</span>
+<span class="p">(</span><span class="k">set! </span><span class="nv">*age*</span> <span class="p">(</span><span class="nf">acons</span> <span class="ss">&#39;Josh</span> <span class="mi">17</span> <span class="nv">*age*</span><span class="p">))</span>
+
+<span class="c1">;; ----</span>
+
+<span class="c1">; SRFI-1 association list support</span>
+<span class="p">(</span><span class="nf">use-modules</span> <span class="p">(</span><span class="nf">srfi</span> <span class="nv">srfi-1</span><span class="p">))</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">*age*</span> <span class="p">(</span><span class="nf">alist-cons</span> <span class="ss">&#39;Nat</span> <span class="mi">24</span> <span class="o">&#39;</span><span class="p">()))</span>
+<span class="p">(</span><span class="k">set! </span><span class="nv">*age*</span> <span class="p">(</span><span class="nf">alist-cons</span> <span class="ss">&#39;Jules</span> <span class="mi">25</span> <span class="nv">*age*</span><span class="p">))</span>
+<span class="p">(</span><span class="k">set! </span><span class="nv">*age*</span> <span class="p">(</span><span class="nf">alist-cons</span> <span class="ss">&#39;Josh</span> <span class="mi">17</span> <span class="nv">*age*</span><span class="p">))</span>
+
+<span class="c1">;; ------------</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">*food-colour*</span>
+  <span class="p">(</span><span class="nf">list</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Apple</span> <span class="o">.</span> <span class="s">&quot;red&quot;</span><span class="p">)</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Banana</span> <span class="o">.</span> <span class="s">&quot;yellow&quot;</span><span class="p">)</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Lemon</span> <span class="o">.</span> <span class="s">&quot;yellow&quot;</span><span class="p">)</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Carrot</span> <span class="o">.</span> <span class="s">&quot;orange&quot;</span><span class="p">)))</span>
+
+<span class="c1">;; ----------------------------</span>
+
+<span class="c1">; Hash tables. Guile offers an implementation, and it is also</span>
+<span class="c1">; possible to use SRFI-69 hash tables; only the former will be</span>
+<span class="c1">; illustrated here</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">*age*</span> <span class="p">(</span><span class="nf">make-hash-table</span> <span class="mi">20</span><span class="p">))</span>
+<span class="c1">; or</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">*age*</span> <span class="p">(</span><span class="nb">make-vector </span><span class="mi">20</span> <span class="o">&#39;</span><span class="p">()))</span>
+
+<span class="p">(</span><span class="nf">hash-set!</span> <span class="nv">*age*</span> <span class="ss">&#39;Nat</span> <span class="mi">24</span><span class="p">)</span>
+<span class="p">(</span><span class="nf">hash-set!</span> <span class="nv">*age*</span> <span class="ss">&#39;Jules</span> <span class="mi">25</span><span class="p">)</span>
+<span class="p">(</span><span class="nf">hash-set!</span> <span class="nv">*age*</span> <span class="ss">&#39;Josh</span> <span class="mi">17</span><span class="p">)</span>
+
+<span class="p">(</span><span class="nf">hash-for-each</span>
+  <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">key</span> <span class="nv">value</span><span class="p">)</span> <span class="p">(</span><span class="nf">print</span> <span class="nv">key</span><span class="p">))</span>
+  <span class="nv">*age*</span><span class="p">)</span>
+
+<span class="c1">; or, if vector used as hash table, can also use:</span>
+
+<span class="p">(</span><span class="nf">array-for-each</span>
+  <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">pair</span><span class="p">)</span>
+    <span class="p">(</span><span class="k">if </span><span class="p">(</span><span class="nb">not </span><span class="p">(</span><span class="nb">null? </span><span class="nv">pair</span><span class="p">))</span> <span class="p">(</span><span class="nf">print</span> <span class="p">(</span><span class="nb">car </span><span class="nv">pair</span><span class="p">))))</span>
+  <span class="nv">*age*</span><span class="p">)</span>
+
+<span class="c1">;; ------------</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">*food-colour*</span> <span class="p">(</span><span class="nf">make-hash-table</span> <span class="mi">20</span><span class="p">))</span>
+
+<span class="p">(</span><span class="nf">hash-set!</span> <span class="nv">*food-colour*</span> <span class="ss">&#39;Apple</span> <span class="s">&quot;red&quot;</span><span class="p">)</span>
+<span class="p">(</span><span class="nf">hash-set!</span> <span class="nv">*food-colour*</span> <span class="ss">&#39;Banana</span> <span class="s">&quot;yellow&quot;</span><span class="p">)</span>
+<span class="p">(</span><span class="nf">hash-set!</span> <span class="nv">*food-colour*</span> <span class="ss">&#39;Lemon</span> <span class="s">&quot;yellow&quot;</span><span class="p">)</span>
+<span class="p">(</span><span class="nf">hash-set!</span> <span class="nv">*food-colour*</span> <span class="ss">&#39;Carrot</span> <span class="s">&quot;orange&quot;</span><span class="p">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN235"
+>Adding an Element to a Hash</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="p">(</span><span class="k">set! </span><span class="nv">*hash*</span> <span class="p">(</span><span class="nf">acons</span> <span class="nv">key</span> <span class="nv">value</span> <span class="nv">*hash*</span><span class="p">))</span>
+
+<span class="c1">;; ------------</span>
+
+<span class="p">(</span><span class="k">set! </span><span class="nv">*food-colour*</span> <span class="p">(</span><span class="nf">acons</span> <span class="ss">&#39;Raspberry</span> <span class="s">&quot;pink&quot;</span> <span class="nv">*food-colour*</span><span class="p">))</span>
+
+<span class="p">(</span><span class="nf">print</span> <span class="s">&quot;Known foods:&quot;</span><span class="p">)</span>
+<span class="p">(</span><span class="nf">for-each</span>
+  <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">pair</span><span class="p">)</span> <span class="p">(</span><span class="nf">print</span> <span class="p">(</span><span class="nb">car </span><span class="nv">pair</span><span class="p">)))</span>
+  <span class="nv">*food-colour*</span><span class="p">)</span>
+
+<span class="c1">;; ----------------------------</span>
+
+<span class="p">(</span><span class="nf">hash-set!</span> <span class="nv">*hash*</span> <span class="nv">key</span> <span class="nv">value</span><span class="p">)</span>
+
+<span class="c1">;; ------------</span>
+
+<span class="p">(</span><span class="nf">hash-set!</span> <span class="nv">*food-colour*</span> <span class="ss">&#39;Raspberry</span> <span class="s">&quot;pink&quot;</span><span class="p">)</span>
+
+<span class="p">(</span><span class="nf">print</span> <span class="s">&quot;Known foods:&quot;</span><span class="p">)</span>
+<span class="p">(</span><span class="nf">hash-for-each</span>
+  <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">key</span> <span class="nv">value</span><span class="p">)</span> <span class="p">(</span><span class="nf">print</span> <span class="nv">key</span><span class="p">))</span>
+  <span class="nv">*food-colour*</span><span class="p">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN238"
+>Testing for the Presence of a Key in a Hash</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">; &#39;assoc&#39; returns the pair, (key . value)</span>
+<span class="p">(</span><span class="k">if </span><span class="p">(</span><span class="nb">assoc </span><span class="nv">key</span> <span class="nv">hash</span><span class="p">)</span>
+  <span class="c1">;; ... found ...</span>
+  <span class="o">&#39;</span><span class="p">()</span>
+<span class="c1">;else</span>
+  <span class="c1">;; ... not found ...</span>
+  <span class="o">&#39;</span><span class="p">())</span>
+
+<span class="c1">; &#39;assoc-ref&#39; returns the value only</span>
+<span class="p">(</span><span class="k">if </span><span class="p">(</span><span class="nf">assoc-ref</span> <span class="nv">hash</span> <span class="nv">key</span><span class="p">)</span>
+  <span class="c1">;; ... found ...</span>
+  <span class="o">&#39;</span><span class="p">()</span>
+<span class="c1">;else</span>
+  <span class="c1">;; ... not found ...</span>
+  <span class="o">&#39;</span><span class="p">())</span>
+
+<span class="c1">;; ------------</span>
+
+<span class="c1">; *food-colour* association list from an earlier section</span>
+
+<span class="p">(</span><span class="nf">for-each</span>
+  <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">name</span><span class="p">)</span>
+    <span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">pair</span> <span class="p">(</span><span class="nb">assoc </span><span class="nv">name</span> <span class="nv">*food-colour*</span><span class="p">)))</span>
+      <span class="p">(</span><span class="k">if </span><span class="nv">pair</span>
+        <span class="p">(</span><span class="nf">print</span> <span class="p">(</span><span class="nb">symbol-&gt;string </span><span class="p">(</span><span class="nb">car </span><span class="nv">pair</span><span class="p">))</span> <span class="s">&quot;is a food&quot;</span><span class="p">)</span>
+      <span class="c1">;else</span>
+        <span class="p">(</span><span class="nf">print</span> <span class="p">(</span><span class="nb">symbol-&gt;string </span><span class="nv">name</span><span class="p">)</span> <span class="s">&quot;is a drink&quot;</span><span class="p">)</span> <span class="p">)))</span>
+  <span class="p">(</span><span class="nb">list </span><span class="ss">&#39;Banana</span> <span class="ss">&#39;Martini</span><span class="p">))</span>
+
+<span class="c1">;; ----------------------------</span>
+
+<span class="c1">; &#39;hash-get-handle&#39; returns the pair, (key . value)</span>
+<span class="p">(</span><span class="k">if </span><span class="p">(</span><span class="nf">hash-get-handle</span> <span class="nv">hash</span> <span class="nv">key</span><span class="p">)</span>
+  <span class="c1">;; ... found ...</span>
+  <span class="o">&#39;</span><span class="p">()</span>
+<span class="c1">;else</span>
+  <span class="c1">;; ... not found ...</span>
+  <span class="o">&#39;</span><span class="p">())</span>
+
+<span class="c1">; &#39;hash-ref&#39; returns the value only</span>
+<span class="p">(</span><span class="k">if </span><span class="p">(</span><span class="nf">hash-ref</span> <span class="nv">hash</span> <span class="nv">key</span><span class="p">)</span>
+  <span class="c1">;; ... found ...</span>
+  <span class="o">&#39;</span><span class="p">()</span>
+<span class="c1">;else</span>
+  <span class="c1">;; ... not found ...</span>
+  <span class="o">&#39;</span><span class="p">())</span>
+
+<span class="c1">;; ------------</span>
+
+<span class="c1">; *food-colour* hash table from an earlier section</span>
+
+<span class="p">(</span><span class="nf">for-each</span>
+  <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">name</span><span class="p">)</span>
+    <span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">value</span> <span class="p">(</span><span class="nf">hash-ref</span> <span class="nv">*food-colour*</span> <span class="nv">name</span><span class="p">)))</span>
+      <span class="p">(</span><span class="k">if </span><span class="nv">value</span>
+        <span class="p">(</span><span class="nf">print</span> <span class="p">(</span><span class="nb">symbol-&gt;string </span><span class="nv">name</span><span class="p">)</span> <span class="s">&quot;is a food&quot;</span><span class="p">)</span>
+      <span class="c1">;else</span>
+        <span class="p">(</span><span class="nf">print</span> <span class="p">(</span><span class="nb">symbol-&gt;string </span><span class="nv">name</span><span class="p">)</span> <span class="s">&quot;is a drink&quot;</span><span class="p">)</span> <span class="p">)))</span>
+  <span class="p">(</span><span class="nb">list </span><span class="ss">&#39;Banana</span> <span class="ss">&#39;Martini</span><span class="p">))</span>
+
+<span class="c1">;; ----------------------------</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">*age*</span> <span class="p">(</span><span class="nf">make-hash-table</span> <span class="mi">20</span><span class="p">))</span>
+
+<span class="p">(</span><span class="nf">hash-set!</span> <span class="nv">*age*</span> <span class="ss">&#39;Toddler</span> <span class="mi">3</span><span class="p">)</span>
+<span class="p">(</span><span class="nf">hash-set!</span> <span class="nv">*age*</span> <span class="ss">&#39;Unborn</span> <span class="mi">0</span><span class="p">)</span>
+<span class="p">(</span><span class="nf">hash-set!</span> <span class="nv">*age*</span> <span class="ss">&#39;Phantasm</span> <span class="o">&#39;</span><span class="p">())</span>
+
+<span class="p">(</span><span class="nf">for-each</span>
+  <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">thing</span><span class="p">)</span>
+    <span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">value</span> <span class="p">(</span><span class="nf">hash-ref</span> <span class="nv">*age*</span> <span class="nv">thing</span><span class="p">)))</span>
+      <span class="p">(</span><span class="nb">display </span><span class="nv">thing</span><span class="p">)</span>
+      <span class="p">(</span><span class="k">if </span><span class="nv">value</span> <span class="p">(</span><span class="nb">display </span><span class="s">&quot; Exists&quot;</span><span class="p">))</span>
+      <span class="p">(</span><span class="k">if </span><span class="p">(</span><span class="k">and </span><span class="nv">value</span> <span class="p">(</span><span class="nb">not </span><span class="p">(</span><span class="nf">string-null?</span> <span class="nv">value</span><span class="p">)))</span> <span class="p">(</span><span class="nb">display </span><span class="s">&quot; Defined&quot;</span><span class="p">))</span>
+      <span class="c1">; Testing for non-zero as true is not applicable, so testing</span>
+      <span class="c1">; for non-equality with zero</span>
+      <span class="p">(</span><span class="k">if </span><span class="p">(</span><span class="k">and </span><span class="nv">value</span> <span class="p">(</span><span class="nb">not </span><span class="p">(</span><span class="nb">eq? </span><span class="nv">value</span> <span class="mi">0</span><span class="p">)))</span> <span class="p">(</span><span class="nb">display </span><span class="s">&quot; True&quot;</span><span class="p">))</span>
+      <span class="p">(</span><span class="nf">print</span> <span class="s">&quot;&quot;</span><span class="p">)</span> <span class="p">))</span>
+  <span class="p">(</span><span class="nb">list </span><span class="ss">&#39;Toddler</span> <span class="ss">&#39;Unborn</span> <span class="ss">&#39;Phantasm</span> <span class="ss">&#39;Relic</span><span class="p">))</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN241"
+>Deleting from a Hash</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="p">(</span><span class="nf">assoc-remove!</span> <span class="nv">hash</span> <span class="nv">key</span><span class="p">)</span>
+
+<span class="c1">;; ------------</span>
+
+<span class="p">(</span><span class="nf">use-modules</span> <span class="p">(</span><span class="nf">srfi</span> <span class="nv">srfi-1</span><span class="p">))</span>
+
+<span class="c1">; *food-colour* association list from an earlier section</span>
+
+<span class="p">(</span><span class="k">define </span><span class="p">(</span><span class="nf">print-foods</span><span class="p">)</span>
+  <span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">foods</span>
+          <span class="p">(</span><span class="nf">fold-right</span>
+            <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">pair</span> <span class="nv">accum</span><span class="p">)</span> <span class="p">(</span><span class="nb">cons </span><span class="p">(</span><span class="nb">car </span><span class="nv">pair</span><span class="p">)</span> <span class="nv">accum</span><span class="p">))</span>
+            <span class="o">&#39;</span><span class="p">()</span>
+            <span class="nv">*food-colour*</span><span class="p">)))</span>
+    <span class="p">(</span><span class="nb">display </span><span class="s">&quot;Keys: &quot;</span><span class="p">)</span> <span class="p">(</span><span class="nf">print</span> <span class="nv">foods</span><span class="p">)</span>
+    <span class="p">(</span><span class="nf">print</span> <span class="s">&quot;Values:&quot;</span><span class="p">)</span>
+    <span class="p">(</span><span class="nf">for-each</span>
+      <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">food</span><span class="p">)</span>
+        <span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">colour</span> <span class="p">(</span><span class="nf">assoc-ref</span> <span class="nv">*food-colour*</span> <span class="nv">food</span><span class="p">)))</span>
+          <span class="p">(</span><span class="nf">cond</span>
+            <span class="p">((</span><span class="nf">string-null?</span> <span class="nv">colour</span><span class="p">)</span> <span class="p">(</span><span class="nb">display </span><span class="s">&quot;(undef) &quot;</span><span class="p">))</span>
+            <span class="p">(</span><span class="k">else </span><span class="p">(</span><span class="nb">display </span><span class="p">(</span><span class="nb">string-append </span><span class="nv">colour</span> <span class="s">&quot; &quot;</span><span class="p">)))</span> <span class="p">)))</span>
+      <span class="nv">foods</span><span class="p">))</span>
+    <span class="p">(</span><span class="nf">newline</span><span class="p">))</span>
+
+<span class="p">(</span><span class="nf">print</span> <span class="s">&quot;Initially:&quot;</span><span class="p">)</span>
+<span class="p">(</span><span class="nf">print-foods</span><span class="p">)</span>
+
+<span class="p">(</span><span class="nf">print</span> <span class="s">&quot;\nWith Banana undef&quot;</span><span class="p">)</span>
+<span class="p">(</span><span class="nf">assoc-set!</span> <span class="nv">*food-colour*</span> <span class="ss">&#39;Banana</span> <span class="s">&quot;&quot;</span><span class="p">)</span>
+<span class="p">(</span><span class="nf">print-foods</span><span class="p">)</span>
+
+<span class="p">(</span><span class="nf">print</span> <span class="s">&quot;\nWith Banana deleted&quot;</span><span class="p">)</span>
+<span class="p">(</span><span class="nf">assoc-remove!</span> <span class="nv">*food-colour*</span> <span class="ss">&#39;Banana</span><span class="p">)</span>
+<span class="p">(</span><span class="nf">print-foods</span><span class="p">)</span>
+
+<span class="c1">;; ----------------------------</span>
+
+<span class="p">(</span><span class="nf">hash-remove!</span> <span class="nv">hash</span> <span class="nv">key</span><span class="p">)</span>
+
+<span class="c1">;; ------------</span>
+
+<span class="p">(</span><span class="nf">use-modules</span> <span class="p">(</span><span class="nf">srfi</span> <span class="nv">srfi-1</span><span class="p">))</span>
+
+<span class="c1">; *food-colour* hash table from an earlier section</span>
+
+<span class="p">(</span><span class="k">define </span><span class="p">(</span><span class="nf">print-foods</span><span class="p">)</span>
+  <span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">foods</span>
+          <span class="p">(</span><span class="nf">hash-fold</span>
+            <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">key</span> <span class="nv">value</span> <span class="nv">accum</span><span class="p">)</span> <span class="p">(</span><span class="nb">cons </span><span class="nv">key</span> <span class="nv">accum</span><span class="p">))</span>
+            <span class="o">&#39;</span><span class="p">()</span>
+            <span class="nv">*food-colour*</span><span class="p">)))</span>
+    <span class="p">(</span><span class="nb">display </span><span class="s">&quot;Keys: &quot;</span><span class="p">)</span> <span class="p">(</span><span class="nf">print</span> <span class="p">(</span><span class="nb">reverse </span><span class="nv">foods</span><span class="p">))</span>
+    <span class="p">(</span><span class="nf">print</span> <span class="s">&quot;Values:&quot;</span><span class="p">)</span>
+    <span class="p">(</span><span class="nf">for-each</span>
+      <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">food</span><span class="p">)</span>
+        <span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">colour</span> <span class="p">(</span><span class="nf">hash-ref</span> <span class="nv">*food-colour*</span> <span class="nv">food</span><span class="p">)))</span>
+          <span class="p">(</span><span class="nf">cond</span>
+            <span class="p">((</span><span class="nf">string-null?</span> <span class="nv">colour</span><span class="p">)</span> <span class="p">(</span><span class="nb">display </span><span class="s">&quot;(undef) &quot;</span><span class="p">))</span>
+            <span class="p">(</span><span class="k">else </span><span class="p">(</span><span class="nb">display </span><span class="p">(</span><span class="nb">string-append </span><span class="nv">colour</span> <span class="s">&quot; &quot;</span><span class="p">)))</span> <span class="p">)))</span>
+      <span class="nv">foods</span><span class="p">))</span>
+    <span class="p">(</span><span class="nf">newline</span><span class="p">))</span>
+
+<span class="p">(</span><span class="nf">print</span> <span class="s">&quot;Initially:&quot;</span><span class="p">)</span>
+<span class="p">(</span><span class="nf">print-foods</span><span class="p">)</span>
+
+<span class="p">(</span><span class="nf">print</span> <span class="s">&quot;\nWith Banana undef&quot;</span><span class="p">)</span>
+<span class="p">(</span><span class="nf">hash-set!</span> <span class="nv">*food-colour*</span> <span class="ss">&#39;Banana</span> <span class="s">&quot;&quot;</span><span class="p">)</span>
+<span class="p">(</span><span class="nf">print-foods</span><span class="p">)</span>
+
+<span class="p">(</span><span class="nf">print</span> <span class="s">&quot;\nWith Banana deleted&quot;</span><span class="p">)</span>
+<span class="p">(</span><span class="nf">hash-remove!</span> <span class="nv">*food-colour*</span> <span class="ss">&#39;Banana</span><span class="p">)</span>
+<span class="p">(</span><span class="nf">print-foods</span><span class="p">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN244"
+>Traversing a Hash</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">; Since an association list is nothing more than a list of pairs, it</span>
+<span class="c1">; may be traversed using &#39;for-each&#39;</span>
+<span class="p">(</span><span class="nf">for-each</span>
+  <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">pair</span><span class="p">)</span>
+    <span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">key</span> <span class="p">(</span><span class="nb">car </span><span class="nv">pair</span><span class="p">))</span>
+          <span class="p">(</span><span class="nf">value</span> <span class="p">(</span><span class="nb">cdr </span><span class="nv">pair</span><span class="p">)))</span>
+      <span class="c1">;; ... do something with key / value ...</span>
+      <span class="o">&#39;</span><span class="p">()))</span>
+  <span class="nv">hash</span><span class="p">)</span>
+
+<span class="c1">;; ----------------------------</span>
+
+<span class="c1">; A &#39;for-each&#39;-like function is available for hash table traversal</span>
+<span class="p">(</span><span class="nf">hash-for-each</span>
+  <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">key</span> <span class="nv">value</span><span class="p">)</span>
+    <span class="c1">;; ... do something with key / value ...</span>
+    <span class="o">&#39;</span><span class="p">())</span>
+  <span class="nv">hash</span><span class="p">)</span>
+
+<span class="c1">; If the hash table is directly implemented as a vector, then it is</span>
+<span class="c1">; also possible to traverse it using, &#39;array-for-each&#39;, though a</span>
+<span class="c1">; check for empty slots is needed</span>
+<span class="p">(</span><span class="nf">array-for-each</span>
+  <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">pair</span><span class="p">)</span>
+    <span class="p">(</span><span class="k">if </span><span class="p">(</span><span class="nb">not </span><span class="p">(</span><span class="nb">null? </span><span class="nv">pair</span><span class="p">))</span> <span class="o">...</span> <span class="k">do </span><span class="nv">something</span> <span class="nv">with</span> <span class="nv">key</span> <span class="nv">/</span> <span class="nv">value</span> <span class="o">...</span><span class="p">))</span>
+  <span class="nv">hash</span><span class="p">)</span>
+
+<span class="c1">;; ----------------------------</span>
+
+<span class="c1">; *food-colour* association list from an earlier section</span>
+
+<span class="p">(</span><span class="nf">for-each</span>
+  <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">pair</span><span class="p">)</span>
+    <span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">food</span> <span class="p">(</span><span class="nb">car </span><span class="nv">pair</span><span class="p">))</span>
+          <span class="p">(</span><span class="nf">colour</span> <span class="p">(</span><span class="nb">cdr </span><span class="nv">pair</span><span class="p">)))</span>
+      <span class="p">(</span><span class="nf">print</span> <span class="p">(</span><span class="nb">symbol-&gt;string </span><span class="nv">food</span><span class="p">)</span> <span class="s">&quot;is&quot;</span> <span class="nv">colour</span><span class="p">)</span> <span class="p">))</span>
+  <span class="nv">*food-colour*</span><span class="p">)</span>
+
+<span class="c1">;; ------------</span>
+
+<span class="c1">; *food-colour* association list from an earlier section</span>
+
+<span class="p">(</span><span class="nf">for-each</span>
+  <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">food</span><span class="p">)</span>
+    <span class="p">(</span><span class="nf">print</span> <span class="p">(</span><span class="nb">symbol-&gt;string </span><span class="nv">food</span><span class="p">)</span> <span class="s">&quot;is&quot;</span> <span class="p">(</span><span class="nf">assoc-ref</span> <span class="nv">*food-colour*</span> <span class="nv">food</span><span class="p">)))</span>
+  <span class="p">(</span><span class="nf">sort</span>
+    <span class="p">(</span><span class="nf">fold-right</span>
+      <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">pair</span> <span class="nv">accum</span><span class="p">)</span> <span class="p">(</span><span class="nb">cons </span><span class="p">(</span><span class="nb">car </span><span class="nv">pair</span><span class="p">)</span> <span class="nv">accum</span><span class="p">))</span>
+      <span class="o">&#39;</span><span class="p">()</span>
+      <span class="nv">*food-colour*</span><span class="p">)</span>
+    <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">left</span> <span class="nv">right</span><span class="p">)</span>
+      <span class="p">(</span><span class="nb">string&lt;? </span><span class="p">(</span><span class="nb">symbol-&gt;string </span><span class="nv">left</span><span class="p">)</span> <span class="p">(</span><span class="nb">symbol-&gt;string </span><span class="nv">right</span><span class="p">)))))</span>
+
+<span class="c1">;; ----------------------------</span>
+
+<span class="p">(</span><span class="nf">use-modules</span> <span class="p">(</span><span class="nf">srfi</span> <span class="nv">srfi-1</span><span class="p">)</span> <span class="p">(</span><span class="nf">ice-9</span> <span class="nv">rdelim</span><span class="p">)</span> <span class="p">(</span><span class="nf">ice-9</span> <span class="nv">regex</span><span class="p">))</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">*filename*</span> <span class="s">&quot;from.txt&quot;</span><span class="p">)</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">*from*</span> <span class="o">&#39;</span><span class="p">())</span>
+
+<span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">port</span> <span class="p">(</span><span class="nb">open-input-file </span><span class="nv">*filename*</span><span class="p">)))</span>
+  <span class="p">(</span><span class="k">let </span><span class="nv">loop</span> <span class="p">((</span><span class="nf">line&amp;terminator</span> <span class="p">(</span><span class="nf">read-line</span> <span class="nv">port</span> <span class="ss">&#39;split</span><span class="p">)))</span>
+    <span class="p">(</span><span class="nf">cond</span>
+      <span class="p">((</span><span class="nb">eof-object? </span><span class="p">(</span><span class="nb">cdr </span><span class="nv">line&amp;terminator</span><span class="p">))</span> <span class="o">&#39;</span><span class="p">())</span>
+      <span class="p">(</span><span class="nf">else</span>
+        <span class="p">(</span><span class="k">let* </span><span class="p">((</span><span class="nf">key</span> <span class="p">(</span><span class="nf">string-&gt;symbol</span>
+                      <span class="p">(</span><span class="nf">match:substring</span>
+                        <span class="p">(</span><span class="nf">string-match</span>
+                          <span class="s">&quot;^From: (.*)&quot;</span> <span class="p">(</span><span class="nb">car </span><span class="nv">line&amp;terminator</span><span class="p">))</span>
+                        <span class="mi">1</span><span class="p">)</span> <span class="p">))</span>
+               <span class="p">(</span><span class="nf">value</span> <span class="p">(</span><span class="nf">assoc-ref</span> <span class="nv">*from*</span> <span class="nv">key</span><span class="p">)))</span>
+          <span class="p">(</span><span class="k">if </span><span class="p">(</span><span class="nb">not </span><span class="nv">value</span><span class="p">)</span> <span class="p">(</span><span class="k">set! </span><span class="nv">value</span> <span class="mi">0</span><span class="p">))</span>
+          <span class="p">(</span><span class="k">set! </span><span class="nv">*from*</span> <span class="p">(</span><span class="nf">assoc-set!</span> <span class="nv">*from*</span> <span class="nv">key</span> <span class="p">(</span><span class="nb">+ </span><span class="mi">1</span> <span class="nv">value</span><span class="p">))))</span>
+        <span class="p">(</span><span class="nf">loop</span> <span class="p">(</span><span class="nf">read-line</span> <span class="nv">port</span> <span class="ss">&#39;split</span><span class="p">))</span> <span class="p">)))</span>
+  <span class="p">(</span><span class="nb">close-input-port </span><span class="nv">port</span><span class="p">))</span>
+
+<span class="p">(</span><span class="nf">for-each</span>
+  <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">person</span><span class="p">)</span>
+    <span class="p">(</span><span class="nf">print</span> <span class="p">(</span><span class="nb">symbol-&gt;string </span><span class="nv">person</span><span class="p">)</span> <span class="s">&quot;:&quot;</span>
+           <span class="p">(</span><span class="nb">number-&gt;string </span><span class="p">(</span><span class="nf">assoc-ref</span> <span class="nv">*from*</span> <span class="nv">person</span><span class="p">))))</span>
+  <span class="p">(</span><span class="nf">sort</span>
+    <span class="p">(</span><span class="nf">fold-right</span>
+      <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">pair</span> <span class="nv">accum</span><span class="p">)</span> <span class="p">(</span><span class="nb">cons </span><span class="p">(</span><span class="nb">car </span><span class="nv">pair</span><span class="p">)</span> <span class="nv">accum</span><span class="p">))</span>
+      <span class="o">&#39;</span><span class="p">()</span>
+      <span class="nv">*from*</span><span class="p">)</span>
+    <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">left</span> <span class="nv">right</span><span class="p">)</span>
+      <span class="p">(</span><span class="nb">string&lt;? </span><span class="p">(</span><span class="nb">symbol-&gt;string </span><span class="nv">left</span><span class="p">)</span> <span class="p">(</span><span class="nb">symbol-&gt;string </span><span class="nv">right</span><span class="p">)))))</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN247"
+>Printing a Hash</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">; All approaches shown in the previous section apply here also, so</span>
+<span class="c1">; there is little to be gained by repeating those examples [i.e. the</span>
+<span class="c1">; use of &#39;for-each&#39; and similar]. It is always possible, of course,</span>
+<span class="c1">; to directly recurse over an association list:</span>
+
+<span class="c1">; *food-colour* association list from an earlier section</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">*sorted-food-colour*</span>
+  <span class="p">(</span><span class="nf">sort</span>
+    <span class="nv">*food-colour*</span>
+    <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">left</span> <span class="nv">right</span><span class="p">)</span>
+      <span class="p">(</span><span class="nf">string&lt;?</span>
+        <span class="p">(</span><span class="nb">symbol-&gt;string </span><span class="p">(</span><span class="nb">car </span><span class="nv">left</span><span class="p">))</span>
+        <span class="p">(</span><span class="nb">symbol-&gt;string </span><span class="p">(</span><span class="nb">car </span><span class="nv">right</span><span class="p">))))</span> <span class="p">))</span>
+
+<span class="p">(</span><span class="k">let </span><span class="nv">loop</span> <span class="p">((</span><span class="nf">hash</span> <span class="nv">*sorted-food-colour*</span><span class="p">))</span>
+  <span class="p">(</span><span class="nf">cond</span>
+    <span class="p">((</span><span class="nb">null? </span><span class="nv">hash</span><span class="p">)</span> <span class="o">&#39;</span><span class="p">())</span>
+    <span class="p">(</span><span class="nf">else</span>
+      <span class="p">(</span><span class="nf">print</span>
+        <span class="p">(</span><span class="nb">symbol-&gt;string </span><span class="p">(</span><span class="nb">car </span><span class="p">(</span><span class="nb">car </span><span class="nv">hash</span><span class="p">)))</span> <span class="s">&quot;=&gt;&quot;</span> <span class="p">(</span><span class="nb">cdr </span><span class="p">(</span><span class="nb">car </span><span class="nv">hash</span><span class="p">))</span> <span class="p">)</span>
+      <span class="p">(</span><span class="nf">loop</span> <span class="p">(</span><span class="nb">cdr </span><span class="nv">hash</span><span class="p">)))</span> <span class="p">))</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN250"
+>Retrieving from a Hash in Insertion Order</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">; AFAIK, Scheme doesn&#39;t offer a facility similar to Perl&#39;s &#39;Tie::IxHash&#39;.</span>
+<span class="c1">; Therefore, use an association list if retrieval [from a dictionary</span>
+<span class="c1">; type container] in insertion order is required.</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">*food-colour*</span> <span class="p">(</span><span class="nf">acons</span> <span class="ss">&#39;Banana</span> <span class="s">&quot;Yellow&quot;</span> <span class="o">&#39;</span><span class="p">()))</span>
+<span class="p">(</span><span class="k">set! </span><span class="nv">*food-colour*</span> <span class="p">(</span><span class="nf">acons</span> <span class="ss">&#39;Apple</span> <span class="s">&quot;Green&quot;</span> <span class="nv">*food-colour*</span><span class="p">))</span>
+<span class="p">(</span><span class="k">set! </span><span class="nv">*food-colour*</span> <span class="p">(</span><span class="nf">acons</span> <span class="ss">&#39;Lemon</span> <span class="s">&quot;yellow&quot;</span> <span class="nv">*food-colour*</span><span class="p">))</span>
+
+<span class="p">(</span><span class="nf">print</span> <span class="s">&quot;In insertion order, the foods are:&quot;</span><span class="p">)</span>
+<span class="p">(</span><span class="nf">for-each</span>
+  <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">pair</span><span class="p">)</span>
+    <span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">food</span> <span class="p">(</span><span class="nb">car </span><span class="nv">pair</span><span class="p">))</span>
+          <span class="p">(</span><span class="nf">colour</span> <span class="p">(</span><span class="nb">cdr </span><span class="nv">pair</span><span class="p">)))</span>
+      <span class="p">(</span><span class="nf">print</span> <span class="s">&quot;  &quot;</span> <span class="p">(</span><span class="nb">symbol-&gt;string </span><span class="nv">food</span><span class="p">))</span> <span class="p">))</span>
+  <span class="nv">*food-colour*</span><span class="p">)</span>
+
+<span class="p">(</span><span class="nf">print</span> <span class="s">&quot;Still in insertion order, the food&#39;s colours are:&quot;</span><span class="p">)</span>
+<span class="p">(</span><span class="nf">for-each</span>
+  <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">pair</span><span class="p">)</span>
+    <span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">food</span> <span class="p">(</span><span class="nb">car </span><span class="nv">pair</span><span class="p">))</span>
+          <span class="p">(</span><span class="nf">colour</span> <span class="p">(</span><span class="nb">cdr </span><span class="nv">pair</span><span class="p">)))</span>
+      <span class="p">(</span><span class="nf">print</span> <span class="p">(</span><span class="nb">symbol-&gt;string </span><span class="nv">food</span><span class="p">)</span> <span class="s">&quot;is coloured&quot;</span> <span class="nv">colour</span><span class="p">)</span> <span class="p">))</span>
+  <span class="nv">*food-colour*</span><span class="p">)</span>
+
+<span class="c1">;; ----------------------------</span>
+
+<span class="c1">; Of course, insertion order is lost if the association list is sorted,</span>
+<span class="c1">; or elements removed, so if maintaining insertion order is vital, it</span>
+<span class="c1">; might pay to associate data with a timestamp [e.g. create a timestamped</span>
+<span class="c1">; record / structure], and manipulate those entities [no example given]</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN253"
+>Hashes with Multiple Values Per Key</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="p">(</span><span class="k">define </span><span class="nv">*ttys*</span> <span class="o">&#39;</span><span class="p">())</span>
+
+<span class="p">(</span><span class="nf">for-each</span>
+  <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">user-tty-pair</span><span class="p">)</span>
+    <span class="p">(</span><span class="k">let* </span><span class="p">((</span><span class="nf">user-tty-pair</span> <span class="p">(</span><span class="nf">string-split</span> <span class="nv">user-tty-pair</span> <span class="sc">#\space</span><span class="p">))</span>
+           <span class="p">(</span><span class="nf">user</span> <span class="p">(</span><span class="nb">string-&gt;symbol </span><span class="p">(</span><span class="nb">car </span><span class="nv">user-tty-pair</span><span class="p">)))</span>
+           <span class="p">(</span><span class="nf">newtty</span> <span class="p">(</span><span class="nb">cadr </span><span class="nv">user-tty-pair</span><span class="p">))</span>
+           <span class="p">(</span><span class="nf">current-ttys</span> <span class="p">(</span><span class="nf">assoc-ref</span> <span class="nv">*ttys*</span> <span class="nv">user</span><span class="p">)))</span>
+      <span class="p">(</span><span class="k">set! </span><span class="nv">*ttys*</span>
+        <span class="p">(</span><span class="nf">assoc-set!</span> <span class="nv">*ttys*</span> <span class="nv">user</span>
+          <span class="p">(</span><span class="k">if </span><span class="p">(</span><span class="nb">not </span><span class="nv">current-ttys</span><span class="p">)</span>
+            <span class="nv">newtty</span>
+            <span class="p">(</span><span class="nb">string-append </span><span class="nv">current-ttys</span> <span class="s">&quot; &quot;</span> <span class="nv">newtty</span><span class="p">))</span> <span class="p">))))</span>
+  <span class="p">(</span><span class="nf">string-split</span> <span class="p">(</span><span class="nf">qx</span> <span class="s">&quot;who|cut -d&#39; &#39; -f1,2&quot;</span><span class="p">)</span> <span class="sc">#\newline</span><span class="p">))</span>
+
+<span class="p">(</span><span class="nf">for-each</span>
+  <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">user-ttys</span><span class="p">)</span>
+    <span class="p">(</span><span class="nf">print</span> <span class="p">(</span><span class="nb">symbol-&gt;string </span><span class="p">(</span><span class="nb">car </span><span class="nv">user-ttys</span><span class="p">))</span> <span class="s">&quot;:&quot;</span> <span class="p">(</span><span class="nb">cdr </span><span class="nv">user-ttys</span><span class="p">)))</span>
+  <span class="p">(</span><span class="nf">sort</span>
+    <span class="nv">*ttys*</span>
+    <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">left</span> <span class="nv">right</span><span class="p">)</span>
+      <span class="p">(</span><span class="nf">string&lt;?</span>
+        <span class="p">(</span><span class="nb">symbol-&gt;string </span><span class="p">(</span><span class="nb">car </span><span class="nv">left</span><span class="p">))</span>
+        <span class="p">(</span><span class="nb">symbol-&gt;string </span><span class="p">(</span><span class="nb">car </span><span class="nv">right</span><span class="p">)))))</span> <span class="p">)</span>
+
+<span class="c1">;; ----------------------------</span>
+
+<span class="p">(</span><span class="nf">use-modules</span> <span class="p">(</span><span class="nf">ice-9</span> <span class="nv">regex</span><span class="p">))</span>
+
+<span class="p">(</span><span class="k">define </span><span class="p">(</span><span class="nf">multi-hash-delete</span> <span class="nv">hash</span> <span class="nv">key</span> <span class="nv">value</span><span class="p">)</span>
+  <span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">value-found</span> <span class="p">(</span><span class="nf">assoc-ref</span> <span class="nv">hash</span> <span class="nv">key</span><span class="p">)))</span>
+    <span class="p">(</span><span class="k">if </span><span class="nv">value-found</span>
+      <span class="p">(</span><span class="nf">assoc-ref</span> <span class="nv">hash</span> <span class="nv">key</span>
+        <span class="p">(</span><span class="nf">regexp-substitute/global</span>
+          <span class="no">#f</span> <span class="p">(</span><span class="nf">string-match</span> <span class="nv">value</span> <span class="nv">value-found</span><span class="p">)</span> <span class="ss">&#39;pre</span> <span class="s">&quot;&quot;</span> <span class="ss">&#39;post</span> <span class="s">&quot;&quot;</span><span class="p">)))))</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN256"
+>Inverting a Hash</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">; Alternate implementatons of a hash inversion function; both assume</span>
+<span class="c1">; key is a symbol, value is a string</span>
+
+<span class="p">(</span><span class="k">define </span><span class="p">(</span><span class="nf">assoc-invert</span> <span class="nv">assoc</span><span class="p">)</span>
+  <span class="p">(</span><span class="nf">map</span>
+    <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">pair</span><span class="p">)</span>
+      <span class="p">(</span><span class="nf">cons</span>
+        <span class="p">(</span><span class="nb">string-&gt;symbol </span><span class="p">(</span><span class="nb">cdr </span><span class="nv">pair</span><span class="p">))</span>
+        <span class="p">(</span><span class="nb">symbol-&gt;string </span><span class="p">(</span><span class="nb">car </span><span class="nv">pair</span><span class="p">))))</span>
+    <span class="nv">assoc</span><span class="p">))</span>
+
+<span class="c1">;; ------------</span>
+
+<span class="p">(</span><span class="k">define </span><span class="p">(</span><span class="nf">assoc-invert</span> <span class="nv">assoc</span><span class="p">)</span>
+  <span class="p">(</span><span class="k">let </span><span class="nv">loop</span> <span class="p">((</span><span class="nb">assoc </span><span class="nv">assoc</span><span class="p">)</span> <span class="p">(</span><span class="nf">new-assoc</span> <span class="o">&#39;</span><span class="p">()))</span>
+    <span class="p">(</span><span class="nf">cond</span>
+      <span class="p">((</span><span class="nb">null? </span><span class="nv">assoc</span><span class="p">)</span> <span class="nv">new-assoc</span><span class="p">)</span>
+      <span class="p">(</span><span class="nf">else</span>
+        <span class="p">(</span><span class="nf">loop</span> <span class="p">(</span><span class="nb">cdr </span><span class="nv">assoc</span><span class="p">)</span>
+              <span class="p">(</span><span class="nf">acons</span>
+                <span class="p">(</span><span class="nb">string-&gt;symbol </span><span class="p">(</span><span class="nb">cdar </span><span class="nv">assoc</span><span class="p">))</span>
+                <span class="p">(</span><span class="nb">symbol-&gt;string </span><span class="p">(</span><span class="nb">caar </span><span class="nv">assoc</span><span class="p">))</span> <span class="nv">new-assoc</span><span class="p">))</span> <span class="p">))</span> <span class="p">))</span>
+
+<span class="c1">;; ----------------------------</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">*surname*</span>
+  <span class="p">(</span><span class="nf">list</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Mickey</span> <span class="o">.</span> <span class="s">&quot;Mantle&quot;</span><span class="p">)</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Babe</span> <span class="o">.</span> <span class="s">&quot;Ruth&quot;</span><span class="p">)))</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">*first-name*</span> <span class="p">(</span><span class="nf">assoc-invert</span> <span class="nv">*surname*</span><span class="p">))</span>
+
+<span class="p">(</span><span class="nf">print</span> <span class="p">(</span><span class="nf">assoc-ref</span> <span class="nv">*first-name*</span> <span class="ss">&#39;Mantle</span><span class="p">))</span>
+
+<span class="c1">;; ----------------------------</span>
+
+<span class="c1">; foodfind</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">*given*</span> <span class="p">(</span><span class="nb">string-&gt;symbol </span><span class="p">(</span><span class="nb">cadr </span><span class="p">(</span><span class="nf">command-line</span><span class="p">))))</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">*colour*</span>
+  <span class="p">(</span><span class="nf">list</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Apple</span> <span class="o">.</span> <span class="s">&quot;red&quot;</span><span class="p">)</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Lemon</span> <span class="o">.</span> <span class="s">&quot;yellow&quot;</span><span class="p">)</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Carrot</span> <span class="o">.</span> <span class="s">&quot;orange&quot;</span><span class="p">)))</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">*food*</span> <span class="p">(</span><span class="nf">assoc-invert</span> <span class="nv">*colour*</span><span class="p">))</span>
+
+<span class="p">(</span><span class="k">if </span><span class="p">(</span><span class="nf">assoc-ref</span> <span class="nv">*colour*</span> <span class="nv">*given*</span><span class="p">)</span>
+  <span class="p">(</span><span class="nf">print</span>
+    <span class="p">(</span><span class="nb">symbol-&gt;string </span><span class="nv">*given*</span><span class="p">)</span>
+    <span class="s">&quot;is a food with colour&quot;</span>
+    <span class="p">(</span><span class="nf">assoc-ref</span> <span class="nv">*colour*</span> <span class="nv">*given*</span><span class="p">)))</span>
+
+<span class="p">(</span><span class="k">if </span><span class="p">(</span><span class="nf">assoc-ref</span> <span class="nv">*food*</span> <span class="nv">*given*</span><span class="p">)</span>
+  <span class="p">(</span><span class="nf">print</span>
+    <span class="p">(</span><span class="nf">assoc-ref</span> <span class="nv">*food*</span> <span class="nv">*given*</span><span class="p">)</span>
+    <span class="s">&quot;is a food with colour&quot;</span>
+    <span class="p">(</span><span class="nb">symbol-&gt;string </span><span class="nv">*given*</span><span class="p">)))</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN259"
+>Sorting a Hash</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">; *food-colour* association list from an earlier section</span>
+
+<span class="c1">; Use &#39;sort&#39; to sort the entire hash, on key or on value, ascending or</span>
+<span class="c1">; descending order</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">*sorted-on-key:food-colour*</span>
+  <span class="p">(</span><span class="nf">sort</span>
+    <span class="nv">*food-colour*</span>
+    <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">left</span> <span class="nv">right</span><span class="p">)</span>
+      <span class="p">(</span><span class="nf">string&lt;?</span>
+        <span class="p">(</span><span class="nb">symbol-&gt;string </span><span class="p">(</span><span class="nb">car </span><span class="nv">left</span><span class="p">))</span>
+        <span class="p">(</span><span class="nb">symbol-&gt;string </span><span class="p">(</span><span class="nb">car </span><span class="nv">right</span><span class="p">))))</span> <span class="p">))</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">*sorted-on-value:food-colour*</span>
+  <span class="p">(</span><span class="nf">sort</span>
+    <span class="nv">*food-colour*</span>
+    <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">left</span> <span class="nv">right</span><span class="p">)</span>
+      <span class="p">(</span><span class="nf">string&lt;?</span>
+        <span class="p">(</span><span class="nb">cdr </span><span class="nv">left</span><span class="p">)</span>
+        <span class="p">(</span><span class="nb">cdr </span><span class="nv">right</span><span class="p">)))</span> <span class="p">))</span>
+
+<span class="c1">;; ------------</span>
+
+<span class="p">(</span><span class="nf">for-each</span>
+  <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">pair</span><span class="p">)</span>
+    <span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">food</span> <span class="p">(</span><span class="nb">car </span><span class="nv">pair</span><span class="p">))</span>
+          <span class="p">(</span><span class="nf">colour</span> <span class="p">(</span><span class="nb">cdr </span><span class="nv">pair</span><span class="p">)))</span>
+      <span class="p">(</span><span class="nf">print</span>
+        <span class="p">(</span><span class="nb">symbol-&gt;string </span><span class="nv">food</span><span class="p">)</span>
+        <span class="s">&quot;is&quot;</span>
+        <span class="nv">colour</span><span class="p">)))</span>
+  <span class="nv">*sorted-on-key:food-colour*</span><span class="p">)</span>
+
+<span class="c1">;; ----------------------------</span>
+
+<span class="c1">; Alternatively, generate a list of keys or values, sort as required,</span>
+<span class="c1">; and use list to guide the hash traversal</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">*sorted-food-colour-keys*</span>
+  <span class="p">(</span><span class="nf">sort</span>
+    <span class="p">(</span><span class="nf">fold-right</span>
+      <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">pair</span> <span class="nv">accum</span><span class="p">)</span> <span class="p">(</span><span class="nb">cons </span><span class="p">(</span><span class="nb">car </span><span class="nv">pair</span><span class="p">)</span> <span class="nv">accum</span><span class="p">))</span>
+      <span class="o">&#39;</span><span class="p">()</span>
+      <span class="nv">*food-colour*</span><span class="p">)</span>
+    <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">left</span> <span class="nv">right</span><span class="p">)</span>
+      <span class="p">(</span><span class="nf">string&lt;?</span>
+        <span class="p">(</span><span class="nb">symbol-&gt;string </span><span class="nv">left</span><span class="p">)</span>
+        <span class="p">(</span><span class="nb">symbol-&gt;string </span><span class="nv">right</span><span class="p">)))</span> <span class="p">))</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">*sorted-food-colour-values*</span>
+  <span class="p">(</span><span class="nf">sort</span>
+    <span class="p">(</span><span class="nf">fold-right</span>
+      <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">pair</span> <span class="nv">accum</span><span class="p">)</span> <span class="p">(</span><span class="nb">cons </span><span class="p">(</span><span class="nb">cdr </span><span class="nv">pair</span><span class="p">)</span> <span class="nv">accum</span><span class="p">))</span>
+      <span class="o">&#39;</span><span class="p">()</span>
+      <span class="nv">*food-colour*</span><span class="p">)</span>
+    <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">left</span> <span class="nv">right</span><span class="p">)</span>
+      <span class="p">(</span><span class="nb">string&lt;? </span><span class="nv">left</span> <span class="nv">right</span><span class="p">))</span> <span class="p">))</span>
+
+<span class="c1">;; ------------</span>
+
+<span class="p">(</span><span class="nf">for-each</span>
+  <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">food</span><span class="p">)</span>
+    <span class="p">(</span><span class="nf">print</span> <span class="p">(</span><span class="nb">symbol-&gt;string </span><span class="nv">food</span><span class="p">)</span> <span class="s">&quot;is&quot;</span> <span class="p">(</span><span class="nf">assoc-ref</span> <span class="nv">*food-colour*</span> <span class="nv">food</span><span class="p">)))</span>
+  <span class="nv">*sorted-food-colour-keys*</span><span class="p">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN262"
+>Merging Hashes</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">; If merging is defined as the combining of the contents of two or more</span>
+<span class="c1">; hashes, then it is simply a matter of copying the contents of each</span>
+<span class="c1">; into a new hash</span>
+
+<span class="c1">; Association lists can simply be appended together</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">*food-colour*</span>
+  <span class="p">(</span><span class="nf">list</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Apple</span> <span class="o">.</span> <span class="s">&quot;red&quot;</span><span class="p">)</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Banana</span> <span class="o">.</span> <span class="s">&quot;yellow&quot;</span><span class="p">)</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Lemon</span> <span class="o">.</span> <span class="s">&quot;yellow&quot;</span><span class="p">)</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Carrot</span> <span class="o">.</span> <span class="s">&quot;orange&quot;</span><span class="p">)))</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">*drink-colour*</span>
+  <span class="p">(</span><span class="nf">list</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Galliano</span> <span class="o">.</span> <span class="s">&quot;yellow&quot;</span><span class="p">)</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Mai</span> <span class="nv">Tai</span> <span class="o">.</span> <span class="s">&quot;blue&quot;</span><span class="p">)))</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">*ingested-colour*</span> <span class="p">(</span><span class="nb">append </span><span class="nv">*food-colour*</span> <span class="nv">*drink-colour*</span><span class="p">))</span>
+
+<span class="c1">;; ----------------------------</span>
+
+<span class="c1">; Hash tables built from vectors can be copied element by element into</span>
+<span class="c1">; a new vector, or spliced together using &#39;vector-join&#39; [see Chapter 4]</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">*food-colour*</span> <span class="p">(</span><span class="nb">make-vector </span><span class="mi">20</span> <span class="o">&#39;</span><span class="p">())</span>
+<span class="c1">; ...</span>
+  <span class="p">)</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">*drink-colour*</span> <span class="p">(</span><span class="nb">make-vector </span><span class="mi">20</span> <span class="o">&#39;</span><span class="p">())</span>
+<span class="c1">; ...</span>
+  <span class="p">)</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">*ingested-colour*</span>
+  <span class="p">(</span><span class="nf">vector-join</span> <span class="nv">*food-colour*</span> <span class="nv">*drink-colour*</span><span class="p">))</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN265"
+>Finding Common or Different Keys in Two Hashes</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="p">(</span><span class="k">define </span><span class="nv">*common*</span> <span class="o">&#39;</span><span class="p">())</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">*this-not-that*</span> <span class="o">&#39;</span><span class="p">())</span>
+
+<span class="c1">;; ------------</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">*dict1*</span>
+  <span class="p">(</span><span class="nf">list</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Apple</span> <span class="o">.</span> <span class="s">&quot;red&quot;</span><span class="p">)</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Lemon</span> <span class="o">.</span> <span class="s">&quot;yellow&quot;</span><span class="p">)</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Carrot</span> <span class="o">.</span> <span class="s">&quot;orange&quot;</span><span class="p">)))</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">*dict2*</span>
+  <span class="p">(</span><span class="nf">list</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Apple</span> <span class="o">.</span> <span class="s">&quot;red&quot;</span><span class="p">)</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Carrot</span> <span class="o">.</span> <span class="s">&quot;orange&quot;</span><span class="p">)))</span>
+
+<span class="c1">;; ------------</span>
+
+<span class="c1">; Find items common to &#39;*dict1*&#39; and &#39;*dict2*&#39;</span>
+<span class="p">(</span><span class="nf">for-each</span>
+  <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">pair</span><span class="p">)</span>
+    <span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">key</span> <span class="p">(</span><span class="nb">car </span><span class="nv">pair</span><span class="p">))</span>
+          <span class="p">(</span><span class="nf">value</span> <span class="p">(</span><span class="nb">cdr </span><span class="nv">pair</span><span class="p">)))</span>
+      <span class="p">(</span><span class="k">if </span><span class="p">(</span><span class="nf">assoc-ref</span> <span class="nv">*dict2*</span> <span class="nv">key</span><span class="p">)</span>
+        <span class="p">(</span><span class="k">set! </span><span class="nv">*common*</span> <span class="p">(</span><span class="nb">cons </span><span class="nv">key</span> <span class="nv">*common*</span><span class="p">)))</span> <span class="p">))</span>
+  <span class="nv">*dict1*</span><span class="p">)</span>
+
+<span class="c1">;; ------------</span>
+
+<span class="c1">; Find items in &#39;*dict1*&#39; but not &#39;*dict2*&#39;</span>
+<span class="p">(</span><span class="nf">for-each</span>
+  <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">pair</span><span class="p">)</span>
+    <span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">key</span> <span class="p">(</span><span class="nb">car </span><span class="nv">pair</span><span class="p">))</span>
+          <span class="p">(</span><span class="nf">value</span> <span class="p">(</span><span class="nb">cdr </span><span class="nv">pair</span><span class="p">)))</span>
+      <span class="p">(</span><span class="k">if </span><span class="p">(</span><span class="nb">not </span><span class="p">(</span><span class="nf">assoc-ref</span> <span class="nv">*dict2*</span> <span class="nv">key</span><span class="p">))</span>
+        <span class="p">(</span><span class="k">set! </span><span class="nv">*this-not-that*</span> <span class="p">(</span><span class="nb">cons </span><span class="nv">key</span> <span class="nv">*this-not-that*</span><span class="p">)))</span> <span class="p">))</span>
+  <span class="nv">*dict1*</span><span class="p">)</span>
+
+<span class="c1">;; ----------------------------</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">*non-citrus*</span> <span class="o">&#39;</span><span class="p">())</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">*citrus-colour*</span>
+  <span class="p">(</span><span class="nf">list</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Lemon</span> <span class="o">.</span> <span class="s">&quot;yellow&quot;</span><span class="p">)</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Orange</span> <span class="o">.</span> <span class="s">&quot;orange&quot;</span><span class="p">)</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Lime</span> <span class="o">.</span> <span class="s">&quot;green&quot;</span><span class="p">)))</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">*food-colour*</span>
+  <span class="p">(</span><span class="nf">list</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Apple</span> <span class="o">.</span> <span class="s">&quot;red&quot;</span><span class="p">)</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Banana</span> <span class="o">.</span> <span class="s">&quot;yellow&quot;</span><span class="p">)</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Lemon</span> <span class="o">.</span> <span class="s">&quot;yellow&quot;</span><span class="p">)</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Carrot</span> <span class="o">.</span> <span class="s">&quot;orange&quot;</span><span class="p">)))</span>
+
+<span class="p">(</span><span class="nf">for-each</span>
+  <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">pair</span><span class="p">)</span>
+    <span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">key</span> <span class="p">(</span><span class="nb">car </span><span class="nv">pair</span><span class="p">))</span>
+          <span class="p">(</span><span class="nf">value</span> <span class="p">(</span><span class="nb">cdr </span><span class="nv">pair</span><span class="p">)))</span>
+      <span class="p">(</span><span class="k">if </span><span class="p">(</span><span class="nb">not </span><span class="p">(</span><span class="nf">assoc-ref</span> <span class="nv">*citrus-colour*</span> <span class="nv">key</span><span class="p">))</span>
+        <span class="p">(</span><span class="k">set! </span><span class="nv">*non-citrus*</span> <span class="p">(</span><span class="nb">cons </span><span class="nv">key</span> <span class="nv">*non-citrus*</span><span class="p">)))</span> <span class="p">))</span>
+  <span class="nv">*food-colour*</span><span class="p">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN268"
+>Hashing References</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">; All objects [including functions] are first class entities, so there</span>
+<span class="c1">; is no problem / special treatment needed to use any object, including</span>
+<span class="c1">; those classed as &#39;references&#39; [e.g. file handles or ports] as keys</span>
+
+<span class="p">(</span><span class="nf">use-modules</span> <span class="p">(</span><span class="nf">srfi</span> <span class="nv">srfi-1</span><span class="p">)</span> <span class="p">(</span><span class="nf">srfi</span> <span class="nv">srfi-13</span><span class="p">))</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">*ports*</span> <span class="o">&#39;</span><span class="p">())</span>
+
+<span class="p">(</span><span class="nf">for-each</span>
+  <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">filename</span><span class="p">)</span>
+    <span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">port</span> <span class="p">(</span><span class="nb">open-input-file </span><span class="nv">filename</span><span class="p">)))</span>
+      <span class="p">(</span><span class="k">set! </span><span class="nv">*ports*</span> <span class="p">(</span><span class="nf">assoc-set!</span> <span class="nv">*ports*</span> <span class="nv">port</span> <span class="nv">filename</span><span class="p">))</span> <span class="p">))</span>
+  <span class="o">&#39;</span><span class="p">(</span><span class="s">&quot;/etc/termcap&quot;</span> <span class="s">&quot;/vmlinux&quot;</span> <span class="s">&quot;/bin/cat&quot;</span><span class="p">))</span>
+
+<span class="p">(</span><span class="nf">print</span>
+  <span class="p">(</span><span class="nb">string-append </span><span class="s">&quot;open files: &quot;</span>
+    <span class="p">(</span><span class="nf">string-drop</span>
+      <span class="p">(</span><span class="nf">fold-right</span>
+        <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">pair</span> <span class="nv">accum</span><span class="p">)</span> <span class="p">(</span><span class="nb">string-append </span><span class="s">&quot;, &quot;</span> <span class="p">(</span><span class="nb">cdr </span><span class="nv">pair</span><span class="p">)</span> <span class="nv">accum</span><span class="p">))</span>
+        <span class="s">&quot;&quot;</span>
+        <span class="nv">*ports*</span><span class="p">)</span>
+      <span class="mi">2</span><span class="p">)))</span>
+
+<span class="p">(</span><span class="nf">for-each</span>
+  <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">pair</span><span class="p">)</span>
+    <span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">port</span> <span class="p">(</span><span class="nb">car </span><span class="nv">pair</span><span class="p">))</span>
+          <span class="p">(</span><span class="nf">filename</span> <span class="p">(</span><span class="nb">cdr </span><span class="nv">pair</span><span class="p">)))</span>
+      <span class="p">(</span><span class="nf">seek</span> <span class="nv">port</span> <span class="mi">0</span> <span class="nv">SEEK_END</span><span class="p">)</span>
+      <span class="p">(</span><span class="nf">print</span> <span class="nv">filename</span> <span class="s">&quot;is&quot;</span> <span class="p">(</span><span class="nb">number-&gt;string </span><span class="p">(</span><span class="nf">ftell</span> <span class="nv">port</span><span class="p">))</span> <span class="s">&quot;bytes long.&quot;</span><span class="p">)</span>
+      <span class="p">(</span><span class="nb">close-input-port </span><span class="nv">port</span><span class="p">)</span> <span class="p">))</span>
+  <span class="nv">*ports*</span><span class="p">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN271"
+>Presizing a Hash</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">; An association list takes on the size of the number of elements with</span>
+<span class="c1">; which it is initialised, so presizing is implicit</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">*hash*</span> <span class="o">&#39;</span><span class="p">())</span>         <span class="c1">; zero elements</span>
+
+<span class="c1">;; ------------</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">*hash*</span>              <span class="c1">; three elements</span>
+  <span class="p">(</span><span class="nf">list</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Apple</span> <span class="o">.</span> <span class="s">&quot;red&quot;</span><span class="p">)</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Lemon</span> <span class="o">.</span> <span class="s">&quot;yellow&quot;</span><span class="p">)</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Carrot</span> <span class="o">.</span> <span class="s">&quot;orange&quot;</span><span class="p">)))</span>
+
+<span class="c1">;; ----------------------------</span>
+
+<span class="c1">; A size [i.e. number of entries] must be specified when a hash table</span>
+<span class="c1">; is created, so presizing is implicit</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">*hash*</span> <span class="p">(</span><span class="nf">make-hash-table</span> <span class="mi">100</span><span class="p">))</span>
+
+<span class="c1">;; ------------</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">*hash*</span> <span class="p">(</span><span class="nb">make-vector </span><span class="mi">100</span> <span class="o">&#39;</span><span class="p">()))</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN274"
+>Finding the Most Common Anything</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="p">(</span><span class="k">define </span><span class="nv">*array*</span>
+  <span class="p">(</span><span class="nb">list </span><span class="ss">&#39;a</span> <span class="ss">&#39;b</span> <span class="ss">&#39;c</span> <span class="ss">&#39;d</span> <span class="ss">&#39;d</span> <span class="ss">&#39;a</span> <span class="ss">&#39;a</span> <span class="ss">&#39;c</span> <span class="ss">&#39;d</span> <span class="ss">&#39;d</span> <span class="ss">&#39;e</span><span class="p">))</span>
+
+<span class="c1">;; ----------------------------</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">*count*</span> <span class="o">&#39;</span><span class="p">())</span>
+
+<span class="p">(</span><span class="nf">for-each</span>
+  <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">element</span><span class="p">)</span>
+    <span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">value</span> <span class="p">(</span><span class="nf">assoc-ref</span> <span class="nv">*count*</span> <span class="nv">element</span><span class="p">)))</span>
+      <span class="p">(</span><span class="k">if </span><span class="p">(</span><span class="nb">not </span><span class="nv">value</span><span class="p">)</span> <span class="p">(</span><span class="k">set! </span><span class="nv">value</span> <span class="mi">0</span><span class="p">))</span>
+      <span class="p">(</span><span class="k">set! </span><span class="nv">*count*</span> <span class="p">(</span><span class="nf">assoc-set!</span> <span class="nv">*count*</span> <span class="nv">element</span> <span class="p">(</span><span class="nb">+ </span><span class="mi">1</span> <span class="nv">value</span><span class="p">)))))</span>
+  <span class="nv">*array*</span><span class="p">)</span>
+
+<span class="c1">;; ----------------------------</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">*count*</span> <span class="p">(</span><span class="nf">make-hash-table</span> <span class="mi">20</span><span class="p">))</span>
+
+<span class="p">(</span><span class="nf">for-each</span>
+  <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">element</span><span class="p">)</span>
+    <span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">value</span> <span class="p">(</span><span class="nf">hash-ref</span> <span class="nv">*count*</span> <span class="nv">element</span><span class="p">)))</span>
+      <span class="p">(</span><span class="k">if </span><span class="p">(</span><span class="nb">not </span><span class="nv">value</span><span class="p">)</span> <span class="p">(</span><span class="k">set! </span><span class="nv">value</span> <span class="mi">0</span><span class="p">))</span>
+      <span class="p">(</span><span class="nf">hash-set!</span> <span class="nv">*count*</span> <span class="nv">element</span> <span class="p">(</span><span class="nb">+ </span><span class="mi">1</span> <span class="nv">value</span><span class="p">))))</span>
+  <span class="nv">*array*</span><span class="p">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN277"
+>Representing Relationships Between Data</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="p">(</span><span class="k">define </span><span class="nv">*father*</span>
+  <span class="p">(</span><span class="nf">list</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Cain</span> <span class="o">.</span> <span class="nv">Adam</span><span class="p">)</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Abel</span> <span class="o">.</span> <span class="nv">Adam</span><span class="p">)</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Seth</span> <span class="o">.</span> <span class="nv">Adam</span><span class="p">)</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Enoch</span> <span class="o">.</span> <span class="nv">Cain</span><span class="p">)</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Irad</span> <span class="o">.</span> <span class="nv">Enoch</span><span class="p">)</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Mehujael</span> <span class="o">.</span> <span class="nv">Irad</span><span class="p">)</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Methusael</span> <span class="o">.</span> <span class="nv">Mehujael</span><span class="p">)</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Lamech</span> <span class="o">.</span> <span class="nv">Methusael</span><span class="p">)</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Jabal</span> <span class="o">.</span> <span class="nv">Lamech</span><span class="p">)</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Jubal</span> <span class="o">.</span> <span class="nv">Lamech</span><span class="p">)</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Tubalcain</span> <span class="o">.</span> <span class="nv">Lamech</span><span class="p">)</span>
+    <span class="o">&#39;</span><span class="p">(</span><span class="nv">Enos</span> <span class="o">.</span> <span class="nv">Seth</span><span class="p">)))</span>
+
+<span class="c1">;; ------------</span>
+
+<span class="p">(</span><span class="nf">use-modules</span> <span class="p">(</span><span class="nf">srfi</span> <span class="nv">srfi-1</span><span class="p">)</span> <span class="p">(</span><span class="nf">ice-9</span> <span class="nv">rdelim</span><span class="p">))</span>
+
+<span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">port</span> <span class="p">(</span><span class="nb">open-input-file </span><span class="nv">*filename*</span><span class="p">)))</span>
+  <span class="p">(</span><span class="k">let </span><span class="nv">loop</span> <span class="p">((</span><span class="nf">line&amp;terminator</span> <span class="p">(</span><span class="nf">read-line</span> <span class="nv">port</span> <span class="ss">&#39;split</span><span class="p">)))</span>
+    <span class="p">(</span><span class="nf">cond</span>
+      <span class="p">((</span><span class="nb">eof-object? </span><span class="p">(</span><span class="nb">cdr </span><span class="nv">line&amp;terminator</span><span class="p">))</span> <span class="o">&#39;</span><span class="p">())</span>
+      <span class="p">(</span><span class="nf">else</span>
+        <span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">person</span> <span class="p">(</span><span class="nb">string-&gt;symbol </span><span class="p">(</span><span class="nb">car </span><span class="nv">line&amp;terminator</span><span class="p">))))</span>
+          <span class="p">(</span><span class="k">let </span><span class="nv">loop</span> <span class="p">((</span><span class="nf">father</span> <span class="p">(</span><span class="nf">assoc-ref</span> <span class="nv">*father*</span> <span class="nv">person</span><span class="p">)))</span>
+            <span class="p">(</span><span class="k">if </span><span class="nv">father</span>
+            <span class="p">(</span><span class="nf">begin</span>
+              <span class="p">(</span><span class="nf">print</span> <span class="nv">father</span><span class="p">)</span>
+              <span class="p">(</span><span class="nf">loop</span> <span class="p">(</span><span class="nf">assoc-ref</span> <span class="nv">*father*</span> <span class="nv">father</span><span class="p">))</span> <span class="p">)))</span>
+        <span class="p">(</span><span class="nf">loop</span> <span class="p">(</span><span class="nf">read-line</span> <span class="nv">port</span> <span class="ss">&#39;split</span><span class="p">))</span> <span class="p">))))</span>
+  <span class="p">(</span><span class="nb">close-input-port </span><span class="nv">port</span><span class="p">))</span>
+
+<span class="c1">;; ------------</span>
+
+<span class="p">(</span><span class="nf">use-modules</span> <span class="p">(</span><span class="nf">srfi</span> <span class="nv">srfi-1</span><span class="p">)</span> <span class="p">(</span><span class="nf">ice-9</span> <span class="nv">rdelim</span><span class="p">))</span>
+
+<span class="p">(</span><span class="k">define </span><span class="p">(</span><span class="nf">assoc-invert-N:M</span> <span class="nv">assoc</span><span class="p">)</span>
+  <span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">new-assoc</span> <span class="o">&#39;</span><span class="p">()))</span>
+    <span class="p">(</span><span class="nf">for-each</span>
+      <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">pair</span><span class="p">)</span>
+        <span class="p">(</span><span class="k">let* </span><span class="p">((</span><span class="nf">old-key</span> <span class="p">(</span><span class="nb">car </span><span class="nv">pair</span><span class="p">))</span>
+               <span class="p">(</span><span class="nf">new-key</span> <span class="p">(</span><span class="nb">cdr </span><span class="nv">pair</span><span class="p">))</span>
+               <span class="p">(</span><span class="nf">new-key-found</span> <span class="p">(</span><span class="nf">assoc-ref</span> <span class="nv">new-assoc</span> <span class="nv">new-key</span><span class="p">)))</span>
+          <span class="p">(</span><span class="k">if </span><span class="p">(</span><span class="nb">not </span><span class="nv">new-key-found</span><span class="p">)</span>
+            <span class="p">(</span><span class="k">set! </span><span class="nv">new-assoc</span> <span class="p">(</span><span class="nf">acons</span> <span class="nv">new-key</span> <span class="p">(</span><span class="nb">list </span><span class="nv">old-key</span><span class="p">)</span> <span class="nv">new-assoc</span><span class="p">))</span>
+          <span class="c1">;else</span>
+            <span class="p">(</span><span class="k">set! </span><span class="nv">new-assoc</span> <span class="p">(</span><span class="nf">assoc-set!</span> <span class="nv">new-assoc</span> <span class="nv">new-key</span>
+                            <span class="p">(</span><span class="nb">cons </span><span class="nv">old-key</span> <span class="nv">new-key-found</span><span class="p">)))</span> <span class="p">)))</span>
+      <span class="nv">assoc</span><span class="p">)</span>
+  <span class="nv">new-assoc</span><span class="p">))</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">*children*</span> <span class="p">(</span><span class="nf">assoc-invert-N:M</span> <span class="nv">*father*</span><span class="p">))</span>
+
+<span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">port</span> <span class="p">(</span><span class="nb">open-input-file </span><span class="nv">*filename*</span><span class="p">)))</span>
+  <span class="p">(</span><span class="k">let </span><span class="nv">loop</span> <span class="p">((</span><span class="nf">line&amp;terminator</span> <span class="p">(</span><span class="nf">read-line</span> <span class="nv">port</span> <span class="ss">&#39;split</span><span class="p">)))</span>
+    <span class="p">(</span><span class="nf">cond</span>
+      <span class="p">((</span><span class="nb">eof-object? </span><span class="p">(</span><span class="nb">cdr </span><span class="nv">line&amp;terminator</span><span class="p">))</span> <span class="o">&#39;</span><span class="p">())</span>
+      <span class="p">(</span><span class="nf">else</span>
+        <span class="p">(</span><span class="k">let* </span><span class="p">((</span><span class="nf">person</span> <span class="p">(</span><span class="nb">string-&gt;symbol </span><span class="p">(</span><span class="nb">car </span><span class="nv">line&amp;terminator</span><span class="p">)))</span>
+               <span class="p">(</span><span class="nf">children-found</span> <span class="p">(</span><span class="nf">assoc-ref</span> <span class="nv">*children*</span> <span class="nv">person</span><span class="p">)))</span>
+          <span class="p">(</span><span class="nf">print</span> <span class="p">(</span><span class="nb">symbol-&gt;string </span><span class="nv">person</span><span class="p">)</span> <span class="s">&quot;begat:&quot;</span><span class="p">)</span>
+          <span class="p">(</span><span class="k">if </span><span class="p">(</span><span class="nb">not </span><span class="nv">children-found</span><span class="p">)</span>
+            <span class="p">(</span><span class="nf">print</span> <span class="s">&quot;nobody&quot;</span><span class="p">)</span>
+          <span class="c1">;else</span>
+            <span class="p">(</span><span class="nf">for-each</span>
+              <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">child</span><span class="p">)</span> <span class="p">(</span><span class="nf">print</span> <span class="p">(</span><span class="nb">symbol-&gt;string </span><span class="nv">child</span><span class="p">)</span> <span class="s">&quot;,&quot;</span><span class="p">))</span>
+              <span class="nv">children-found</span><span class="p">))</span>
+        <span class="p">(</span><span class="nf">loop</span> <span class="p">(</span><span class="nf">read-line</span> <span class="nv">port</span> <span class="ss">&#39;split</span><span class="p">))</span> <span class="p">))))</span>
+  <span class="p">(</span><span class="nb">close-input-port </span><span class="nv">port</span><span class="p">))</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN280"
+>Program: dutree</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;; @@INCOMPLETE@@</span>
+<span class="c1">;; @@INCOMPLETE@@</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="arrays.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="patternmatching.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Arrays</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Pattern Matching</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

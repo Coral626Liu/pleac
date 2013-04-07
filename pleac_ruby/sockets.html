@@ -1,0 +1,670 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Sockets</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Ruby"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Process Management and Communication"
+HREF="processmanagementetc.html"><LINK
+REL="NEXT"
+TITLE="Internet Services"
+HREF="internetservices.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Ruby</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="processmanagementetc.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="internetservices.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="SOCKETS"
+>17. Sockets</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN919"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN922"
+>Writing a TCP Client</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp"># A basic TCP client connection</span>
+<span class="cp">require &#39;socket&#39;</span>
+<span class="cp">begin</span>
+<span class="cp">    t = TCPSocket.new(&#39;www.ruby-lang.org&#39;, &#39;www&#39;)</span>
+<span class="cp">rescue</span>
+<span class="cp">    puts &quot;error: #{$!}&quot;</span>
+<span class="cp">else</span>
+<span class="cp">    # ... do something with the socket</span>
+<span class="cp">    t.print &quot;GET / HTTP/1.0\n\n&quot;</span>
+<span class="cp">    answer = t.gets(nil)</span>
+<span class="cp">    # and terminate the connection when we&#39;re done</span>
+<span class="cp">    t.close</span>
+<span class="cp">end</span>
+
+<span class="cp"># Using the evil low level socket API</span>
+<span class="cp">require &#39;socket&#39;</span>
+<span class="cp"># create a socket</span>
+<span class="cp">s = Socket.new(Socket::AF_INET, Socket::SOCK_STREAM, 0)</span>
+<span class="cp"># build the address of the remote machine</span>
+<span class="cp">sockaddr_server = [Socket::AF_INET, 80,</span>
+<span class="cp">    Socket.gethostbyname(&#39;www.ruby-lang.org&#39;)[3],</span>
+<span class="cp">    0, 0].pack(&quot;snA4NN&quot;)</span>
+<span class="cp"># connect</span>
+<span class="cp">begin</span>
+<span class="cp">    s.connect(sockaddr_server)</span>
+<span class="cp">rescue</span>
+<span class="cp">    puts &quot;error: #{$!}&quot;</span>
+<span class="cp">else</span>
+<span class="cp">    # ... do something with the socket</span>
+<span class="cp">    s.print &quot;GET / HTTP/1.0\n\n&quot;</span>
+<span class="cp">    # and terminate the connection when we&#39;re done</span>
+<span class="cp">    s.close</span>
+<span class="cp">end</span>
+
+<span class="cp"># TCP connection with management of error (DNS)</span>
+<span class="cp">require &#39;socket&#39;</span>
+<span class="cp">begin</span>
+<span class="cp">    client = TCPSocket.new(&#39;does not exists&#39;, &#39;www&#39;)</span>
+<span class="cp">rescue</span>
+<span class="cp">    puts &quot;error: #{$!}&quot;</span>
+<span class="cp">end</span>
+
+<span class="cp"># TCP connection with a time out</span>
+<span class="cp">require &#39;socket&#39;</span>
+<span class="cp">require &#39;timeout&#39;</span>
+<span class="cp">begin</span>
+<span class="cp">    timeout(1) do #the server has one second to answer</span>
+<span class="cp">        client = TCPSocket.new(&#39;www.host.com&#39;, &#39;www&#39;)</span>
+<span class="cp">    end</span>
+<span class="cp">rescue</span>
+<span class="cp">    puts &quot;error: #{$!}&quot;</span>
+<span class="cp">end</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN925"
+>Writing a TCP Server</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN928"
+>Communicating over TCP</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN931"
+>Setting Up a UDP Client</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN934"
+>Setting Up a UDP Server</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN937"
+>Using UNIX Domain Sockets</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN940"
+>Identifying the Other End of a Socket</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN943"
+>Finding Your Own Name and Address</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN946"
+>Closing a Socket After Forking</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN949"
+>Writing Bidirectional Clients</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN952"
+>Forking Servers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN955"
+>Pre-Forking Servers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">require &#39;socket&#39;</span>
+
+<span class="cp">class Preforker </span>
+<span class="cp">    attr_reader (:child_count)</span>
+<span class="cp">    </span>
+<span class="cp">    def initialize(prefork, max_clients_per_child, port, client_handler)</span>
+<span class="cp">        @prefork = prefork</span>
+<span class="cp">        @max_clients_per_child = max_clients_per_child</span>
+<span class="cp">        @port = port</span>
+<span class="cp">        @child_count = 0</span>
+<span class="cp">        </span>
+<span class="cp">        @reaper = proc {</span>
+<span class="cp">            trap(&#39;CHLD&#39;, @reaper)</span>
+<span class="cp">            pid = Process.wait</span>
+<span class="cp">            @child_count -= 1</span>
+<span class="cp">        }</span>
+<span class="cp">        </span>
+<span class="cp">        @huntsman = proc {</span>
+<span class="cp">            trap(&#39;CHLD&#39;, &#39;IGNORE&#39;)</span>
+<span class="cp">            trap(&#39;INT&#39;, &#39;IGNORE&#39;)</span>
+<span class="cp">            Process.kill(&#39;INT&#39;, 0)</span>
+<span class="cp">            exit</span>
+<span class="cp">        }</span>
+<span class="cp">        </span>
+<span class="cp">        @client_handler=client_handler</span>
+<span class="cp">    end</span>
+<span class="cp">    </span>
+<span class="cp">    def child_handler</span>
+<span class="cp">        trap(&#39;INT&#39;, &#39;EXIT&#39;)</span>
+<span class="cp">        @client_handler.setUp</span>
+<span class="cp">        # wish: sigprocmask UNblock SIGINT</span>
+<span class="cp">        @max_clients_per_child.times {</span>
+<span class="cp">            client = @server.accept or break</span>
+<span class="cp">            @client_handler.handle_request(client)</span>
+<span class="cp">            client.close</span>
+<span class="cp">        }</span>
+<span class="cp">        @client_handler.tearDown</span>
+<span class="cp">    end</span>
+<span class="cp">    </span>
+<span class="cp">    def make_new_child</span>
+<span class="cp">        # wish: sigprocmask block SIGINT</span>
+<span class="cp">        @child_count += 1</span>
+<span class="cp">        pid = fork do</span>
+<span class="cp">            child_handler</span>
+<span class="cp">        end</span>
+<span class="cp">        # wish: sigprocmask UNblock SIGINT</span>
+<span class="cp">    end</span>
+<span class="cp">    </span>
+<span class="cp">    def run</span>
+<span class="cp">        @server = TCPserver.open(@port)</span>
+<span class="cp">        trap(&#39;CHLD&#39;, @reaper)</span>
+<span class="cp">        trap(&#39;INT&#39;, @huntsman)</span>
+<span class="cp">        loop {</span>
+<span class="cp">            (@prefork - @child_count).times { |i|</span>
+<span class="cp">                make_new_child</span>
+<span class="cp">            }</span>
+<span class="cp">            sleep .1</span>
+<span class="cp">        }</span>
+<span class="cp">    end</span>
+<span class="cp">end</span>
+
+<span class="cp">#-----------------------------</span>
+<span class="cp">#!/usr/bin/ruby</span>
+
+<span class="cp">require &#39;Preforker&#39;</span>
+
+<span class="cp">class ClientHandler</span>
+<span class="cp">    def setUp</span>
+<span class="cp">    end</span>
+<span class="cp">    </span>
+<span class="cp">    def tearDown</span>
+<span class="cp">    end</span>
+<span class="cp">    </span>
+<span class="cp">    def handle_request(client)</span>
+<span class="cp">        # do stuff</span>
+<span class="cp">    end</span>
+<span class="cp">end</span>
+
+<span class="cp">server = Preforker.new(1, 100, 3102, ClientHandler.new)</span>
+<span class="cp">server.run</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN958"
+>Non-Forking Servers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN961"
+>Writing a Multi-Homed Server</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN964"
+>Making a Daemon Server</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN967"
+>Restarting a Server on Demand</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN970"
+>Program: backsniff</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN973"
+>Program: fwdport</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="processmanagementetc.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="internetservices.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Process Management and Communication</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Internet Services</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

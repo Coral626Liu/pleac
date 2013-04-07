@@ -1,0 +1,812 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Pattern Matching</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Common Lisp"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Hashes"
+HREF="hashes.html"><LINK
+REL="NEXT"
+TITLE="File Access"
+HREF="fileaccess.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Common Lisp</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="hashes.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="fileaccess.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="PATTERNMATCHING"
+>6. Pattern Matching</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN285"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;;;-----------------------------</span>
+<span class="c1">;; Note that the following do not modify STRING, which may be</span>
+<span class="c1">;; different from how the Perl snippet works.</span>
+<span class="p">(</span><span class="nb">use-package</span> <span class="ss">:cl-ppcre</span><span class="p">)</span>         <span class="c1">; assumed by all of section 6.0&#39;s code</span>
+<span class="p">(</span><span class="nv">scan</span> <span class="nv">pattern</span> <span class="nb">string</span><span class="p">)</span>
+<span class="p">(</span><span class="nv">regex-replace</span> <span class="nv">pattern</span> <span class="nb">string</span> <span class="nv">replacement</span><span class="p">)</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nv">scan</span> <span class="s">&quot;sheep&quot;</span> <span class="nv">meadow</span><span class="p">)</span>   <span class="c1">; Non-nil if MEADOW contains &quot;sheep&quot;</span>
+<span class="p">(</span><span class="nb">not</span> <span class="p">(</span><span class="nv">scan</span> <span class="s">&quot;sheep&quot;</span> <span class="nv">meadow</span><span class="p">))</span> <span class="c1">; Non-nil if MEADOW doesn&#39;t contain &quot;sheep&quot;</span>
+<span class="p">(</span><span class="nv">regex-replace</span> <span class="s">&quot;old&quot;</span> <span class="nv">meadow</span> <span class="s">&quot;new&quot;</span><span class="p">)</span> <span class="c1">; Replace &quot;old&quot; with &quot;new&quot; in MEADOW</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; Fine bovines demand fine toreadors.</span>
+<span class="c1">;; Muskoxen are a polar ovibovine species.</span>
+<span class="c1">;; Grooviness went out of fashion decades ago.</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; Ovines are found typically in oviaries.</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">when</span> <span class="p">(</span><span class="nv">scan</span> <span class="p">(</span><span class="nv">create-scanner</span> <span class="s">&quot;\\bovines?\\b&quot;</span> <span class="ss">:case-insensitive-mode</span> <span class="no">t</span><span class="p">)</span>
+                     <span class="nv">meadow</span><span class="p">)</span>
+           <span class="p">(</span><span class="nb">format</span> <span class="no">t</span> <span class="s">&quot;Here be sheep!&quot;</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">setf</span> <span class="nv">my-string</span> <span class="s">&quot;good food&quot;</span><span class="p">)</span>
+<span class="p">(</span><span class="nb">setf</span> <span class="nv">my-string</span> <span class="p">(</span><span class="nv">regex-replace</span> <span class="s">&quot;o*&quot;</span> <span class="nv">my-string</span> <span class="s">&quot;e&quot;</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; Not sure how to reproduce the same output.  The above</span>
+<span class="c1">;; REGEX-REPLACE just prepends &quot;e&quot; every time (but I&#39;m not</span>
+<span class="c1">;; sure that&#39;s wrong).</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">with-input-from-string</span> <span class="p">(</span><span class="nv">s</span> <span class="s">&quot;ababacaca</span>
+<span class="s">&quot;</span><span class="p">)</span>
+  <span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nv">match</span> <span class="p">(</span><span class="nv">scan-to-strings</span> <span class="s">&quot;(a|ba|b)+(a|ac)+&quot;</span> <span class="p">(</span><span class="nb">read-line</span> <span class="nv">s</span><span class="p">))))</span>
+    <span class="p">(</span><span class="nb">format</span> <span class="no">t</span> <span class="s">&quot;~A~%&quot;</span> <span class="nv">match</span><span class="p">)))</span>
+<span class="c1">;; ababa</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;;% echo ababacaca |</span>
+<span class="c1">;;    awk &#39;match($0,/(a|ba|b)+(a|ac)+/) { print substr($0, RSTART, RLENGTH) }&#39;</span>
+<span class="c1">;;ababacaca</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; Since there is no magic $_ variable in CL, using MY-STRING as an</span>
+<span class="c1">;; example.</span>
+<span class="p">(</span><span class="nv">register-groups-bind</span> <span class="p">(</span><span class="nv">num</span><span class="p">)</span>
+    <span class="p">(</span><span class="s">&quot;(\\d+)&quot;</span> <span class="nv">some-string</span><span class="p">)</span>
+  <span class="p">(</span><span class="nb">format</span> <span class="no">t</span> <span class="s">&quot;Found number ~A~%&quot;</span> <span class="nv">num</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; Again, MY-STRING is a placeholder for $_.</span>
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*numbers*</span> <span class="p">(</span><span class="nb">mapcar</span> <span class="nf">#&#39;</span><span class="nb">parse-integer</span> <span class="p">(</span><span class="nv">all-matches-as-strings</span> <span class="s">&quot;(\\d+)&quot;</span> <span class="nv">my-string</span><span class="p">)))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*digits*</span> <span class="s">&quot;1234567890&quot;</span><span class="p">)</span>
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*nonlap*</span> <span class="p">(</span><span class="nv">all-matches-as-strings</span> <span class="s">&quot;(\\d\\d\\d)&quot;</span> <span class="vg">*digits*</span><span class="p">))</span>
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*yeslap*</span> <span class="p">(</span><span class="nv">all-matches-as-strings</span> <span class="s">&quot;(?=\\d\\d\\d)&quot;</span> <span class="vg">*digits*</span><span class="p">))</span>
+<span class="p">(</span><span class="nb">format</span> <span class="no">t</span> <span class="s">&quot;Non-overlapping:  ~{~A~^ ~}~%Overlapping:      ~{~A~^ ~}~%&quot;</span>
+        <span class="vg">*nonlap*</span> <span class="vg">*yeslap*</span><span class="p">)</span>
+<span class="c1">;; Non-overlapping:  123 456 789</span>
+<span class="c1">;; Overlapping:</span>
+
+<span class="c1">;; Note that CL-PPCRE seems to treat ?= differently from Perl, hence</span>
+<span class="c1">;; the lack of output for Overlapping.</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; CL-PPCRE doesn&#39;t support $` etc after a match (it does for</span>
+<span class="c1">;; REGEX-REPLACE but that wouldn&#39;t work here.</span>
+<span class="c1">;;;-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN288"
+>Copying and Substituting Simultaneously</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">setf</span> <span class="nv">dst</span> <span class="p">(</span><span class="nv">regex-replace</span> <span class="s">&quot;that&quot;</span> <span class="nv">src</span> <span class="s">&quot;this&quot;</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; No difference from previous.</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; strip to basename</span>
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*progname*</span> <span class="p">(</span><span class="nv">regex-replace</span> <span class="s">&quot;^.*/&quot;</span> <span class="p">(</span><span class="nb">car</span> <span class="vg">*posix-argv*</span><span class="p">)</span> <span class="s">&quot;&quot;</span><span class="p">))</span>
+
+<span class="c1">;; Make All Words Title-Cased</span>
+<span class="c1">;; Unfortunately \u and \L aren&#39;t supported by CL-PPCRE (AFAICT), but</span>
+<span class="c1">;; CL does have built-in support for capitalization.</span>
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*capword*</span> <span class="p">(</span><span class="nb">string-capitalize</span> <span class="vg">*word*</span><span class="p">))</span>
+
+<span class="c1">;; /usr/man/man3/foo.1 changes to /usr/man/cat3/foo.1</span>
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*catpage*</span> <span class="p">(</span><span class="nv">regex-replace</span> <span class="s">&quot;man(?=\\d)&quot;</span> <span class="vg">*manpage*</span> <span class="s">&quot;cat&quot;</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*bindirs*</span> <span class="o">&#39;</span><span class="p">(</span><span class="s">&quot;/usr/bin&quot;</span> <span class="s">&quot;/bin&quot;</span> <span class="s">&quot;/usr/local/bin&quot;</span><span class="p">))</span>
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*libdirs*</span> <span class="p">(</span><span class="nb">mapcar</span> <span class="nf">#&#39;</span><span class="p">(</span><span class="k">lambda</span> <span class="p">(</span><span class="nv">dir</span><span class="p">)</span> <span class="p">(</span><span class="nv">regex-replace</span> <span class="s">&quot;bin&quot;</span> <span class="nv">dir</span> <span class="s">&quot;lib&quot;</span><span class="p">))</span> <span class="vg">*bindirs*</span><span class="p">))</span>
+<span class="p">(</span><span class="nb">format</span> <span class="no">t</span> <span class="s">&quot;~{~A~^ ~}~%&quot;</span> <span class="vg">*libdirs*</span><span class="p">)</span>
+<span class="c1">;; /usr/lib /lib /usr/local/lib</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">setf</span> <span class="nv">a</span> <span class="p">(</span><span class="nv">regex-replace-all</span> <span class="s">&quot;x&quot;</span> <span class="nv">b</span> <span class="s">&quot;y&quot;</span><span class="p">))</span>  <span class="c1">; copy B and then change A</span>
+<span class="c1">;; CL-PPCRE doesn&#39;t support returning the count of changed characters.</span>
+<span class="c1">;;;-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN291"
+>Matching Letters</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">when</span> <span class="p">(</span><span class="nv">scan</span> <span class="s">&quot;^[A-Za-z]+$&quot;</span> <span class="nv">var</span><span class="p">)</span>
+  <span class="c1">;; it is purely alphabetic</span>
+  <span class="p">)</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">when</span> <span class="p">(</span><span class="nv">scan</span> <span class="s">&quot;^[^\\W\\d_]+$&quot;</span> <span class="nv">var</span><span class="p">)</span>
+  <span class="c1">;; it is purely alphabetic</span>
+  <span class="p">)</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; This seems to work without setting the locale.  Not sure why but</span>
+<span class="c1">;; there ya&#39; go.</span>
+<span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nv">data</span> <span class="o">&#39;</span><span class="p">(</span><span class="s">&quot;silly&quot;</span> <span class="s">&quot;faзade&quot;</span> <span class="s">&quot;coцperate&quot;</span> <span class="s">&quot;niсo&quot;</span> <span class="s">&quot;Renйe&quot;</span> <span class="s">&quot;Moliиre&quot;</span> <span class="s">&quot;hжmoglobin&quot;</span> <span class="s">&quot;naпve&quot;</span> <span class="s">&quot;tschья&quot;</span>
+              <span class="s">&quot;random!stuff#here&quot;</span><span class="p">)))</span>
+  <span class="p">(</span><span class="nb">loop</span> <span class="nv">for</span> <span class="nv">word</span> <span class="nv">in</span> <span class="nv">data</span>
+        <span class="nb">do</span> <span class="p">(</span><span class="k">if</span> <span class="p">(</span><span class="nv">scan</span> <span class="s">&quot;^[^\W\d_]+$&quot;</span> <span class="nv">word</span><span class="p">)</span>
+               <span class="p">(</span><span class="nb">format</span> <span class="no">t</span> <span class="s">&quot;~A: alphabetic~%&quot;</span> <span class="nv">word</span><span class="p">)</span>
+               <span class="p">(</span><span class="nb">format</span> <span class="no">t</span> <span class="s">&quot;~A: line noise~%&quot;</span> <span class="nv">word</span><span class="p">))))</span>
+<span class="c1">;;silly: alphabetic</span>
+<span class="c1">;;faзade: line noise</span>
+<span class="c1">;;coцperate: alphabetic</span>
+<span class="c1">;;niсo: alphabetic</span>
+<span class="c1">;;Renйe: alphabetic</span>
+<span class="c1">;;Moliиre: alphabetic</span>
+<span class="c1">;;hжmoglobin: alphabetic</span>
+<span class="c1">;;naпve: alphabetic</span>
+<span class="c1">;;tschья: alphabetic</span>
+<span class="c1">;;random!stuff#here: line noise</span>
+<span class="c1">;;;-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN294"
+>Matching Words</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;;;-----------------------------</span>
+<span class="c1">;; &quot;\\S+&quot;               ; as many non-whitespace bytes as possible</span>
+<span class="c1">;; &quot;[A-Za-z&#39;-]+&quot;        ; as many letters, apostrophes, and hyphens</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; &quot;\\b([A-Za-z]+)\\b&quot;            ; usually best</span>
+<span class="c1">;; &quot;\\s([A-Za-z]+)\\s&quot;            ; fails at ends or w/ punctuation</span>
+<span class="c1">;;;-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN297"
+>Commenting Regular Expressions</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;;;-----------------------------</span>
+<span class="c1">;; It makes more sense for this just to be a function in CL rather</span>
+<span class="c1">;; than a separate &quot;script&quot;.</span>
+<span class="p">(</span><span class="nb">defun</span> <span class="nv">hostname-&gt;address</span> <span class="p">(</span><span class="nv">hostname</span><span class="p">)</span>
+  <span class="p">(</span><span class="nb">format</span> <span class="no">nil</span> <span class="s">&quot;~{~A~^.~}&quot;</span>
+          <span class="p">(</span><span class="nb">or</span>
+           <span class="p">(</span><span class="nb">ignore-errors</span> <span class="p">(</span><span class="nb">concatenate</span> <span class="ss">&#39;list</span>
+                                       <span class="p">(</span><span class="nv">sb-bsd-sockets:host-ent-address</span>
+                                        <span class="p">(</span><span class="nv">sb-bsd-sockets:get-host-by-name</span> <span class="nv">hostname</span><span class="p">))))</span>
+           <span class="p">(</span><span class="nb">list</span> <span class="s">&quot;???&quot;</span><span class="p">))))</span>
+
+<span class="p">(</span><span class="nb">defun</span> <span class="nv">resname</span> <span class="p">(</span><span class="nc">stream</span><span class="p">)</span>
+  <span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nv">matcher</span> <span class="p">(</span><span class="nv">create-scanner</span>
+                  <span class="s">&quot;    (     # capture the hostname in $1</span>
+<span class="s">        (?:                 # these parens for grouping only</span>
+<span class="s">            (?! [-_]  )     # lookahead for neither underscore nor dash</span>
+<span class="s">            [\\w-] +        # hostname component</span>
+<span class="s">            \\.             # and the domain dot</span>
+<span class="s">        ) +                 # now repeat that whole thing a bunch of times</span>
+<span class="s">        [A-Za-z]            # next must be a letter</span>
+<span class="s">        [\\w-] +            # now trailing domain part</span>
+<span class="s">    )                       # end of $1 capture&quot;</span> <span class="ss">:extended-mode</span> <span class="no">t</span><span class="p">)))</span>
+    <span class="p">(</span><span class="nv">iter</span> <span class="p">(</span><span class="nv">for</span> <span class="nv">line</span> <span class="nv">in-stream</span> <span class="nc">stream</span> <span class="nv">using</span> <span class="ss">&#39;read-line</span><span class="p">)</span>
+          <span class="p">(</span><span class="nb">format</span> <span class="no">t</span> <span class="s">&quot;~A&quot;</span>
+                  <span class="p">(</span><span class="nv">regex-replace-all</span>
+                   <span class="nv">matcher</span>
+                   <span class="nv">line</span>
+                   <span class="nf">#&#39;</span><span class="p">(</span><span class="k">lambda</span> <span class="p">(</span><span class="nv">target-string</span> <span class="nv">start</span> <span class="nv">end</span>
+                                            <span class="nv">match-start</span> <span class="nv">match-end</span>
+                                            <span class="nv">reg-starts</span> <span class="nv">reg-ends</span><span class="p">)</span>
+                       <span class="p">(</span><span class="k">declare</span> <span class="p">(</span><span class="k">ignore</span> <span class="nv">start</span> <span class="nv">end</span> <span class="nv">reg-starts</span> <span class="nv">reg-ends</span><span class="p">))</span>
+                       <span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nv">hostname</span> <span class="p">(</span><span class="nb">subseq</span> <span class="nv">target-string</span> <span class="nv">match-start</span> <span class="nv">match-end</span><span class="p">)))</span>
+                         <span class="p">(</span><span class="nb">concatenate</span> <span class="ss">&#39;string</span> <span class="nv">hostname</span> <span class="s">&quot; [&quot;</span> <span class="p">(</span><span class="nv">hostname-&gt;address</span> <span class="nv">hostname</span><span class="p">)</span> <span class="s">&quot;]&quot;</span><span class="p">))))))))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nv">regex-replace-all</span>
+ <span class="p">(</span><span class="nv">create-scanner</span>
+  <span class="s">&quot;                  # replace</span>
+<span class="s">  \\#                #   a pound sign</span>
+<span class="s">  (\\w+)             #   the variable name</span>
+<span class="s">  \\#                #   another pound sign&quot;</span>
+  <span class="ss">:extended-mode</span> <span class="no">t</span><span class="p">)</span>
+ <span class="nv">my-string</span>                         <span class="c1">; using this instead of implicit $_</span>
+ <span class="nf">#&#39;</span><span class="p">(</span><span class="k">lambda</span> <span class="p">(</span><span class="nv">target-string</span> <span class="nv">start</span> <span class="nv">end</span> <span class="nv">match-start</span> <span class="nv">match-end</span> <span class="nv">reg-starts</span> <span class="nv">reg-ends</span><span class="p">)</span>
+     <span class="p">(</span><span class="k">declare</span> <span class="p">(</span><span class="k">ignore</span> <span class="nv">start</span> <span class="nv">end</span> <span class="nv">reg-starts</span> <span class="nv">reg-ends</span><span class="p">))</span>
+     <span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nv">symb</span> <span class="p">(</span><span class="nb">string-upcase</span> <span class="p">(</span><span class="nb">subseq</span> <span class="nv">target-string</span> <span class="p">(</span><span class="nb">elt</span> <span class="nv">reg-starts</span> <span class="mi">0</span><span class="p">)</span> <span class="p">(</span><span class="nb">elt</span> <span class="nv">reg-ends</span> <span class="mi">0</span><span class="p">)))))</span>
+       <span class="p">(</span><span class="nb">format</span> <span class="no">nil</span> <span class="s">&quot;~A&quot;</span> <span class="p">(</span><span class="nb">symbol-value</span> <span class="p">(</span><span class="nb">intern</span> <span class="nv">symb</span><span class="p">))))))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; I&#39;m not sure there&#39;s any way to do this in CL.  There&#39;s</span>
+<span class="c1">;; no guarantee that a local variable hasn&#39;t been optimized</span>
+<span class="c1">;; away, for example.  EVAL operates in the null lexical</span>
+<span class="c1">;; environment, so can&#39;t be used for this purpose.</span>
+<span class="c1">;;;-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN300"
+>Finding the Nth Occurrence of a Match</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN303"
+>Matching Multiple Lines</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN306"
+>Reading Records with a Pattern Separator</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN309"
+>Extracting a Range of Lines</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN312"
+>Matching Shell Globs as Regular Expressions</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN315"
+>Speeding Up Interpolated Matches</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN318"
+>Testing for a Valid Pattern</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN321"
+>Honoring Locale Settings in Regular Expressions</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN324"
+>Approximate Matching</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN327"
+>Matching from Where the Last Pattern Left Off</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN330"
+>Greedy and Non-Greedy Matches</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN333"
+>Detecting Duplicate Words</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN336"
+>Expressing AND, OR, and NOT in a Single Pattern</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN339"
+>Matching Multiple-Byte Characters</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN342"
+>Matching a Valid Mail Address</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN345"
+>Matching Abbreviations</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN348"
+>Program: urlify</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN351"
+>Program: tcgrep</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN354"
+>Regular Expression Grabbag</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="hashes.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="fileaccess.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Hashes</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>File Access</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

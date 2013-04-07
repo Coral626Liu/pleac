@@ -1,0 +1,905 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Process Management and Communication</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Ruby"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="User Interfaces"
+HREF="userinterfaces.html"><LINK
+REL="NEXT"
+TITLE="Sockets"
+HREF="sockets.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Ruby</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="userinterfaces.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="sockets.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="PROCESSMANAGEMENTETC"
+>16. Process Management and Communication</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN851"
+>Gathering Output from a Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">output = `program args`       # collect output into one multiline string</span>
+<span class="cp">output = `program args`.to_a  # collect output into array, one line per element</span>
+
+<span class="cp">output = &quot;&quot;</span>
+<span class="cp">IO.popen(&quot;ls&quot;) do |readme|</span>
+<span class="cp">  readme.each do |line|</span>
+<span class="cp">    output &lt;&lt; line</span>
+<span class="cp">  end</span>
+<span class="cp">end</span>
+
+<span class="cp">`fsck -y /dev/rsd1a`  # BAD AND SCARY in Perl because it&#39;s managed by the shell</span>
+<span class="cp">                      # I donna in Ruby ...</span>
+
+<span class="cp"># so the &quot;clean and secure&quot; version</span>
+<span class="cp">readme, writeme = IO.pipe</span>
+<span class="cp">pid = fork {</span>
+<span class="cp">    # child</span>
+<span class="cp">    $stdout.reopen writeme</span>
+<span class="cp">    readme.close</span>
+<span class="cp">    exec(&#39;find&#39;, &#39;..&#39;)</span>
+<span class="cp">}</span>
+<span class="cp"># parent</span>
+<span class="cp">writeme.close</span>
+<span class="cp">readme.each do |line|</span>
+<span class="cp">    # do something with &#39;line&#39;</span>
+<span class="cp">end</span>
+<span class="cp">Process.waitpid(pid)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN854"
+>Running Another Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">status = system(&quot;xemacs #{myfile}&quot;)</span>
+
+<span class="cp">status = system(&quot;xemacs&quot;, myfile)</span>
+
+<span class="cp">system(&quot;cmd1 args | cmd2 | cmd3 &gt;outfile&quot;)</span>
+<span class="cp">system(&quot;cmd args &lt;infile &gt;outfile 2&gt;errfile&quot;)</span>
+
+<span class="cp"># stop if the command fails</span>
+<span class="cp">abort &quot;$program exited funny: #{$?}&quot; unless system(&quot;cmd&quot;, &quot;args1&quot;, &quot;args2&quot;)</span>
+
+<span class="cp"># get the value of the signal sent to the child</span>
+<span class="cp"># even if it is a SIGINT or SIGQUIT</span>
+<span class="cp">arglist = [&#39;ruby&#39;, &#39;-e&#39;, &#39;5.times {|i| p i}&#39;]</span>
+<span class="cp">system(*arglist)</span>
+<span class="cp">raise &quot;program killed by signal #{$?}&quot; if ($? &amp; 127) != 0</span>
+
+<span class="cp">pid = fork {</span>
+<span class="cp">    trap(&quot;SIGINT&quot;, &quot;IGNORE&quot;)</span>
+<span class="cp">    exec(&quot;sleep&quot;, &quot;10&quot;)</span>
+<span class="cp">}</span>
+<span class="cp">trap (&quot;SIGINT&quot;) {</span>
+<span class="cp">    puts &quot;Tsk tsk, no process interruptus&quot;</span>
+<span class="cp">}</span>
+<span class="cp">Process.waitpid(pid, 0)</span>
+
+<span class="cp"># Ruby permits to lie to the program called by a &#39;system&#39;.</span>
+<span class="cp"># (ie specify what return argv[0] in C, $0 in Perl/Ruby ...)</span>
+<span class="cp">system [&#39;bash&#39;, &#39;fake&#39;], &#39;-c&#39;, &#39;echo $0&#39;</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN857"
+>Replacing the Current Program with a Different One</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">exec(&quot;archive *.data&quot;)</span>
+
+<span class="cp">exec(&quot;archive&quot;, &quot;accounting.data&quot;)</span>
+
+<span class="cp">exec(&quot;archive accounting.data&quot;)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN860"
+>Reading or Writing to Another Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp"># read the output of a program</span>
+<span class="cp">IO.popen(&quot;ls&quot;) {|readme|</span>
+<span class="cp">    while readme.gets do</span>
+<span class="cp">        # ...</span>
+<span class="cp">    end</span>
+<span class="cp">}</span>
+<span class="cp"># or</span>
+<span class="cp">readme = IO.popen(&quot;ls&quot;)</span>
+<span class="cp">while readme.gets do</span>
+<span class="cp">    # ...</span>
+<span class="cp">end</span>
+<span class="cp">readme.close</span>
+
+<span class="cp"># &quot;write&quot; in a program</span>
+<span class="cp">IO.popen(&quot;cmd args&quot;,&quot;w&quot;) {|pipe|</span>
+<span class="cp">    pipe.puts(&quot;data&quot;)</span>
+<span class="cp">    pipe.puts(&quot;foo&quot;)</span>
+<span class="cp">}</span>
+
+<span class="cp"># close wait for the end of the process</span>
+<span class="cp">read = IO.popen(&quot;sleep 10000&quot;) # child goes to sleep</span>
+<span class="cp">read.close                     # and the parent goes to lala land</span>
+
+<span class="cp">writeme = IO.popen(&quot;cmd args&quot;, &quot;w&quot;)</span>
+<span class="cp">writeme.puts &quot;hello&quot; # program will get hello\n on STDIN</span>
+<span class="cp">writeme.close        # program will get EOF on STDIN</span>
+
+<span class="cp"># send in a pager (eg less) all output</span>
+<span class="cp">$stdout = IO.popen(&quot;/usr/bin/less&quot;,&quot;w&quot;)</span>
+<span class="cp">print &quot;huge string\n&quot; * 10000</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN863"
+>Filtering Your Own Output</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">def head(lines = 20)</span>
+<span class="cp">    pid = open(&quot;|-&quot;,&quot;w&quot;)</span>
+<span class="cp">    if pid == nil</span>
+<span class="cp">        return</span>
+<span class="cp">    else</span>
+<span class="cp">        while gets() do</span>
+<span class="cp">            pid.print</span>
+<span class="cp">            lines -= 1</span>
+<span class="cp">            break if lines == 0</span>
+<span class="cp">        end</span>
+<span class="cp">    end</span>
+<span class="cp">    exit</span>
+<span class="cp">end</span>
+
+<span class="cp">head(100)</span>
+<span class="cp">while gets() do</span>
+<span class="cp">    print</span>
+<span class="cp">end</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">1: &gt; Welcome to Linux, version 2.0.33 on a i686</span>
+
+<span class="cp">2: &gt; </span>
+
+<span class="cp">3: &gt;     &quot;The software required `Windows 95 or better&#39;, </span>
+
+<span class="cp">4: &gt;      so I installed Linux.&quot;  </span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">&gt; 1: Welcome to Linux, Kernel version 2.0.33 on a i686</span>
+
+<span class="cp">&gt; 2: </span>
+
+<span class="cp">&gt; 3:     &quot;The software required `Windows 95 or better&#39;, </span>
+
+<span class="cp">&gt; 4:      so I installed Linux.&quot;  </span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#!/usr/bin/ruby</span>
+<span class="cp"># qnumcat - demo additive output filters</span>
+
+<span class="cp">def number()</span>
+<span class="cp">    pid = open(&quot;|-&quot;,&quot;w&quot;)</span>
+<span class="cp">    if pid == nil</span>
+<span class="cp">        return</span>
+<span class="cp">    else</span>
+<span class="cp">        while gets() do pid.printf(&quot;%d: %s&quot;, $., $_); end</span>
+<span class="cp">    end</span>
+<span class="cp">    exit</span>
+<span class="cp">end</span>
+
+<span class="cp">def quote()</span>
+<span class="cp">    pid = open(&quot;|-&quot;,&quot;w&quot;)</span>
+<span class="cp">    if pid == nil</span>
+<span class="cp">        return</span>
+<span class="cp">    else</span>
+<span class="cp">        while gets() do pid.print &quot;&gt; #{$_}&quot; end</span>
+<span class="cp">    end</span>
+<span class="cp">    exit</span>
+<span class="cp">end</span>
+
+<span class="cp">number()</span>
+<span class="cp">quote()</span>
+
+<span class="cp">while gets() do</span>
+<span class="cp">    print</span>
+<span class="cp">end</span>
+<span class="cp">$stdout.close</span>
+<span class="cp">exit</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN866"
+>Preprocessing Input</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">ARGV.map! { |arg|</span>
+<span class="cp">    arg =~ /\.(gz|Z)$/ ? &quot;|gzip -dc #{arg}&quot; : arg</span>
+<span class="cp">}</span>
+<span class="cp">for file in ARGV</span>
+<span class="cp">    fh = open(file)</span>
+<span class="cp">    while fh.gets() do</span>
+<span class="cp">        # .......</span>
+<span class="cp">    end</span>
+<span class="cp">end</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">ARGV.map! { |arg|</span>
+<span class="cp">    arg =~ %r#^\w+://# ? &quot;|GET #{arg}&quot; : arg   #</span>
+<span class="cp">}</span>
+<span class="cp">for file in ARGV</span>
+<span class="cp">    fh = open(file)</span>
+<span class="cp">    while fh.gets() do</span>
+<span class="cp">        # .......</span>
+<span class="cp">    end</span>
+<span class="cp">end</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">pwdinfo = (`domainname` =~ /^(\(none\))?$/) ? &#39;/etc/passwd&#39; : &#39;|ypcat  passwd&#39;;</span>
+<span class="cp">pwd = open(pwdinfo);</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">puts &quot;File, please? &quot;;</span>
+<span class="cp">file = gets().chomp();</span>
+<span class="cp">fh = open(file);</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN869"
+>Reading STDERR from a Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">output = `cmd 2&gt;&amp;1`                            # with backticks</span>
+<span class="cp"># or</span>
+<span class="cp">ph = open(&quot;|cmd 2&gt;&amp;1&quot;)                         # with an open pipe</span>
+<span class="cp">while ph.gets() { }                            # plus a read</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">output = `cmd 2&gt;/dev/null`                     # with backticks</span>
+<span class="cp"># or</span>
+<span class="cp">ph = open(&quot;|cmd 2&gt;/dev/null&quot;)                  # with an open pipe</span>
+<span class="cp">while ph.gets() { }                            # plus a read</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">output = `cmd 2&gt;&amp;1 1&gt;/dev/null`                # with backticks</span>
+<span class="cp"># or</span>
+<span class="cp">ph = open(&quot;|cmd 2&gt;&amp;1 1&gt;/dev/null&quot;)             # with an open pipe</span>
+<span class="cp">while ph.gets() { }                            # plus a read</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">output = `cmd 3&gt;&amp;1 1&gt;&amp;2 2&gt;&amp;3 3&gt;&amp;-`             # with backticks</span>
+<span class="cp"># or</span>
+<span class="cp">ph = open(&quot;|cmd 3&gt;&amp;1 1&gt;&amp;2 2&gt;&amp;3 3&gt;&amp;-&quot;)          # with an open pipe</span>
+<span class="cp">while ph.gets() { }                            # plus a read</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">system(&quot;program args 1&gt;/tmp/program.stdout 2&gt;/tmp/program.stderr&quot;) </span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">output = `cmd 3&gt;&amp;1 1&gt;&amp;2 2&gt;&amp;3 3&gt;&amp;-`  </span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">fd3 = fd1 </span>
+<span class="cp">fd1 = fd2 </span>
+<span class="cp">fd2 = fd3 </span>
+<span class="cp">fd3 = undef </span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">system(&quot;prog args 1&gt;tmpfile 2&gt;&amp;1&quot;) </span>
+<span class="cp">system(&quot;prog args 2&gt;&amp;1 1&gt;tmpfile&quot;) </span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># system (&quot;prog args 1&gt;tmpfile 2&gt;&amp;1&quot;) </span>
+<span class="cp">fd1 = &quot;tmpfile&quot;          # change stdout destination first</span>
+<span class="cp">fd2 = fd1                # now point stderr there, too</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># system(&quot;prog args 2&gt;&amp;1 1&gt;tmpfile&quot;) </span>
+<span class="cp">fd2 = fd1                # stderr same destination as stdout</span>
+<span class="cp">fd1 = &quot;tmpfile&quot;          # but change stdout destination </span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># It is often better not to rely on the shell, </span>
+<span class="cp"># because of portability, possible security problems </span>
+<span class="cp"># and bigger resource usage. So, it is often better to use the open3 library. </span>
+<span class="cp"># See below for an example.</span>
+<span class="cp"># opening stdin, stdout, stderr</span>
+<span class="cp">require &quot;open3&quot;</span>
+<span class="cp">stdin, stdout, stderr = Open3.popen(&#39;cmd&#39;)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN872"
+>Controlling Input and Output of Another Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp"># Contrary to perl, we don&#39;t need to use a module in Ruby</span>
+<span class="cp">fh = Kernel.open(&quot;|&quot; + program, &quot;w+&quot;)</span>
+<span class="cp">fh.puts &quot;here&#39;s your input\n&quot;</span>
+<span class="cp">output = fh.gets()</span>
+<span class="cp">fh.close()</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">Kernel.open(&quot;|program&quot;),&quot;w+&quot;)    # RIGHT !</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># Ruby has already object methods for I/O handles</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">begin</span>
+<span class="cp">    fh = Kernel.open(&quot;|&quot; + program_and_options, &quot;w+&quot;)</span>
+<span class="cp">rescue</span>
+<span class="cp">    if ($@ ~= /^open/)</span>
+<span class="cp">        $stderr.puts &quot;open failed : #{$!} \n #{$@} \n&quot;</span>
+<span class="cp">        break</span>
+<span class="cp">    end</span>
+<span class="cp">    raise      # reraise unforseen exception</span>
+<span class="cp">end</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN875"
+>Controlling the Input, Output, and Error of Another Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN878"
+>Communicating Between Related Processes</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN881"
+>Making a Process Look Like a File with Named Pipes</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN884"
+>Sharing Variables in Different Processes</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN887"
+>Listing Available Signals</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#% kill -l</span>
+<span class="cp">#HUP INT QUIT ILL TRAP ABRT BUS FPE KILL USR1 SEGV USR2 PIPE</span>
+<span class="cp">#ALRM TERM CHLD CONT STOP TSTP TTIN TTOU URG XCPU XFSZ VTALRM</span>
+<span class="cp">#PROF WINCH POLL PWR</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#% ruby -e &#39;puts Signal.list.keys.join(&quot; &quot;)&#39;</span>
+<span class="cp">#PWR USR1 BUS USR2 TERM SEGV KILL POLL STOP SYS TRAP IOT HUP INT                                                                          #</span>
+<span class="cp">#WINCH XCPU TTIN CLD TSTP FPE IO TTOU PROF CHLD CONT PIPE ABRT</span>
+<span class="cp">#VTALRM QUIT ILL XFSZ URG ALRM</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># After that, the perl script create an hash equivalent to Signal.list, </span>
+<span class="cp"># and an array. The array can be obtained by :</span>
+<span class="cp">signame = []</span>
+<span class="cp">Signal.list.each { |name, i| signame[i] = name }</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN890"
+>Sending a Signal</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">Process.kill(9, pid)                    # send $pid a signal 9</span>
+<span class="cp">Process.kill(-1, Process.getpgrp())     # send whole job a signal 1</span>
+<span class="cp">Process.kill(&quot;USR1&quot;, $$)                # send myself a SIGUSR1</span>
+<span class="cp">Process.kill(&quot;HUP&quot;, pid1, pid2, pid3)   # send a SIGHUP to processes in @pids</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">begin</span>
+<span class="cp">    Process.kill(0, minion)</span>
+<span class="cp">    puts &quot;#{minion} is alive!&quot;</span>
+<span class="cp">rescue Errno::EPERM                     # changed uid</span>
+<span class="cp">    puts &quot;#{minion} has escaped my control!&quot;;</span>
+<span class="cp">rescue Errno::ESRCH</span>
+<span class="cp">    puts &quot;#{minion} is deceased.&quot;;      # or zombied</span>
+<span class="cp">rescue</span>
+<span class="cp">    puts &quot;Odd; I couldn&#39;t check the status of #{minion} : #{$!}&quot;</span>
+<span class="cp">end</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN893"
+>Installing a Signal Handler</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">Kernel.trap(&quot;QUIT&quot;, got_sig_quit)       # got_sig_quit = Proc.new { puts &quot;Quit\n&quot; }</span>
+<span class="cp">trap(&quot;PIPE&quot;, &quot;got_sig_quit&quot;)            # def got_sig_pipe ...</span>
+<span class="cp">trap(&quot;INT&quot;) { ouch++ }                  # increment ouch for every SIGINT</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">trap(&quot;INT&quot;, &quot;IGNORE&quot;)                   # ignore the signal INT</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">trap(&quot;STOP&quot;, &quot;DEFAULT&quot;)                 # restore default STOP signal handling</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN896"
+>Temporarily Overriding a Signal Handler</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp"># the signal handler</span>
+<span class="cp">def ding</span>
+<span class="cp">    trap(&quot;INT&quot;, &quot;ding&quot;)</span>
+<span class="cp">    puts &quot;\aEnter your name!&quot;</span>
+<span class="cp">end</span>
+
+<span class="cp"># prompt for name, overriding SIGINT</span>
+<span class="cp">def get_name</span>
+<span class="cp">    save = trap(&quot;INT&quot;, &quot;ding&quot;)</span>
+
+<span class="cp">    puts &quot;Kindly Stranger, please enter your name: &quot;</span>
+<span class="cp">    name = gets().chomp()</span>
+<span class="cp">    trap(&quot;INT&quot;, save)</span>
+<span class="cp">    name</span>
+<span class="cp">end</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN899"
+>Writing a Signal Handler</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN902"
+>Catching Ctrl-C</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN905"
+>Avoiding Zombie Processes</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN908"
+>Blocking Signals</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN911"
+>Timing Out an Operation</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp"># implemented thanks to http://blade.nagaokaut.ac.jp/cgi-bin/scat.rb/ruby/ruby-talk/1760</span>
+<span class="cp">require &#39;timeout&#39;</span>
+
+<span class="cp"># we&#39;ll do something vastly more useful than cookbook to demonstrate timeouts</span>
+<span class="cp">begin</span>
+<span class="cp">    timeout(5) {</span>
+<span class="cp">        waitsec = rand(10)</span>
+<span class="cp">        puts &quot;Let&#39;s see if a sleep of #{waitsec} seconds is longer than 5 seconds...&quot;</span>
+<span class="cp">        system(&quot;sleep #{waitsec}&quot;)</span>
+<span class="cp">    }</span>
+<span class="cp">    puts &quot;Timeout didn&#39;t occur&quot;</span>
+<span class="cp">rescue Timeout::Error    </span>
+<span class="cp">    puts &quot;Timed out!&quot;</span>
+<span class="cp">end</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN914"
+>Program: sigrand</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="userinterfaces.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="sockets.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>User Interfaces</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Sockets</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

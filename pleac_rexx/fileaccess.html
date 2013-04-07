@@ -1,0 +1,1596 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>File Access</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-REXX "
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Pattern Matching"
+HREF="patternmatching.html"><LINK
+REL="NEXT"
+TITLE="File Contents"
+HREF="filecontents.html"></HEAD
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-REXX </TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="patternmatching.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="filecontents.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="FILEACCESS"
+>7. File Access</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN359"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* REXX sports, as an ANSI Standard feature, a highly simplified file */
+/* I/O model. Features:                                               */
+/*                                                                    */
+/* * File name is used as the 'handle'                                */
+/* * Implicit file opening on first use                               */
+/*                                                                    */
+/* This model certainly promotes ease-of-use. It is also designed to  */
+/* be platform agnostic, so that the same I/O code *should* work on   */
+/* widely differing platforms [at least that's the theory ;) !]. On   */
+/* the other hand, it:                                                */
+/*                                                                    */
+/* * Is quite 'alien' to those accustomed to file descriptor-based I/O*/
+/*   as found in *NIX / C / Perl/Ruby/Python                          */
+/* * Makes it impossible to have multiple 'views' [via multiple handl-*/
+/*   es] of the same file, or to redirect I/O within the program [that*/
+/*   is, without 'shelling out' or using temporary files]             */
+/*                                                                    */
+/* Consequently, many of the examples in this chapter are not directly*/
+/* implementable in REXX. However, wherever possible, the task will be*/
+/* performed with some other approach even if it comes across as some-*/
+/* what contrived.                                                    */
+/* ------------------------------------------------------------------ */
+
+filename = &quot;data.txt&quot;                    /* ANSI-standard I/O */
+
+/* Explicit OPEN, CLOSE, and stream status check */
+if STREAM(filename, 'C', &quot;OPEN READ&quot;) == &quot;READY:&quot; then do
+  do while LINES(filename) &gt; 0
+    line = LINEIN(filename) ; if line == NULL then ; leave
+    spos = POS(&quot;blue&quot;, line)
+    if spos &gt; 0 then say SUBSTR(line, spos)
+  end
+  call STREAM filename, 'C', &quot;CLOSE&quot;
+end
+
+/*
+   Alternative: implicit OPEN, CLOSE; 'null' check - terminates on
+   either EOF or 'empty' line [use 'LINES(...) == 0' check to verify
+   EOF]
+*/
+
+line = LINEIN(filename)
+do while line &lt;&gt; NULL
+  spos = POS(&quot;blue&quot;, line)
+  if spos &gt; 0 then say SUBSTR(line, spos)
+  line = LINEIN(filename)
+end
+
+/* ----------------------------- */
+
+filename = &quot;data.txt&quot; ; fh = &quot;data&quot;      /* AREXX-compatible I/O */
+
+if OPEN(fh, filename, &quot;READ&quot;) then do
+  line = READLN(fh)
+  do until EOF(fh)
+    spos = POS(&quot;blue&quot;, line)
+    if spos &gt; 0 then say SUBSTR(line, spos)
+    line = READLN(fh)
+  end
+  call CLOSE fh
+end
+
+/* ----------------------------- */
+
+/*
+   LINEIN's default stream is &quot;&lt;stdin&gt;&quot;, LINEOUT's is &quot;&lt;stdout&gt;&quot;;
+   'null' check - terminates on either EOF or 'empty' line [use 
+   'LINES(...) == 0' check to verify EOF]
+*/
+
+line = LINEIN()
+do while line &lt;&gt; NULL
+  if VERIFY(&quot;0123456789&quot;, line, 'M') == 0 then
+    call LINEOUT &quot;&lt;stderr&gt;&quot;, &quot;No digit found&quot;
+  call LINEOUT , line
+  line = LINEIN() ; if LINES() == 0 then ; leave
+end
+
+/* Alternative: STREAM to check stream status, PARSE VALUE LINEIN */
+
+do while STREAM(&quot;&lt;stdin&gt;&quot;, 'S') \= &quot;NOTREADY&quot;
+  parse value LINEIN() with line
+  if line &lt;&gt; NULL then do
+    if VERIFY(&quot;0123456789&quot;, line, 'M') == 0 then
+      call LINEOUT &quot;&lt;stderr&gt;&quot;, &quot;No digit found&quot;
+    call LINEOUT , line
+  end
+end
+
+/* Alternative: Data extracted from STACK - REXX idiomatic */
+
+SYSCMD = 'type data.txt | rxqueue'   /* Platform-specific [Win32] */
+'SYSCMD'                             /* Direct data into STACK */
+
+do while QUEUED() &gt; 0
+  parse pull line
+  if line &lt;&gt; NULL then do
+    if VERIFY(&quot;0123456789&quot;, line, 'M') == 0 then
+      call LINEOUT &quot;&lt;stderr&gt;&quot;, &quot;No digit found&quot;
+    call LINEOUT , line
+  end
+end
+
+/* ----------------------------- */
+
+call STREAM(logfile, 'C', &quot;OPEN WRITE&quot;)
+
+/* ----------------------------- */
+
+call STREAM(logfile, 'C', &quot;CLOSE&quot;)
+
+/* ----------------------------- */
+
+/*
+   There is no concept of 'default stream' in REXX. The I/O BIF's
+   simply assume a default value of either &quot;&lt;stdin&gt;&quot; or &quot;&lt;stdout&gt;&quot;
+   when called without an explicit stream argument.
+*/
+
+filename = logfile
+call LINEOUT filename, &quot;Countdown initiated ...&quot;
+
+filename = originalfile
+call LINEOUT filename, &quot;You have 60 seconds to reach minimum safe&quot;,
+                       &quot;distance ...&quot;</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN362"
+>Opening a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">call STREAM path, 'C', 'READ'  /* open file &quot;path&quot; for reading only */
+call OPEN alias, path, 'READ'
+
+call STREAM path, 'C', 'WRITE' /* open file &quot;path&quot; for writing only */
+call OPEN alias, path, 'WRITE'
+
+call STREAM path, 'C', 'BOTH'  /* open &quot;path&quot; for reading and writing */
+call OPEN alias, path, 'WRITE' /* allows both read and write */
+
+/*
+   open file &quot;path&quot; write only, create it if it does not exist,
+   truncate to zero length if exists
+*/
+call STREAM path, 'C', 'WRITE REPLACE'
+
+/* open file &quot;path&quot; write only, fails if file exists */
+/* Cannot do - must check for file existence and manually fail */
+
+/* open file &quot;path&quot; for appending */
+call STREAM path, 'C', 'WRITE APPEND'
+call OPEN alias, path, 'APPEND'
+
+/* open file &quot;path&quot; for appending only when file exists */
+/* Cannot do - must check for file existence and then take action */
+
+/* open file &quot;path&quot; for reading and writing */
+call STREAM path, 'C', 'BOTH'
+call OPEN alias, path, 'WRITE' /* allows both read and write */
+
+/* open file for reading and writing, create file if doesn't exist */
+call STREAM path, 'C', 'BOTH APPEND'
+call OPEN alias, path, 'APPEND' /* allows both read and append */
+
+/* open file &quot;path&quot; reading and writing, fails if file exists */
+/* Cannot do - must check for file existence and manually fail */</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN365"
+>Opening Files with Unusual Filenames</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* REXX has no problem handling files with unusual filenames, thus    */
+/* nothing beyond normal file handling need be done.                  */
+/* ------------------------------------------------------------------ */
+
+/* *** Translation skipped *** */</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN368"
+>Expanding Tildes in Filenames</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* This item is *NIX-specific; code examples reflect this.            */
+/*                                                                    */
+/* The general approach taken in REXX to such a task is to construct  */
+/* a 'command string', that is, a sequence of characters that can be  */
+/* sent to the platform's command interpreter [a.k.a. command         */
+/* processor or shell] for execution. In most cases generated output  */
+/* is captured and used as the 'result' of the command. Depending on  */
+/* the platform, too, there may also be an 'command status code'      */
+/* available that may be used for diagnostic purposes.                */
+/*                                                                    */
+/* REXX supports two modes of 'command execution':                    */
+/*                                                                    */
+/* * Implicit i.e command is passed directly to the default shell     */
+/* * Explicit, via the ADDRESS instruction; allows choice of shell,   */
+/*   and output handling                                              */
+/* ------------------------------------------------------------------ */
+
+filename = &quot;/myfile.dat&quot;
+
+/* ----------------------------- */
+
+/* Implicit Command Execution [output redirected to system STACK] */
+'echo ~ &gt;LIFO' ; parse pull expandedTilde
+
+filename = expandedTilde || filename
+
+/* ----------------------------- */
+
+/* Explicit Command Execution (1) [same as previous example] */
+address SYSTEM 'echo ~' with OUTPUT LIFO &quot;&quot; ; parse pull expandedTilde
+
+filename = expandedTilde || filename
+
+/* ----------------------------- */
+
+/* Explicit Command Execution (2) [output directed to stem variable] */
+address SYSTEM 'echo ~' with OUTPUT STEM expandedTilde.
+
+filename = expandedTilde.1 || filename
+
+/* ----------------------------- */
+
+/* Explicit Command Execution (3) [output directed to file] */
+TMPFILE = './exp.$$$' ; DELCMD = 'rm -f' TMPFILE
+
+address SYSTEM 'echo ~' with OUTPUT STREAM TMPFILE
+
+expandedTilde = LINEIN(TMPFILE) ; filename = expandedTilde || filename
+
+address SYSTEM DELCMD</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN371"
+>Making Perl Report Filenames in Errors</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">parse source . . sourcefile
+
+/* Trap file I/O conditions */
+signal on NOTREADY
+
+filename = &quot;...&quot;
+call STREAM filename, 'C', 'OPEN READ'
+
+/* Success */
+say filename &quot;was opened ok&quot;
+exit 0
+
+/* Open error */
+NOTREADY :
+  say &quot;In line&quot; SIGL &quot;of source file&quot; sourcefile
+  say &quot;a&quot; CONDITION('C') &quot;condition was trapped.&quot;
+  say &quot;Could not open file&quot; CONDITION('D') &quot;for reading&quot;
+  exit 1</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN374"
+>Creating Temporary Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/*
+   Utilise 'tmpnam' functionality via 'mktemp' utility
+*/
+
+tmpnam : procedure expose (globals)
+  address SYSTEM 'mktemp' with OUTPUT STEM tmpnam.
+  if RC \= 0 then ; tmpnam.1 = NULL
+  return tmpnam.1
+
+/* ----------- */
+
+/*
+   Use 'rexxUtil's' 'sysTempFileName'
+*/
+
+tmpnam : procedure expose (globals)
+  tmpnam = &quot;/tmp/&quot; || sysTempFileName('??tmp???')
+
+  if tmpnam \= NULL then do
+    call STREAM tmpnam, 'C', 'OPEN WRITE'
+    call STREAM tmpnam, 'C', 'CLOSE'
+  end
+
+  return tmpnam
+
+/* ----------------------------- */
+
+tmpnam = tmpnam()
+
+if tmpnam == NULL then do
+  say &quot;Unable to create temporary file&quot; ; exit 1
+end
+
+/* ----------- */
+
+tmpnam = tmpnam()
+
+do while tmpnam &lt;&gt; NULL
+  tmpnam = tmpnam()
+end
+
+/* ... use file ... */
+
+/* Delete file before exiting program ... */
+call sysFileDelete tmpnam
+
+/* ----------- */
+
+tmpnam = tmpnam()
+
+if tmpnam == NULL then do
+  say &quot;Unable to create temporary file&quot; ; exit 1
+end
+
+do i = 1 for 10
+  call CHAROUT tmpnam, i
+end
+
+call STREAM tmpnam, 'C', 'SEEK' 1 'READ' 'CHAR'
+
+say &quot;Tmp file has:&quot; LINEIN(tmpnam)</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN377"
+>Storing Files Inside Your Program Text</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* Data residing within a comment block */
+signal DATA /*
+Line 1 ...
+Line 2 ...
+Line 3 ...
+*/
+
+/* Load data into 'data' as a table of lines */
+DATA:
+  data = NULL
+  do i = SIGL + 1
+    line = SOURCELINE(i)
+    if line = &quot;*/&quot; then leave
+    if data == NULL then
+      data = line
+    else
+      data = data || NEWLINE || line
+  end
+
+/* Use data */
+say data</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN380"
+>Writing a Filter</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* STDIN, STDOUT and STDERR are implemented as the 'special' file nam-*/
+/* es, &quot;&lt;stdin&gt;&quot;, &quot;&lt;stdout&gt;&quot;, and &quot;&lt;stderr&gt;&quot;, respectively. In additi-*/
+/* on, the ANSI Standard I/O routines use the first two of these as   */
+/* defaults where a filename is not provided. This, together with the */
+/* PARSE instruction, and an extensive set of string manipulation BIFs*/
+/* makes the writing of filter programs quite straightforward in REXX.*/
+/* ------------------------------------------------------------------ */
+
+/* priming read */
+line = LINEIN()
+
+/* terminates on both 'empty' line and EOF - do LINES() check for EOF */
+do while line &lt;&gt; NULL
+  /* do something with 'line' */
+  /* ... */
+
+  /* let's now get another one ... */
+  line = LINEIN()
+end
+
+/* ----------- */
+
+/* priming read */
+line = LINEIN()
+
+/* check for data availability */
+do while LINES() &gt; 0
+
+  /* if data was extracted i.e. not an empty line */
+  if line &lt;&gt; NULL then do
+    /* do something with 'line' */
+    /* ... */
+  end
+
+  /* let's now get another line ... */
+  line = LINEIN()
+end
+
+/* ----------- */
+
+/* check for data availability */
+do while STREAM(&quot;&lt;stdin&gt;&quot;, 'S') \= &quot;NOTREADY&quot;
+
+  /* let's now get a line, optionally parsing it into fields ... */
+  parse value LINEIN() with line
+
+  /* if data was extracted i.e. not empty fields */
+  if line &lt;&gt; NULL then do
+    /* do something with 'line' */
+    /* ... */
+  end
+end
+
+/* ----------------------------- */
+
+/* Processing a number of files passed on the command line */
+
+/* No filename arguments, so assume working with STDIN */
+if ARG() &lt; 1 then
+   call do_with &quot;&lt;stdin&gt;&quot;
+else
+  /* Process each filename argument in turn */
+  do i = 1 for ARG()
+    call do_with ARG(i)
+  end
+
+exit 0
+
+/* ----------- */
+
+do_with : procedure expose (globals)
+  file = ARG(1)
+
+  if STREAM(file, 'C', 'OPEN READ') \= 'READY:' then do
+    say &quot;Can't open&quot; file ; return
+  end
+
+  line = LINEIN(file)
+
+  do while LINES(file) &gt; 0
+    /* do something with line ... */
+    say line
+
+    line = LINEIN(file)
+  end
+
+  return
+
+/* ----------------------------- */
+
+argv = NULL ; argc = ARG()
+
+/* Either grab file list from command-line, or ... */
+if argc &gt; 0 then
+  if argc &gt; 1 then
+    /* filename(s) as separate argument strings [-a option] */
+    do i = 1 for ARG() ; argv = argv ARG(i) ; end
+  else
+    /* filename(s) as single argument string */
+    argv = ARG(1)
+else
+  /* ... get it yourself */
+  argv = glob(&quot;*.[cCh]&quot;)
+
+argv = STRIP(argv)
+
+/* ----------------------------- */
+
+/*
+   The following are 'quickie' solutions matching the Perl examples;
+   REXXToolkit has a 'getopt' routine offering functionality similar
+   to *NIX 'getopt', and it would be the preferred approach
+*/
+
+/* arg demo: 1 [assume Regina '-a' option used] */
+if ARG() &gt; 0 &amp; ARG(1) == &quot;-c&quot; then ; chop_first = chop_first + 1
+
+/* ----------- */
+
+/* arg demo: 2 [assume Regina '-a' option used] */
+if ARG() &gt; 0 &amp; match(ARG(2), &quot;^-[[:digit:]]+$&quot;) then
+  parse value ARG(2) with &quot;-&quot; columns .
+
+/* ----------- */
+
+/* arg demo: 3 [assume Regina '-a' option used] */
+parse SOURCE . . source
+
+do i = 1 for ARG()
+  parse value ARG(i) with &quot;-&quot; option .
+  if option == NULL then ; iterate
+  if VERIFY(&quot;ainu&quot;, option, 'M') == 0 then do
+    call LINEOUT &quot;&lt;stderr&gt;&quot;, &quot;usage:&quot; source &quot;[-ainu] [filenames...]&quot;
+    exit 1
+  end
+  options = options || option
+end
+
+append = 0 ; ignore = 0 ; nostdout = 0 ; unbuffer = 0
+
+if POS(&quot;a&quot;, options) &gt; 0 then ; append = append + 1
+if POS(&quot;i&quot;, options) &gt; 0 then ; ignore = ignore + 1
+if POS(&quot;n&quot;, options) &gt; 0 then ; nostdout = nostdout + 1
+if POS(&quot;u&quot;, options) &gt; 0 then ; unbuffer = unbuffer + 1
+
+/* ----------------------------- */
+
+/* undef $/ not applicable; do following to load entire file */
+
+/* STDIN - doesn't have a 'size', so use arbitrary 'large' value */
+file_contents = CHARIN(,, 9999999)
+
+/* Regular file - use actual file size */
+file_contents = CHARIN(file,, CHARS(file))
+
+/* ----------------------------- */
+
+line = LINEIN()
+
+do i = 1 while LINES() &gt; 0
+  say &quot;-:&quot; || i || &quot;:&quot; || line
+  line = LINEIN()
+end
+
+/* ----------------------------- */
+
+line = LINEIN()
+
+do while LINES() &gt; 0
+  if match(line, &quot;login&quot;) then ; say line
+  line = LINEIN()
+end
+
+/* ----------- */
+
+do while LINES() &gt; 0
+  /*
+    'parse lower' is Regina-specific. Can otherwise use:
+    line = TRANSLATE(line, &quot;abc...&quot;, &quot;ABC...&quot;)
+  */
+  parse lower LINEIN line
+  if line &lt;&gt; NULL then ; say line
+end
+
+/* ----------- */
+
+line = LINEIN() ; chunks = 0
+
+do while LINES() &gt; 0
+  if match(line, &quot;^#&quot;) then ; iterate
+  if match(line, &quot;_     _(DATA|END)_     _&quot;) then ; leave
+  chunks = chunks + WORDS(line)
+  line = LINEIN()
+end
+
+say &quot;Found&quot; chunks &quot;chunks&quot;</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN383"
+>Modifying a File in Place with Temporary File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">old = &quot;...&quot; ; new = &quot;...&quot;
+
+/* Explicit file opening optional */
+call STREAM old, 'C', 'OPEN READ' ; call STREAM new, 'C', 'OPEN WRITE'
+
+/* Priming read */
+line = LINEIN(old)
+
+do while LINES(old) &gt; 0
+  if line &lt;&gt; NULL then do
+    /* Change line ... */
+    line = line || 3
+  end ; else do
+    /* Handle 'empty' line */
+    nop
+  end
+
+  /* Write it to new */
+  call LINEOUT new, line
+
+  /* Get another line */
+  line = LINEIN(old)
+end
+
+call STREAM old, 'C', 'CLOSE' ; call STREAM new, 'C', 'CLOSE'
+
+call sysMoveObject old, &quot;old.orig&quot; ; call sysMoveObject new, old
+call sysFileDelete &quot;old.orig&quot;
+
+/* ----------------------------- */
+
+/* ... */
+
+line = LINEIN(old)
+
+do while LINES(old) &gt; 0
+  if STREAM(old, 'C', 'QUERY SEEK READ LINE') == 20 then do
+    call LINEOUT new, &quot;Extra line 1 ...&quot;
+    call LINEOUT new, &quot;Extra line 2 ...&quot;
+  end
+
+  call LINEOUT new, line
+
+  line = LINEIN(old)
+end
+
+/* ... */
+
+/* ----------- */
+
+/* ... */
+
+line = LINEIN(old)
+
+do while LINES(old) &gt; 0
+  line_number = STREAM(old, 'C', 'QUERY SEEK READ LINE')
+  if line_number &gt;= 20 &amp; line_number &lt;= 30  then ; iterate
+
+  call LINEOUT new, line
+
+  line = LINEIN(old)
+end
+
+/* ... */</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN386"
+>Modifying a File in Place with -i Switch</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* AFAIK, no REXX interpreter has an '-i' switch to force in-place    */
+/* modification of files. The file modification has to be programmed  */
+/* in, and it is this approach that will be used here.                */
+/* ------------------------------------------------------------------ */
+
+/*
+   In-place modification not possible since replacement is not the
+   same size. The 1st command-line is assumed to be the file name
+*/
+
+file = ARG(1) ; tmpnam = tmpnam()
+
+call STREAM file, 'C', 'OPEN READ'
+call STREAM tmpnam, 'C', 'OPEN WRITE'
+
+/* Use REXXToolkit's 'strftime' */
+today = strftime(&quot;+%Y-%m-%d&quot;, makeYMD()) ; line = LINEIN(file)
+
+do while LINES(file) &gt; 0
+  line = subst(&quot;DATE&quot;, line, today) ; call LINEOUT tmpnam,, line
+  line = LINEIN(file)
+end
+
+call STREAM file, 'C', 'CLOSE' ; call STREAM tmpnam, 'C', 'CLOSE'
+
+call sysMoveObject file, &quot;file.orig&quot; ; call sysMoveObject tmpnam, file
+call sysFileDelete &quot;file.orig&quot;</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN389"
+>Modifying a File in Place Without a Temporary File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* While it's possible, using the ANSI Standard I/O routines, to alter*/
+/* the contents of a file in-place, including appending additional da-*/
+/* ta, it isn't possible to truncate the file. Therefore, in order to */
+/* ensure file intergrity is maintained [i.e. file contains only any  */
+/* necessary (not extraneous) data], a new file should be created, and*/
+/* necessary data copied into it. Of course, this could be done as a  */
+/* later step - in the interim, the extraneous data could be overwrit-*/
+/* ten with some arbitrary value marking it as such. Messy, yes, but  */
+/* doable :) !                                                        */
+/* ------------------------------------------------------------------ */
+
+/* [1] In-place modification of same-or-greater-length data */
+
+file = &quot;...&quot;
+
+call STREAM file, 'C', 'OPEN BOTH'
+
+/* Move write pointer to start of file */
+call STREAM file, 'C', 'SEEK' '1' 'WRITE' 'CHAR'
+
+/* Locate and read required data */
+data = CHARIN(file, some_offset, some_amount)
+
+/* Do something to data ... */
+data = ...
+
+/* Write it back out, in-place, exactly replacing old data */
+call CHAROUT file, some_offset, data
+
+call STREAM file 'C', 'CLOSE'
+
+/* ----------- */
+
+/*
+   [2] In-place modification of less-length data - file contents
+   [bar the 'padded' items] should later be copied to a new file
+*/
+
+file = &quot;...&quot;
+
+call STREAM file, 'C', 'OPEN BOTH'
+
+/* Record initial size of file */
+bytes = CHARS(file)
+
+/* Move write pointer to start of file */
+call STREAM file, 'C', 'SEEK' '1' 'WRITE' 'CHAR'
+
+/* Locate and read required data */
+data = CHARIN(file, some_offset, some_amount)
+
+/* Do something to data ... */
+data = ...
+
+/* Write it back out partly replacing old data */
+call CHAROUT file, some_offset, data
+
+/* Pad out rest of file with arbitrary byte value */
+call CHAROUT file, (some_offset + LENGTH(data)), D2C(0)
+
+call STREAM file 'C', 'CLOSE'
+
+/* ----------------------------- */
+
+/* Preferred approach - copy data to new file then rename / delete */
+old = &quot;...&quot; ; new = &quot;...&quot;
+
+call STREAM old, 'C', 'OPEN READ' ; call STREAM new, 'C', 'OPEN WRITE'
+
+/* Read, process, and write new data to new file */
+/* ... */
+
+call STREAM old, 'C', 'CLOSE' ; call STREAM new, 'C', 'CLOSE'
+
+call sysMoveObject old, &quot;old.orig&quot; ; call sysMoveObject new, old
+call sysFileDelete &quot;old.orig&quot;</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN392"
+>Locking a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* The ANSI Standard I/O BIF's, STREAM, LINE[IN|OUT], CHAR[IN|OUT],   */
+/* don't implement file locking: a file may be opened by multiple     */
+/* scripts for both read and write access, and there is no means of   */
+/* specifiying, for example, that exclusive file access is needed.    */
+/*                                                                    */
+/* Where synchronised file update is required, say in updating a shar-*/
+/* ed log file, the choice is to:                                     */
+/*                                                                    */
+/* * Use low-level routines that offer file locking [e.g. via library */
+/*   or (Regina-only) GCI facility]                                   */
+/* * Use an inter-process mutual exclusion mechanism [e.g. process th-*/
+/*   at needs to write to the file acquires exclusive access (no other*/
+/*   process can open the file for any purpose until it is released), */
+/*   then releases it when done]                                      */
+/* * Use some other inter-process signaling mechanism [e.g. access is */
+/*   available to all processes, and any process that updates the file*/
+/*   (e.g. appends to it) signals that the file has been updated. The */
+/*   other processes will, on next attempt to use the file detect its */
+/*   'status' change, so will close and reopen it, thus 'refreshing'  */
+/*   their view of the file]                                          */
+/*                                                                    */
+/* The latter two approaches are possible via the mutex and event sem-*/
+/* aphore facilities of the 'rexxUtil library. However, only an examp-*/
+/* le of the former will be shown here.                               */
+/* ------------------------------------------------------------------ */
+
+/*
+   Canonical example of mutex semaphore use in REXX ['rexxUtil'
+   library] an approach that can be applied to ensure a process
+   has exclusive access to a file. However, in order for this
+   to work reliably all processes must follow the same protocol:
+
+   - acquire lock
+   - use file, then close
+   - release lock
+
+   Disadvantage is that only one process can use the file at any
+   one time regardless of whether it is a read or update operation
+*/
+
+/* Attempt to acquire handle to existing semaphore */
+sem = sysOpenMutexSem(&quot;SEMNAME&quot;)
+
+/* If failed, then no semaphore exists, so create one */
+if sem == 0 then ; sem = sysCreateMutexSem(&quot;SEMNAME&quot;)
+
+timeout = 3000 /* ms */
+
+/* Attempt to acquire exclusive access to resource */
+if sysRequestMutexSem(sem, timeout) == 0 then do
+
+  /* Ok, resource is acquired; so something with it */
+  /* ... */
+
+  /* All done with resource, so release it */
+  call sysReleaseMutexSem sem
+
+end ; else do
+
+  /* Could not acquire resource - locked by other process */
+  /* ... */
+
+end
+
+/* Close handle to semaphore - last 'close' will destroy it */
+call sysCloseMutexSem sem
+
+/* ----------------------------- */
+
+/*
+   Implementations of Perl examples
+*/
+
+/* ... prologue code omitted ... */
+
+numfile = &quot;...&quot; ; timeout = 2
+
+if sysRequestMutexSem(sem) \= 0 then do
+  say &quot;Cannot immediately write-lock the file&quot; numfile &quot;blocking...&quot;
+  call sysSleep timeout
+
+  if sysRequestMutexSem(sem) \= 0 then do
+    say &quot;Can't get write-lock on&quot; numfile
+  end ; else do
+    /* ... do something with 'numfile' ... */
+
+    /* All done ... release lock */
+    call sysReleaseMutexSem sem
+  end
+end ; else do
+  /* ... do something with 'numfile' ... */
+
+  /* All done ... release lock */
+  call sysReleaseMutexSem sem
+end
+
+/* ----------- */
+
+/* Can't implement 'select' example */
+
+/* ----------- */
+
+/* ... prologue code omitted ... */
+
+numfile = &quot;...&quot; ; timeout = 2
+
+if sysRequestMutexSem(sem) \= 0 then do
+  say &quot;Cannot write-lock the file&quot; numfile &quot;exiting ...&quot;
+  exit 1
+end
+
+if STREAM(numfile, 'C', 'OPEN BOTH') \= &quot;READY:&quot; then do
+  say &quot;Cannot open the file&quot; numfile &quot;exiting...&quot;
+  exit 1
+end
+
+/* ... do stuff with 'numfile' ... */
+
+/* Close file and release semaphore */
+call STREAM numfile, 'C', 'CLOSE' ; call sysReleaseMutexSem sem</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN395"
+>Flushing Output</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* There is, in the ANSI Standard I/O routines, no user control over  */
+/* file buffering - it is all handled internally - thus most of the   */
+/* examples in this section are not implementable.                    */
+/* ------------------------------------------------------------------ */
+
+/* It *is* possible to flush any file, including STDOUT */
+call STREAM &quot;&lt;stdout&gt;&quot;, 'C', 'FLUSH'
+
+/* ----------------------------- */
+
+/*
+   See PLEAC 18 for examples of socket-based code
+*/</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN398"
+>Reading from Many Filehandles Without Blocking</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* No such functionality is available natively in REXX. However, it   */
+/* might be possible to use Regina's GCI facility to make available   */
+/* the *NIX 'select' function [and any support functions it may need] */
+/* in order to perform this task.                                     */
+/* ------------------------------------------------------------------ */
+
+@@INCOMPLETE@@
+@@INCOMPLETE@@</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN401"
+>Doing Non-Blocking I/O</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* No such functionality is available natively in REXX. However, it   */
+/* might be possible to use Regina's GCI facility to make available   */
+/* the *NIX 'fcntl' function [and any support functions it may need]  */
+/* in order to perform this task.                                     */
+/* ------------------------------------------------------------------ */
+
+@@INCOMPLETE@@
+@@INCOMPLETE@@</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN404"
+>Determining the Number of Bytes to Read</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* The number of bytes in a file may be determined:                   */
+/*                                                                    */
+/* * Via the 'STREAM' BIF [which probably uses 'ioctl' on *NIX]       */
+/* * Via the 'CHARS' BIF                                              */
+/* * Opening the file, and seeking to the end                         */
+/* ------------------------------------------------------------------ */
+
+file = &quot;...&quot;
+
+say &quot;File&quot; file &quot;is&quot; STREAM(file, 'C', 'QUERY SIZE') &quot;bytes in size.&quot;
+
+/* ----------------------------- */
+
+file = &quot;...&quot;
+
+call STREAM file, 'C', 'OPEN READ' ; bytes = CHARS(file)
+call STREAM file, 'C', 'CLOSE'
+
+say &quot;File&quot; file &quot;is&quot; bytes &quot;bytes in size.&quot;
+
+/* ----------------------------- */
+
+file = &quot;...&quot;
+
+call STREAM file, 'C', 'OPEN READ'
+call STREAM file, 'C', 'SEEK' '&lt;0' 'READ' 'CHAR'
+
+bytes = STREAM(file, 'C', 'QUERY SEEK READ CHAR')
+
+call STREAM file, 'C', 'CLOSE'
+
+say &quot;File&quot; file &quot;is&quot; bytes &quot;bytes in size.&quot;</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN407"
+>Storing Filehandles in Variables</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* REXX, through its ANSI Standard I/O functions, does not support fi-*/
+/* le descriptor-based I/O; instead, the file name is used as the han-*/
+/* dle. However, it is possible to query an open file's handle, though*/
+/* this is of little practical use unless a library of low-level rout-*/
+/* ines allowing file handle manipulation, is used. Thus, most of the */
+/* code in this section is not implementable.                         */
+/* ------------------------------------------------------------------ */
+
+filename = &quot;...&quot;
+
+/* Store file handle in a variable */
+variable = STREAM(filename, 'C', 'QUERY HANDLE')
+
+/* Pass file handle as argument to subroutine */
+call subroutine STREAM(filename, 'C', 'QUERY HANDLE'), filename
+
+/* ----------- */
+
+subroutine : procedure
+  fh = ARG(1) ; filename = ARG(2)
+  say &quot;File handle for file&quot; filename &quot;is&quot; fh
+  return
+
+/* ----------------------------- */
+
+/* Should display 0, 1, 2, respectively, the 'standard' I/O handles */
+say STREAM(&quot;&lt;stdin&gt;&quot;, 'C', 'QUERY HANDLE')
+say STREAM(&quot;&lt;stdout&gt;&quot;, 'C', 'QUERY HANDLE')
+say STREAM(&quot;&lt;stderr&gt;&quot;, 'C', 'QUERY HANDLE')</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN410"
+>Caching Open Output Filehandles</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* REXX, through its ANSI Standard I/O functions, does not support fi-*/
+/* le descriptor-based I/O; instead, the file name is used as the han-*/
+/* dle. Therefore, the task of caching 'open file handles' is not app-*/
+/* licable. Thus, the code in this section is not implementable.      */
+/* ------------------------------------------------------------------ */
+
+/* *** Translation skipped *** */</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN413"
+>Printing to Many Filehandles Simultaneously</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* REXX, through its ANSI Standard I/O functions, does not support fi-*/
+/* le descriptor-based I/O. Some of the tasks in this section may be  */
+/* performed by substituting file names for file descriptors, whilst  */
+/* those involving shell invocation may be performed by constructing  */
+/* a command string, and passing it to the ADDRESS instruction for ex-*/
+/* ecution.                                                           */
+/* ------------------------------------------------------------------ */
+
+filenames = &quot;a.txt b.txt c.txt&quot; ; stuff_to_print = &quot;...&quot;
+
+do while filenames &lt;&gt; NULL
+  parse var filenames file filenames
+  call LINEOUT file, stuff_to_print
+end
+
+/* ----------------------------- */
+
+/* Generate data file */
+datain = &quot;...&quot;
+call LINEOUT datain, &quot;...&quot;
+
+/* Output file names */
+f1 = &quot;...&quot; ; f2 = &quot;...&quot; ; f3 = &quot;...&quot;
+
+/* Build command string - redirects data to several files */
+cmd = &quot;tee&quot; f1 f2 f3
+
+/*
+   Execute command string through the shell, with data
+   directed to STDOUT, and 'tee'd to the output files
+*/
+address SYSTEM cmd with INPUT STREAM datain,
+                        OUTPUT STREAM &quot;&lt;stdout&gt;&quot;
+
+/* Delete the input data file */
+call sysFileDelete datain</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN416"
+>Opening and Closing File Descriptors by Number</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* REXX, through its ANSI Standard I/O functions, does not support fi-*/
+/* le descriptor-based I/O, thus most of the examples in this section */
+/* cannot be implemented.                                             */
+/*                                                                    */
+/* The only descriptor-based task that may be performed is the use of */
+/* the 'STREAM' BIF to query the file descriptor of currently-open    */
+/* file [example shown below]. It is, of course, possible to pass this*/
+/* information on to a shell script [invoked via the ADDRESS instruct-*/
+/* ion], but this would merely be a, probably useless, contrivance.   */
+/* ------------------------------------------------------------------ */
+
+/* Open the file */
+call STREAM file, 'C', 'OPEN READ'
+
+/* Print file descriptor of this open file */
+say STREAM(file, 'C', 'QUERY HANDLE')
+
+/* Close the file */
+call STREAM file, 'C', 'CLOSE'
+
+/* Print [invalid] file descriptor of this, now-closed, file */
+say STREAM(file, 'C', 'QUERY HANDLE')</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN419"
+>Copying Filehandles</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* REXX, through its ANSI Standard I/O functions, does not support fi-*/
+/* le descriptor-based I/O, thus the notion of copying file handles is*/
+/* moot. However, whilst STDIN, STDOUT, and STDERR cannot be directly */
+/* altered, they can be temporarily mapped to files within the context*/
+/* of the ADDRESS instruction [an example is shown below].            */
+/* ------------------------------------------------------------------ */
+
+RANDOMCMD = &quot;cat&quot; /* Platform-specific [*NIX] */
+
+INFILE = &quot;program.in&quot; ; OUTFILE = &quot;program.out&quot;
+
+/* Redirect command output */
+address path RANDOMCMD with input STREAM INFILE,
+                            output STREAM OUTFILE,
+                            error STREAM &quot;&lt;stdout&gt;&quot;
+
+/* Reset redirected streams to default values */
+address path with input NORMAL output NORMAL error NORMAL</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN422"
+>Program: netlock</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* Program: netlock                                                   */
+/* ------------------------------------------------------------------ */
+
+@@INCOMPLETE@@
+@@INCOMPLETE@@</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN425"
+>Program: lockarea</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* Program: lockarea                                                  */
+/* ------------------------------------------------------------------ */
+
+@@INCOMPLETE@@
+@@INCOMPLETE@@</PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="patternmatching.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="filecontents.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Pattern Matching</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>File Contents</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

@@ -1,0 +1,1625 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Pattern Matching</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Tcl"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Hashes"
+HREF="hashes.html"><LINK
+REL="NEXT"
+TITLE="File Access"
+HREF="fileaccess.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Tcl</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="hashes.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="fileaccess.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="PATTERNMATCHING"
+>6. Pattern Matching</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN285"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2">regexp $pattern $string</span>
+<span class="s2">regsub $pattern $string $replacement</span>
+<span class="s2">#-----------------------------</span>
+<span class="s2">regexp sheep $meadow            # True if $meadow contains &quot;sheep&quot;</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">regsub old $meadow new meadow   # Replace &quot;old&quot; with &quot;new&quot; in $meadow</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">if [regexp -nocase {\bovines?\b} $meadow ] {</span>
+<span class="s2">    puts -nonewline {Here be sheep!}</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set string {good food}</span>
+<span class="s2">set string [regsub {o*} $string e] # regsub with out replacement var returns result.</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">foreach i [regexp -all -inline {\d+}] {</span>
+<span class="s2">    puts &quot;Found number $i&quot;</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set numbers [regexp -all -inline {\d+}]</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set digits 123456789</span>
+<span class="s2">set nonlap [regexp -inline -all {\d\d\d} $digits]</span>
+<span class="s2">#no direct way for overlap since the regex behavior of /g|-all in tcl is differnt from perl.</span>
+<span class="s2">set yeslap {}</span>
+<span class="s2">for {set i 0} {$i &lt; [string length $digits]} {incr i} {</span>
+<span class="s2">     set match [regexp -inline {\d\d\d} [string range $digits $i end]]</span>
+<span class="s2">     if {[string length $match]} {</span>
+<span class="s2">        lappend yeslap $match</span>
+<span class="s2">     }</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2"># no direct pre and post match vars in tcl.</span>
+<span class="s2">set string {And little lambs eat ivy}</span>
+<span class="s2">regexp -indices  -- {l.*s} $string idxs</span>
+<span class="s2">set start [lindex $idxs 0]</span>
+<span class="s2">set stop [lindex $idxs 1]</span>
+<span class="s2">puts &quot;([string range $string 0 $start-1]) ([string range $string $start $stop]) ([string range $string $stop+1 end])&quot;</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN288"
+>Copying and Substituting Simultaneously</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2">set dst $src</span>
+<span class="s2">regsub this $dst that dst</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">regsub this $src that dst</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2"># strip to basename</span>
+<span class="s2">regsub ^.*/ $::argv0 {} progname</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2"># it is easier to do it this way than the next.</span>
+<span class="s2">package require struct::list</span>
+<span class="s2">::struct::list map $words {string totitle}</span>
+
+<span class="s2"># using regex.</span>
+<span class="s2">set capword [gregsub {(\w+)} $words {</span>
+<span class="s2">      r {return [string totitle $r]}</span>
+<span class="s2">}]</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2"># /usr/man/man3/foo.1 changes to /usr/man/cat3/foo.1</span>
+<span class="s2">regsub {man(?=\d)} $manpage cat catpage</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set bindirs {/usr/bin /bin /usr/local/bin}</span>
+<span class="s2">set libdirs [string map {bin lib} $bindirs]</span>
+<span class="s2">puts $libdirs</span>
+<span class="s2"># /usr/lib /lib /usr/local/lib</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">regsub -all x $a y b # copy changed string to b</span>
+<span class="s2">set b [regsub -all x $a y a] # change a, count goes in b</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN291"
+>Matching Letters</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2"># matching letters</span>
+<span class="s2">if [regexp {^[A-Za-z]+$} $var] {</span>
+<span class="s2">    #may be better to user [[:alpha:]]+$</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">if [regexp {^[[:alpha:]]+$} $var] {</span>
+<span class="s2">    puts &quot;var is purely alphabetic&quot;</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">readlines $data {</span>
+<span class="s2">    {line} {</span>
+<span class="s2">        if {[regexp {^[[:alpha:]]+$} $line]} {</span>
+<span class="s2">            puts -nonewline &quot;$line: alphabetic&quot;</span>
+<span class="s2">        } else {</span>
+<span class="s2">            puts -nonewline &quot;$line: line noice&quot;</span>
+<span class="s2">        }</span>
+<span class="s2">    }</span>
+<span class="s2">}</span>
+<span class="s2">#__END__</span>
+<span class="s2">#silly</span>
+<span class="s2">#faзade</span>
+<span class="s2">#coцperate</span>
+<span class="s2">#niсo</span>
+<span class="s2">#Renйe</span>
+<span class="s2">#Moliиre</span>
+<span class="s2">#hжmoglobin</span>
+<span class="s2">#naпve</span>
+<span class="s2">#tschья</span>
+<span class="s2">#random!stuff#here</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN294"
+>Matching Words</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2"># matching words</span>
+<span class="s2">{\S+} # as many non-whitespace bytes as possible</span>
+<span class="s2">{[A-Za-z&#39;-]+} # as many letters apostrophes and hyphens</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">{\y([A-Za-z]+)\y} # usually best</span>
+<span class="s2">{\s([A-Za-z]+)\s} # fails at ends or w/ punctuation</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN297"
+>Commenting Regular Expressions</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2">package require Tclx</span>
+<span class="s2">set str {www.tcl.tk}</span>
+
+<span class="s2">set re {(?x)                # allow formatting</span>
+<span class="s2">    (                       # capture group</span>
+<span class="s2">        (?:                 # grouping parens</span>
+<span class="s2">            (?! [-_] )      # lookahead for neither - nor _</span>
+<span class="s2">            [\w] +          # hostname component</span>
+<span class="s2">            \.              # add domain dot</span>
+<span class="s2">        )+                  # repeat</span>
+<span class="s2">        [A-Za-z]            # next must be letter</span>
+<span class="s2">        [\w-]+              # now trailing domain part</span>
+<span class="s2">    )</span>
+<span class="s2">}</span>
+
+<span class="s2">puts [gregsub $re $str {</span>
+<span class="s2">        {host} {</span>
+<span class="s2">            return &quot;$host \[[host_info addresses $host]\]&quot;</span>
+<span class="s2">        }</span>
+<span class="s2">    }]</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set re {(?x)       # replace</span>
+<span class="s2">    \#             # a pound</span>
+<span class="s2">    (\w+)          # varname</span>
+<span class="s2">    \#             # another pound</span>
+<span class="s2">}</span>
+
+<span class="s2">puts [gregsub $re $str {</span>
+<span class="s2">        {var} {</span>
+<span class="s2">            return [uplevel 2 &quot;set $var&quot;]</span>
+<span class="s2">        }</span>
+<span class="s2">    }]</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN300"
+>Finding the Nth Occurrence of a Match</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2"># finding Nth occurence of a match</span>
+<span class="s2">set pond  &quot;One fish two fish red fish blue fish&quot;</span>
+<span class="s2">set want 3</span>
+<span class="s2">set count 0</span>
+<span class="s2">gregsub {(?i)(\w+)\s+fish} $pond {</span>
+<span class="s2">    {c} {</span>
+<span class="s2">        variable want</span>
+<span class="s2">        variable count</span>
+<span class="s2">        incr count</span>
+<span class="s2">        if {$want == $count} {</span>
+<span class="s2">            puts &quot;The third fish is a $c one&quot;</span>
+<span class="s2">        }</span>
+<span class="s2">    }</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set fishes [regexp -all -inline -- {(?i)\w+(?=\s+fish)} $pond ]</span>
+<span class="s2">puts &quot;The third fish is a [lindex $fishes 2] one.&quot;</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">{(?i)(?:\w+\s+fish\s+){2}(\w+)\s+fish}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set count 0</span>
+<span class="s2">gregsub {(?i)(\w+)\s+fish} $pond {</span>
+<span class="s2">    {c} {</span>
+<span class="s2">        uplevel 2 {incr count} #or what eveer you want to do.</span>
+<span class="s2">    }</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set count [regsub -all -- {PAT} $string {} {}]</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set count [expr [llength [regexp -all -- {PAT} $string]] + 1]</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2"># no overlapping matches.</span>
+<span class="s2"># @@INCOMPLETE@@</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set colors [regexp -all -inline -- {(?i)\w+(?=\s+fish)} $pond ]</span>
+<span class="s2">set color [lindex $colors 2]</span>
+
+<span class="s2"># with out temporary.</span>
+<span class="s2">set color [lindex [regexp -all -inline -- {(?i)\w+(?=\s+fish)} $pond ] 2]</span>
+<span class="s2">puts &quot;The third fish in the pond is $color&quot;</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set evens {}</span>
+<span class="s2">foreach {a b} [regexp -all -inline -- {(?i)\w+(?=\s+fish)} $pond ] {</span>
+<span class="s2">    lappend evens $b</span>
+<span class="s2">}</span>
+<span class="s2">puts &quot;The even numbered fish are $evens&quot;</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2"># hard to do sushi.</span>
+<span class="s2">#-----------------------------</span>
+<span class="s2">set pond  &quot;One fish two fish red fish blue fish swim here&quot;</span>
+<span class="s2">set color [lindex [regexp -all -inline -- {(?i)\w+(?=\s+fish)} $pond ] end]</span>
+<span class="s2">puts &quot;Last fish is $color&quot;</span>
+
+<span class="s2"># last fish is blue</span>
+<span class="s2">#-----------------------------</span>
+<span class="s2">set re {(?x)</span>
+<span class="s2">    A           # find some pattern A</span>
+<span class="s2">    (?!         # mustn&#39;t be able to find</span>
+<span class="s2">        .*      # something</span>
+<span class="s2">        A       # and A</span>
+<span class="s2">    )</span>
+<span class="s2">    $           # thru end of str</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set pond  &quot;One fish two fish red fish blue fish swim here&quot;</span>
+<span class="s2">if [regexp -- {(?x)</span>
+<span class="s2">        \y(\w+)\s+fish\y</span>
+<span class="s2">        (?!.*\yfish\y)</span>
+<span class="s2">    } $pond all one] {</span>
+<span class="s2">    puts &quot;Last fish is $one&quot;</span>
+<span class="s2">} else {</span>
+<span class="s2">    puts &quot;Failed.&quot;</span>
+<span class="s2">}</span>
+<span class="s2"># last fish is blue</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN303"
+>Matching Multiple Lines</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2">argf-iter {</span>
+<span class="s2">    line {</span>
+<span class="s2">        puts [regsub -all -- {&lt;.*&gt;} $line {}]</span>
+<span class="s2">    }</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2"># headerfy: change certain chapter headers to html</span>
+<span class="s2">set re {(?xn)</span>
+<span class="s2">    \A              # start of record</span>
+<span class="s2">    (</span>
+<span class="s2">        ^Chapter    # title</span>
+<span class="s2">        \s+</span>
+<span class="s2">        \d+         # decimal number</span>
+<span class="s2">        \s+</span>
+<span class="s2">        :</span>
+<span class="s2">        .*</span>
+<span class="s2">     )$</span>
+<span class="s2">}</span>
+
+<span class="s2">set options(CR) &quot;\n&quot;</span>
+<span class="s2">argf-iter {</span>
+<span class="s2">    para {</span>
+<span class="s2">        variable re</span>
+<span class="s2">        puts -nonewline [regsub -all -- $re $para {&lt;H1&gt;\1&lt;/H1&gt;}]</span>
+<span class="s2">    }</span>
+<span class="s2">}</span>
+<span class="s2">array unset options(CR)</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set options(CR) &quot;\n\n&quot;</span>
+<span class="s2">argf-iter {</span>
+<span class="s2">    para {</span>
+<span class="s2">        gregsub {(?w)^START(.*?)^END} $para {</span>
+<span class="s2">            {chunk} {</span>
+<span class="s2">                puts -nonewline &quot;chunk in $::argv has $chunk&quot;</span>
+<span class="s2">            }</span>
+<span class="s2">        }</span>
+<span class="s2">    }</span>
+<span class="s2">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN306"
+>Reading Records with a Pattern Separator</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2"># reading records with a pattern separator</span>
+<span class="s2">set chunks [split [regsub -all -- {pattern} [read -nonewline $fd] &quot;\0&quot;] &quot;\0&quot;]</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set chunks [split [regsub -all -- {(?n)^\.(Ch|Se|Ss)$} [read -nonewline $fd] &quot;\0&quot;] &quot;\0&quot;]</span>
+<span class="s2">set len [llength $chunks]</span>
+<span class="s2">puts &quot;I read $len chunks&quot;</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN309"
+>Extracting a Range of Lines</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2"># tcl does not have regexp range operators</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set fd [open $argv]</span>
+<span class="s2">set data [split [read $fd] &quot;\n&quot;]</span>
+
+<span class="s2">regrange {BEGIN PATTERN} .. {ENDPATTERN} $data {</span>
+<span class="s2">    {line} {</span>
+<span class="s2">        puts &quot;&gt;$line&quot;</span>
+<span class="s2">    }</span>
+<span class="s2">}</span>
+
+<span class="s2">set fd [open $argv]</span>
+<span class="s2">set data [split [read $fd] &quot;\n&quot;]</span>
+<span class="s2">foreach line [lrange $data $first_line_no $last_line_no-1] {</span>
+<span class="s2">    puts $line</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set fd [open $argv]</span>
+<span class="s2">set data [split [read $fd] &quot;\n&quot;]</span>
+
+<span class="s2">regrange {BEGIN PATTERN} ... {ENDPATTERN} $data {</span>
+<span class="s2">    {line} {</span>
+<span class="s2">        puts &quot;&gt;$line&quot;</span>
+<span class="s2">    }</span>
+<span class="s2">}</span>
+
+<span class="s2">set fd [open $argv]</span>
+<span class="s2">set data [split [read $fd] &quot;\n&quot;]</span>
+<span class="s2">foreach line [lrange $data $first_line_no-1 $last_line_no] {</span>
+<span class="s2">    puts $line</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set fd [open $argv]</span>
+<span class="s2">set data [split [read $fd] &quot;\n&quot;]</span>
+<span class="s2">puts [lrange $data 15-1 17-1] # prints lines 15 .. 17 as it is indexed by 0.</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2"># the perl logic is not directly portable due to absence of range operators.</span>
+<span class="s2">set in_header {}</span>
+<span class="s2">regrange {} .. {^$} $data {</span>
+<span class="s2">    {line} {</span>
+<span class="s2">        variable in_header</span>
+<span class="s2">        lappend in_header $line</span>
+<span class="s2">    }</span>
+<span class="s2">}</span>
+
+<span class="s2">set in_body {}</span>
+<span class="s2">regrange {^$} .. {$-^} $data { # $-^ will not match any thing thus leaving an open end.</span>
+<span class="s2">    {line} {</span>
+<span class="s2">        variable in_body</span>
+<span class="s2">        lappend in_body $line</span>
+<span class="s2">    }</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set fd [open $argv]</span>
+<span class="s2">set data [split [read $fd] &quot;\n&quot;]</span>
+<span class="s2">array set seen {}</span>
+<span class="s2">regrange {(?i)^From:?\s} .. {^$} $data {</span>
+<span class="s2">    line {</span>
+<span class="s2">        variable seen</span>
+<span class="s2">        set ids [regexp -inline -all {[^&lt;&gt;(),;\s]+\@[^&lt;&gt;(),;\s]+} $line]</span>
+<span class="s2">        foreach id $ids {</span>
+<span class="s2">            if {![info exists seen($id)]} {</span>
+<span class="s2">                puts $id</span>
+<span class="s2">                set seen($id) 0</span>
+<span class="s2">            } else {</span>
+<span class="s2">                incr seen($id)</span>
+<span class="s2">            }</span>
+<span class="s2">        }</span>
+<span class="s2">    }</span>
+<span class="s2">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN312"
+>Matching Shell Globs as Regular Expressions</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2">proc glob2pat globstr {</span>
+<span class="s2">    # note - we dont need to do this, we already have &#39;glob&#39; command.</span>
+<span class="s2">    # escapes the chars &#39;\&#39; &#39;.&#39; &#39;+&#39; &#39;^&#39; &#39;$&#39; &#39;{&#39; &#39;}&#39; &#39;(&#39; &#39;)&#39;</span>
+<span class="s2">    set patmap {</span>
+<span class="s2">       &quot;\\&quot; &quot;\\\\&quot;</span>
+<span class="s2">        {.} {\.}</span>
+<span class="s2">        {+} {\+}</span>
+<span class="s2">        {^} {\^}</span>
+<span class="s2">        {$} {\$}</span>
+<span class="s2">        &quot;{&quot; &quot;\{&quot;</span>
+<span class="s2">        &quot;}&quot; &quot;\}&quot;</span>
+<span class="s2">        {(} {\(}</span>
+<span class="s2">        {)} {\)}</span>
+
+<span class="s2">        * .*</span>
+<span class="s2">        ? .</span>
+<span class="s2">        [ [</span>
+<span class="s2">        ] ]</span>
+<span class="s2">    }</span>
+<span class="s2">    # using a bre to avoid other regexp rules</span>
+<span class="s2">    return [append {} (?b)^ [string map $patmap [join $globstr]] $]</span>
+<span class="s2">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN315"
+>Speeding Up Interpolated Matches</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2"># tcl caches compiled regexp if it is assigned to a variable (and even if it is not,</span>
+<span class="s2"># but that is restricted to last 30) so /o in perl is not necessary here.</span>
+<span class="s2">set pattern {blue}</span>
+<span class="s2">argf-iter {</span>
+<span class="s2">    line {</span>
+<span class="s2">        variable pattern</span>
+<span class="s2">        if [regexp  -- $pattern $line] {</span>
+<span class="s2">            # do something.</span>
+<span class="s2">        }</span>
+<span class="s2">    }</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set popstates {CO ON MI WI MN}</span>
+<span class="s2">while {[gets $fd line] &gt;= 0} {</span>
+<span class="s2">    foreach state $popstates {</span>
+<span class="s2">        if [regexp  -- $state $line] {</span>
+<span class="s2">            puts $line</span>
+<span class="s2">            break</span>
+<span class="s2">        }</span>
+<span class="s2">    }</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2"># using argf-iter</span>
+<span class="s2">set popstates {CO ON MI WI MN}</span>
+<span class="s2">argf-iter {</span>
+<span class="s2">    line {</span>
+<span class="s2">        variable popstates</span>
+<span class="s2">        foreach state $popstates {</span>
+<span class="s2">            if [regexp  -- $state $line] {</span>
+<span class="s2">                puts -nonewline $line</span>
+<span class="s2">                break</span>
+<span class="s2">            }</span>
+<span class="s2">        }</span>
+<span class="s2">    }</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set popstates {CO ON MI WI MN}</span>
+<span class="s2">set pre {while {[gets $fd line]&gt;= 0}}</span>
+<span class="s2">set code {}</span>
+<span class="s2">foreach state $popstates {</span>
+<span class="s2">    append code [subst -nocommands {</span>
+<span class="s2">    if [regexp  -- $state [set line]] {</span>
+<span class="s2">        puts [set line]</span>
+<span class="s2">    }</span>
+<span class="s2">    }]</span>
+<span class="s2">}</span>
+
+<span class="s2">eval [lappend pre $code]</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">package require struct::list</span>
+
+<span class="s2">set fd [open $argv]</span>
+<span class="s2">set sw_pre {[switch -regexp {$line}}</span>
+<span class="s2">set code {}</span>
+<span class="s2">append code [::struct::list map $popstates {apply {</span>
+<span class="s2">        {state} {</span>
+<span class="s2">            return &quot;$state {return 1}&quot;</span>
+<span class="s2">        }</span>
+<span class="s2">    }}]</span>
+<span class="s2">lappend code {default {return 0}}</span>
+
+<span class="s2">set tmp {}</span>
+<span class="s2">set myproc [append tmp $sw_pre { } [list [join $code]] {]}]</span>
+<span class="s2">while {[gets $fd line] &gt;= 0} {</span>
+<span class="s2">    if [subst [subst -nocommands $myproc]] {</span>
+<span class="s2">        puts $line</span>
+<span class="s2">    }</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">proc build_exp words {</span>
+<span class="s2">    # return a list of lambdas that can be applied to a line to get a</span>
+<span class="s2">    # result string containing matching results.</span>
+<span class="s2">    return [::struct::list map $words {apply</span>
+<span class="s2">        {{word} {</span>
+<span class="s2">            return &quot;line {return \[regexp $word \$line\]}&quot;</span>
+<span class="s2">        }}</span>
+<span class="s2">    }]</span>
+<span class="s2">}</span>
+
+<span class="s2">proc func {var f} {</span>
+<span class="s2">    return [apply $f $var]</span>
+<span class="s2">}</span>
+
+<span class="s2">proc + {a b} {return [expr ($a + $b)]}</span>
+<span class="s2">proc * {a b} {return [expr ($a * $b)]}</span>
+
+<span class="s2">proc build_match_func {func init words} {</span>
+<span class="s2">    #return an applicable lambda.</span>
+<span class="s2">    return &quot;line {return \[::struct::list fold \[::struct::list map \[build_exp {$words}\] \[list func \$line\]\] $init $func\]}&quot;</span>
+<span class="s2">}</span>
+
+<span class="s2">set match_any [build_match_func + 0 $words]</span>
+<span class="s2">set match_all [build_match_func * 1 $words]</span>
+
+<span class="s2">while {[gets $fd line] &gt;= 0} {</span>
+<span class="s2">    if [apply $match_all $line] {</span>
+<span class="s2">        puts $line</span>
+<span class="s2">    }</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2"># we cache all regex in tcl. so there is no difference here.</span>
+<span class="s2">set popstates {CO ON MI WI MN}</span>
+<span class="s2">while {[gets $fd line] &gt;= 0} {</span>
+<span class="s2">    foreach state $popstates {</span>
+<span class="s2">        if [regexp  -- $state $line] {</span>
+<span class="s2">            puts $line</span>
+<span class="s2">            break</span>
+<span class="s2">        }</span>
+<span class="s2">    }</span>
+<span class="s2">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN318"
+>Testing for a Valid Pattern</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2">chan configure stdout -buffering none</span>
+<span class="s2">while {![eof stdin]} {</span>
+<span class="s2">    if {[catch {</span>
+<span class="s2">        puts -nonewline &quot;Pattern? &quot;</span>
+<span class="s2">        gets stdin pat</span>
+<span class="s2">        regexp $pat {}</span>
+<span class="s2">    } err]} {</span>
+<span class="s2">        puts &quot;Invalid pattern&quot;</span>
+<span class="s2">    }</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">proc is_valid_pattern pat {</span>
+<span class="s2">    return [expr ![catch {regexp $pat {}} err]]</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set rexp [lindex $argv 0]</span>
+<span class="s2">if [catch &quot;regexp $rexp {}&quot; err] {</span>
+<span class="s2">    puts &quot;Bad Pattern $rexp: $::argv0&quot;</span>
+<span class="s2">    exit -1</span>
+<span class="s2">}</span>
+<span class="s2">set fd [open [lindex $argv 1]]</span>
+<span class="s2">foreach para [split [regsub -all -- &quot;\n\n&quot; [read $fd] &quot;\0&quot;] &quot;\0&quot;] {</span>
+<span class="s2">    if [regexp $rexp $para] {</span>
+<span class="s2">        puts $para</span>
+<span class="s2">    }</span>
+<span class="s2">}</span>
+<span class="s2">close $fd</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set safe [interp create -safe]</span>
+<span class="s2">if [$safe eval {regexp $pat $line}] {</span>
+<span class="s2">    do_something</span>
+<span class="s2">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN321"
+>Honoring Locale Settings in Regular Expressions</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2"># @@INCOMPLETE@@</span>
+<span class="s2"># @@INCOMPLETE@@</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN324"
+>Approximate Matching</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2"># @@INCOMPLETE@@</span>
+<span class="s2"># @@INCOMPLETE@@</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN327"
+>Matching from Where the Last Pattern Left Off</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2"># perl does not support \G switch</span>
+<span class="s2"># so we are left with:</span>
+
+<span class="s2">gregsub {(\d+)} $str {</span>
+<span class="s2">        {match} {</span>
+<span class="s2">            puts &quot;Found $match&quot;</span>
+<span class="s2">        }</span>
+<span class="s2">    }</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set n [gregsub {^( )} $str {</span>
+<span class="s2">        {match} {</span>
+<span class="s2">            return 0</span>
+<span class="s2">        }</span>
+<span class="s2">    }]</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">gregsub {^,?(\d+)} $str {</span>
+<span class="s2">        {match} {</span>
+<span class="s2">            puts &quot;Found number $match&quot;</span>
+<span class="s2">        }</span>
+<span class="s2">    }</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2"># tcl does not have /c modifier either.</span>
+<span class="s2">proc gmatch {exp str block} {</span>
+<span class="s2">    set start 0</span>
+<span class="s2">    while 1 {</span>
+<span class="s2">        if {[regexp -indices -start $start -- $exp $str idx]} {</span>
+<span class="s2">            set start [expr [lindex $idx 1] + 1]</span>
+<span class="s2">            apply $block [string range $str {expand}$idx]</span>
+<span class="s2">        } else break</span>
+<span class="s2">    }</span>
+<span class="s2">    return $start</span>
+<span class="s2">}</span>
+
+<span class="s2">set str &quot;The year 1752 lost 10 days on the 3rd of September&quot;</span>
+<span class="s2">set e [gmatch {\d+} $str {</span>
+<span class="s2">        {match} {</span>
+<span class="s2">            puts $match</span>
+<span class="s2">        }</span>
+<span class="s2">    }]</span>
+
+<span class="s2">if [regexp -indices -start $e -- {\S+} $str idx] {</span>
+<span class="s2">    puts &quot;Found [string range $str {expand}$idx] after last number&quot;</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2"># use the [lindex $idx end] as the pos for next regexp match..</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN330"
+>Greedy and Non-Greedy Matches</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2"># try removing tags very badly</span>
+<span class="s2">regsub -all -- {&lt;.*&gt;} $line {} line</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2"># non greedy but still bad.</span>
+<span class="s2">regsub -all -- {&lt;.*?&gt;} $line {} line</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2"># stil wrong</span>
+<span class="s2">set txt &quot;&lt;b&gt;&lt;i&gt;this&lt;/i&gt; and &lt;i&gt;that&lt;/i&gt; are important&lt;/b&gt; Oh, &lt;b&gt;&lt;i&gt;me</span>
+<span class="s2">too!&lt;/i&gt;&lt;/b&gt;&quot;</span>
+<span class="s2">regexp -all -inline -- {(?x) &lt;b&gt;&lt;i&gt;(.*?)&lt;/i&gt;&lt;/b&gt; } $txt</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">{(?x)BEGIN((?:(?!BEGIN).)*)END}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">{(?x) &lt;b&gt;&lt;i&gt;(  (?:  (?!&lt;/b&gt;|&lt;/i&gt;). )* )&lt;/i&gt;&lt;/b&gt; }</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">{(?x) &lt;b&gt;&lt;i&gt;(  (?:  (?!&lt;/[bi]&gt;). )* )&lt;/i&gt;&lt;/b&gt; }</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">{(?x)</span>
+<span class="s2">    &lt;b&gt;&lt;i&gt;</span>
+<span class="s2">    [^&lt;]*       #stuff not possibly bad and not possibly end</span>
+<span class="s2">    (?:</span>
+<span class="s2">        (?!  &lt;/?[ib]&gt;  ) #what we cant have</span>
+<span class="s2">        &lt;</span>
+<span class="s2">        [^&gt;]*</span>
+<span class="s2">    ) *</span>
+<span class="s2">    &lt;/i&gt;&lt;/b&gt;</span>
+<span class="s2">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN333"
+>Detecting Duplicate Words</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2"># no easy way to do this.</span>
+<span class="s2"># a difference in the tcl regex implementation means that if I say \1+, it immediatly</span>
+<span class="s2"># changes the definition of \1 do not know if this behavior is correct.</span>
+<span class="s2"># but it means that unlike the perl version, we print the dup words multiple times.</span>
+<span class="s2"># if they are repeated more than 2 times .</span>
+<span class="s2"># using a non capturing gropu (?:xx\1xx) did not help.</span>
+
+<span class="s2">set fd [open $argv]</span>
+<span class="s2">set p 0</span>
+<span class="s2">foreach para [split [regsub -all -- &quot;\n\n&quot; [read -nonewline $fd] &quot;\0&quot;] &quot;\0&quot;] {</span>
+<span class="s2">    incr p</span>
+<span class="s2">    set start 0</span>
+<span class="s2">    while 1 {</span>
+<span class="s2">        set re {\y(\S+)\y(\s+\1\y)}</span>
+<span class="s2">        if {[regexp -indices -start $start -- $re $para all one two]} {</span>
+<span class="s2">            puts &quot;dup word &#39;[string range $para {expand}$one]&#39; at paragraph $p&quot;</span>
+<span class="s2">            set start [expr [lindex $all end] + 1]</span>
+<span class="s2">        } else break</span>
+<span class="s2">    }</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set a nobody</span>
+<span class="s2">set b bodysnatcher</span>
+<span class="s2">if [regexp -- {^(\w+)(\w+) \2(\w+)$} &quot;$a $b&quot; all 1 2 3] {</span>
+<span class="s2">    puts &quot;$2 overlaps in $1-$2-$3&quot;</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">{^(\w+?)(\w+) \2(\w+)$}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2"># prime factors</span>
+<span class="s2">set arg 180</span>
+<span class="s2">set cap [string repeat o $arg]</span>
+<span class="s2">while {[regexp -- {^(oo+?)\1+$} $cap all one]} {</span>
+<span class="s2">    puts -nonewline [string length $one]</span>
+<span class="s2">    regsub -all $one $cap o cap</span>
+<span class="s2">}</span>
+<span class="s2">puts [string length $cap]</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2"># diophantine</span>
+<span class="s2">set cap [string repeat o 281]</span>
+<span class="s2">if {[regexp -- {(o*)\1{11}(o*)\2{14}(o*)\3{15}$} [string repeat o 281]</span>
+<span class="s2">all 1 2 3]} {</span>
+<span class="s2">    puts &quot;One solution is x=[string length $1] y=[string length $2]</span>
+<span class="s2">z=[string length $3]&quot;</span>
+<span class="s2">} else {</span>
+<span class="s2">    puts &quot;No match&quot;</span>
+<span class="s2">}</span>
+
+<span class="s2"># One solution is x=17 y=3 z=2</span>
+<span class="s2">#-----------------------------</span>
+<span class="s2">{^(o+)\1{11}(o+)\2{14}(o+)\3{15}$}  =&gt; One solution is x=17 y=3 z=2</span>
+<span class="s2">{^(o*?)\1{11}(o*)\2{14}(o*)\3{15}$} =&gt; One solution is x=0 y=7 z=11</span>
+<span class="s2">{^(o+?)\1{11}(o*)\2{14}(o*)\3{15}$} =&gt; One solution is x=1 y=3 z=14</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN336"
+>Expressing AND, OR, and NOT in a Single Pattern</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2"># alpha | beta</span>
+<span class="s2">{alpha|beta}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2"># alpha &amp; beta</span>
+<span class="s2">{(?=.*alpha)(?=.*beta)}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2"># alpha beta | beta alpha</span>
+<span class="s2">{alpha.*beta|beta.*alpha}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2"># !beta</span>
+<span class="s2">{^(?:(?!beta).)*$}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2"># !bad but good</span>
+<span class="s2">{(?=(?:(?!BAD).)*$)GOOD}</span>
+<span class="s2"># we dont have an operator like =~ or !~ in tcl so no prefered way.</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">if {[expr [regexp {pat1} $string] &amp;&amp; [regexp {pat2} $string]]} {</span>
+<span class="s2">    something</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">if {[expr [regexp {pat1} $string] || [regexp {pat2} $string]]} {</span>
+<span class="s2">    something</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2"># mini grep</span>
+<span class="s2">set pat [::struct::list shift argv]</span>
+<span class="s2">argf-iter {</span>
+<span class="s2">    line {</span>
+<span class="s2">        variable pat</span>
+<span class="s2">        if [regexp $pat $line] {</span>
+<span class="s2">            puts -nonewline $line</span>
+<span class="s2">        }</span>
+<span class="s2">    }</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">regexp {(?=.*bell)(?=.*lab)} &quot;labelled&quot;</span>
+<span class="s2">[expr {[regexp {} bell] &amp;&amp; [regexp {} lab]}]</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">if [regexp {(?xw)</span>
+<span class="s2">    ^               # start</span>
+<span class="s2">    (?=             # lookahead</span>
+<span class="s2">        .*</span>
+<span class="s2">        bell</span>
+<span class="s2">    )</span>
+<span class="s2">    (?=</span>
+<span class="s2">        .*</span>
+<span class="s2">        lab</span>
+<span class="s2">    )</span>
+<span class="s2">} $murray_hill] {</span>
+<span class="s2">    puts &quot;Looks like Bell Labs might be in Murray Hill!&quot;</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">regexp {(?:^.*bell.*lab)|(?:^.*lab.*bell)} labelled</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set brand labelled</span>
+<span class="s2">if [regexp {(?xw)</span>
+<span class="s2">        (?:                 # non-capturing grouper</span>
+<span class="s2">            ^ .*?           # any amount of stuff at the front</span>
+<span class="s2">              bell          # look for a bell</span>
+<span class="s2">              .*?           # followed by any amount of anything</span>
+<span class="s2">              lab           # look for a lab</span>
+<span class="s2">          )                 # end grouper</span>
+<span class="s2">    |                       # otherwise, try the other direction</span>
+<span class="s2">        (?:                 # non-capturing grouper</span>
+<span class="s2">            ^ .*?           # any amount of stuff at the front</span>
+<span class="s2">              lab           # look for a lab</span>
+<span class="s2">              .*?           # followed by any amount of anything</span>
+<span class="s2">              bell          # followed by a bell</span>
+<span class="s2">          )                 # end grouper</span>
+<span class="s2">} $brand] {</span>
+<span class="s2">    puts &quot;Our brand has bell and lab separate.&quot;</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">regexp {(?w)^(?:(?!waldo).)*$} $map</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">if [regexp {(?xw)</span>
+<span class="s2">        ^                   # start of string</span>
+<span class="s2">        (?:                 # non-capturing grouper</span>
+<span class="s2">            (?!             # look ahead negation</span>
+<span class="s2">                waldo       # is he ahead of us now?</span>
+<span class="s2">            )               # is so, the negation failed</span>
+<span class="s2">            .               # any character (cuzza /s)</span>
+<span class="s2">        ) *                 # repeat that grouping 0 or more</span>
+<span class="s2">        $                   # through the end of the string</span>
+<span class="s2">} $map] {</span>
+<span class="s2">    puts &quot;There&#39;s no waldo here!&quot;</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">{(?x)</span>
+<span class="s2">    ^                       # anchored to the start</span>
+<span class="s2">    (?!                     # zero-width look-ahead assertion</span>
+<span class="s2">        .*                  # any amount of anything (faster than .*?)</span>
+<span class="s2">        ttyp                # the string you don&#39;t want to find</span>
+<span class="s2">    )                       # end look-ahead negation; rewind to start</span>
+<span class="s2">    .*                      # any amount of anything (faster than .*?)</span>
+<span class="s2">    tchrist                 # now try to find Tom</span>
+<span class="s2">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN339"
+>Matching Multiple-Byte Characters</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2"># @@INCOMPLETE@@</span>
+<span class="s2"># @@INCOMPLETE@@</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN342"
+>Matching a Valid Mail Address</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2"># @@INCOMPLETE@@</span>
+<span class="s2"># @@INCOMPLETE@@</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN345"
+>Matching Abbreviations</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2">set ans [gets stdin]</span>
+<span class="s2">set safe [interp create -safe]</span>
+<span class="s2">if [$safe eval {regexp -nocase SEND $ans}] {</span>
+<span class="s2">    puts {Action is send}</span>
+<span class="s2">} elseif [$safe eval {regexp -nocase STOP $ans}] {</span>
+<span class="s2">    puts {Action is stop}</span>
+<span class="s2">} elseif [$safe eval {regexp -nocase START $ans}] {</span>
+<span class="s2">    puts {Action is start}</span>
+<span class="s2">} elseif [$safe eval {regexp -nocase ABORT $ans}] {</span>
+<span class="s2">    puts {Action is abort}</span>
+<span class="s2">} elseif [$safe eval {regexp -nocase LIST $ans}] {</span>
+<span class="s2">    puts {Action is list}</span>
+<span class="s2">} elseif [$safe eval {regexp -nocase EDIT $ans}] {</span>
+<span class="s2">    puts {Action is edit}</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set ans [gets stdin]</span>
+<span class="s2">set safe [interp create -safe]</span>
+<span class="s2">proc smatch {exp data} {</span>
+<span class="s2">    variable safe</span>
+<span class="s2">    return [$safe eval [list regexp -nocase $exp $data]]</span>
+<span class="s2">}</span>
+
+<span class="s2">set actions {SEND STOP START ABORT LIST EDIT}</span>
+<span class="s2">foreach act $actions {</span>
+<span class="s2">    if [smatch $act $ans] {</span>
+<span class="s2">        puts &quot;Action is [string tolower $act]&quot;</span>
+<span class="s2">    }</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set errors 0</span>
+<span class="s2">argf-iter {</span>
+<span class="s2">    cmd {</span>
+<span class="s2">        variable errors</span>
+<span class="s2">        switch -regexp $cmd {</span>
+<span class="s2">            edit invoke_editor</span>
+<span class="s2">            send deliver_message</span>
+<span class="s2">            list {$pager $file}</span>
+<span class="s2">            abort {</span>
+<span class="s2">                puts {see you}</span>
+<span class="s2">                exit</span>
+<span class="s2">            }</span>
+<span class="s2">            default {</span>
+<span class="s2">                puts &quot;unknown command $cmd&quot;</span>
+<span class="s2">                incr errors</span>
+<span class="s2">            }</span>
+<span class="s2">        }</span>
+<span class="s2">    }</span>
+<span class="s2">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN348"
+>Program: urlify</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2">set urls {(http|telnet|gopher|file|wais|ftp)}</span>
+<span class="s2">set ltrs {\w}</span>
+<span class="s2">set gunk {/#~:.?+=&amp;%@!\-}</span>
+<span class="s2">set punc {.:?\-}</span>
+<span class="s2">set any  &quot;$ltrs$gunk$punc&quot;</span>
+<span class="s2">argf-iter {</span>
+<span class="s2">    line {</span>
+<span class="s2">        variable urls</span>
+<span class="s2">        variable ltrs</span>
+<span class="s2">        variable gunk</span>
+<span class="s2">        variable punc</span>
+<span class="s2">        variable any</span>
+<span class="s2">        #puts [subst -nocommands (?x)</span>
+<span class="s2">        regsub -all [subst -nocommands {(?x)</span>
+<span class="s2">          \\y</span>
+<span class="s2">          (</span>
+<span class="s2">           $urls     :</span>
+<span class="s2">           [$any] +?</span>
+<span class="s2">          )</span>
+<span class="s2">          (?=</span>
+<span class="s2">           [$punc]*</span>
+<span class="s2">           [^$any]</span>
+<span class="s2">           |</span>
+<span class="s2">           $</span>
+<span class="s2">          )</span>
+<span class="s2">         }] $line {&lt;A HREF=&quot;\1&quot;&gt;\1&lt;/A&gt;} line</span>
+<span class="s2">        puts $line</span>
+<span class="s2">    }</span>
+<span class="s2">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN351"
+>Program: tcgrep</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2"># @@INCOMPLETE@@</span>
+<span class="s2"># @@INCOMPLETE@@</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN354"
+>Regular Expression Grabbag</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2">{(?i)^m*(d?c{0,3}|c[dm])(l?x{0,3}|x[lc])(v?i{0,3}|i[vx])$}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">regsub {(\S+)(\s+)(\S+)} $str {\3\2\1} str</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">{(\w+)\s*=\s*(.*)\s*$}             # keyword is $1, value is $2</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">{.{80,}}</span>
+<span class="s2">#-----------------------------</span>
+<span class="s2">{(\d+)/(\d+)/(\d+) (\d+):(\d+):(\d+)}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">regsub -all {/usr/bin} $str {/usr/local/bin} str</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">gregsub {%([0-9A-Fa-f][0-9A-Fa-f])} $str {</span>
+<span class="s2">    {match} {</span>
+<span class="s2">        return [format %x $match]</span>
+<span class="s2">    }</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">regsub -all {(?x)</span>
+<span class="s2">    /\*                    # Match the opening delimiter</span>
+<span class="s2">    .*?                    # Match a minimal number of characters</span>
+<span class="s2">    \*/                    # Match the closing delimiter</span>
+<span class="s2">} $str {}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">regsub {^\s+} $str {} str</span>
+<span class="s2">regsub {\s+$} $str {} str</span>
+
+<span class="s2"># but really, in Ruby we&#39;d just do:</span>
+<span class="s2">string trim $str</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">regsub -all {\\n} $str &quot;\n&quot; str</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">regsub -all {^.*::} $str {} str</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">{(?x)^([01]?\d\d|2[0-4]\d|25[0-5])\.([01]?\d\d|2[0-4]\d|25[0-5])\.</span>
+<span class="s2">    ([01]?\d\d|2[0-4]\d|25[0-5])\.([01]?\d\d|2[0-4]\d|25[0-5])$}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">regsub {.*$/|} $str {} str</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set cols { }</span>
+<span class="s2">if [info exists env::(TERMCAP)] {</span>
+<span class="s2">    set cols $::env(TERMCAP)</span>
+<span class="s2">}</span>
+<span class="s2">if [regexp {:co#(\d+):} $cols all one] {</span>
+<span class="s2">    set cols $one</span>
+<span class="s2">} {</span>
+<span class="s2">    set cols 80</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set name [regsub -all { /\S+/|} &quot;$::argv0 $argv&quot; { }]</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">if {![regexp -nocase {linux} $tcl_platform(os)]} {</span>
+<span class="s2">    error &quot;This isn&#39;t Linux&quot;</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">regsub -all {\n\s+} $str {} str</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">regexp -all {\d+\.?\d*|\.\d+} $line nums</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2"># @@INCOMPLETE@@</span>
+<span class="s2"># no direct translation for \W</span>
+<span class="s2"># regexp -all {\y[^\Wa-z0-9_]+\y} $line capword</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2"># regexp -all {\y[^\WA-Z0-9_]+\y} $line lowords</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2"># regexp -all {\y[^\Wa-z0-9_][^\WA-Z0-9_]*\y} $line icwords</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">regexp -all {&lt;A[^&gt;]+?HREF\s*=\s*[&quot;&#39;]?([^&#39;&quot; &gt;]+?)[ &#39;&quot;]?&gt;} $line links</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set initial {}</span>
+<span class="s2">regexp {^\S+\s+(\S)\S*\s+\S} $line all initial</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2"># @@INCOMPLETE@@</span>
+<span class="s2">#-----------------------------</span>
+<span class="s2">set sentences {}</span>
+<span class="s2">foreach para [split [regsub -all -- &quot;\n\n&quot; [read -nonewline $fd] &quot;\0&quot;] &quot;\0&quot;] {</span>
+<span class="s2">    regsub -all -- &quot;\n&quot; $para { } para</span>
+<span class="s2">    regsub -all -- { {3,}} $para {  } para</span>
+<span class="s2">    lappend sentences [regexp -all -inline {\S.*?[!?.](?=  |\Z)}]</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">{(\d{4})-(\d\d)-(\d\d)}            # YYYY in $1, MM in $2, DD in $3</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2"># @@INCOMPLETE@@</span>
+<span class="s2">#-----------------------------</span>
+<span class="s2">{(?i)\yoh\s+my\s+gh?o(d(dess(es)?|s?)|odness|sh)\y}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2"># @@INCOMPLETE@@</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="hashes.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="fileaccess.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Hashes</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>File Access</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

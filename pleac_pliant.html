@@ -1,0 +1,1061 @@
+<!DOCTYPE html PUBLIC "-//IETF//DTD HTML 2.0//EN">
+<HTML>
+<HEAD>
+<TITLE>Enscript Output</TITLE>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF" TEXT="#000000" LINK="#1F00FF" ALINK="#FF0000" VLINK="#9900DD">
+<A NAME="top">
+<A NAME="file1">
+<H1>tmp.data</H1>
+
+<PRE>
+# -*- pliant -*-
+
+# @@PLEAC@@_NAME
+# @@SKIP@@ Pliant
+
+# @@PLEAC@@_WEB
+# @@SKIP@@ http://www.fullpliant.org/
+
+# @@PLEAC@@_INTRO
+# @@SKIP@@ Written for version 73.
+# @@SKIP@@ Code is function code to allow local variables (for readibility).
+
+# @@PLEAC@@_APPENDIX
+
+# multiline strings may be achieved by addition of a new
+# parser filter
+# We give here a full answer which goes a bit out the scope
+# of a basic tutorial, but emphasizes the power of Pliant reflexiveness.
+#
+
+module &quot;/pliant/language/parser.pli&quot;
+module &quot;/pliant/language/compiler.pli&quot;
+
+#
+# parser filter declaration helper function
+#     mod is the module in which the filter is declared
+#     section_name is the section in which the filter is inserted
+#     ad is the address of the filter function
+#     adp is the address of the filter parameter
+#
+function declare_filter2 mod section_name ad adp
+  arg_rw Module mod; arg Str section_name; arg Address ad; arg Arrow adp
+  var Link:ParserFilter lp :&gt; new ParserFilter
+  lp function :&gt; ad map Function
+  lp parameter := adp
+  mod define section_name addressof:lp
+
+#
+# declare_filter meta
+#
+#    syntax: declare_filter section filter parameter [link|copy]
+# inserts the filter 'filter' in section 'section' of the caller's module
+# with parameter 'parameter'; By default, parameter is copied.
+# parameter may be mapped by using 'link' keyword
+#
+
+meta declare_filter e
+  if (e:size &lt;&gt; 2) and (e:size&lt;&gt;3) and (e:size&lt;&gt;4)
+     return
+  var Bool copy:=true
+  if e:size=4
+     if not e:3:is_pure_ident
+        return
+     if e:3:ident=&quot;copy&quot;
+        copy:=true
+     eif e:3:ident=&quot;link&quot;
+        copy:=false
+     else
+        return
+  var Link:Expression ef :&gt; expression immediat (the_function fun ParserContext Str Address) substitute fun e:1 near e
+  var Address ad := ef evaluate
+  if error_notified
+    return
+  if ad=null
+    error error_id_unexpected &quot;Failed to evaluate expression at &quot;+e:position
+    e set_void_result
+  var Arrow adp
+  if e:size&gt;=3
+   e:2 compile ?
+   var Pointer:Type ptype :&gt; e:2:result:type
+   var Link:Expression type_id :&gt; expression ident ptype:name near e:2
+   if copy
+      ef :&gt; expression immediat (new ptype pvalue) substitute ptype type_id substitute pvalue e:2 near e
+      adp := ef evaluate
+   else
+      adp := e:2 evaluate
+   if error_notified
+      return
+   if adp=null
+      error error_id_unexpected &quot;Failed to evaluate expression at &quot;+e:position
+      e set_void_result
+  if (addressof e:module:external)=null
+     var Link:Argument adr :&gt; argument constant Address addressof:(e:module)
+  else
+     var Link:Argument adr :&gt; argument constant Address addressof:(e:module:external)
+  var Link:Argument ma :&gt; argument indirect Module adr 0
+  e add (instruction (the_function declare_filter2 Module Str Address Arrow) ma (argument constant Str e:0:ident) (argument constant Address ad) (argument constant Arrow adp))
+  e set_void_result
+#
+# generic parse_text parser filter
+# parameter is assumed to be a string corresponding to the keyword used.
+# If parameter is &quot;foo&quot;, then
+#   foo a b c
+#     hello
+#    How are you ?
+#       this morning...
+#
+# will be parsed as if written
+#
+#   foo a b c
+#    &quot; hello&quot;
+#    &quot;How are you ?&quot;
+#    &quot;   this morning...&quot;
+#
+
+function parse_text context line parameter
+  arg_rw ParserContext context ; arg Str line ; arg Address parameter
+  var Pointer:Str kwd :&gt; parameter map Str
+  if (line 0 kwd:len)=kwd
+    var Int x := 0
+    var Pointer:Str l :&gt; context:current_line map Str
+    while l:x = &quot; &quot;
+       x+=1
+    var Pointer:Arrow cur :&gt; context:text next context:current_line
+    while cur&lt;&gt;null and { var Pointer:Str l :&gt; cur map Str ; (l 0 x+1)=(repeat x+1 &quot; &quot;) or l=(repeat l:len &quot; &quot;) }
+      var Str t := l x+1 l:len
+      l := (repeat x+1 &quot; &quot;)+string:t
+      cur :&gt; context:text next cur
+
+#
+# simple multi-line text meta
+#
+# syntax:
+# inline_text [leftcut|ignorefirst]
+#   some text
+#    over multiple lines...
+#
+meta inline_text e
+  if e:size&lt;1
+     return
+  var Link:Expression body :&gt; e e:size-1
+  if body:ident&lt;&gt;&quot;{}&quot; or body:size=0
+     return
+  for (var Int i) 0 body:size-1
+     var Address ad := body:i constant Str
+     if ad=null
+        error error_id_unexpected &quot;text: argument #&quot;+string:i+&quot; is not a constant Str&quot;
+        return
+  var Bool leftcut := false; var Int leftmargin:=0; var Int start:=0
+  var Str s
+  if e:size&gt;1 and e:0:is_pure_ident
+   if e:0:ident=&quot;leftcut&quot;
+     leftcut:=true
+     leftmargin := -1 # stands for infinity
+   eif e:0:ident=&quot;ignorefirst&quot;
+     start := 1
+     var Pointer:Str ss :&gt; (body:0 constant Str) map Str
+     ss eparse spaces:s
+     leftmargin := s:len
+  if leftcut
+    for (var Int i) 0 body:size-1
+       var Pointer:Str ss :&gt; (body:i constant Str) map Str
+       ss eparse spaces:s
+       if s:len&lt;leftmargin or leftmargin&lt;0
+         leftmargin:=s:len
+  s:=&quot;&quot;
+  for (var Int i) start body:size-1
+    var Pointer:Str ss :&gt; (body:i constant Str) map Str
+    s += (ss leftmargin ss:len)+&quot;[lf]&quot;
+  e set_result (argument constant Str s) access_read
+
+#
+# filter declaration for immediat use
+#
+declare_filter 'pliant parser basic types' parse_text &quot;inline_text&quot; copy
+
+
+# @@PLEAC@@_1.0
+# In Pliant, the standard type to handle character strings is Str.
+# String variables must be declared -- if no value is given it's
+# value is the empty string (&quot;&quot;) if the variable is global.
+var Str string
+
+# special characters
+string := &quot;[lb]&quot;                   # character '['
+string := &quot;[rb]&quot;                   # character ']'
+string := &quot;[lf]&quot;                   # line feed
+string := &quot;[cr]&quot;                   # carriage return
+string := &quot;[tab]&quot;                  # tabulation
+string := &quot;[0]&quot;                    # null character
+string := &quot;Jon said [dq]hello[dq]&quot; # literal double quotes
+
+#
+# multiline text using inline_text meta and parse_text filters defined 
+# in the Appendix
+#
+
+var Str string := inline_text
+ This is a multiline here document
+ terminated by indentation rule
+ (the first indenting space is ignored).
+ In the multiline, &quot;special&quot; characters have not to be
+ [quoted].
+
+# remark each lines of string is ended with a [lf]
+
+var Str string := inline_text leftcut
+     This is a multiline here document
+       terminated by indentation rule
+   with left margin given by the leftest string
+
+var Str string := inline_text ignorefirst
+       ! left margin is here
+           This is a multiline here document
+  gna  with all characters left to the margin ignored,
+       as long as properly indented.
+
+
+# @@PLEAC@@_1.1
+var Str s:=&quot;some string&quot;
+
+# extraction of at most length characters (less if the required
+# length is not available in the string) -&gt; new string
+
+var Str s1 
+s1 := s offset length
+s1 := s offset s:len      # extracts the end of the string
+
+# same, but the string is really a substring (like in Perl)
+# to do this, we add new methods to Str:
+
+method p map s from to
+  arg_rw Str p; arg Str s; arg Int from length
+  check to &lt; s:len
+  p set (s:characters translate Char from) to-from false
+#
+
+s1 map s offset offset+length
+s1 map s offset s:len-1
+
+#
+# The equivalent of unpack in Pliant is eparse. However,
+# no parsing method is present by default for fixed length
+# strings.
+# We should create some function FixedStr to create the
+# type &quot;string of length xxx&quot; and the from_string method
+# on these types. Then, the unpack could be writen as
+
+var FixedStr:5 leading
+var FixedStr:3 dummy
+var FixedStr:8 s1 s2
+var Str trailing data
+data eparse leading dummy s1 s2 any:trailing
+
+#
+# A string may be accessed as an array of Char, but if we
+# way to transfer a Str into an Array of Char, we need a loop
+#
+var Array:Char chars
+for (var Int i) 0 s:len
+  chars i := s i
+
+#
+#
+
+s := &quot;This is what you have&quot;
+
+# strings do not support backwards indexing as perl does, but we may
+# add this functionality
+method s 'new substring' i j -&gt; ss
+  arg Str s ss; arg Int i j
+  strong_definition
+  ss:= s (shunt i&lt;0 s:len+i i) j
+alias '' '. new substring' 
+#
+first  := string 0 1              # &quot;T&quot;
+start  := string 5 2              # &quot;is&quot;
+rest   := string 13 string:len    # &quot;you have&quot;
+last   := string -1 string:len    # &quot;e&quot;
+end    := string -4 string:len    # &quot;have&quot;
+piece  := string -8 3             # &quot;you&quot;
+#--------------------
+string := &quot;This is what you have&quot;
+console string
+#This is what you have
+
+
+# @@PLEAC@@_1.4
+# characters have type Char in Pliant
+var Char char:=&quot;X&quot;
+var Int num := char number        # gets the ASCII code of char
+char := character num             # ASCII to character
+#-----------------------------
+# Here, we use a string
+var Str string:=&quot;Hello&quot;
+num := string:0:number            # ASCII code of first character
+string := character num           # implicit Char-&gt;Str cast
+#-----------------------------
+var Int ascii_value := &quot;e&quot;:number # now 101
+var Char char := character 101    # now &quot;e&quot;
+#-----------------------------
+var Str hal := &quot;HAL&quot;
+var Str ibm := hal
+for (var Int i) 0 ibm:len-1
+  ibm:i := character hal:i:number+1
+
+
+# @@PLEAC@@_1.5
+# Since Pliant++ strings can be accessed one character at a time,
+# there's no need to do any processing on the string to convert
+# it into an array of characters
+
+var Str s
+
+for (var Int i) 0 s:len-1
+  # do something with s:i
+#------------------------------------------
+# we use an Index to sort implicitely the keys
+module &quot;/pliant/language/unsafe.pli&quot;         # at the moment Index is still considered unsafe
+module &quot;/pliant/language/type/set/each.pli&quot;  # each.pli has to be linked to explicitely
+var (Index Char Bool) seen
+var Str string := &quot;an apple a day&quot;
+for (var Int i) 0 string:len-1
+  if not (seen exists string:i)
+    seen insert string:i true
+console &quot;unique chars are: &quot;
+each c seen                       # warning, c is the value associated with the key
+  console (seen key c)
+console eol
+# unique chars are:  adelnpy
+#-------------------------------------------
+var Int sum:=0
+for (var Int i) 0 string:len-1
+  sum += s:i:number
+console sum eol
+# prints &quot;1248&quot; if string was &quot;an apple a day&quot;
+#---------------------------------------------
+
+
+# @@PLEAC@@_1.13
+var Str str := &quot;This is a [dq]string[dq] with [lf] special [lb]characters[rb] in it&quot;
+var Str quoted := string str
+# &quot;This is a [lb]dq[rb]string[lb]dq[rb] with [lb]lf[rb] special [lb]lb[rb]characters[lb]rb[rb] in it&quot;
+#
+# back to unquoted string (quoted -&gt; str)
+quoted eparse str
+#---------------------------------------------
+
+
+# @@PLEAC@@_1.15
+#
+# quoted &quot; ([lb][dq][rb]) are implictely dequoted when arising in a parsed string
+# 
+var Str string := &quot;XYZZY,[dq][dq],[dq]O'Reilly, Inc[dq],[dq]Wall, Larry[dq],[dq]a [lb]dq[rb]glug[lb]dq[rb] bit[dq], another [dq]glub[dq] bit, 5, [dq]Error, Core Dumped[dq]&quot;
+var Str a
+var Str b:=string+&quot;,&quot;
+var Array:Str fields
+while b&lt;&gt;&quot;&quot;
+  if not (b parse a &quot;,&quot; any:b)  # if not a quoted string
+    b parse any:a &quot;,&quot; any:b     # it is not quoted and ends with the next &quot;,&quot;
+  fields += a
+for (var Int i) 0 fields:size-1
+  console &quot;#&quot; i &quot;:&quot; fields:i eol
+
+#0 : XYZZY
+#1 :
+#2 : O'Reilly, Inc
+#3 : Wall, Larry
+#4 : a &quot;glug&quot; bit
+#5 : another &quot;glub&quot; bit
+#6 : 5
+#7 : Error, Core Dumped 
+#-----------------------------
+
+# ^^PLEAC^^_2.1
+#-----------------------------
+
+if (string eparse (var Int i))
+  # is an integer -&gt; i
+else
+  # is not
+#-----------------------------
+if (string eparse (var Float f))
+  # is a float -&gt; f
+else
+  # is not
+#-----------------------------
+function is_numeric s -&gt; ok
+  arg Str s; arg Bool ok
+  ok := s eparse (var Int i)
+#-----------------------------
+
+# ^^PLEAC^^_2.3
+#-----------------------------
+var Float unrounded := 0.255
+var Float rounded := (cast unrounded*100 Int)/100
+console &quot;Unrounded: &quot; unrounded eol &quot;Rounded: &quot; rounded eol
+
+Unrounded: 0.255
+Rounded: 0.26
+#-----------------------------
+
+# ^^PLEAC^^_2.4
+#-----------------------------
+
+function dec2bin i -&gt; s
+  arg Int i; arg Str s
+  s := string i &quot;radix 2&quot;
+var Str binstr := dec2bin 54      # binstr is &quot;110110&quot;
+#-----------------------------
+
+# ^^PLEAC^^_2.5
+#-----------------------------
+for (var Int i) X Y
+     # i is set to every integer from X to Y, inclusive
+
+for (var Int i) X Y step 7
+     # i is set to every integer from X to Y, stepsize = 7
+#-----------------------------
+print &quot;Childhood is: &quot;;
+for (var Int i) 5 12
+  console i &quot; &quot;
+console eol
+
+Childhood is: 5 6 7 8 9 10 11 12
+#-----------------------------
+
+# ^^PLEAC^^_2.11
+#-----------------------------
+module &quot;/pliant/math/functions.pli&quot;
+
+function deg2rad d -&gt; r
+  arg Float d r
+  return d/180*pi
+
+function rad2deg r -&gt; d
+  arg Float r d
+  return r/pi*180
+#-----------------------------
+radians := deg2rad degrees
+degrees := rad2deg radians
+#-----------------------------
+function degree_sine d -&gt; s
+  arg Float d s
+  s := sin deg2rad:d
+#-----------------------------
+
+# ^^PLEAC^^_2.12
+#-----------------------------
+f := tan 3.7
+f := acos 3.7 # returns undefined
+f := acos 0.2
+f := tan (pi/2) # actualy returns 1.63317787284e16
+#-----------------------------
+
+# ^^PLEAC^^_2.13
+#-----------------------------
+log_e := log value
+#-----------------------------
+function log_base base value -&gt; l
+  arg Float base value l
+  return log:value/log:base
+#-----------------------------
+# log_base defined as above
+answer := log_base 10 10000
+#-----------------------------
+
+# ^^PLEAC^^_2.15
+#-----------------------------
+module &quot;/pliant/language/compiler.pli&quot;
+module &quot;/pliant/language/parser.pli&quot;
+
+type Complex
+  field Float real imaginary        # define type
+
+function 'cast Complex' f -&gt; z      # extension cast Float -&gt; Complex
+  arg Float f; arg Complex z
+  extension
+  z real := f
+  z imaginary := 0
+
+function 'cast Float' z -&gt; f        # reduction cast Complex -&gt; Float
+  arg Float f; arg Complex z
+  reduction
+  if z:imaginary&lt;&gt;0
+    error error_id_arithmetic &quot;The value is not a real number&quot;
+  else
+    f := z real
+
+#
+# Define a parser for notation like 3i. i will not be valid, 1i will be.
+#
+function parse_imaginary context line parameter
+  arg_rw ParserContext context ; arg Str line ; arg Address parameter
+  if not (line parse (var Float data) word:&quot;i&quot; offset:(var Int offset))
+    return
+  var Link:Complex z :&gt; new Complex
+  z real := 0
+  z imaginary := data
+  context add_token addressof:z
+  context forward offset
+
+gvar ParserFilter img_filter
+img_filter function :&gt; the_function parse_imaginary ParserContext Str Address
+constant 'pliant parser basic types' img_filter
+export 'pliant parser basic types'
+
+# basic functions on complex numbers
+
+function '+' z1 z2 -&gt; z
+  arg Complex z1 z2 z
+  z real := z1:real+z2:real
+  z imaginary := z1:imaginary+z2:imaginary
+
+function '-' z1 z2 -&gt; z
+  arg Complex z1 z2 z
+  z real := z1:real-z2:real
+  z imaginary := z1:imaginary-z2:imaginary
+
+function '*' z1 z2 -&gt; z
+  arg Complex z1 z2 z
+  z real := z1:real*z2:real-z1:imaginary*z2:imaginary
+  z imaginary := z1:real*z2:imaginary+z2:real*z1:imaginary
+
+# how to write it
+
+method z 'to string' options -&gt; s
+  arg Complex z ; arg Str options ; arg Str s
+  if z:imaginary=0
+    return (string z:real)
+  eif z:real=0
+    return (string z:imaginary)+&quot;i&quot;
+  return (string z:real)+&quot;+&quot;+(string z:imaginary)+&quot;i&quot;
+#-------------------------
+var Complex c := a * b
+#-------------------------
+var Complex a := 3+5i
+var Complex b := 2-2i
+c := a*b
+console &quot;c = &quot; c eol
+
+c = 16+4i
+#-------------------------
+var Link:Complex za :&gt; new Complex 3+5i
+var Link:Complex zb :&gt; new Complex 2-2i
+var Link:Complex zc :&gt; new Complex
+
+zc := za * zb
+console &quot;c = &quot; zc eol
+
+c = 16+4i
+#-------------------------
+
+# @@PLEAC@@_10.0
+gvar Int greeted               # global variable (but maybe local to module)
+function hello
+  greeted += 1
+  console &quot;hi there&quot; eol
+#---------------------------
+hello
+#---------------------------
+
+
+# @@PLEAC@@_5.0
+module &quot;/pliant/language/unsafe.pli&quot;
+var (Dictionary Str Int) age
+# insertion
+implicit age
+  insert &quot;Nat&quot; 24
+  insert &quot;Jules&quot; 25
+  insert &quot;Josh&quot; 17
+# when you know keys already exist:
+age &quot;Nat&quot; := 24
+age &quot;Jules&quot; := 25
+age &quot;Josh&quot; := 17
+#-----------------------------
+var (Dictionary Str Str) food_color
+implicit food_color
+  insert &quot;Apple&quot; &quot;red&quot;
+  insert &quot;Banana&quot; &quot;yellow&quot;
+  insert &quot;Lemon&quot; &quot;yellow&quot;
+  insert &quot;Carrot&quot; &quot;orange&quot;
+#-----------------------------
+
+
+# @@PLEAC@@_5.1
+#-----------------------------
+ dict insert key value
+#-----------------------------
+# food_color defined per the introduction
+food_color insert &quot;Raspberry&quot; &quot;pink&quot;
+console &quot;Known foods:&quot; eol
+each x food_color
+  console (food_color key x) eol
+
+ Known foods:
+ Banana
+ Apple
+ Raspberry
+ Carrot
+#-----------------------------
+
+
+# @@PLEAC@@_5.2
+#-----------------------------
+# does dict have a value for key ?
+if (dict exists key)
+  # it exists
+else
+  # it doesn't
+ 
+#-----------------------------
+# food_color per the introduction
+
+var List:Str fruits; fruits += &quot;Banana&quot;; fruits += &quot;Martini&quot;
+each name fruits
+  if (food_color exists name)
+    console name &quot; is a food.&quot; eol
+  else
+    console name &quot; is a drink.&quot; eol
+
+ Banana is a food.
+ Martini is a drink.
+#-----------------------------
+age := new (Dictionary Str Int)
+implicit age
+  insert &quot;Toddler&quot; 3
+  insert &quot;Unborn&quot; 0
+  insert &quot;Phantasm&quot; undefined
+
+var List:Str things
+things+=&quot;Toddler&quot;, things+=&quot;Phantasm&quot;; things+=&quot;Relic&quot;
+
+each thing things
+  console thing &quot;: &quot;
+  if (age exists thing)
+    console &quot;Exists &quot;
+    console (shunt age:thing&lt;&gt;undefined &quot;Defined &quot; &quot;&quot;)
+    console (shunt age:thing&gt;0 &quot;True &quot; &quot;&quot;)
+  console eol
+
+# Toddler: Exists Defined True 
+# Unborn: Exists Defined 
+# Phantasm: Exists 
+# Relic: 
+#-----------------------------
+
+
+# @@PLEAC@@_5.3
+#-----------------------------
+# remove the first element in dict with key value
+dict -= dict value
+
+#-----------------------------
+# food_color as per Introduction
+function print_foods
+  each food food_color
+    console &quot;key : &quot; (food_color key food)  &quot;, value: &quot; (shunt food=&quot;&quot; &quot;(undef)&quot; food) eol
+  console eol
+
+console &quot;Initially:&quot; eol
+print_foods
+
+console &quot;With Banana undef&quot; eol
+food_color &quot;Banana&quot; := &quot;&quot; # no true way to undef a Str...
+print_foods
+
+console &quot;With Banana deleted&quot; eol
+food_color -= food_color &quot;Banana&quot;
+print_foods
+
+# Initially:
+# key : Lemon, value: yellow
+# key : Banana, value: yellow
+# key : Apple, value: red
+# key : Carrot, value: orange
+# 
+# With Banana undef
+# key : Lemon, value: yellow
+# key : Banana, value: (undef)
+# key : Apple, value: red
+# key : Carrot, value: orange
+# 
+# With Banana deleted
+# key : Lemon, value: yellow
+# key : Apple, value: red
+# key : Carrot, value: orange
+#---------------------------
+
+#-----------------------------
+each value dict
+  # the key is (dict key value)
+
+#-----------------------------
+# food_color per the introduction
+each color food_color
+  console (food_color key color) &quot; is &quot; color eol
+
+# Banana is yellow.
+# Apple is red.
+# Carrot is orange.
+# Lemon is yellow.
+
+#-----------------------------
+var Pointer:Str color :&gt; food_color first
+while exists:color
+  console (food_color key color) &quot; is &quot; color
+  color :&gt; food_color next color
+#---------------------------
+
+
+# @@PLEAC@@_10.1
+function hypothenuse a b -&gt; c
+  arg Float a b c
+  c := (a^2+b^2)^0.5
+
+var Float diag := hypothenuse 3 4  # diag is 5
+#----------------------------
+console (hypthenuse 3 4) eol       # prints 5
+#----------------------------
+var Array:Float nums
+nums 0 := 1.4; nums 1 := 3.5; nums 2 := 6.7
+function int_all t1 -&gt; t2
+  arg Array:Float t1; arg Array:Int t2
+  t2 := new Array:Int
+  for (var Int n) 0 t1:size-1
+     t2 i := cast t1:i Int
+var Array:Int ints := int_all nums
+
+function int_all2 t1 -&gt; t2         # with object creation
+   arg Array:Float t1; arg (Link Array:Int) t2
+   t2 :&gt; new Array:Int
+   t2 size := t1 size
+   for (var Int n) 0 t1:size-1
+     t2 i := cast t1:i Int
+var (Link Array:Int) ints2 :&gt; int_all2 nums
+
+#-----------------------------
+
+method t trunc_em                  # method implementation
+  arg_rw Array:Float t
+  for (var Int n) 0 t:size-1
+     t i := cast t:i Int
+
+function trunc_em t                # function implementation
+  arg_rw Array:Float t
+  for (var Int n) 0 t:size-1
+     t i := cast t:i Int
+
+nums trunc_em                       # calls the method
+trunc_em nums                       # calls the function
+#-------------------------------
+
+
+# @@PLEAC@@_10.2
+func somefunc
+  var Int variable                  # local variable
+  var Str a b c                     # many variables, if same type
+
+  # ...
+#---------------------------------
+
+
+# @@PLEAC@@_10.4
+# this meta returns the current Function object
+module &quot;/pliant/language/compiler.pli&quot;
+meta me e
+  if e:size&lt;&gt;0
+    return
+  var Pointer:Function f :&gt;
+    (pliant_general_dictionary first &quot;pliant function&quot;) map Function
+  if exists:f
+    console &quot;compilation for function &quot; f:name eol
+    e set_result (argument mapped_constant Function f) access_read+access_constant+access_mapped
+
+# sample use:
+
+function my_function
+  console &quot;My name is &quot; me:name eol
+#-----------------------------------
+
+
+# @@PLEAC@@_10.16
+function outer i -&gt; j
+  arg Int i j
+  var Int x := i+35
+  function inner i -&gt; j # no clash is possible
+    arg Int i j
+    var Int x := i*19
+    return x
+  j := x+inner:x
+#-----------------------------------
+
+# ^^PLEAC^^_11.0
+#-----------------------------
+module &quot;/pliant/lnaguage/unsafe.pli&quot; # using pointers is unsafe
+var Pointer:Int sref  # declaration of a reference to an Int
+sref :&gt; value         # reference assignment (sref &quot;points&quot; to value content)
+#-----------------------------
+var Link:Int sref2    # declaration of a link (concerns object, increments reference count)
+sref2 :&gt; new Int      # typical use of &quot;new&quot; to create a new object
+#-----------------------------
+console sref # prints the scalar value that the reference sref refers to
+sref := 3    # assigns to sref's referent
+#-----------------------------
+var Pointer:(Array:Int) aref :&gt; array
+#-----------------------------
+sref :&gt; null map Int
+sref := 4            # runtime error
+#-----------------------------
+var Link:(Array Int) aref :&gt; new Array:Int    # new array
+aref += 3; aref += 4; aref += 5
+gvar Link:(Dictionary Str Str) href :&gt; new (Dictionary Str Str) # new hash
+implicit href
+  insert &quot;How&quot; &quot;Now&quot;
+  insert &quot;Brown&quot; &quot;Cow&quot;
+#-----------------------------
+aref :&gt; null map Array:Int
+aref :&gt; new Array:Int
+console (cast addressof:aref Int)
+1076501816
+#-----------------------------
+
+# ^^PLEAC^^_11.1
+#-----------------------------
+aref :&gt; array
+anon_array :&gt; new Array:Int; annon_array += 1; annon_array += 3;
+annon_array += 5; annon_array += 7; annon_array += 9;
+#-----------------------------
+annon_array += 11
+#-----------------------------
+one := annon_array 0
+#-----------------------------
+num_items := aref size
+#-----------------------------
+# check whether an Arrow is the address of an array of Int
+if entry_type:arrow &lt;&gt; Array:Int
+  error error_id_unexpected &quot;Expected an array reference, not &quot;+entry_type:arrow:name
+  return
+
+array_ref += item # append new element to orig array
+#-----------------------------
+function array_ref -&gt; ref
+  arg Link:(Array:Int) ref
+  gvar Array:Int array
+  ref :&gt; array
+
+var Link:(Array:Int) aref1 :&gt; array_ref
+var Link:(Array:Int) aref2 :&gt; array_ref
+#-----------------------------
+console array_ref:n            # access item in position n
+#-----------------------------
+each item array_ref
+  # item has data
+
+for (var Int idx) 0 array_ref:size-1
+  # array_ref:idx has data
+#-----------------------------
+
+# ^^PLEAC^^_11.3
+#-----------------------------
+var Link:(Dictionary Str Str) href :&gt; hash
+var Link:(Dictionary Str Str) anon_hash
+implicit anon_hash
+  insert &quot;key1&quot; &quot;value1&quot;
+  insert &quot;key2&quot; &quot;value2&quot;
+#-----------------------------
+value := href key
+#-----------------------------
+if entry_type:arrow &lt;&gt; (Dictionary Str Str)
+  error error_id_unexpected &quot;Expected a has reference, not &quot;+entry_type:arrow:name
+#-----------------------------
+each item href
+  console (href key item) &quot; =&gt; &quot; item eol
+#-----------------------------
+
+# ^^PLEAC^^_11.4
+#-----------------------------
+module &quot;/pliant/language/compiler.pli&quot; # access to Function type
+function thefunc s -&gt; i
+  arg Str s; arg Int i
+  #...
+var Link:Function fun :&gt; the_function thefunc Str -&gt; Int
+
+function wrapper s f -&gt; i               # used to perform an indirect call
+  arg Str s; arg Function f; arg Int i
+  indirect
+
+value := wrapper &quot;hello&quot; fun            # actually calls the_func 
+#-----------------------------
+var (Dictionary Str (Link Function)) commands   # Function may not be copied, use links.
+var Link:Function fun
+implicit commands
+  fun :&gt; thefunction joy -&gt; Str; insert &quot;happy&quot; fun
+  fun :&gt; thefunction sullen -&gt; Str; insert &quot;sad&quot; fun
+  fun :&gt; thefunction angry -&gt; Str; insert &quot;mad&quot; fun
+
+module &quot;/pliant/language/ui/ansi_terminal.pli&quot; # access to terminal functions
+var Str string := keyboard_input &quot;How are you? &quot;
+
+function wrapper2 fun -&gt; s  # wrapper function for indirect call
+  arg Function fun; arg Str s
+  indirect
+  
+if (commands exists string)
+  console (wrapper2 commands:string) eol
+else
+  console &quot;No such command : &quot; string eol
+#-----------------------------
+type Counter
+  field Int start &lt;- 0
+
+function 'cast Int' c -&gt; i   # counter is incremented when used as an Int
+  arg Counter c; arg Int i
+  implicit
+  i := c start
+  (addressof c:start) map Int += 1
+
+function make_counter -&gt; counter
+  arg Link:Counter counter
+  counter :&gt; new Counter
+
+var Link:Counter counter :&gt; counter_maker
+for (var Int i) 0 5
+  var Int value := counter; console value eol
+#-----------------------------
+var Link:Counter counter1 :&gt; counter_maker
+var Link:Counter counter2 :&gt; counter_maker
+
+for (var Int i) 0 5
+  var Int value := counter1; console value eol
+
+console (cast counter1 Int) &quot; &quot; (cast counter2 Int) eol
+0
+1
+2
+3
+4
+5 0
+#-----------------------------
+
+# ^^PLEAC^^_11.5
+#-----------------------------
+scalar_ref :&gt; scalar         # get reference to named scalar
+#-----------------------------
+console scalar_ref           # dereference it
+scalar_ref := 23             # alter referent's value
+#-----------------------------
+function new_anon_scalar -&gt; s
+  arg Link:Int s
+  s :&gt; new Int
+#-----------------------------
+sref :&gt; new_anon_scalar
+sref := 3
+console &quot;Three = &quot; sref eol
+#-----------------------------------
+
+# @@PLEAC@@_17.0
+module &quot;/pliant/language/os/socket.pli&quot;         # for low level socket calls
+module &quot;/pliant/language/stream/tcp.pli&quot;        # for TCP streams
+module &quot;/pliant/protocol/common/tcp_server.pli&quot; # for server writing
+#-------------------------------
+
+
+# @@PLEAC@@_17.1
+module &quot;/pliant/language/stream.pli&quot;
+module &quot;/pliant/protocol/stream/tcp.pli&quot;
+(var Stream s) open &quot;tcp://thehost/client/port&quot; in+out+safe
+if s=failure
+  console &quot;connection failed&quot; eol
+  #...
+# write a line on the stream
+s writeline &quot;Why don't you call me anymore?\n&quot;;
+# read a line
+var Str answer := s readline
+# terminate
+s close
+#-------------------------------
+
+
+# @@PLEAC@@_17.2
+module &quot;/pliant/language/stream.pli&quot;
+module &quot;/pliant/protocol/common/tcp_server.pli&quot;
+
+type MyServer
+  tcp_fields &quot;My Server&quot; server_port
+  
+TcpServer maybe MyServer
+
+method server service gstream
+  arg_rw GeneralServer server ; arg_rw Stream stream
+  # get the ip of the connected client
+  var Str from_ip := gstream query &quot;remote_ip_address&quot;
+  # handle the connection (discussion through stream)
+
+# if you want to check some things at start time
+
+method server start_checkup -&gt; status
+  arg_rw MyServer server ; arg Status status
+  # check whatever you want
+  return success
+
+# if you want to perform actions at shutdown
+
+method server stop_checkup
+  arg_rw MyServer server
+  # do whatever you need
+  
+# create a server
+define_tcp_server MyServer my_server
+
+# run the server detached
+my_server detached
+#---------------------------------
+
+
+# @@PLEAC@@_17.4
+module &quot;/pliant/language/stream/stream.pli&quot;
+module &quot;/pliant/language/stream/udp.pli&quot;
+# open connection
+(var Stream s) open &quot;udp://the_host/client/port&quot; in+out+safe
+# configure priority
+s configure &quot;priority high&quot;
+# configure timeout
+s configure &quot;timeout 10&quot;
+# write something
+s writeline &quot;hello!&quot;
+# read in buffer what is available
+s read_available buffer_adr buffer_size
+#-------------------------------
+
+
+# @@PLEAC@@_17.5
+module &quot;/pliant/language/stream.pli&quot;
+module &quot;/pliant/language/stream/udp.pli&quot;
+
+# almost the pliant DNS UDP server implementation:
+
+thread
+  part udp_server &quot;UDP server&quot; # 'part' is used for administration monitoring
+    (var Stream s) open &quot;udp:/server/53&quot; in+out+safe
+    s configure &quot;priority high&quot;
+    while not server:please_stop_udp
+      part wait_for_request &quot;wait for UDP request&quot;
+        s read_available (var Address adr) (var Int size)  # read the request
+        part answer_request &quot;answer UDP request&quot;
+          server answer adr size s true                    # answer the request
+        part reset_stream &quot;reset UDP stream&quot;
+          s configure &quot;reset&quot;
+        if s:is_crashed
+          console &quot;UDP stream crashed !  Restarting it.&quot; eol
+          s open &quot;udp:/server/53&quot; in+out+safe
+          s configure &quot;priority high&quot;
+      server please_stop_udp := false
+#-------------------------------
+</PRE>
+<HR>
+<ADDRESS>Generated by <A HREF="http://www.iki.fi/~mtr/genscript/">GNU Enscript 1.6.5.90</A>.</ADDRESS>
+</BODY>
+</HTML>

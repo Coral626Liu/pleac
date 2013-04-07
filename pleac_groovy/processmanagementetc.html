@@ -1,0 +1,996 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Process Management and Communication</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Groovy"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="User Interfaces"
+HREF="userinterfaces.html"><LINK
+REL="NEXT"
+TITLE="Sockets"
+HREF="sockets.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Groovy</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="userinterfaces.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="sockets.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="PROCESSMANAGEMENTETC"
+>16. Process Management and Communication</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN851"
+>Gathering Output from a Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="n">output</span> <span class="o">=</span> <span class="s2">&quot;program args&quot;</span><span class="o">.</span><span class="na">execute</span><span class="o">().</span><span class="na">text</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN854"
+>Running Another Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="n">proc</span> <span class="o">=</span> <span class="s2">&quot;vi myfile&quot;</span><span class="o">.</span><span class="na">execute</span><span class="o">()</span>
+<span class="n">proc</span><span class="o">.</span><span class="na">waitFor</span><span class="o">()</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN857"
+>Replacing the Current Program with a Different One</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="c1">// Calling execute() on a String, String[] or List (of Strings or objects with</span>
+<span class="c1">// a toString() method) will fork off another process.</span>
+<span class="c1">// This doesn&#39;t replace the existing process but if you simply finish the original</span>
+<span class="c1">// process (leaving the spawned process to finish asynchronously) you will achieve</span>
+<span class="c1">// a similar thing.</span>
+<span class="s2">&quot;archive *.data&quot;</span><span class="o">.</span><span class="na">execute</span><span class="o">()</span>
+<span class="o">[</span><span class="s2">&quot;archive&quot;</span><span class="o">,</span> <span class="s2">&quot;accounting.data&quot;</span><span class="o">].</span><span class="na">execute</span><span class="o">()</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN860"
+>Reading or Writing to Another Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="c1">// sending text to the input of another process</span>
+<span class="n">proc</span> <span class="o">=</span> <span class="s1">&#39;groovy -e &quot;print System.in.text.toUpperCase()&quot;&#39;</span><span class="o">.</span><span class="na">execute</span><span class="o">()</span>
+<span class="n">Thread</span><span class="o">.</span><span class="na">start</span><span class="o">{</span>
+    <span class="kt">def</span> <span class="n">writer</span> <span class="o">=</span> <span class="k">new</span> <span class="n">PrintWriter</span><span class="o">(</span><span class="k">new</span> <span class="n">BufferedOutputStream</span><span class="o">(</span><span class="n">proc</span><span class="o">.</span><span class="na">out</span><span class="o">))</span>
+    <span class="n">writer</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s1">&#39;Hello&#39;</span><span class="o">)</span>
+    <span class="n">writer</span><span class="o">.</span><span class="na">close</span><span class="o">()</span>
+<span class="o">}</span>
+<span class="n">proc</span><span class="o">.</span><span class="na">waitFor</span><span class="o">()</span>
+<span class="c1">// further process output from process</span>
+<span class="n">print</span> <span class="n">proc</span><span class="o">.</span><span class="na">text</span><span class="o">.</span><span class="na">reverse</span><span class="o">()</span>
+<span class="c1">// =&gt;</span>
+<span class="c1">// OLLEH</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN863"
+>Filtering Your Own Output</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="c1">// filter your own output</span>
+<span class="n">keep</span> <span class="o">=</span> <span class="n">System</span><span class="o">.</span><span class="na">out</span>
+<span class="n">pipe</span> <span class="o">=</span> <span class="k">new</span> <span class="n">PipedInputStream</span><span class="o">()</span>
+<span class="n">reader</span> <span class="o">=</span> <span class="k">new</span> <span class="n">BufferedReader</span><span class="o">(</span><span class="k">new</span> <span class="n">InputStreamReader</span><span class="o">(</span><span class="n">pipe</span><span class="o">))</span>
+<span class="n">System</span><span class="o">.</span><span class="na">setOut</span><span class="o">(</span><span class="k">new</span> <span class="n">PrintStream</span><span class="o">(</span><span class="k">new</span> <span class="n">BufferedOutputStream</span><span class="o">(</span><span class="k">new</span> <span class="n">PipedOutputStream</span><span class="o">(</span><span class="n">pipe</span><span class="o">))))</span>
+<span class="kt">int</span> <span class="n">numlines</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">Thread</span><span class="o">.</span><span class="na">start</span><span class="o">{</span>
+    <span class="k">while</span><span class="o">((</span><span class="n">next</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="na">readLine</span><span class="o">())</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">if</span> <span class="o">(</span><span class="n">numlines</span><span class="o">--</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="o">)</span> <span class="n">keep</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">next</span><span class="o">)</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+<span class="o">(</span><span class="mi">1</span><span class="o">..</span><span class="mi">8</span><span class="o">).</span><span class="na">each</span><span class="o">{</span> <span class="n">println</span> <span class="n">it</span> <span class="o">}</span>
+<span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">close</span><span class="o">()</span>
+<span class="n">System</span><span class="o">.</span><span class="na">setOut</span><span class="o">(</span><span class="n">keep</span><span class="o">)</span>
+<span class="o">(</span><span class="mi">9</span><span class="o">..</span><span class="mi">10</span><span class="o">).</span><span class="na">each</span><span class="o">{</span> <span class="n">println</span> <span class="n">it</span> <span class="o">}</span>
+<span class="c1">// =&gt;</span>
+<span class="c1">// 1</span>
+<span class="c1">// 2</span>
+<span class="c1">// 9</span>
+<span class="c1">// 10</span>
+
+
+<span class="c1">// filtering output by adding quotes and numbers</span>
+<span class="kd">class</span> <span class="nc">FilterOutput</span> <span class="kd">extends</span> <span class="n">Thread</span> <span class="o">{</span>
+    <span class="n">Closure</span> <span class="n">c</span>
+    <span class="n">Reader</span> <span class="n">reader</span>
+    <span class="n">PrintStream</span> <span class="n">orig</span>
+    <span class="nf">FilterOutput</span><span class="o">(</span><span class="n">Closure</span> <span class="n">c</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">this</span><span class="o">.</span><span class="na">c</span> <span class="o">=</span> <span class="n">c</span>
+        <span class="n">orig</span> <span class="o">=</span> <span class="n">System</span><span class="o">.</span><span class="na">out</span>
+        <span class="kt">def</span> <span class="n">pipe</span> <span class="o">=</span> <span class="k">new</span> <span class="n">PipedInputStream</span><span class="o">()</span>
+        <span class="n">reader</span> <span class="o">=</span> <span class="k">new</span> <span class="n">BufferedReader</span><span class="o">(</span><span class="k">new</span> <span class="n">InputStreamReader</span><span class="o">(</span><span class="n">pipe</span><span class="o">))</span>
+        <span class="n">System</span><span class="o">.</span><span class="na">setOut</span><span class="o">(</span><span class="k">new</span> <span class="n">PrintStream</span><span class="o">(</span><span class="k">new</span> <span class="n">BufferedOutputStream</span><span class="o">(</span><span class="k">new</span> <span class="n">PipedOutputStream</span><span class="o">(</span><span class="n">pipe</span><span class="o">))))</span>
+    <span class="o">}</span>
+    <span class="kt">void</span> <span class="nf">run</span><span class="o">()</span> <span class="o">{</span>
+        <span class="kt">def</span> <span class="n">next</span>
+        <span class="nf">while</span><span class="o">((</span><span class="n">next</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="na">readLine</span><span class="o">())</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+            <span class="n">c</span><span class="o">(</span><span class="n">orig</span><span class="o">,</span> <span class="n">next</span><span class="o">)</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+    <span class="kt">def</span> <span class="nf">close</span><span class="o">()</span> <span class="o">{</span>
+        <span class="n">sleep</span> <span class="mi">100</span>
+        <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">close</span><span class="o">()</span>
+        <span class="n">System</span><span class="o">.</span><span class="na">setOut</span><span class="o">(</span><span class="n">orig</span><span class="o">)</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+<span class="n">cnt</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">number</span> <span class="o">=</span> <span class="o">{</span> <span class="n">s</span><span class="o">,</span> <span class="n">n</span> <span class="o">-&gt;</span> <span class="n">cnt</span><span class="o">++;</span> <span class="n">s</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">cnt</span> <span class="o">+</span> <span class="s1">&#39;:&#39;</span> <span class="o">+</span> <span class="n">n</span><span class="o">)</span> <span class="o">}</span>
+<span class="n">quote</span> <span class="o">=</span>  <span class="o">{</span> <span class="n">s</span><span class="o">,</span> <span class="n">n</span> <span class="o">-&gt;</span> <span class="n">s</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s1">&#39;&gt; &#39;</span> <span class="o">+</span> <span class="n">n</span><span class="o">)</span> <span class="o">}</span>
+<span class="n">f1</span> <span class="o">=</span> <span class="k">new</span> <span class="n">FilterOutput</span><span class="o">(</span><span class="n">number</span><span class="o">);</span> <span class="n">f1</span><span class="o">.</span><span class="na">start</span><span class="o">()</span>
+<span class="n">f2</span> <span class="o">=</span> <span class="k">new</span> <span class="n">FilterOutput</span><span class="o">(</span><span class="n">quote</span><span class="o">);</span> <span class="n">f2</span><span class="o">.</span><span class="na">start</span><span class="o">()</span>
+<span class="o">(</span><span class="s1">&#39;a&#39;</span><span class="o">..</span><span class="s1">&#39;e&#39;</span><span class="o">).</span><span class="na">each</span><span class="o">{</span> <span class="n">println</span> <span class="n">it</span> <span class="o">}</span>
+<span class="n">f2</span><span class="o">.</span><span class="na">close</span><span class="o">()</span>
+<span class="n">f1</span><span class="o">.</span><span class="na">close</span><span class="o">()</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN866"
+>Preprocessing Input</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="c1">// Groovy programs (like Java ones) would use streams here. Just process</span>
+<span class="c1">// another stream instead of System.in or System.out:</span>
+
+<span class="c1">// process url text</span>
+<span class="n">input</span> <span class="o">=</span> <span class="k">new</span> <span class="n">URL</span><span class="o">(</span><span class="n">address</span><span class="o">).</span><span class="na">openStream</span><span class="o">()</span>
+<span class="c1">// ... process &#39;input&#39; stream</span>
+
+<span class="c1">// process compressed file</span>
+<span class="n">input</span> <span class="o">=</span> <span class="k">new</span> <span class="n">GZIPInputStream</span><span class="o">(</span><span class="k">new</span> <span class="n">FileInputStream</span><span class="o">(</span><span class="s1">&#39;source.gzip&#39;</span><span class="o">))</span>
+<span class="c1">// ... process &#39;input&#39; stream</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN869"
+>Reading STDERR from a Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="c1">// To read STDERR of a process you execute</span>
+<span class="n">proc</span> <span class="o">=</span> <span class="s1">&#39;groovy -e &quot;println args[0]&quot;&#39;</span><span class="o">.</span><span class="na">execute</span><span class="o">()</span>
+<span class="n">proc</span><span class="o">.</span><span class="na">waitFor</span><span class="o">()</span>
+<span class="n">println</span> <span class="n">proc</span><span class="o">.</span><span class="na">err</span><span class="o">.</span><span class="na">text</span>
+<span class="c1">// =&gt; Caught: java.lang.ArrayIndexOutOfBoundsException: 0 ...</span>
+
+<span class="c1">// To redirect your STDERR to a file</span>
+<span class="n">System</span><span class="o">.</span><span class="na">setErr</span><span class="o">(</span><span class="k">new</span> <span class="n">PrintStream</span><span class="o">(</span><span class="k">new</span> <span class="n">FileOutputStream</span><span class="o">(</span><span class="s2">&quot;error.txt&quot;</span><span class="o">)))</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN872"
+>Controlling Input and Output of Another Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="c1">// See 16.2, the technique allows both STDIN and STDOUT of another program to be</span>
+<span class="c1">// changed at the same time, not just one or the other as per Perl 16.2 solution</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN875"
+>Controlling the Input, Output, and Error of Another Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="c1">// See 16.2 and 16.7, the techniques can be combined to allow all three streams</span>
+<span class="c1">// (STDIN, STDOUT, STDERR) to be altered as required.</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN878"
+>Communicating Between Related Processes</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="c1">// Groovy can piggy-back on the many options available to Java here:</span>
+<span class="c1">// JIPC provides a wide set of standard primitives: semaphore, event,</span>
+<span class="c1">//   FIFO queue, barrier, shared memory, shared and exclusive locks:</span>
+<span class="c1">//   http://www.garret.ru/~knizhnik/jipc/jipc.html</span>
+<span class="c1">// sockets allow process to communicate via low-level packets</span>
+<span class="c1">// CORBA, RMI, SOAP allow process to communicate via RPC calls</span>
+<span class="c1">// shared files can also be used</span>
+<span class="c1">// JMS allows process to communicate via a messaging service</span>
+
+<span class="c1">// Simplist approach is to just link streams:</span>
+<span class="n">proc1</span> <span class="o">=</span> <span class="s1">&#39;groovy -e &quot;println args[0]&quot; Hello&#39;</span><span class="o">.</span><span class="na">execute</span><span class="o">()</span>
+<span class="n">proc2</span> <span class="o">=</span> <span class="s1">&#39;groovy -e &quot;print System.in.text.toUpperCase()&quot;&#39;</span><span class="o">.</span><span class="na">execute</span><span class="o">()</span>
+<span class="n">Thread</span><span class="o">.</span><span class="na">start</span><span class="o">{</span>
+    <span class="kt">def</span> <span class="n">reader</span> <span class="o">=</span> <span class="k">new</span> <span class="n">BufferedReader</span><span class="o">(</span><span class="k">new</span> <span class="n">InputStreamReader</span><span class="o">(</span><span class="n">proc1</span><span class="o">.</span><span class="na">in</span><span class="o">))</span>
+    <span class="kt">def</span> <span class="n">writer</span> <span class="o">=</span> <span class="k">new</span> <span class="n">PrintWriter</span><span class="o">(</span><span class="k">new</span> <span class="n">BufferedOutputStream</span><span class="o">(</span><span class="n">proc2</span><span class="o">.</span><span class="na">out</span><span class="o">))</span>
+    <span class="k">while</span> <span class="o">((</span><span class="n">next</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="na">readLine</span><span class="o">())</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+        <span class="n">writer</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">next</span><span class="o">)</span>
+    <span class="o">}</span>
+    <span class="n">writer</span><span class="o">.</span><span class="na">close</span><span class="o">()</span>
+<span class="o">}</span>
+<span class="n">proc2</span><span class="o">.</span><span class="na">waitFor</span><span class="o">()</span>
+<span class="n">print</span> <span class="n">proc2</span><span class="o">.</span><span class="na">text</span>
+<span class="c1">// =&gt; HELLO</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN881"
+>Making a Process Look Like a File with Named Pipes</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="c1">// Java/Groovy would normally just use some socket-based technique for communicating</span>
+<span class="c1">// between processes (see 16.10 for a list of options). If you really must use a named</span>
+<span class="c1">// pipe, you have these options:</span>
+<span class="c1">// (1) On *nix machines:</span>
+<span class="c1">// * Create a named pipe by invoking the mkfifo utility using execute().</span>
+<span class="c1">// * Open a named pipe by name - which is just like opening a file.</span>
+<span class="c1">// * Run an external process setting its input and output streams (see 16.1, 16.4, 16.5)</span>
+<span class="c1">// (2) On Windows machines, Using JCIFS to Connect to Win32 Named Pipes, see:</span>
+<span class="c1">// http://jcifs.samba.org/src/docs/pipes.html</span>
+<span class="c1">// Neither of these achieve exactly the same result as the Perl example but some</span>
+<span class="c1">// scenarios will be almost identical.</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN884"
+>Sharing Variables in Different Processes</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="c1">// The comments made in 16.10 regarding other alternative IPC mechanisms also apply here.</span>
+
+<span class="c1">// This example would normally be done with multiple threads in Java/Groovy as follows.</span>
+<span class="kd">class</span> <span class="nc">Shared</span> <span class="o">{</span>
+    <span class="n">String</span> <span class="n">buffer</span> <span class="o">=</span> <span class="s2">&quot;not set yet&quot;</span>
+    <span class="kd">synchronized</span> <span class="kt">void</span> <span class="nf">leftShift</span><span class="o">(</span><span class="n">value</span><span class="o">){</span>
+        <span class="n">buffer</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="n">notifyAll</span><span class="o">()</span>
+    <span class="o">}</span>
+    <span class="kd">synchronized</span> <span class="n">Object</span> <span class="nf">read</span><span class="o">()</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">buffer</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+<span class="n">shared</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Shared</span><span class="o">()</span>
+<span class="n">rand</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Random</span><span class="o">()</span>
+<span class="n">threads</span> <span class="o">=</span> <span class="o">[]</span>
+<span class="o">(</span><span class="mi">1</span><span class="o">..</span><span class="mi">5</span><span class="o">).</span><span class="na">each</span><span class="o">{</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Thread</span><span class="o">(){</span>
+        <span class="kt">def</span> <span class="n">me</span> <span class="o">=</span> <span class="n">t</span>
+        <span class="k">for</span> <span class="o">(</span><span class="n">j</span> <span class="k">in</span> <span class="mi">0</span><span class="o">..</span><span class="mi">9</span><span class="o">)</span> <span class="o">{</span>
+            <span class="n">shared</span> <span class="o">&lt;&lt;</span> <span class="s2">&quot;$me.name $j&quot;</span>
+            <span class="n">sleep</span> <span class="mi">100</span> <span class="o">+</span> <span class="n">rand</span><span class="o">.</span><span class="na">nextInt</span><span class="o">(</span><span class="mi">200</span><span class="o">)</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+    <span class="n">t</span><span class="o">.</span><span class="na">start</span><span class="o">()</span>
+<span class="o">}</span>
+<span class="k">while</span><span class="o">(</span><span class="mi">1</span><span class="o">)</span> <span class="o">{</span>
+    <span class="n">println</span> <span class="n">shared</span><span class="o">.</span><span class="na">read</span><span class="o">()</span>
+    <span class="n">sleep</span> <span class="mi">50</span>
+<span class="o">}</span>
+<span class="c1">// =&gt;</span>
+<span class="c1">// not set yet</span>
+<span class="c1">// Thread-2 0</span>
+<span class="c1">// Thread-5 1</span>
+<span class="c1">// Thread-1 1</span>
+<span class="c1">// Thread-4 2</span>
+<span class="c1">// Thread-3 1</span>
+<span class="c1">// ...</span>
+<span class="c1">// Thread-5 9</span>
+
+
+<span class="c1">// Using JIPC between processes (as a less Groovy alternative that is closer</span>
+<span class="c1">// to the original cookbook) is shown below.</span>
+
+<span class="c1">// ipcWriterScript:</span>
+<span class="kn">import</span> <span class="nn">org.garret.jipc.client.JIPCClientFactory</span>
+<span class="n">port</span> <span class="o">=</span> <span class="mi">6000</span>
+<span class="n">factory</span> <span class="o">=</span> <span class="n">JIPCClientFactory</span><span class="o">.</span><span class="na">instance</span>
+<span class="n">session</span> <span class="o">=</span> <span class="n">factory</span><span class="o">.</span><span class="na">create</span><span class="o">(</span><span class="s1">&#39;localhost&#39;</span><span class="o">,</span> <span class="n">port</span><span class="o">)</span>
+<span class="n">mutex</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="na">createMutex</span><span class="o">(</span><span class="s2">&quot;myMutex&quot;</span><span class="o">,</span> <span class="kc">false</span><span class="o">)</span>
+<span class="n">buffer</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="na">createSharedMemory</span><span class="o">(</span><span class="s2">&quot;myBuffer&quot;</span><span class="o">,</span> <span class="s2">&quot;not yet set&quot;</span><span class="o">)</span>
+<span class="n">name</span> <span class="o">=</span> <span class="n">args</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span>
+<span class="n">rand</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Random</span><span class="o">()</span>
+<span class="o">(</span><span class="mi">0</span><span class="o">..</span><span class="mi">99</span><span class="o">).</span><span class="na">each</span> <span class="o">{</span>
+    <span class="n">mutex</span><span class="o">.</span><span class="na">lock</span><span class="o">()</span>
+    <span class="n">buffer</span><span class="o">.</span><span class="na">set</span><span class="o">(</span><span class="s2">&quot;$name $it&quot;</span><span class="o">.</span><span class="na">toString</span><span class="o">())</span>
+    <span class="n">mutex</span><span class="o">.</span><span class="na">unlock</span><span class="o">()</span>
+    <span class="n">sleep</span> <span class="mi">200</span> <span class="o">+</span> <span class="n">rand</span><span class="o">.</span><span class="na">nextInt</span><span class="o">(</span><span class="mi">500</span><span class="o">)</span>
+<span class="o">}</span>
+<span class="n">session</span><span class="o">.</span><span class="na">close</span><span class="o">()</span>
+
+<span class="c1">// ipcReaderScript:</span>
+<span class="kn">import</span> <span class="nn">org.garret.jipc.client.JIPCClientFactory</span>
+<span class="n">port</span> <span class="o">=</span> <span class="mi">6000</span>
+<span class="n">factory</span> <span class="o">=</span> <span class="n">JIPCClientFactory</span><span class="o">.</span><span class="na">instance</span>
+<span class="n">session</span> <span class="o">=</span> <span class="n">factory</span><span class="o">.</span><span class="na">create</span><span class="o">(</span><span class="s1">&#39;localhost&#39;</span><span class="o">,</span> <span class="n">port</span><span class="o">)</span>
+<span class="n">mutex</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="na">createMutex</span><span class="o">(</span><span class="s2">&quot;myMutex&quot;</span><span class="o">,</span> <span class="kc">false</span><span class="o">)</span>
+<span class="n">buffer</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="na">createSharedMemory</span><span class="o">(</span><span class="s2">&quot;myBuffer&quot;</span><span class="o">,</span> <span class="s2">&quot;not yet set&quot;</span><span class="o">)</span>
+<span class="n">rand</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Random</span><span class="o">()</span>
+<span class="o">(</span><span class="mi">0</span><span class="o">..</span><span class="mi">299</span><span class="o">).</span><span class="na">each</span> <span class="o">{</span>
+    <span class="n">mutex</span><span class="o">.</span><span class="na">lock</span><span class="o">()</span>
+    <span class="n">println</span> <span class="n">buffer</span><span class="o">.</span><span class="na">get</span><span class="o">()</span>
+    <span class="n">mutex</span><span class="o">.</span><span class="na">unlock</span><span class="o">()</span>
+    <span class="n">sleep</span> <span class="mi">150</span>
+<span class="o">}</span>
+<span class="n">session</span><span class="o">.</span><span class="na">close</span><span class="o">()</span>
+
+<span class="c1">// kick off processes:</span>
+<span class="s2">&quot;java org.garret.jipc.server.JIPCServer 6000&quot;</span><span class="o">.</span><span class="na">execute</span><span class="o">()</span>
+<span class="s2">&quot;groovy ipcReaderScript&quot;</span><span class="o">.</span><span class="na">execute</span><span class="o">()</span>
+<span class="o">(</span><span class="mi">0</span><span class="o">..</span><span class="mi">3</span><span class="o">).</span><span class="na">each</span><span class="o">{</span> <span class="s2">&quot;groovy ipcWriterScript $it&quot;</span><span class="o">.</span><span class="na">execute</span><span class="o">()</span> <span class="o">}</span>
+
+<span class="c1">// =&gt;</span>
+<span class="c1">// ...</span>
+<span class="c1">// 0 10</span>
+<span class="c1">// 2 10</span>
+<span class="c1">// 2 11</span>
+<span class="c1">// 1 9</span>
+<span class="c1">// 1 9</span>
+<span class="c1">// 1 10</span>
+<span class="c1">// 2 12</span>
+<span class="c1">// 3 12</span>
+<span class="c1">// 3 12</span>
+<span class="c1">// 2 13</span>
+<span class="c1">// ...</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN887"
+>Listing Available Signals</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="c1">// Signal handling in Groovy (like Java) is operating system and JVM dependent.</span>
+<span class="c1">// The ISO C standard only requires the signal names SIGABRT, SIGFPE, SIGILL,</span>
+<span class="c1">// SIGINT, SIGSEGV, and SIGTERM to be defined but depending on your platform</span>
+<span class="c1">// other signals may be present, e.g. Windows supports SIGBREAK. For more info</span>
+<span class="c1">// see: http://www-128.ibm.com/developerworks/java/library/i-signalhandling/</span>
+<span class="c1">// Note: if you start up the JVM with -Xrs the JVM will try to reduce its</span>
+<span class="c1">// internal usage of signals. Also the JVM takes over meany hooks and provides</span>
+<span class="c1">// platform independent alternatives, e.g. see java.lang.Runtime#addShutdownHook()</span>
+
+<span class="c1">// To see what signals are available for your system (excludes ones taken over</span>
+<span class="c1">// by the JVM):</span>
+<span class="n">sigs</span> <span class="o">=</span> <span class="s1">&#39;&#39;&#39;HUP INT QUIT ILL TRAP ABRT EMT FPE KILL BUS SEGV SYS PIPE ALRM TERM</span>
+<span class="s1">USR1 USR2 CHLD PWR WINCH URG POLL STOP TSTP CONT TTIN TTOU VTALRM PROF XCPU</span>
+<span class="s1">XFSZ WAITING LWP AIO IO INFO THR BREAK FREEZE THAW CANCEL EMT</span>
+<span class="s1">&#39;&#39;&#39;</span>
+
+<span class="n">sigs</span><span class="o">.</span><span class="na">tokenize</span><span class="o">(</span><span class="s1">&#39; \n&#39;</span><span class="o">).</span><span class="na">each</span><span class="o">{</span>
+    <span class="k">try</span> <span class="o">{</span>
+        <span class="n">print</span> <span class="s1">&#39; &#39;</span> <span class="o">+</span> <span class="k">new</span> <span class="n">sun</span><span class="o">.</span><span class="na">misc</span><span class="o">.</span><span class="na">Signal</span><span class="o">(</span><span class="n">it</span><span class="o">)</span>
+    <span class="o">}</span> <span class="k">catch</span><span class="o">(</span><span class="n">IllegalArgumentException</span> <span class="n">iae</span><span class="o">)</span> <span class="o">{}</span>
+<span class="o">}</span>
+<span class="c1">// =&gt;  on Windows XP:</span>
+<span class="c1">// SIGINT SIGILL SIGABRT SIGFPE SIGSEGV SIGTERM SIGBREAK</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN890"
+>Sending a Signal</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="c1">// To send a signal to your process:</span>
+<span class="n">Signal</span><span class="o">.</span><span class="na">raise</span><span class="o">(</span><span class="k">new</span> <span class="n">Signal</span><span class="o">(</span><span class="s2">&quot;INT&quot;</span><span class="o">))</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN893"
+>Installing a Signal Handler</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="c1">// install a signal handler</span>
+<span class="kd">class</span> <span class="nc">DiagSignalHandler</span> <span class="kd">implements</span> <span class="n">SignalHandler</span> <span class="o">{</span> <span class="o">...</span> <span class="o">}</span>
+<span class="n">diagHandler</span> <span class="o">=</span> <span class="k">new</span> <span class="n">DiagSignalHandler</span><span class="o">()</span>
+<span class="n">Signal</span><span class="o">.</span><span class="na">handle</span><span class="o">(</span><span class="k">new</span> <span class="n">Signal</span><span class="o">(</span><span class="s2">&quot;INT&quot;</span><span class="o">),</span> <span class="n">diagHandler</span><span class="o">)</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN896"
+>Temporarily Overriding a Signal Handler</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="c1">// temporarily install a signal handler</span>
+<span class="kd">class</span> <span class="nc">DiagSignalHandler</span> <span class="kd">implements</span> <span class="n">SignalHandler</span> <span class="o">{</span> <span class="o">...</span> <span class="o">}</span>
+<span class="n">diagHandler</span> <span class="o">=</span> <span class="k">new</span> <span class="n">DiagSignalHandler</span><span class="o">()</span>
+<span class="n">oldHandler</span> <span class="o">=</span> <span class="n">Signal</span><span class="o">.</span><span class="na">handle</span><span class="o">(</span><span class="k">new</span> <span class="n">Signal</span><span class="o">(</span><span class="s2">&quot;INT&quot;</span><span class="o">),</span> <span class="n">diagHandler</span><span class="o">)</span>
+<span class="n">Signal</span><span class="o">.</span><span class="na">handle</span><span class="o">(</span><span class="k">new</span> <span class="n">Signal</span><span class="o">(</span><span class="s2">&quot;INT&quot;</span><span class="o">),</span> <span class="n">oldHandler</span><span class="o">)</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN899"
+>Writing a Signal Handler</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="kn">import</span> <span class="nn">sun.misc.Signal</span>
+<span class="kn">import</span> <span class="nn">sun.misc.SignalHandler</span>
+
+<span class="kd">class</span> <span class="nc">DiagSignalHandler</span> <span class="kd">implements</span> <span class="n">SignalHandler</span> <span class="o">{</span>
+    <span class="kd">private</span> <span class="n">oldHandler</span>
+
+    <span class="c1">// Static method to install the signal handler</span>
+    <span class="kd">public</span> <span class="kd">static</span> <span class="nf">install</span><span class="o">(</span><span class="n">signal</span><span class="o">)</span> <span class="o">{</span>
+        <span class="kt">def</span> <span class="n">diagHandler</span> <span class="o">=</span> <span class="k">new</span> <span class="n">DiagSignalHandler</span><span class="o">()</span>
+        <span class="n">diagHandler</span><span class="o">.</span><span class="na">oldHandler</span> <span class="o">=</span> <span class="n">Signal</span><span class="o">.</span><span class="na">handle</span><span class="o">(</span><span class="n">signal</span><span class="o">,</span> <span class="n">diagHandler</span><span class="o">)</span>
+    <span class="o">}</span>
+
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">handle</span><span class="o">(</span><span class="n">Signal</span> <span class="n">sig</span><span class="o">)</span> <span class="o">{</span>
+        <span class="n">println</span><span class="o">(</span><span class="s2">&quot;Diagnostic Signal handler called for signal &quot;</span><span class="o">+</span><span class="n">sig</span><span class="o">)</span>
+        <span class="c1">// Output information for each thread</span>
+        <span class="kt">def</span> <span class="n">list</span> <span class="o">=</span> <span class="o">[]</span>
+        <span class="n">Thread</span><span class="o">.</span><span class="na">activeCount</span><span class="o">().</span><span class="na">each</span><span class="o">{</span> <span class="n">list</span> <span class="o">+=</span> <span class="kc">null</span> <span class="o">}</span>
+        <span class="n">Thread</span><span class="o">[]</span> <span class="n">threadArray</span> <span class="o">=</span> <span class="n">list</span> <span class="k">as</span> <span class="n">Thread</span><span class="o">[]</span>
+        <span class="kt">int</span> <span class="n">numThreads</span> <span class="o">=</span> <span class="n">Thread</span><span class="o">.</span><span class="na">enumerate</span><span class="o">(</span><span class="n">threadArray</span><span class="o">)</span>
+        <span class="n">println</span><span class="o">(</span><span class="s2">&quot;Current threads:&quot;</span><span class="o">)</span>
+        <span class="k">for</span> <span class="o">(</span><span class="n">i</span> <span class="k">in</span> <span class="mi">0</span><span class="o">..&lt;</span><span class="n">numThreads</span><span class="o">)</span> <span class="o">{</span>
+            <span class="n">println</span><span class="o">(</span><span class="s2">&quot;    &quot;</span><span class="o">+</span><span class="n">threadArray</span><span class="o">[</span><span class="n">i</span><span class="o">])</span>
+        <span class="o">}</span>
+
+        <span class="c1">// Chain back to previous handler, if one exists</span>
+        <span class="k">if</span> <span class="o">(</span> <span class="n">oldHandler</span> <span class="o">!=</span> <span class="n">SIG_DFL</span> <span class="o">&amp;&amp;</span> <span class="n">oldHandler</span> <span class="o">!=</span> <span class="n">SIG_IGN</span> <span class="o">)</span> <span class="o">{</span>
+            <span class="n">oldHandler</span><span class="o">.</span><span class="na">handle</span><span class="o">(</span><span class="n">sig</span><span class="o">)</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+<span class="c1">// install using:</span>
+<span class="n">DiagSignalHandler</span><span class="o">.</span><span class="na">install</span><span class="o">(</span><span class="k">new</span> <span class="n">Signal</span><span class="o">(</span><span class="s2">&quot;INT&quot;</span><span class="o">))</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN902"
+>Catching Ctrl-C</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="c1">// See 16.17, just don&#39;t chain to the previous handler because the default handler</span>
+<span class="c1">// will abort the process.</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN905"
+>Avoiding Zombie Processes</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="c1">// Groovy relies on Java features here. Java doesn&#39;t keep the process around</span>
+<span class="c1">// as it stores metadata in a Process object. You can call waitFor() or destroy()</span>
+<span class="c1">// or exitValue() on the Process object. If the Process object is garbage collected,</span>
+<span class="c1">// the process can still execute asynchronously with respect to the original process.</span>
+
+<span class="c1">// For ensuring processes don&#39;t die, see:</span>
+<span class="c1">// http://jakarta.apache.org/commons/daemon/</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN908"
+>Blocking Signals</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="c1">// There is no equivalent to a signal mask available directly in Groovy or Java.</span>
+<span class="c1">// You can override and ignore individual signals using recipes 16.16 - 16.18.</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN911"
+>Timing Out an Operation</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="n">t</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Timer</span><span class="o">()</span>
+<span class="n">t</span><span class="o">.</span><span class="na">runAfter</span><span class="o">(</span><span class="mi">3500</span><span class="o">){</span>
+    <span class="n">println</span> <span class="s1">&#39;Took too long&#39;</span>
+    <span class="n">System</span><span class="o">.</span><span class="na">exit</span><span class="o">(</span><span class="mi">1</span><span class="o">)</span>
+<span class="o">}</span>
+<span class="kt">def</span> <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="mi">6</span><span class="o">.</span><span class="na">times</span><span class="o">{</span>
+    <span class="n">count</span><span class="o">++</span>
+    <span class="n">sleep</span> <span class="mi">1000</span>
+    <span class="n">println</span> <span class="s2">&quot;Count = $count&quot;</span>
+<span class="o">}</span>
+<span class="n">t</span><span class="o">.</span><span class="na">cancel</span><span class="o">()</span>
+<span class="c1">// See also special JMX timer class: javax.management.timer.Timer</span>
+<span class="c1">// For an external process you can also use: proc.waitForOrKill(3500)</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN914"
+>Program: sigrand</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="c1">// One way to implement this functionality is to automatically replace the ~/.plan</span>
+<span class="c1">// etc. files every fixed timed interval - though this wouldn&#39;t be efficient.</span>
+<span class="c1">// Here is a simplified version which is a simplified version compared to the</span>
+<span class="c1">// original cookbook. It only looks at the ~/.signature file and changes it</span>
+<span class="c1">// freely. It also doesn&#39;t consider other news reader related files.</span>
+
+<span class="kt">def</span> <span class="n">sigs</span> <span class="o">=</span> <span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">Make is like Pascal: everybody likes it, so they go in and change it.</span>
+<span class="s1">--Dennis Ritchie</span>
+<span class="s1">%%</span>
+<span class="s1">I eschew embedded capital letters in names; to my prose-oriented eyes,</span>
+<span class="s1">they are too awkward to read comfortably. They jangle like bad typography.</span>
+<span class="s1">--Rob Pike</span>
+<span class="s1">%%</span>
+<span class="s1">God made the integers; all else is the work of Man.</span>
+<span class="s1">--Kronecker</span>
+<span class="s1">%%</span>
+<span class="s1">I d rather have :rofix than const. --Dennis Ritchie</span>
+<span class="s1">%%</span>
+<span class="s1">If you want to program in C, program in C. It s a nice language.</span>
+<span class="s1">I use it occasionally... :-) --Larry Wall</span>
+<span class="s1">%%</span>
+<span class="s1">Twisted cleverness is my only skill as a programmer.</span>
+<span class="s1">--Elizabeth Zwicky</span>
+<span class="s1">%%</span>
+<span class="s1">Basically, avoid comments. If your code needs a comment to be understood,</span>
+<span class="s1">it would be better to rewrite it so it s easier to understand.</span>
+<span class="s1">--Rob Pike</span>
+<span class="s1">%%</span>
+<span class="s1">Comments on data are usually much more helpful than on algorithms.</span>
+<span class="s1">--Rob Pike</span>
+<span class="s1">%%</span>
+<span class="s1">Programs that write programs are the happiest programs in the world.</span>
+<span class="s1">--Andrew Hume</span>
+<span class="s1">&#39;&#39;&#39;</span><span class="o">.</span><span class="na">trim</span><span class="o">().</span><span class="na">split</span><span class="o">(</span><span class="s">/\n%%\n/</span><span class="o">)</span>
+<span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;me@somewhere.org\n&#39;</span>
+<span class="n">file</span> <span class="o">=</span> <span class="k">new</span> <span class="n">File</span><span class="o">(</span><span class="n">System</span><span class="o">.</span><span class="na">getProperty</span><span class="o">(</span><span class="s1">&#39;user.home&#39;</span><span class="o">)</span> <span class="o">+</span> <span class="n">File</span><span class="o">.</span><span class="na">separator</span> <span class="o">+</span> <span class="s1">&#39;.signature&#39;</span><span class="o">)</span>
+<span class="n">rand</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Random</span><span class="o">()</span>
+<span class="k">while</span><span class="o">(</span><span class="mi">1</span><span class="o">)</span> <span class="o">{</span>
+    <span class="n">file</span><span class="o">.</span><span class="na">delete</span><span class="o">()</span>
+    <span class="n">file</span> <span class="o">&lt;&lt;</span> <span class="n">name</span> <span class="o">+</span> <span class="n">sigs</span><span class="o">[</span><span class="n">rand</span><span class="o">.</span><span class="na">nextInt</span><span class="o">(</span><span class="n">sigs</span><span class="o">.</span><span class="na">size</span><span class="o">())]</span>
+    <span class="n">sleep</span> <span class="mi">10000</span>
+<span class="o">}</span>
+
+<span class="c1">// Another way to implement this functionality (in a completely different way to the</span>
+<span class="c1">// original cookbook) is to use a FileWatcher class, e.g.</span>
+<span class="c1">// http://www.rgagnon.com/javadetails/java-0490.html (FileWatcher and DirWatcher)</span>
+<span class="c1">// http://www.jconfig.org/javadoc/org/jconfig/FileWatcher.html</span>
+
+<span class="c1">// These file watchers notify us whenever the file is modified, see Pleac chapter 7</span>
+<span class="c1">// for workarounds to not being able to get last accessed time vs last modified time.</span>
+<span class="c1">// (We would now need to touch the file whenever we accessed it to make it change).</span>
+<span class="c1">// Our handler called from the watchdog class would update the file contents.</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="userinterfaces.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="sockets.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>User Interfaces</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Sockets</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

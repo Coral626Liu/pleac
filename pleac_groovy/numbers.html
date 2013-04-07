@@ -1,0 +1,821 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Numbers</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Groovy"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Strings"
+HREF="strings.html"><LINK
+REL="NEXT"
+TITLE="Dates and Times"
+HREF="datesandtimes.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Groovy</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="strings.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="datesandtimes.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="NUMBERS"
+>2. Numbers</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN73"
+>Checking Whether a String Is a Valid Number</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// four approaches possible (shown for Integers, similar for floats, double etc.):</span>
+<span class="s">// (1) NumberFormat.getInstance().parse(s)    // getInstance() can take locale</span>
+<span class="s">// (2) Integer.parseInt(s)</span>
+<span class="s">// (3) new Integer(s)</span>
+<span class="s">// (4) regex</span>
+<span class="s">import java.text.*</span>
+<span class="s">int nb = 0</span>
+<span class="s">try {</span>
+<span class="s">    nb = NumberFormat.getInstance().parse(&#39;33.5&#39;) // &#39;.5&#39; will be ignored</span>
+<span class="s">    nb = NumberFormat.getInstance().parse(&#39;abc&#39;)</span>
+<span class="s">} catch (ParseException ex) {</span>
+<span class="s">    assert ex.getMessage().contains(&#39;abc&#39;)</span>
+<span class="s">}</span>
+<span class="s">assert nb == 33</span>
+
+<span class="s">try {</span>
+<span class="s">    nb = Integer.parseInt(&#39;34&#39;)</span>
+<span class="s">    assert nb == 34</span>
+<span class="s">    nb = new Integer(&#39;35&#39;)</span>
+<span class="s">    nb = Integer.parseInt(&#39;abc&#39;)</span>
+<span class="s">} catch (NumberFormatException ex) {</span>
+<span class="s">    assert ex.getMessage().contains(&#39;abc&#39;)</span>
+<span class="s">}</span>
+<span class="s">assert nb == 35</span>
+
+<span class="s">integerPattern = /^[+-]?\d+$/</span>
+<span class="s">assert &#39;-36&#39; =~ integerPattern</span>
+<span class="s">assert !(&#39;abc&#39; =~ integerPattern)</span>
+<span class="s">decimalPattern = /^-?(?:\d+(?:\.\d*)?|\.\d+)$/</span>
+<span class="s">assert &#39;37.5&#39; =~ decimalPattern</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN76"
+>Comparing Floating-Point Numbers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// Groovy defaults to BigDecimal if you don&#39;t use an explicit float or double</span>
+<span class="s">wage = 5.36</span>
+<span class="s">week = 40 * wage</span>
+<span class="s">assert &quot;One week&#39;s wage is: \$$week&quot; == /One week&#39;s wage is: $214.40/</span>
+<span class="s">// if you want to use explicit doubles and floats you can still use</span>
+<span class="s">// printf in version 5, 6 or 7 JVMs</span>
+<span class="s">// printf(&#39;%5.2f&#39;, week as double)</span>
+<span class="s">// =&gt; 214.40</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN79"
+>Rounding Floating-Point Numbers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">a = 0.255</span>
+<span class="s">b = a.setScale(2, BigDecimal.ROUND_HALF_UP);</span>
+<span class="s">assert a.toString() == &#39;0.255&#39;</span>
+<span class="s">assert b.toString() == &#39;0.26&#39;</span>
+
+<span class="s">a = [3.3 , 3.5 , 3.7, -3.3] as double[]</span>
+<span class="s">// warning rint() rounds to nearest integer - slightly different to Perl&#39;s int()</span>
+<span class="s">rintExpected = [3.0, 4.0, 4.0, -3.0] as double[]</span>
+<span class="s">floorExpected = [3.0, 3.0, 3.0, -4.0] as double[]</span>
+<span class="s">ceilExpected = [4.0, 4.0, 4.0, -3.0] as double[]</span>
+<span class="s">a.eachWithIndex{ val, i -&gt;</span>
+<span class="s">    assert Math.rint(val) == rintExpected[i]</span>
+<span class="s">    assert Math.floor(val) == floorExpected[i]</span>
+<span class="s">    assert Math.ceil(val) == ceilExpected[i]</span>
+<span class="s">}</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN82"
+>Converting Between Binary and Decimal</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">assert Integer.parseInt(&#39;0110110&#39;, 2) == 54</span>
+<span class="s">assert Integer.toString(54, 2) == &#39;110110&#39;</span>
+<span class="s">// also works for other radix values, e.g. hex</span>
+<span class="s">assert Integer.toString(60, 16) == &#39;3c&#39;</span>
+
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN85"
+>Operating on a Series of Integers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">x = 3; y = 20</span>
+<span class="s">for (i in x..y) {</span>
+<span class="s">    //i is set to every integer from x to y, inclusive</span>
+<span class="s">}</span>
+
+<span class="s">(x..&lt;y).each {</span>
+<span class="s">    //implicit closure variable it is set to every integer from x up to but excluding y</span>
+<span class="s">}</span>
+
+<span class="s">assert (x..y).step(7) == [3, 10, 17]</span>
+
+<span class="s">years = []</span>
+<span class="s">(5..&lt;13).each{ age -&gt; years += age }</span>
+<span class="s">assert years == [5, 6, 7, 8, 9, 10, 11, 12]</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN88"
+>Working with Roman Numerals</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// We can add additional methods to the Integer class</span>
+<span class="s">class IntegerCategory {</span>
+<span class="s">    static def romanMap = [1000:&#39;M&#39;, 900:&#39;CM&#39;, 500:&#39;D&#39;, 400:&#39;CD&#39;, 100:&#39;C&#39;, 90:&#39;XC&#39;,</span>
+<span class="s">                           50:&#39;L&#39;, 40:&#39;XL&#39;, 10:&#39;X&#39;, 9:&#39;IX&#39;, 5:&#39;V&#39;, 4:&#39;IV&#39;, 1:&#39;I&#39;]</span>
+
+<span class="s">    static getRoman(Integer self) {</span>
+<span class="s">        def remains = self</span>
+<span class="s">        def text = &#39;&#39;</span>
+<span class="s">        romanMap.keySet().sort().reverse().each{ key -&gt;</span>
+<span class="s">            while (remains &gt;= key) {</span>
+<span class="s">                remains -= key</span>
+<span class="s">                text += romanMap[key]</span>
+<span class="s">            }</span>
+<span class="s">        }</span>
+<span class="s">        return text</span>
+<span class="s">    }</span>
+
+<span class="s">    static int parseRoman(Object self, String input) {</span>
+<span class="s">        def ustr = input.toUpperCase()</span>
+<span class="s">        int sum = 0</span>
+<span class="s">        romanMap.keySet().sort().reverse().each{ key -&gt;</span>
+<span class="s">            while (ustr.startsWith(romanMap[key])) {</span>
+<span class="s">                sum += key</span>
+<span class="s">                ustr -= romanMap[key]</span>
+<span class="s">            }</span>
+<span class="s">        }</span>
+<span class="s">        return sum</span>
+<span class="s">    }</span>
+<span class="s">}</span>
+
+<span class="s">use(IntegerCategory) {</span>
+<span class="s">    int fifteen = 15</span>
+<span class="s">    assert fifteen.roman == &#39;XV&#39;</span>
+<span class="s">    assert parseRoman(&#39;XXVI&#39;) == 26</span>
+<span class="s">    for (i in 1..3900) {</span>
+<span class="s">        assert i == parseRoman(i.roman)</span>
+<span class="s">    }</span>
+<span class="s">}</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN91"
+>Generating Random Numbers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">random = new Random()</span>
+<span class="s">100.times{</span>
+<span class="s">    next = random.nextInt(50) + 25</span>
+<span class="s">    assert next &gt; 24</span>
+<span class="s">    assert next &lt; 76</span>
+<span class="s">}</span>
+<span class="s">chars = []</span>
+<span class="s">[&#39;A&#39;..&#39;Z&#39;,&#39;a&#39;..&#39;z&#39;,&#39;0&#39;..&#39;9&#39;,(&#39;!@$%^&amp;*&#39; as String[]).toList()].each{chars += it}</span>
+<span class="s">password = (1..8).collect{ chars[random.nextInt(chars.size())] }.join()</span>
+<span class="s">assert password.size() == 8</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN94"
+>Generating Different Random Numbers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// By default Groovy uses Java&#39;s Random facilities which use the current time</span>
+<span class="s">// as the initial seed. This always changes but does so slowly over time.</span>
+<span class="s">// You are free to select a better seed if you want greater randomness or</span>
+<span class="s">// use the same one each time if you need repeatability.</span>
+<span class="s">long seed = System.currentTimeMillis()</span>
+<span class="s">random1 = new Random(seed)</span>
+<span class="s">random2 = new Random(seed)</span>
+<span class="s">assert random1.nextInt() == random2.nextInt()</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN97"
+>Making Numbers Even More Random</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// java.util.Random which Groovy uses already uses a 48-bit seed</span>
+<span class="s">// You can make use 64 not 48 bits (and make better use of the 48 bits) see here:</span>
+<span class="s">// http://alife.co.uk/nonrandom/</span>
+<span class="s">// You can choose a better seed, e.g. Ant uses:</span>
+<span class="s">seed = System.currentTimeMillis() + Runtime.runtime.freeMemory()</span>
+<span class="s">// You can accept input from the user, e.g.</span>
+<span class="s">// http://examples.oreilly.com/javacrypt/files/oreilly/jonathan/util/Seeder.java</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN100"
+>Generating Biased Random Numbers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// use Java&#39;s Random.nextGaussian() method</span>
+<span class="s">random = new Random()</span>
+<span class="s">mean = 25</span>
+<span class="s">sdev = 2</span>
+<span class="s">salary = random.nextGaussian() * sdev + mean</span>
+<span class="s">// script:</span>
+<span class="s">printf &#39;You have been hired at \$%.2f&#39;, salary</span>
+<span class="s">// =&gt; You have been hired at $25.05</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN103"
+>Doing Trigonometry in Degrees, not Radians</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// radians = Math.toRadians(degrees)</span>
+<span class="s">assert Math.toRadians(90) == Math.PI / 2</span>
+<span class="s">// degrees = Math.toDegrees(radians)</span>
+<span class="s">assert Math.toDegrees(Math.PI) == 180</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN106"
+>Calculating More Trigonometric Functions</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// use Java&#39;s trigonometry methods in java.lang.Math</span>
+<span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">t = Math.tan(1.5)</span>
+<span class="s">assert t &gt; 14.1 &amp;&amp; t &lt; 14.11</span>
+<span class="s">ac = Math.acos(0.1)</span>
+<span class="s">assert ac &gt; 1.47 &amp;&amp; ac &lt; 1.48</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN109"
+>Taking Logarithms</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">assert Math.log(Math.E) == 1</span>
+<span class="s">assert Math.log10(10000) == 4</span>
+<span class="s">def logn(base, val) { Math.log(val)/Math.log(base) }</span>
+<span class="s">assert logn(2, 1024) == 10</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN112"
+>Multiplying Matrices</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// there are several Java Matrix packages available, e.g.</span>
+<span class="s">// http://math.nist.gov/javanumerics/jama</span>
+<span class="s">import Jama.Matrix</span>
+<span class="s">matrix1 = new Matrix([</span>
+<span class="s">   [3, 2, 3],</span>
+<span class="s">   [5, 9, 8]</span>
+<span class="s">] as double[][])</span>
+
+<span class="s">matrix2 = new Matrix([</span>
+<span class="s">   [4, 7],</span>
+<span class="s">   [9, 3],</span>
+<span class="s">   [8, 1]</span>
+<span class="s">] as double[][])</span>
+
+<span class="s">expectedArray = [[54.0, 30.0], [165.0, 70.0]] as double[][]</span>
+<span class="s">productArray = matrix1.times(matrix2).array</span>
+
+<span class="s">for (i in 0..&lt;productArray.size()) {</span>
+<span class="s">    assert productArray[i] == expectedArray[i]</span>
+<span class="s">}</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN115"
+>Using Complex Numbers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// there are several Java Complex number packages, e.g.:</span>
+<span class="s">// http://jakarta.apache.org/commons/math/userguide/complex.html</span>
+<span class="s">import org.apache.commons.math.complex.Complex</span>
+<span class="s">a = new Complex(3, 5)  // 3 + 5i</span>
+<span class="s">b = new Complex(2, -2) // 2 - 2i</span>
+<span class="s">expected = new Complex (16, 4) // 16 + 4i</span>
+<span class="s">assert expected == a * b</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN118"
+>Converting Between Octal and Hexadecimal</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">assert Integer.parseInt(&#39;101&#39;, 16) == 257</span>
+<span class="s">assert Integer.parseInt(&#39;077&#39;, 8) == 63</span>
+<span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// conversionScript:</span>
+<span class="s">print &#39;Gimme a number in decimal, octal, or hex: &#39;</span>
+<span class="s">reader = new BufferedReader(new InputStreamReader(System.in))</span>
+<span class="s">input = reader.readLine().trim()</span>
+<span class="s">switch(input) {</span>
+<span class="s">    case ~&#39;^0x\\d+&#39;:</span>
+<span class="s">        number = Integer.parseInt(input.substring(2), 16); break</span>
+<span class="s">    case ~&#39;^0\\d+&#39;:</span>
+<span class="s">        number = Integer.parseInt(input.substring(1), 8); break</span>
+<span class="s">    default:</span>
+<span class="s">        number = Integer.parseInt(input)</span>
+<span class="s">}</span>
+<span class="s">println &#39;Decimal value: &#39; + number</span>
+
+<span class="s">// permissionScript:</span>
+<span class="s">print &#39;Enter file permission in octal: &#39;</span>
+<span class="s">input = new BufferedReader(new InputStreamReader(System.in))</span>
+<span class="s">num = input.readLine().trim()</span>
+<span class="s">permission = Integer.parseInt(num, 8)</span>
+<span class="s">println &#39;Decimal value: &#39; + permission</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN121"
+>Putting Commas in Numbers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">nf = NumberFormat.getInstance()</span>
+<span class="s">assert nf.format(-1740525205) == &#39;-1,740,525,205&#39;</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN124"
+>Printing Correct Plurals</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">def timeMessage(hour) { &#39;It took &#39; + hour + &#39; hour&#39; + (hour == 1 ? &#39;&#39; : &#39;s&#39;) }</span>
+<span class="s">assert &#39;It took 1 hour&#39; == timeMessage(1)</span>
+<span class="s">assert &#39;It took 2 hours&#39; == timeMessage(2)</span>
+
+<span class="s">// you can also use Java&#39;s ChoiceFormat</span>
+<span class="s">// overkill for this example but extensible and compatible with MessageFormat</span>
+<span class="s">limits = [1, ChoiceFormat.nextDouble(1)] as double[]</span>
+<span class="s">names = [&#39;century&#39;, &#39;centuries&#39;] as String[]</span>
+<span class="s">choice = new ChoiceFormat(limits, names)</span>
+<span class="s">numCenturies = 1</span>
+<span class="s">expected = &#39;It took 1 century&#39;</span>
+<span class="s">assert expected == &quot;It took $numCenturies &quot; + choice.format(numCenturies)</span>
+<span class="s">// an alternate constructor syntax</span>
+<span class="s">choice = new ChoiceFormat(&#39;0#are no files|1#is one file|2#are multiple files&#39;)</span>
+<span class="s">assert choice.format(3) == &#39;are multiple files&#39;</span>
+
+<span class="s">// more complex pluralization can be done with Java libraries, e.g.:</span>
+<span class="s">// http://www.elvis.ac.nz/brain?PluralizationMapping</span>
+<span class="s">// org.springframework.util.Pluralizer within the Spring Framework (springframework.org)</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN127"
+>Program: Calculating Prime Factors</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// calculating prime factors</span>
+<span class="s">def factorize(BigInteger orig) {</span>
+<span class="s">    factors = [:]</span>
+<span class="s">    def addFactor = { x -&gt; if (factors[x]) factors[x] += 1 else factors[x] = 1 }</span>
+<span class="s">    n = orig</span>
+<span class="s">    i = 2</span>
+<span class="s">    sqi = 4               // square of i</span>
+<span class="s">    while (sqi &lt;= n) {</span>
+<span class="s">        while (n.remainder(i) == 0) {</span>
+<span class="s">            n /= i</span>
+<span class="s">            addFactor i</span>
+<span class="s">        }</span>
+<span class="s">        // we take advantage of the fact that (i+1)**2 = i**2 + 2*i + 1</span>
+<span class="s">        sqi += 2 * i + 1</span>
+<span class="s">        i += 1</span>
+<span class="s">    }</span>
+<span class="s">    if ((n != 1) &amp;&amp; (n != orig)) addFactor n</span>
+<span class="s">    return factors</span>
+<span class="s">}</span>
+
+<span class="s">def pretty(factors) {</span>
+<span class="s">    if (!factors) return &quot;PRIME&quot;</span>
+<span class="s">    sb = new StringBuffer()</span>
+<span class="s">    factors.keySet().sort().each { key -&gt;</span>
+<span class="s">        sb &lt;&lt; key</span>
+<span class="s">        if (factors[key] &gt; 1) sb &lt;&lt; &quot;**&quot; + factors[key]</span>
+<span class="s">        sb &lt;&lt; &quot; &quot;</span>
+<span class="s">    }</span>
+<span class="s">    return sb.toString().trim()</span>
+<span class="s">}</span>
+
+<span class="s">assert pretty(factorize(2178)) == &#39;2 3**2 11**2&#39;</span>
+<span class="s">assert pretty(factorize(39887)) == &#39;PRIME&#39;</span>
+<span class="s">assert pretty(factorize(239322000000000000000000)) == &#39;2**19 3 5**18 39887&#39;</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="strings.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="datesandtimes.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Strings</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Dates and Times</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

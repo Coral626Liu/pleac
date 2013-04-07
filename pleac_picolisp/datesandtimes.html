@@ -1,0 +1,582 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Dates and Times</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-PicoLisp
+"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Numbers"
+HREF="numbers.html"><LINK
+REL="NEXT"
+TITLE="Arrays"
+HREF="arrays.html"></HEAD
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-PicoLisp
+</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="numbers.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="arrays.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="DATESANDTIMES"
+>3. Dates and Times</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN132"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"># Dates and times are handled in PicoLisp by the built-in '</FONT></B>date<B><FONT COLOR="#BC8F8F">' and '</FONT></B><B><FONT COLOR="#A020F0">time</FONT></B><B><FONT COLOR="#BC8F8F">'
+# functions, and additional functions like '</FONT></B>day<B><FONT COLOR="#BC8F8F">' and '</FONT></B>week<B><FONT COLOR="#BC8F8F">', and various
+# functions for formatting and localization
+#-----------------------------
+: (prinl
+   &quot;Today is day &quot;
+   (- (date) (date (car (date (date))) 1 1) -1)
+   &quot; of the current year.&quot; )
+Today is day 365 of the current year.
+#-----------------------------</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN135"
+>Finding Today's Date</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">#-----------------------------
+: (date (date))
+-&gt; (2010 12 31)
+#-----------------------------
+: (prinl &quot;The current date is &quot; (dat$ (date) &quot; &quot;))
+The current date is 2010 12 31
+#-----------------------------
+: (prinl &quot;The current date is &quot; (dat$ (date) &quot;-&quot;))
+The current date is 2010-12-31
+#-----------------------------
+: (prinl (stamp))
+2010-12-31 13:31:27
+#-----------------------------</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN138"
+>Converting DMYHMS to Epoch Seconds</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">#-----------------------------
+: (- (+ (* 86400 (date T)) (time T)) (* 86400 (date 1970 1 1)))
+-&gt; 1293799342
+
+: (- (+ (* 86400 (date 2010 12 30)) (time 6 57 52)) (* 86400 (date 1970 1 1)))
+-&gt; 1293692272
+
+: (- (+ (* 86400 ($dat &quot;20101230&quot;)) ($tim &quot;6:57:52&quot;)) (* 86400 (date 1970 1 1)))
+-&gt; 1293692272
+#-----------------------------</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN141"
+>Converting Epoch Seconds to DMYHMS</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">#-----------------------------
+: (let
+   (Secs (+ 1293692272 (* 86400 (date 1970 1 1)))
+      Date (/ Secs 86400)
+      Time (% Secs 86400) )
+   (prinl &quot;Date: &quot; (datSym Date) &quot;,  time: &quot; (tim$ Time T)) )
+Date: 30dec10,  time: 06:57:52
+#-----------------------------</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN144"
+>Adding to or Subtracting from a Date</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"># See also the add/subtract in above epoch calculations
+#-----------------------------
+: (let D (date)
+   (prinl
+      &quot;Today: &quot; (day D) &quot;, &quot; (datStr D)
+      &quot; -&gt; next week: &quot; (day (inc '</FONT></B>D 7)) <B><FONT COLOR="#BC8F8F">&quot;, &quot;</FONT></B> (datStr D) ) )
+Today: Friday, 2010-12-31 -&gt; <B><FONT COLOR="#A020F0">next</FONT></B> week: Friday, 2011-01-07
+<I><FONT COLOR="#B22222">#-----------------------------
+</FONT></I></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN147"
+>Difference of Two Dates</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><I><FONT COLOR="#B22222"></FONT></I><I><FONT COLOR="#B22222">#-----------------------------
+</FONT></I>: (prinl
+   <B><FONT COLOR="#BC8F8F">&quot;Today Jimi Hendrix would be &quot;</FONT></B>
+   (- (date) (date 1942 11 27))
+   <B><FONT COLOR="#BC8F8F">&quot; days old&quot;</FONT></B> )
+Today Jimi Hendrix would be 24871 days old
+<I><FONT COLOR="#B22222">#-----------------------------
+</FONT></I></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN150"
+>Day in a Week/Month/Year or Week Number</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><I><FONT COLOR="#B22222"></FONT></I><I><FONT COLOR="#B22222">#-----------------------------
+</FONT></I>: (prinl <B><FONT COLOR="#BC8F8F">&quot;Today is &quot;</FONT></B> (day (date)))
+Today is Friday
+
+: (prinl <B><FONT COLOR="#BC8F8F">&quot;Jimi Hendrix was born on a &quot;</FONT></B> (day (date 1942 11 27)))
+Jimi Hendrix was born on a Friday
+<I><FONT COLOR="#B22222">#-----------------------------
+</FONT></I>: (prinl <B><FONT COLOR="#BC8F8F">&quot;This is the &quot;</FONT></B> (week (date)) <B><FONT COLOR="#BC8F8F">&quot;th week&quot;</FONT></B>)
+This is the 52th week
+<I><FONT COLOR="#B22222">#-----------------------------
+</FONT></I>: (prinl <B><FONT COLOR="#BC8F8F">&quot;This is the &quot;</FONT></B> (cadr (date (date))) <B><FONT COLOR="#BC8F8F">&quot;th month&quot;</FONT></B>)
+This is the 12th month
+<I><FONT COLOR="#B22222">#-----------------------------
+</FONT></I>: (prinl <B><FONT COLOR="#BC8F8F">&quot;This is the year &quot;</FONT></B> (car (date (date))))
+This is the year 2010
+<I><FONT COLOR="#B22222">#-----------------------------
+</FONT></I></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN153"
+>Parsing Dates and Times from Strings</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><I><FONT COLOR="#B22222"></FONT></I><I><FONT COLOR="#B22222">#-----------------------------
+</FONT></I><I><FONT COLOR="#B22222"># Calculate the days since the epoch
+</FONT></I>: (- (date) ($dat <B><FONT COLOR="#BC8F8F">&quot;1998-06-03&quot;</FONT></B> <B><FONT COLOR="#BC8F8F">&quot;-&quot;</FONT></B>))
+-&gt; 4594
+<I><FONT COLOR="#B22222">#-----------------------------
+</FONT></I>: (date (expDat <B><FONT COLOR="#BC8F8F">&quot;31&quot;</FONT></B>))
+-&gt; (2010 12 31)
+
+: (date (expDat <B><FONT COLOR="#BC8F8F">&quot;3112&quot;</FONT></B>))
+-&gt; (2010 12 31)
+
+: (date (expDat <B><FONT COLOR="#BC8F8F">&quot;311210&quot;</FONT></B>))
+-&gt; (2010 12 31)
+
+: (date (expDat <B><FONT COLOR="#BC8F8F">&quot;31.12.10&quot;</FONT></B>))
+-&gt; (2010 12 31)
+
+: (date (expDat <B><FONT COLOR="#BC8F8F">&quot;31.12&quot;</FONT></B>))
+-&gt; (2010 12 31)
+<I><FONT COLOR="#B22222">#-----------------------------
+</FONT></I></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN156"
+>Printing a Date</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><I><FONT COLOR="#B22222"></FONT></I><I><FONT COLOR="#B22222">#-----------------------------
+</FONT></I>(load <B><FONT COLOR="#BC8F8F">&quot;@lib/http.l&quot;</FONT></B>)
+
+: (httpDate (date T) (<B><FONT COLOR="#A020F0">time</FONT></B> T))
+Fri, 31 Dec 2010 13:21:03 GMT
+<I><FONT COLOR="#B22222">#-----------------------------
+</FONT></I>: (stamp)
+-&gt; <B><FONT COLOR="#BC8F8F">&quot;2010-12-31 14:21:47&quot;</FONT></B>
+<I><FONT COLOR="#B22222">#-----------------------------
+</FONT></I>: (datStr (date))
+-&gt; <B><FONT COLOR="#BC8F8F">&quot;2010-12-31&quot;</FONT></B>
+
+: (locale <B><FONT COLOR="#BC8F8F">&quot;DE&quot;</FONT></B> <B><FONT COLOR="#BC8F8F">&quot;de&quot;</FONT></B>)
+
+: (datStr (date))
+-&gt; <B><FONT COLOR="#BC8F8F">&quot;31.12.2010&quot;</FONT></B>
+
+: (locale <B><FONT COLOR="#BC8F8F">&quot;JP&quot;</FONT></B> <B><FONT COLOR="#BC8F8F">&quot;jp&quot;</FONT></B>)
+
+: (datStr (date))
+-&gt; <B><FONT COLOR="#BC8F8F">&quot;2010/12/31&quot;</FONT></B>
+<I><FONT COLOR="#B22222">#-----------------------------
+</FONT></I></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN159"
+>High-Resolution Timers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><I><FONT COLOR="#B22222"></FONT></I><I><FONT COLOR="#B22222">#-----------------------------
+</FONT></I>: (usec)         <I><FONT COLOR="#B22222"># Microseconds
+</FONT></I>-&gt; 250502252
+<I><FONT COLOR="#B22222">#-----------------------------
+</FONT></I>: (let U (usec)
+   (prin <B><FONT COLOR="#BC8F8F">&quot;Press return when ready: &quot;</FONT></B>)
+   (line)
+   (prinl <B><FONT COLOR="#BC8F8F">&quot;You took &quot;</FONT></B> (<B><FONT COLOR="#A020F0">format</FONT></B> (- (usec) U) 6) <B><FONT COLOR="#BC8F8F">&quot; seconds&quot;</FONT></B>) )
+Press <B><FONT COLOR="#A020F0">return</FONT></B> when ready:
+You took 2.711455 seconds
+<I><FONT COLOR="#B22222">#-----------------------------
+</FONT></I>: (bench (prin <B><FONT COLOR="#BC8F8F">&quot;Press return when ready: &quot;</FONT></B>) (line))
+Press <B><FONT COLOR="#A020F0">return</FONT></B> when ready:
+1.332 sec
+<I><FONT COLOR="#B22222">#-----------------------------
+</FONT></I><I><FONT COLOR="#B22222"># Generate, sort and count 1 million random numbers
+</FONT></I>: (bench (<B><FONT COLOR="#A020F0">length</FONT></B> (<B><FONT COLOR="#A020F0">sort</FONT></B> (make (<B><FONT COLOR="#A020F0">do</FONT></B> 1000000 (<B><FONT COLOR="#A020F0">link</FONT></B> (<B><FONT COLOR="#A020F0">rand</FONT></B>)))))))
+2.839 sec
+-&gt; 1000000
+<I><FONT COLOR="#B22222">#-----------------------------
+</FONT></I></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN162"
+>Short Sleeps</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><I><FONT COLOR="#B22222"></FONT></I><I><FONT COLOR="#B22222">#-----------------------------
+</FONT></I>(<B><FONT COLOR="#A020F0">wait</FONT></B> 250)  <I><FONT COLOR="#B22222"># Sleep 0.25 secs
+</FONT></I><I><FONT COLOR="#B22222">#-----------------------------
+</FONT></I>: (key 4000)  <I><FONT COLOR="#B22222"># Wait max. 4 secs for a keypress
+</FONT></I>-&gt; <B><FONT COLOR="#BC8F8F">&quot;a&quot;</FONT></B>        <I><FONT COLOR="#B22222"># (pressed &quot;a&quot; after 2 seconds)
+</FONT></I>
+: (key 4000)
+-&gt; NIL        <I><FONT COLOR="#B22222"># (timed out)
+</FONT></I><I><FONT COLOR="#B22222">#-----------------------------
+</FONT></I></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN165"
+>Program: hopdelta</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><I><FONT COLOR="#B22222"></FONT></I><I><FONT COLOR="#B22222">#-----------------------------
+</FONT></I><I><FONT COLOR="#B22222"># <font size="-1"><a href="http://pleac.sourceforge.net/include/picolisp/ch03/hopdelta">download the following standalone program</a></font>
+</FONT></I><I><FONT COLOR="#B22222">#!/usr/bin/picolisp /usr/lib/picolisp/lib.l
+</FONT></I>
+(load <B><FONT COLOR="#BC8F8F">&quot;@lib/misc.l&quot;</FONT></B>)
+
+(in NIL
+   (let (Fmt (-21 -21 -9 -10 10)  Sender <B><FONT COLOR="#BC8F8F">&quot;Start&quot;</FONT></B>  LastSecs NIL)
+      (tab Fmt <B><FONT COLOR="#BC8F8F">&quot;Sender&quot;</FONT></B> <B><FONT COLOR="#BC8F8F">&quot;Recipient&quot;</FONT></B> <B><FONT COLOR="#BC8F8F">&quot;Time&quot;</FONT></B> NIL <B><FONT COLOR="#BC8F8F">&quot;Delta&quot;</FONT></B>)
+      (tab Fmt <B><FONT COLOR="#BC8F8F">&quot;------&quot;</FONT></B> <B><FONT COLOR="#BC8F8F">&quot;---------&quot;</FONT></B> <B><FONT COLOR="#BC8F8F">&quot;----&quot;</FONT></B> NIL <B><FONT COLOR="#BC8F8F">&quot;-----&quot;</FONT></B>)
+      (<B><FONT COLOR="#A020F0">for</FONT></B> Lst
+         (flip
+            (make
+               (<B><FONT COLOR="#A020F0">while</FONT></B> (from <B><FONT COLOR="#BC8F8F">&quot;^JReceived: from &quot;</FONT></B>)
+                  (let Recipient (till <B><FONT COLOR="#BC8F8F">&quot; ^J&quot;</FONT></B> T)
+                     (from <B><FONT COLOR="#BC8F8F">&quot;; &quot;</FONT></B>)
+                     (from <B><FONT COLOR="#BC8F8F">&quot;,&quot;</FONT></B>)
+                     (let
+                        (Day (<B><FONT COLOR="#A020F0">read</FONT></B>)
+                           Mon (<B><FONT COLOR="#A020F0">index</FONT></B> (till <B><FONT COLOR="#BC8F8F">&quot; &quot;</FONT></B> T) *Mon)
+                           Year (<B><FONT COLOR="#A020F0">read</FONT></B>)
+                           Tim (till <B><FONT COLOR="#BC8F8F">&quot; &quot;</FONT></B> T)
+                           Offs (<B><FONT COLOR="#A020F0">read</FONT></B>)
+                           Secs (+ (* 86400 (date Year Mon Day)) ($tim Tim)) )
+                        (when (num? Offs)
+                           (inc <B><FONT COLOR="#BC8F8F">'Secs (*/ 3600 Offs 100)) )
+                        (link
+                           (list
+                              Recipient
+                              Tim
+                              (dat$ (date Year Mon Day) &quot;/&quot;)
+                              Secs ) ) ) ) ) ) )
+         #(println (list Day Mon Year Tim '</FONT></B>- Secs))
+         (tab Fmt
+            Sender
+            (car Lst)
+            (cadr Lst)
+            (caddr Lst)
+            (tim$ (- (cadddr Lst) LastSecs) T) )
+         (setq Sender (car Lst)  LastSecs (cadddr Lst)) ) ) )
+
+(bye)
+
+<I><FONT COLOR="#B22222">#-----------------------------
+</FONT></I>$ ./hopdelta &lt;header
+Sender               Recipient            Time                    Delta
+------               ---------            ----                    -----
+Start                app                  15:44:34 2010/12/31
+app                  mo-p00-ob.rzone.de   15:44:34 2010/12/31  00:00:00
+mo-p00-ob.rzone.de   post.strato.de       15:44:39 2010/12/31  00:00:05
+post.strato.de       localhost            15:46:09 2010/12/31  00:01:30
+<I><FONT COLOR="#B22222">#-----------------------------
+</FONT></I></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="numbers.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="arrays.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Numbers</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Arrays</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

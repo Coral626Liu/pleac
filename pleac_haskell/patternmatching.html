@@ -1,0 +1,1046 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Pattern Matching</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Haskell"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Hashes"
+HREF="hashes.html"><LINK
+REL="NEXT"
+TITLE="File Access"
+HREF="fileaccess.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Haskell</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="hashes.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="fileaccess.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="PATTERNMATCHING"
+>6. Pattern Matching</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN285"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">-- for info about the various regexp libraries, see http://haskell.org/haskellwiki/Regular_expressions</span>
+<span class="c1">--</span>
+<span class="c1">-- [Oct 2008] Text.Regex.Posix/Text.Regex.Base provides =~ which is quite powerful</span>
+<span class="c1">-- but it misses simple things like subRegex and splitRegex so in many cases</span>
+<span class="c1">-- Text.Regex must be used</span>
+<span class="c1">--</span>
+<span class="c1">-- with Text.Regex.Posix:</span>
+<span class="kr">import</span> <span class="nn">Text.Regex.Posix</span>
+<span class="kr">import</span> <span class="nn">Text.Regex.Base</span>
+
+<span class="nf">meadow</span> <span class="ow">=</span> <span class="p">[</span> <span class="s">&quot;sheeps are ovine&quot;</span><span class="p">,</span> <span class="s">&quot;Sheeps are ovine&quot;</span>
+         <span class="p">,</span> <span class="s">&quot;Fine bovines demand fine toreadors.&quot;</span>
+         <span class="p">,</span> <span class="s">&quot;Muskoxen are polar ovibovine species.&quot;</span>
+         <span class="p">,</span> <span class="s">&quot;Grooviness went out of fashion decades ago.&quot;</span> <span class="p">]</span>
+
+<span class="nf">t1</span> <span class="ow">=</span> <span class="n">filter</span> <span class="p">(</span><span class="o">=~</span> <span class="s">&quot;sheep&quot;</span><span class="p">)</span> <span class="n">meadow</span>
+<span class="c1">-- [&quot;sheeps are ovine&quot;]</span>
+
+<span class="nf">t2</span> <span class="ow">=</span> <span class="n">filter</span> <span class="p">(</span><span class="o">=~</span> <span class="s">&quot;</span><span class="se">\\</span><span class="s">&lt;ovines?&quot;</span><span class="p">)</span> <span class="n">meadow</span>
+<span class="c1">-- [&quot;sheeps are ovine&quot;,&quot;Sheeps are ovine&quot;]</span>
+
+<span class="c1">-- below require &quot;import Data.Bits&quot; for .|. :</span>
+<span class="nf">ignoreCase</span> <span class="ow">=</span> <span class="n">makeRegexOpts</span> <span class="p">(</span><span class="n">defaultCompOpt</span> <span class="o">.|.</span> <span class="n">compIgnoreCase</span><span class="p">)</span> <span class="n">defaultExecOpt</span>
+<span class="nf">t3</span> <span class="ow">=</span> <span class="n">filter</span> <span class="p">(</span><span class="n">matchTest</span> <span class="o">$</span> <span class="n">ignoreCase</span> <span class="s">&quot;sheep&quot;</span><span class="p">)</span> <span class="n">meadow</span>
+<span class="c1">-- [&quot;sheeps are ovine&quot;,&quot;Sheeps are ovine&quot;]</span>
+
+
+<span class="c1">-- the same with Text.Regex:</span>
+<span class="kr">import</span> <span class="nn">Data.Maybe</span>
+<span class="kr">import</span> <span class="nn">Text.Regex</span>
+
+<span class="nf">t1</span> <span class="ow">=</span> <span class="n">filter</span> <span class="p">(</span><span class="n">isJust</span> <span class="o">.</span> <span class="n">matchRegex</span> <span class="p">(</span><span class="n">mkRegex</span> <span class="s">&quot;sheep&quot;</span><span class="p">))</span> <span class="n">meadow</span>
+<span class="c1">-- [&quot;sheeps are ovine&quot;]</span>
+
+<span class="nf">t2</span> <span class="ow">=</span> <span class="n">filter</span> <span class="p">(</span><span class="n">isJust</span> <span class="o">.</span> <span class="n">matchRegex</span> <span class="p">(</span><span class="n">mkRegex</span> <span class="s">&quot;</span><span class="se">\\</span><span class="s">&lt;ovines?&quot;</span><span class="p">))</span> <span class="n">meadow</span>
+<span class="c1">-- [&quot;sheeps are ovine&quot;,&quot;Sheeps are ovine&quot;]</span>
+
+<span class="nf">ignoreCase</span> <span class="n">s</span> <span class="ow">=</span> <span class="n">mkRegexWithOpts</span> <span class="n">s</span> <span class="kt">True</span> <span class="kt">False</span>
+<span class="nf">t3</span> <span class="ow">=</span> <span class="n">filter</span> <span class="p">(</span><span class="n">isJust</span> <span class="o">.</span> <span class="n">matchRegex</span> <span class="p">(</span><span class="n">ignoreCase</span> <span class="s">&quot;sheep&quot;</span><span class="p">))</span> <span class="n">meadow</span>
+<span class="c1">-- [&quot;sheeps are ovine&quot;,&quot;Sheeps are ovine&quot;]</span>
+
+<span class="c1">-- note that Data.ByteString.Char8 has a few interesting functions,</span>
+<span class="c1">-- but usually regexps are better</span>
+<span class="kr">import</span> <span class="k">qualified</span> <span class="nn">Data.ByteString.Char8</span> <span class="k">as</span> <span class="n">B</span>
+
+<span class="nf">t</span> <span class="ow">=</span> <span class="n">filter</span> <span class="n">is_sheep</span> <span class="n">meadow</span>
+    <span class="kr">where</span> <span class="n">is_sheep</span> <span class="n">s</span> <span class="ow">=</span> <span class="kt">B</span><span class="o">.</span><span class="n">isInfixOf</span> <span class="p">(</span><span class="kt">B</span><span class="o">.</span><span class="n">pack</span> <span class="s">&quot;sheep&quot;</span><span class="p">)</span> <span class="p">(</span><span class="kt">B</span><span class="o">.</span><span class="n">pack</span> <span class="n">s</span><span class="p">)</span>
+<span class="c1">-- [&quot;sheeps are ovine&quot;]</span>
+
+
+<span class="nf">s1</span> <span class="ow">=</span> <span class="n">subRegex</span> <span class="p">(</span><span class="n">mkRegex</span> <span class="s">&quot;o+&quot;</span><span class="p">)</span> <span class="s">&quot;good food&quot;</span> <span class="s">&quot;e&quot;</span>
+<span class="c1">-- ged fed </span>
+
+<span class="c1">-- the following helper functions are useful</span>
+<span class="nf">subRegexWith</span> <span class="n">re</span> <span class="n">new</span> <span class="n">s</span> <span class="ow">=</span>
+    <span class="kr">case</span> <span class="n">matchRegexAll</span> <span class="n">re</span> <span class="n">s</span> <span class="kr">of</span>
+      <span class="kt">Nothing</span> <span class="ow">-&gt;</span> <span class="n">s</span>
+      <span class="kt">Just</span> <span class="p">(</span><span class="n">before</span><span class="p">,</span> <span class="n">matched</span><span class="p">,</span> <span class="n">after</span><span class="p">,</span> <span class="kr">_</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="n">before</span> <span class="o">++</span> <span class="n">new</span> <span class="n">matched</span> <span class="o">++</span> <span class="p">(</span><span class="n">subRegexWith</span> <span class="n">re</span> <span class="n">new</span> <span class="n">after</span><span class="p">)</span>
+<span class="nf">subRegexOnceWith</span> <span class="n">re</span> <span class="n">new</span> <span class="n">s</span> <span class="ow">=</span> 
+    <span class="kr">case</span> <span class="n">matchRegexAll</span> <span class="n">re</span> <span class="n">s</span> <span class="kr">of</span>
+      <span class="kt">Nothing</span> <span class="ow">-&gt;</span> <span class="n">s</span>
+      <span class="kt">Just</span> <span class="p">(</span><span class="n">before</span><span class="p">,</span> <span class="n">matched</span><span class="p">,</span> <span class="n">after</span><span class="p">,</span> <span class="kr">_</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="n">before</span> <span class="o">++</span> <span class="n">new</span> <span class="n">matched</span> <span class="o">++</span> <span class="n">after</span>
+
+<span class="nf">s2</span> <span class="ow">=</span> <span class="n">subRegexOnceWith</span> <span class="p">(</span><span class="n">mkRegex</span> <span class="s">&quot;o+&quot;</span><span class="p">)</span> <span class="p">(</span><span class="nf">\</span><span class="kr">_</span> <span class="ow">-&gt;</span> <span class="s">&quot;e&quot;</span><span class="p">)</span> <span class="s">&quot;good food&quot;</span> 
+<span class="c1">-- ged food</span>
+
+
+<span class="nf">digits</span> <span class="ow">=</span> <span class="s">&quot;123456789&quot;</span><span class="p">;</span>
+<span class="nf">l</span> <span class="ow">=</span> <span class="n">digits</span> <span class="o">=~</span> <span class="s">&quot;...&quot;</span> <span class="ow">::</span> <span class="p">[</span><span class="kt">String</span><span class="p">]</span> <span class="c1">-- nb: in List context, calls matchAll</span>
+<span class="c1">-- [&quot;123&quot;,&quot;456&quot;,&quot;789&quot;]</span>
+
+<span class="c1">-- for overlapping matches, one must do it by hand:</span>
+<span class="nf">allOverlappingMatches</span> <span class="n">re</span> <span class="n">s</span> <span class="ow">=</span> 
+    <span class="kr">case</span> <span class="n">matchRegexAll</span> <span class="n">re</span> <span class="n">s</span> <span class="kr">of</span>
+      <span class="kt">Nothing</span> <span class="ow">-&gt;</span> <span class="kt">[]</span>
+      <span class="kt">Just</span> <span class="p">(</span><span class="n">before</span><span class="p">,</span> <span class="n">matched</span><span class="p">,</span> <span class="n">after</span><span class="p">,</span> <span class="kr">_</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="n">matched</span> <span class="kt">:</span> <span class="n">allOverlappingMatches</span> <span class="n">re</span> <span class="p">(</span><span class="n">tail</span> <span class="n">matched</span> <span class="o">++</span> <span class="n">after</span><span class="p">)</span>
+
+<span class="nf">l</span> <span class="ow">=</span> <span class="n">allOverlappingMatches</span> <span class="p">(</span><span class="n">mkRegex</span> <span class="s">&quot;...&quot;</span><span class="p">)</span> <span class="n">digits</span>
+<span class="c1">-- [&quot;123&quot;,&quot;234&quot;,&quot;345&quot;,&quot;456&quot;,&quot;567&quot;,&quot;678&quot;,&quot;789&quot;]</span>
+
+
+<span class="nf">string</span> <span class="ow">=</span> <span class="s">&quot;And little lambs eat ivy&quot;</span>
+<span class="p">(</span><span class="n">before</span><span class="p">,</span> <span class="n">matched</span><span class="p">,</span> <span class="n">after</span><span class="p">)</span> <span class="ow">=</span> <span class="n">string</span> <span class="o">=~</span> <span class="s">&quot;l[^s]*s&quot;</span> <span class="ow">::</span> <span class="p">(</span><span class="kt">String</span><span class="p">,</span> <span class="kt">String</span><span class="p">,</span> <span class="kt">String</span><span class="p">)</span>
+<span class="nf">s</span> <span class="ow">=</span> <span class="n">printf</span> <span class="s">&quot;(%s) (%s) (%s)&quot;</span> <span class="n">before</span> <span class="n">matched</span> <span class="n">after</span> <span class="ow">::</span> <span class="kt">String</span>
+<span class="c1">-- &quot;(And ) (little lambs) ( eat ivy)&quot;</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN288"
+>Copying and Substituting Simultaneously</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">-- copying is the default in pure languages :)</span>
+<span class="kr">import</span> <span class="nn">Text.Regex</span>
+<span class="kr">import</span> <span class="nn">System.Environment</span>
+<span class="kr">import</span> <span class="nn">System.FilePath.Posix</span>
+
+<span class="nf">prog_</span> <span class="ow">=</span> <span class="n">subRegex</span> <span class="p">(</span><span class="n">mkRegex</span> <span class="s">&quot;.*/&quot;</span><span class="p">)</span> <span class="s">&quot;/etc/foo&quot;</span> <span class="s">&quot;&quot;</span>
+<span class="c1">-- &quot;foo&quot;</span>
+<span class="c1">-- but it&#39;s much nicer to use takeFileName</span>
+<span class="nf">prog__</span> <span class="ow">=</span> <span class="n">takeFileName</span> <span class="s">&quot;/etc/foo&quot;</span>
+<span class="c1">-- &quot;foo&quot;</span>
+
+<span class="c1">-- as for the program basename, it is:</span>
+<span class="nf">prog</span> <span class="ow">=</span> <span class="n">getProgName</span>
+
+
+<span class="nf">manpage</span> <span class="ow">=</span> <span class="s">&quot;/usr/man/man3/foo.1&quot;</span>
+<span class="nf">catpage</span> <span class="ow">=</span> <span class="n">subRegexMatchesWith</span> <span class="p">(</span><span class="n">mkRegex</span> <span class="s">&quot;man([0-9])&quot;</span><span class="p">)</span> <span class="p">(</span><span class="nf">\</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="s">&quot;cat&quot;</span> <span class="o">++</span> <span class="n">n</span><span class="p">)</span> <span class="n">manpage</span>
+<span class="c1">-- /usr/man/cat3/foo.1</span>
+
+<span class="nf">subRegexMatchesWith</span> <span class="n">re</span> <span class="n">new</span> <span class="n">s</span> <span class="ow">=</span> 
+    <span class="kr">case</span> <span class="n">matchRegexAll</span> <span class="n">re</span> <span class="n">s</span> <span class="kr">of</span>
+      <span class="kt">Nothing</span> <span class="ow">-&gt;</span> <span class="n">s</span>
+      <span class="kt">Just</span> <span class="p">(</span><span class="n">before</span><span class="p">,</span> <span class="n">matched</span><span class="p">,</span> <span class="n">after</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="n">before</span> <span class="o">++</span> <span class="n">new</span> <span class="n">l</span> <span class="o">++</span> <span class="n">after</span>
+
+<span class="nf">bindirs</span> <span class="ow">=</span> <span class="p">[</span> <span class="s">&quot;/usr/bin&quot;</span><span class="p">,</span> <span class="s">&quot;/bin&quot;</span><span class="p">,</span> <span class="s">&quot;/usr/local/bin&quot;</span> <span class="p">]</span>
+<span class="nf">libdirs</span> <span class="ow">=</span> <span class="n">map</span> <span class="p">(</span><span class="nf">\</span><span class="n">s</span> <span class="ow">-&gt;</span> <span class="n">subRegex</span> <span class="p">(</span><span class="n">mkRegex</span> <span class="s">&quot;bin$&quot;</span><span class="p">)</span> <span class="n">s</span> <span class="s">&quot;lib&quot;</span><span class="p">)</span> <span class="n">bindirs</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN291"
+>Matching Letters</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="nf">is_pure_alphabetic</span> <span class="ow">=</span> <span class="n">isJust</span> <span class="o">.</span> <span class="n">matchRegex</span> <span class="p">(</span><span class="n">mkRegex</span> <span class="s">&quot;^[A-Za-z]+$&quot;</span><span class="p">)</span>
+<span class="nf">is_pure_alphabetic_</span> <span class="ow">=</span> <span class="n">all</span> <span class="n">isLetter</span> <span class="c1">-- this handles unicode (accents...)</span>
+
+<span class="nf">some_words</span> <span class="ow">=</span> <span class="p">[</span> <span class="s">&quot;silly&quot;</span><span class="p">,</span> <span class="s">&quot;random!stuff#here&quot;</span><span class="p">,</span> <span class="s">&quot;faÃ§ade&quot;</span><span class="p">,</span> <span class="s">&quot;tschÃŒÃ&quot;</span><span class="p">,</span> <span class="s">&quot;niÃ±o&quot;</span><span class="p">,</span> <span class="s">&quot;ÑÑÑÑÐºÐžÐ¹&quot;</span> <span class="p">]</span>
+<span class="nf">l1</span> <span class="ow">=</span> <span class="n">filter</span> <span class="n">is_pure_alphabetic</span> <span class="n">some_words</span> <span class="c1">-- [&quot;silly&quot;]</span>
+<span class="nf">l2</span> <span class="ow">=</span> <span class="n">filter</span> <span class="n">is_pure_alphabetic_</span> <span class="n">some_words</span> <span class="c1">-- all except &quot;random!stuff#here&quot;</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN294"
+>Matching Words</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">-- &quot;\\S+&quot;         -- as many non-whitespace bytes as possible</span>
+<span class="c1">-- &quot;[A-Za-z&#39;-]+&quot;  -- as many letters, apostrophes, and hyphens</span>
+<span class="c1">-- </span>
+<span class="c1">-- &quot;\\&lt;([A-Za-z]+)\\&gt;&quot; -- usually best</span>
+<span class="c1">-- &quot;\\s([A-Za-z]+)\\s&quot; -- fails at ends or w/ punctuation</span>
+
+<span class="c1">-- words is similar to splitting on &quot;\s+&quot;</span>
+<span class="nf">l</span> <span class="ow">=</span> <span class="n">words</span> <span class="s">&quot;A text   with some</span><span class="se">\t</span><span class="s">separator</span><span class="se">\n</span><span class="s">&quot;</span>
+<span class="c1">-- [&quot;A&quot;,&quot;text&quot;,&quot;with&quot;,&quot;some&quot;,&quot;separator&quot;]</span>
+<span class="c1">--</span>
+<span class="c1">-- (nb: spaces at beginning or end do not change the result)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN297"
+>Commenting Regular Expressions</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">-- Commenting Regular Expressions</span>
+<span class="c1">-- since regexps are simple strings, you can concatenate regexp pieces:</span>
+<span class="nf">re</span> <span class="ow">=</span> <span class="s">&quot;#&quot;</span>          <span class="c1">-- a pound sign</span>
+     <span class="o">++</span> <span class="s">&quot;(</span><span class="se">\\</span><span class="s">w+)&quot;</span>  <span class="c1">-- the variable name</span>
+     <span class="o">++</span> <span class="s">&quot;#&quot;</span>       <span class="c1">-- another pound sign</span>
+<span class="nf">expand_macro</span> <span class="n">vals</span> <span class="ow">=</span> <span class="n">subAllRegexMatchesWith</span> <span class="p">(</span><span class="n">mkRegex</span> <span class="n">re</span><span class="p">)</span> <span class="n">get_val</span>
+    <span class="kr">where</span> <span class="n">get_val</span> <span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="ow">=</span> <span class="n">fromJust</span> <span class="p">(</span><span class="n">lookup</span> <span class="n">s</span> <span class="n">vals</span><span class="p">)</span>
+<span class="nf">s</span> <span class="ow">=</span> <span class="n">expand_macro</span> <span class="p">[</span> <span class="p">(</span><span class="s">&quot;foo&quot;</span><span class="p">,</span> <span class="s">&quot;42&quot;</span><span class="p">)</span> <span class="p">]</span> <span class="s">&quot;blah #foo# blah&quot;</span>
+<span class="c1">-- &quot;blah 42 blah&quot;</span>
+
+<span class="nf">subAllRegexMatchesWith</span> <span class="n">re</span> <span class="n">new</span> <span class="n">s</span> <span class="ow">=</span> 
+    <span class="kr">case</span> <span class="n">matchRegexAll</span> <span class="n">re</span> <span class="n">s</span> <span class="kr">of</span>
+      <span class="kt">Nothing</span> <span class="ow">-&gt;</span> <span class="n">s</span>
+      <span class="kt">Just</span> <span class="p">(</span><span class="n">before</span><span class="p">,</span> <span class="n">matched</span><span class="p">,</span> <span class="n">after</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="n">before</span> <span class="o">++</span> <span class="n">new</span> <span class="n">l</span> <span class="o">++</span> <span class="p">(</span><span class="n">subAllRegexMatchesWith</span> <span class="n">re</span> <span class="n">new</span> <span class="n">after</span><span class="p">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN300"
+>Finding the Nth Occurrence of a Match</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="nf">fishes</span> <span class="ow">=</span> <span class="s">&quot;One fish two fish red fish blue fish&quot;</span>
+
+<span class="c1">-- first some very simple and useful functions:</span>
+<span class="nf">ignoreCase</span> <span class="n">s</span> <span class="ow">=</span> <span class="n">mkRegexWithOpts</span> <span class="n">s</span> <span class="kt">True</span> <span class="kt">False</span>
+<span class="nf">allMatches</span> <span class="n">re</span> <span class="n">s</span> <span class="ow">=</span>
+    <span class="kr">case</span> <span class="n">matchRegexAll</span> <span class="n">re</span> <span class="n">s</span> <span class="kr">of</span>
+      <span class="kt">Nothing</span> <span class="ow">-&gt;</span> <span class="kt">[]</span>
+      <span class="kt">Just</span> <span class="p">(</span><span class="n">_before</span><span class="p">,</span> <span class="kr">_</span><span class="p">,</span> <span class="n">after</span><span class="p">,</span> <span class="n">matches</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="n">matches</span> <span class="kt">:</span> <span class="n">allMatches</span> <span class="n">re</span> <span class="n">after</span>
+
+<span class="c1">-- here we go:</span>
+<span class="nf">colors</span> <span class="ow">=</span> <span class="n">map</span> <span class="n">head</span> <span class="o">$</span> <span class="n">allMatches</span> <span class="p">(</span><span class="n">ignoreCase</span> <span class="s">&quot;(</span><span class="se">\\</span><span class="s">w+)</span><span class="se">\\</span><span class="s">s+fish</span><span class="se">\\</span><span class="s">&gt;&quot;</span><span class="p">)</span> <span class="n">fishes</span>
+<span class="c1">-- [&quot;One&quot;,&quot;two&quot;,&quot;red&quot;,&quot;blue&quot;]</span>
+<span class="nf">s1</span> <span class="ow">=</span> <span class="n">printf</span> <span class="s">&quot;The third fish is a %s one.&quot;</span> <span class="p">(</span><span class="n">colors</span> <span class="o">!!</span> <span class="mi">2</span><span class="p">)</span> <span class="ow">::</span> <span class="kt">String</span>
+<span class="c1">-- The third fish is a red one.</span>
+
+<span class="c1">-- another solution to skip the first 2 matches using an ad&#39;hoc regexp:</span>
+<span class="nf">s2</span> <span class="ow">=</span> <span class="n">printf</span> <span class="s">&quot;The third fish is a %s one.&quot;</span> <span class="n">color</span> <span class="ow">::</span> <span class="kt">String</span>
+    <span class="kr">where</span> <span class="kt">Just</span> <span class="p">(</span><span class="kr">_</span><span class="p">,</span> <span class="kr">_</span><span class="p">,</span> <span class="kr">_</span><span class="p">,</span> <span class="p">[</span><span class="kr">_</span><span class="p">,</span> <span class="n">color</span><span class="p">])</span> <span class="ow">=</span> 
+              <span class="n">matchRegexAll</span> <span class="p">(</span><span class="n">ignoreCase</span> <span class="s">&quot;(</span><span class="se">\\</span><span class="s">w+</span><span class="se">\\</span><span class="s">s+fish</span><span class="se">\\</span><span class="s">s+){2}(</span><span class="se">\\</span><span class="s">w+)</span><span class="se">\\</span><span class="s">s+fish&quot;</span><span class="p">)</span> <span class="n">fishes</span>
+<span class="c1">-- The third fish is a red one.</span>
+
+<span class="c1">-- a modified subRegex to be able to handle differently the 4th match</span>
+<span class="nf">subRegexWithEnv</span> <span class="n">re</span> <span class="n">f</span> <span class="n">env</span> <span class="n">s</span> <span class="ow">=</span>
+    <span class="kr">case</span> <span class="n">matchRegexAll</span> <span class="n">re</span> <span class="n">s</span> <span class="kr">of</span>
+      <span class="kt">Nothing</span> <span class="ow">-&gt;</span> <span class="n">s</span>
+      <span class="kt">Just</span> <span class="p">(</span><span class="n">before</span><span class="p">,</span> <span class="n">matched</span><span class="p">,</span> <span class="n">after</span><span class="p">,</span> <span class="n">matches</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="n">before</span> <span class="o">++</span> <span class="n">matched&#39;</span> <span class="o">++</span> <span class="p">(</span><span class="n">subRegexWithEnv</span> <span class="n">re</span> <span class="n">f</span> <span class="n">env&#39;</span> <span class="n">after</span><span class="p">)</span>
+          <span class="kr">where</span> <span class="p">(</span><span class="n">env&#39;</span><span class="p">,</span> <span class="n">matched&#39;</span><span class="p">)</span> <span class="ow">=</span> <span class="n">f</span> <span class="n">env</span> <span class="p">(</span><span class="n">matched</span><span class="kt">:</span><span class="n">matches</span><span class="p">)</span>
+
+<span class="nf">s3</span> <span class="ow">=</span> <span class="n">subRegexWithEnv</span> <span class="p">(</span><span class="n">ignoreCase</span> <span class="s">&quot;(</span><span class="se">\\</span><span class="s">w+)(</span><span class="se">\\</span><span class="s">s+fish</span><span class="se">\\</span><span class="s">&gt;)&quot;</span><span class="p">)</span> <span class="n">f</span> <span class="mi">1</span> <span class="n">fishes</span>
+    <span class="kr">where</span> <span class="n">f</span> <span class="n">n</span> <span class="p">[</span><span class="n">verbatim</span><span class="p">,</span> <span class="kr">_</span><span class="p">,</span> <span class="n">fish</span><span class="p">]</span> <span class="ow">=</span> <span class="p">(</span><span class="n">n</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="kr">if</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">4</span> <span class="kr">then</span> <span class="s">&quot;sushi&quot;</span> <span class="o">++</span> <span class="n">fish</span> <span class="kr">else</span> <span class="n">verbatim</span><span class="p">)</span>
+<span class="c1">-- One fish two fish red fish sushi fish</span>
+
+<span class="c1">-- note that we can easily specialize subRegexWithEnv into subRegexWithCount:</span>
+<span class="nf">withCountEnv</span> <span class="n">f</span> <span class="n">g</span> <span class="n">s</span> <span class="ow">=</span> <span class="n">f</span> <span class="p">(</span><span class="nf">\</span><span class="n">n</span> <span class="n">val</span> <span class="ow">-&gt;</span> <span class="p">(</span><span class="n">n</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">g</span> <span class="n">n</span> <span class="n">val</span><span class="p">))</span> <span class="mi">1</span> <span class="n">s</span>
+<span class="nf">subRegexWithCount</span> <span class="n">re</span> <span class="ow">=</span> <span class="n">withCountEnv</span> <span class="p">(</span><span class="n">subRegexWithEnv</span> <span class="n">re</span><span class="p">)</span>
+
+<span class="nf">s3&#39;</span> <span class="ow">=</span> <span class="n">subRegexWithCount</span> <span class="p">(</span><span class="n">ignoreCase</span> <span class="s">&quot;(</span><span class="se">\\</span><span class="s">w+)(</span><span class="se">\\</span><span class="s">s+fish</span><span class="se">\\</span><span class="s">&gt;)&quot;</span><span class="p">)</span> <span class="n">f</span> <span class="n">fishes</span>
+    <span class="kr">where</span> <span class="n">f</span> <span class="n">n</span> <span class="p">[</span><span class="n">verbatim</span><span class="p">,</span> <span class="kr">_</span><span class="p">,</span> <span class="n">fish</span><span class="p">]</span> <span class="ow">=</span> <span class="kr">if</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">4</span> <span class="kr">then</span> <span class="s">&quot;sushi&quot;</span> <span class="o">++</span> <span class="n">fish</span> <span class="kr">else</span> <span class="n">verbatim</span>
+<span class="c1">-- One fish two fish red fish sushi fish</span>
+
+<span class="c1">-- adding .* at beginning of the regexp will ensure we get the last hit.</span>
+<span class="c1">-- but we must be carefull &quot;.*(\\w+)\\s+fish\\&gt;&quot; is wrong since .* will match</span>
+<span class="c1">-- most the color, so \\&lt; is also needed</span>
+<span class="nf">s4</span> <span class="ow">=</span> <span class="kr">case</span> <span class="n">matchRegex</span> <span class="p">(</span><span class="n">ignoreCase</span> <span class="s">&quot;.*</span><span class="se">\\</span><span class="s">&lt;(</span><span class="se">\\</span><span class="s">w+)</span><span class="se">\\</span><span class="s">s+fish</span><span class="se">\\</span><span class="s">&gt;&quot;</span><span class="p">)</span> <span class="n">fishes</span> <span class="kr">of</span>
+     <span class="kt">Just</span> <span class="p">[</span><span class="n">last_fish_color</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="n">printf</span> <span class="s">&quot;Last fish is %s.&quot;</span> <span class="n">last_fish_color</span>
+     <span class="kr">_</span> <span class="ow">-&gt;</span> <span class="s">&quot;Failed!&quot;</span>
+<span class="c1">-- Last fish is blue.</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN303"
+>Matching Multiple Lines</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">-- for multi line regexps, use (mkRegexWithOpts _ False _)</span>
+<span class="o">#!/</span><span class="n">usr</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">runghc</span>
+
+<span class="c1">-- killtags - very bad html tag killer</span>
+<span class="kr">import</span> <span class="nn">System</span>
+<span class="kr">import</span> <span class="nn">Text.Regex</span>
+
+<span class="nf">main</span> <span class="ow">=</span> <span class="kr">do</span> <span class="n">s</span> <span class="ow">&lt;-</span> <span class="n">getArgs</span> <span class="o">&gt;&gt;=</span> <span class="n">any_input</span>
+          <span class="n">putStr</span> <span class="p">(</span><span class="n">strip_tags</span> <span class="n">s</span><span class="p">)</span>
+
+<span class="nf">any_input</span> <span class="kt">[]</span> <span class="ow">=</span> <span class="n">getContents</span>
+<span class="nf">any_input</span> <span class="p">(</span><span class="n">f</span><span class="kt">:</span><span class="kr">_</span><span class="p">)</span> <span class="ow">=</span> <span class="n">readFile</span> <span class="n">f</span>
+
+<span class="nf">strip_tags</span> <span class="n">s</span> <span class="ow">=</span> <span class="n">subRegex</span> <span class="p">(</span><span class="n">mkRegexWithOpts</span> <span class="s">&quot;&lt;[^&gt;]*&gt;&quot;</span> <span class="kt">False</span> <span class="kt">True</span><span class="p">)</span> <span class="n">s</span> <span class="s">&quot;&quot;</span>
+
+<span class="c1">-- testing it:</span>
+<span class="nf">test</span> <span class="ow">=</span> <span class="s">&quot;&lt;a&gt;after a</span><span class="se">\n\</span>
+<span class="se">       \</span><span class="s">&lt;bbb</span><span class="se">\n\</span>
+<span class="se">       \</span><span class="s">bbb&gt;after b &lt;c&gt;after c</span><span class="se">\n</span><span class="s">&quot;</span>
+<span class="nf">s</span> <span class="ow">=</span> <span class="n">strip_tags</span> <span class="n">test</span>
+<span class="c1">-- &quot;after a\n&lt;bbb\nbbb&gt;after b after c\n&quot;</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN306"
+>Reading Records with a Pattern Separator</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">-- Read the whole file and split</span>
+<span class="nf">l1</span> <span class="ow">=</span> <span class="n">fmap</span> <span class="n">lines</span> <span class="p">(</span><span class="n">readFile</span> <span class="n">filename</span><span class="p">)</span> <span class="c1">-- on line ends</span>
+<span class="nf">l2</span> <span class="ow">=</span> <span class="n">fmap</span> <span class="n">words</span> <span class="p">(</span><span class="n">readFile</span> <span class="n">filename</span><span class="p">)</span> <span class="c1">-- on whitespace</span>
+<span class="nf">l3</span> <span class="ow">=</span> <span class="n">fmap</span> <span class="p">(</span><span class="n">splitRegex</span> <span class="o">$</span> <span class="n">mkRegex</span> <span class="s">&quot;PATTERN&quot;</span><span class="p">)</span> <span class="p">(</span><span class="n">readFile</span> <span class="n">filename</span><span class="p">)</span> <span class="c1">-- on regexp</span>
+
+<span class="c1">-- .Ch, .Se and .Ss divide chunks</span>
+<span class="nf">f</span> <span class="ow">=</span> <span class="n">splitRegex</span> <span class="p">(</span><span class="n">mkRegex</span> <span class="s">&quot;^</span><span class="se">\\</span><span class="s">.(Ch|Se|Ss)$&quot;</span><span class="p">)</span>
+
+<span class="c1">-- note that in the example above, you loose the matched line,</span>
+<span class="c1">-- if you need it, you must create your own splitRegex:</span>
+<span class="nf">splitRegex&#39;</span> <span class="ow">::</span> <span class="kt">Regex</span> <span class="ow">-&gt;</span> <span class="kt">String</span> <span class="ow">-&gt;</span> <span class="p">[(</span><span class="kt">String</span><span class="p">,</span> <span class="kt">String</span><span class="p">)]</span>
+<span class="nf">splitRegex&#39;</span> <span class="n">re</span> <span class="n">s</span> <span class="ow">=</span> 
+    <span class="kr">case</span> <span class="n">unfoldr&#39;</span> <span class="n">f</span> <span class="n">s</span> <span class="kr">of</span>
+      <span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="s">&quot;&quot;</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="n">l</span>
+      <span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="n">l</span> <span class="o">++</span> <span class="p">[(</span><span class="n">s</span><span class="p">,</span> <span class="s">&quot;&quot;</span><span class="p">)]</span>
+    <span class="kr">where</span> 
+      <span class="c1">-- small helper functions which tranform matchRegexAll output</span>
+      <span class="c1">-- to the one wanted by unfoldr&#39;</span>
+      <span class="n">f</span> <span class="ow">=</span> <span class="n">fmap</span> <span class="n">f&#39;</span> <span class="o">.</span> <span class="n">matchRegexAll</span> <span class="n">re</span>
+      <span class="n">f&#39;</span> <span class="p">(</span><span class="n">before</span><span class="p">,</span> <span class="n">matched</span><span class="p">,</span> <span class="n">after</span><span class="p">,</span> <span class="kr">_</span><span class="p">)</span> <span class="ow">=</span> <span class="p">((</span><span class="n">before</span><span class="p">,</span> <span class="n">matched</span><span class="p">),</span> <span class="n">after</span><span class="p">)</span>
+
+<span class="c1">-- it uses this special unfoldr</span>
+<span class="c1">-- (unfoldr only returns [b] whereas we also need the rest)</span>
+<span class="c1">-- nb: with Control.Arrow.first which is \f (a,b) -&gt; (f a, b)</span>
+<span class="c1">--     we could write:  Arrow.first (a :) (unfoldr&#39; f b&#39;)</span>
+<span class="nf">unfoldr&#39;</span> <span class="ow">::</span> <span class="p">(</span><span class="n">a</span> <span class="ow">-&gt;</span> <span class="kt">Maybe</span> <span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">a</span><span class="p">))</span> <span class="ow">-&gt;</span> <span class="n">a</span> <span class="ow">-&gt;</span> <span class="p">([</span><span class="n">b</span><span class="p">],</span> <span class="n">a</span><span class="p">)</span>
+<span class="nf">unfoldr&#39;</span> <span class="n">f</span> <span class="n">b</span>  <span class="ow">=</span>
+  <span class="kr">case</span> <span class="n">f</span> <span class="n">b</span> <span class="kr">of</span>
+   <span class="kt">Just</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b&#39;</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="kr">let</span> <span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">b&#39;&#39;</span><span class="p">)</span> <span class="ow">=</span> <span class="n">unfoldr&#39;</span> <span class="n">f</span> <span class="n">b&#39;</span> <span class="kr">in</span> <span class="p">(</span><span class="n">a</span><span class="kt">:</span><span class="n">l</span><span class="p">,</span> <span class="n">b&#39;&#39;</span><span class="p">)</span>
+   <span class="kt">Nothing</span>      <span class="ow">-&gt;</span> <span class="p">(</span><span class="kt">[]</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+
+<span class="nf">unwords_keeping_spaces</span> <span class="ow">=</span> <span class="n">splitRegex&#39;</span> <span class="p">(</span><span class="n">mkRegex</span> <span class="s">&quot;</span><span class="se">\\</span><span class="s">s+&quot;</span><span class="p">)</span>
+<span class="nf">t</span> <span class="ow">=</span> <span class="n">unwords_keeping_spaces</span> <span class="s">&quot;a b  c </span><span class="se">\t</span><span class="s"> d&quot;</span>
+<span class="c1">-- [(&quot;a&quot;,&quot; &quot;),(&quot;b&quot;,&quot;  &quot;),(&quot;c&quot;,&quot; \t &quot;),(&quot;d&quot;,&quot;&quot;)]</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN309"
+>Extracting a Range of Lines</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="kr">import</span> <span class="nn">Text.Regex</span>
+<span class="kr">import</span> <span class="nn">Text.Regex.Posix</span>
+<span class="kr">import</span> <span class="nn">Data.Maybe</span>
+<span class="kr">import</span> <span class="nn">Text.Printf</span>
+<span class="kr">import</span> <span class="nn">System</span>
+
+<span class="nf">any_input</span> <span class="kt">[]</span> <span class="ow">=</span> <span class="n">getContents</span>
+<span class="nf">any_input</span> <span class="p">(</span><span class="n">f</span><span class="kt">:</span><span class="kr">_</span><span class="p">)</span> <span class="ow">=</span> <span class="n">readFile</span> <span class="n">f</span>
+
+<span class="c1">-- command-line to print lines 15 through 17 inclusive (see below)</span>
+<span class="nf">main</span> <span class="ow">=</span> <span class="kr">do</span> <span class="n">s</span> <span class="ow">&lt;-</span> <span class="n">getArgs</span> <span class="o">&gt;&gt;=</span> <span class="n">any_input</span>
+          <span class="n">putStr</span> <span class="p">(</span><span class="n">unlines</span> <span class="o">$</span> <span class="n">take</span> <span class="mi">3</span> <span class="o">$</span> <span class="n">drop</span> <span class="mi">14</span> <span class="o">$</span> <span class="n">lines</span> <span class="n">s</span><span class="p">)</span>
+
+<span class="nf">filterByRange</span> <span class="ow">::</span> <span class="p">(</span><span class="n">a</span> <span class="ow">-&gt;</span> <span class="kt">Bool</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="p">(</span><span class="n">a</span> <span class="ow">-&gt;</span> <span class="kt">Bool</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="p">[[</span><span class="n">a</span><span class="p">]]</span>
+<span class="nf">filterByRange</span> <span class="kr">_</span> <span class="kr">_</span> <span class="kt">[]</span> <span class="ow">=</span> <span class="kt">[]</span>
+<span class="nf">filterByRange</span> <span class="n">f_beg</span> <span class="n">f_end</span> <span class="n">l</span> <span class="ow">=</span> 
+    <span class="kr">let</span> <span class="n">l&#39;</span> <span class="ow">=</span> <span class="n">dropWhile</span> <span class="p">(</span><span class="n">not</span> <span class="o">.</span> <span class="n">f_beg</span><span class="p">)</span> <span class="n">l</span> <span class="kr">in</span>
+    <span class="kr">case</span> <span class="n">break</span> <span class="n">f_end</span> <span class="n">l&#39;</span> <span class="kr">of</span>
+      <span class="p">(</span><span class="n">before</span><span class="p">,</span> <span class="n">match</span> <span class="kt">:</span> <span class="n">l&#39;&#39;</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="p">(</span><span class="n">before</span> <span class="o">++</span> <span class="p">[</span><span class="n">match</span><span class="p">])</span> <span class="kt">:</span> <span class="n">filterByRange</span> <span class="n">f_beg</span> <span class="n">f_end</span> <span class="n">l&#39;&#39;</span>
+      <span class="kr">_</span> <span class="ow">-&gt;</span> <span class="kt">[]</span>
+
+<span class="nf">extract_XMP</span> <span class="ow">::</span> <span class="p">[</span><span class="kt">String</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="p">[[</span><span class="kt">String</span><span class="p">]]</span>
+<span class="nf">extract_XMP</span> <span class="ow">=</span> <span class="n">filterByRange</span> <span class="p">(</span><span class="o">=~</span> <span class="s">&quot;&lt;XMP&gt;&quot;</span><span class="p">)</span> <span class="p">(</span><span class="o">=~</span> <span class="s">&quot;&lt;/XMP&gt;&quot;</span><span class="p">)</span>
+
+<span class="nf">t1</span> <span class="ow">=</span> <span class="kr">do</span> <span class="n">s</span> <span class="ow">&lt;-</span> <span class="n">readFile</span> <span class="s">&quot;foo.html&quot;</span>
+        <span class="n">return</span> <span class="o">$</span> <span class="n">extract_XMP</span> <span class="o">$</span> <span class="n">lines</span> <span class="n">s</span>
+
+<span class="nf">ignoreCase</span> <span class="n">s</span> <span class="ow">=</span> <span class="n">mkRegexWithOpts</span> <span class="n">s</span> <span class="kt">True</span> <span class="kt">False</span>
+<span class="nf">extract_XMP&#39;</span> <span class="ow">=</span> <span class="n">filterByRange</span> <span class="p">(</span><span class="n">match</span> <span class="s">&quot;&lt;XMP&gt;&quot;</span><span class="p">)</span> <span class="p">(</span><span class="n">match</span> <span class="s">&quot;&lt;/XMP&gt;&quot;</span><span class="p">)</span>
+    <span class="kr">where</span> <span class="n">match</span> <span class="n">re</span> <span class="ow">=</span> <span class="n">isJust</span> <span class="o">.</span> <span class="n">matchRegex</span> <span class="p">(</span><span class="n">ignoreCase</span> <span class="n">re</span><span class="p">)</span>
+
+<span class="nf">t1&#39;</span> <span class="ow">=</span> <span class="kr">do</span> <span class="n">s</span> <span class="ow">&lt;-</span> <span class="n">readFile</span> <span class="s">&quot;foo.html&quot;</span>
+         <span class="n">return</span> <span class="o">$</span> <span class="n">extract_XMP&#39;</span> <span class="o">$</span> <span class="n">lines</span> <span class="n">s</span>
+
+<span class="nf">mbox_to_headers</span> <span class="ow">=</span> <span class="n">filterByRange</span> <span class="p">(</span><span class="n">match</span> <span class="s">&quot;^From:?</span><span class="se">\\</span><span class="s">s&quot;</span><span class="p">)</span> <span class="p">(</span><span class="n">match</span> <span class="s">&quot;^$&quot;</span><span class="p">)</span>
+    <span class="kr">where</span> <span class="n">match</span> <span class="n">re</span> <span class="ow">=</span> <span class="n">isJust</span> <span class="o">.</span> <span class="n">matchRegex</span> <span class="p">(</span><span class="n">ignoreCase</span> <span class="n">re</span><span class="p">)</span>
+<span class="nf">mail_adresses</span> <span class="ow">=</span> <span class="n">concatMap</span> <span class="n">search_in_line</span>
+    <span class="kr">where</span> <span class="n">search_in_line</span> <span class="n">line</span> <span class="ow">=</span> <span class="p">(</span><span class="n">line</span> <span class="o">=~</span> <span class="s">&quot;[^&lt;&gt;(),;[:space:]]+@[^&lt;&gt;(),;[:space:]]+&quot;</span><span class="p">)</span> <span class="ow">::</span> <span class="p">[</span><span class="kt">String</span><span class="p">]</span>
+          <span class="c1">-- nb: in List context, calls matchAll.</span>
+          <span class="c1">-- nb: \s can not be used, so instead of [^&lt;&gt;\s], one must do [^&lt;&gt;[:space:]]</span>
+
+<span class="nf">t2</span> <span class="ow">=</span> <span class="kr">do</span> <span class="n">s</span> <span class="ow">&lt;-</span> <span class="n">readFile</span> <span class="s">&quot;mbox&quot;</span>
+        <span class="n">return</span> <span class="o">$</span> <span class="n">mail_adresses</span> <span class="o">$</span> <span class="n">concat</span> <span class="o">$</span> <span class="n">mbox_to_headers</span> <span class="o">$</span> <span class="n">lines</span> <span class="n">s</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN312"
+>Matching Shell Globs as Regular Expressions</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="kr">import</span> <span class="nn">List</span>
+<span class="kr">import</span> <span class="nn">Data.Maybe</span>
+
+<span class="nf">special_chars</span> <span class="ow">=</span> <span class="s">&quot;.()+*?[]</span><span class="se">\\</span><span class="s">{}$^|&quot;</span>
+
+<span class="nf">regex_escape_char</span> <span class="ow">::</span> <span class="kt">Char</span> <span class="ow">-&gt;</span> <span class="kt">String</span>
+<span class="nf">regex_escape_char</span> <span class="n">c</span> <span class="ow">=</span> <span class="kr">if</span> <span class="n">elem</span> <span class="n">c</span> <span class="n">special_chars</span> 
+               <span class="kr">then</span> <span class="p">[</span><span class="sc">&#39;</span><span class="se">\\</span><span class="sc">&#39;</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span> 
+               <span class="kr">else</span> <span class="p">[</span><span class="n">c</span><span class="p">]</span>
+<span class="nf">regex_escape</span> <span class="ow">::</span> <span class="kt">String</span> <span class="ow">-&gt;</span> <span class="kt">String</span>
+<span class="nf">regex_escape</span> <span class="ow">=</span> <span class="n">concatMap</span> <span class="n">regex_escape_char</span>
+
+<span class="nf">glob_list</span> <span class="ow">=</span> 
+    <span class="p">[</span> <span class="p">(</span><span class="sc">&#39;*&#39;</span><span class="p">,</span> <span class="s">&quot;.*&quot;</span><span class="p">)</span>
+    <span class="p">,</span> <span class="p">(</span><span class="sc">&#39;?&#39;</span><span class="p">,</span> <span class="s">&quot;.&quot;</span><span class="p">)</span>
+    <span class="p">,</span> <span class="p">(</span><span class="sc">&#39;[&#39;</span><span class="p">,</span> <span class="s">&quot;[&quot;</span><span class="p">)</span>
+    <span class="p">,</span> <span class="p">(</span><span class="sc">&#39;]&#39;</span><span class="p">,</span> <span class="s">&quot;]&quot;</span><span class="p">)</span> <span class="p">]</span>
+<span class="nf">glob_char_to_regexp</span> <span class="n">c</span> <span class="ow">=</span> <span class="n">fromMaybe</span> <span class="p">(</span><span class="n">regex_escape_char</span> <span class="n">c</span><span class="p">)</span> <span class="p">(</span><span class="n">lookup</span> <span class="n">c</span> <span class="n">glob_list</span><span class="p">)</span>
+<span class="c1">-- nb: fromMaybe will try (lookup ...) first, then fallback on (regex_escape_char c)</span>
+
+<span class="nf">glob2pat</span> <span class="ow">=</span> <span class="n">concatMap</span> <span class="n">glob_char_to_regexp</span>
+
+<span class="nf">pat</span> <span class="ow">=</span> <span class="n">glob2pat</span> <span class="s">&quot;*File.*&quot;</span>
+<span class="c1">-- &quot;.*File\\..*&quot;</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN315"
+>Speeding Up Interpolated Matches</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="kr">import</span> <span class="nn">Data.List</span>
+<span class="kr">import</span> <span class="nn">Data.Maybe</span>
+<span class="kr">import</span> <span class="nn">Text.Regex</span>
+
+<span class="nf">popstates</span> <span class="ow">=</span> <span class="p">[</span><span class="s">&quot;CO&quot;</span><span class="p">,</span><span class="s">&quot;ON&quot;</span><span class="p">,</span><span class="s">&quot;MI&quot;</span><span class="p">,</span><span class="s">&quot;WI&quot;</span><span class="p">,</span><span class="s">&quot;MN&quot;</span><span class="p">]</span>
+
+<span class="nf">is_state</span> <span class="ow">=</span> <span class="n">isJust</span> <span class="o">.</span> <span class="n">matchRegex</span> <span class="n">re</span>
+    <span class="kr">where</span> <span class="n">re</span> <span class="ow">=</span> <span class="n">mkRegex</span> <span class="o">$</span> <span class="s">&quot;</span><span class="se">\\</span><span class="s">&lt;(&quot;</span> <span class="o">++</span> <span class="n">intercalate</span> <span class="s">&quot;|&quot;</span> <span class="n">popstates</span> <span class="o">++</span> <span class="s">&quot;)</span><span class="se">\\</span><span class="s">&gt;&quot;</span>
+
+<span class="nf">l</span> <span class="ow">=</span> <span class="n">filter</span> <span class="n">is_state</span> <span class="p">[</span> <span class="s">&quot;xxx&quot;</span><span class="p">,</span> <span class="s">&quot;xx CO xx&quot;</span><span class="p">,</span> <span class="s">&quot;WI&quot;</span><span class="p">,</span> <span class="s">&quot;WIxx&quot;</span> <span class="p">]</span>
+<span class="c1">-- [&quot;xx CO xx&quot;,&quot;WI&quot;]</span>
+
+<span class="c1">-- this is less efficient:</span>
+<span class="nf">is_state&#39;</span> <span class="n">line</span> <span class="ow">=</span> <span class="n">any</span> <span class="p">(</span><span class="nf">\</span><span class="n">re</span> <span class="ow">-&gt;</span> <span class="n">isJust</span> <span class="o">$</span> <span class="n">matchRegex</span> <span class="n">re</span> <span class="n">line</span><span class="p">)</span> <span class="p">(</span><span class="n">map</span> <span class="n">to_regexp</span> <span class="n">popstates</span><span class="p">)</span>
+    <span class="kr">where</span> <span class="n">to_regexp</span> <span class="n">c</span> <span class="ow">=</span> <span class="n">mkRegex</span> <span class="o">$</span> <span class="s">&quot;</span><span class="se">\\</span><span class="s">&lt;&quot;</span> <span class="o">++</span> <span class="n">c</span> <span class="o">++</span> <span class="s">&quot;</span><span class="se">\\</span><span class="s">&gt;&quot;</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN318"
+>Testing for a Valid Pattern</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="kr">import</span> <span class="nn">Data.Maybe</span>
+<span class="kr">import</span> <span class="nn">Data.List</span>
+<span class="kr">import</span> <span class="nn">Text.Regex.Base</span>
+<span class="kr">import</span> <span class="nn">Text.Regex.Posix</span>
+
+<span class="c1">-- one can not catch invalid patterns using Text.Regex</span>
+
+<span class="c1">-- recent versions of Text.Regex.Base have makeRegexM:</span>
+<span class="nf">is_valid_pattern</span> <span class="ow">::</span> <span class="kt">String</span> <span class="ow">-&gt;</span> <span class="kt">Bool</span>
+<span class="nf">is_valid_pattern</span> <span class="n">re</span> <span class="ow">=</span> <span class="n">isJust</span> <span class="p">(</span><span class="n">makeRegexM</span> <span class="n">re</span> <span class="ow">::</span> <span class="kt">Maybe</span> <span class="kt">Regex</span><span class="p">)</span>
+<span class="c1">-- nb: the type Regex must be specified since matchRegexM uses abstract</span>
+<span class="c1">--     classes and haskell can&#39;t guess which instance to use</span>
+
+<span class="c1">-- or can use compile from Text.Regex.Posix.String:</span>
+<span class="nf">t</span> <span class="ow">=</span> <span class="kr">let</span> <span class="n">regexp</span> <span class="ow">=</span> <span class="s">&quot;(&quot;</span> <span class="kr">in</span>
+    <span class="n">compile</span> <span class="n">defaultCompOpt</span> <span class="n">defaultExecOpt</span> <span class="n">regexp</span> <span class="o">&gt;&gt;=</span>
+      <span class="p">(</span><span class="nf">\</span><span class="n">re</span> <span class="ow">-&gt;</span> <span class="kr">case</span> <span class="n">re</span> <span class="kr">of</span>
+                <span class="kt">Left</span> <span class="p">(</span><span class="kr">_</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="ne">error</span> <span class="p">(</span><span class="s">&quot;bad regexp </span><span class="se">\&quot;</span><span class="s">&quot;</span> <span class="o">++</span> <span class="n">regexp</span> <span class="o">++</span> <span class="s">&quot;</span><span class="se">\&quot;</span><span class="s">: &quot;</span> <span class="o">++</span> <span class="n">err</span><span class="p">)</span>
+                <span class="kt">Right</span> <span class="n">re</span> <span class="ow">-&gt;</span> <span class="n">return</span> <span class="n">re</span><span class="p">)</span>
+<span class="c1">-- *** Exception: bad regexp &quot;(&quot;: Unmatched ( or \(</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN321"
+>Honoring Locale Settings in Regular Expressions</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">-- Text.Regex and Text.Regex.Posix do not handle unicode (accents...)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN324"
+>Approximate Matching</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="kr">import</span> <span class="nn">Data.List</span>
+
+<span class="c1">-- Calculates the Levenshtein, or edit distance, between two strings.</span>
+<span class="c1">-- here is a basic/slow version:</span>
+<span class="nf">levenshtein_basic</span> <span class="n">s</span> <span class="n">t</span> <span class="ow">=</span> <span class="n">distance</span> <span class="p">(</span><span class="n">length</span> <span class="n">s</span><span class="p">)</span> <span class="p">(</span><span class="n">length</span> <span class="n">t</span><span class="p">)</span>
+    <span class="kr">where</span> <span class="n">distance</span> <span class="n">i</span> <span class="mi">0</span> <span class="ow">=</span> <span class="n">i</span>
+          <span class="n">distance</span> <span class="mi">0</span> <span class="n">j</span> <span class="ow">=</span> <span class="n">j</span>
+          <span class="n">distance</span> <span class="n">i</span> <span class="n">j</span> <span class="ow">=</span> <span class="n">minimum</span> <span class="p">[</span> <span class="n">distance</span> <span class="p">(</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">1</span>
+                                 <span class="p">,</span> <span class="n">distance</span> <span class="n">i</span> <span class="p">(</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+                                 <span class="p">,</span> <span class="n">distance</span> <span class="p">(</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">(</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="kr">if</span> <span class="n">s</span><span class="o">!!</span><span class="p">(</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">==</span><span class="n">t</span><span class="o">!!</span><span class="p">(</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="kr">then</span> <span class="mi">0</span> <span class="kr">else</span> <span class="mi">1</span><span class="p">)</span> <span class="p">]</span>
+
+<span class="c1">-- a fast version based on the previous one, adding memoization</span>
+<span class="c1">-- (note the recursive use of &quot;d&quot;)</span>
+<span class="nf">levenshtein</span> <span class="n">s</span> <span class="n">t</span> <span class="ow">=</span> <span class="n">d</span>
+    <span class="kr">where</span> <span class="n">d</span> <span class="ow">=</span> <span class="p">[</span> <span class="p">[</span><span class="n">distance</span> <span class="n">m</span> <span class="n">n</span> <span class="o">|</span> <span class="n">n</span><span class="ow">&lt;-</span><span class="p">[</span><span class="mi">0</span><span class="o">..</span><span class="n">length</span> <span class="n">t</span><span class="p">]]</span> <span class="o">|</span> <span class="n">m</span><span class="ow">&lt;-</span><span class="p">[</span><span class="mi">0</span><span class="o">..</span><span class="n">length</span> <span class="n">s</span><span class="p">]</span> <span class="p">]</span>
+          <span class="n">distance</span> <span class="n">i</span> <span class="mi">0</span> <span class="ow">=</span> <span class="n">i</span>
+          <span class="n">distance</span> <span class="mi">0</span> <span class="n">j</span> <span class="ow">=</span> <span class="n">j</span>
+          <span class="n">distance</span> <span class="n">i</span> <span class="n">j</span> <span class="ow">=</span> <span class="n">minimum</span> <span class="p">[</span> <span class="n">d</span><span class="o">!!</span><span class="p">(</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">!!</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span>
+                                 <span class="p">,</span> <span class="n">d</span><span class="o">!!</span><span class="n">i</span><span class="o">!!</span><span class="p">(</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+                                 <span class="p">,</span> <span class="n">d</span><span class="o">!!</span><span class="p">(</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">!!</span><span class="p">(</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="kr">if</span> <span class="n">s</span><span class="o">!!</span><span class="p">(</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">==</span><span class="n">t</span><span class="o">!!</span><span class="p">(</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="kr">then</span> <span class="mi">0</span> <span class="kr">else</span> <span class="mi">1</span><span class="p">)</span> <span class="p">]</span>
+
+<span class="c1">-- a more efficient/cryptic version.</span>
+<span class="c1">-- (it computes the &quot;distance&quot; figures for each &quot;sb&quot; chars,</span>
+<span class="c1">--  ie it memoizes only what is needed)</span>
+<span class="nf">levenshtein&#39;</span> <span class="n">sa</span> <span class="n">sb</span> <span class="ow">=</span> <span class="n">foldl</span> <span class="n">transform</span> <span class="p">[</span><span class="mi">0</span><span class="o">..</span><span class="n">length</span> <span class="n">sa</span><span class="p">]</span> <span class="n">sb</span> 
+    <span class="kr">where</span> 
+      <span class="n">transform</span> <span class="n">xs</span><span class="o">@</span><span class="p">(</span><span class="n">x</span><span class="kt">:</span><span class="n">xs&#39;</span><span class="p">)</span> <span class="n">c</span> <span class="ow">=</span> <span class="n">scanl</span> <span class="n">compute</span> <span class="p">(</span><span class="n">x</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="p">(</span><span class="n">zip3</span> <span class="n">sa</span> <span class="n">xs</span> <span class="n">xs&#39;</span><span class="p">)</span>
+          <span class="kr">where</span>
+            <span class="n">compute</span> <span class="n">z</span> <span class="p">(</span><span class="n">c&#39;</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="ow">=</span> <span class="n">minimum</span> <span class="p">[</span><span class="n">y</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">z</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">x</span> <span class="o">+</span> <span class="kr">if</span> <span class="n">c</span> <span class="o">==</span> <span class="n">c&#39;</span> <span class="kr">then</span> <span class="mi">0</span> <span class="kr">else</span> <span class="mi">1</span><span class="p">]</span>
+
+<span class="c1">-- Determines if two strings are an approximate match.</span>
+<span class="nf">amatch</span> <span class="n">percentage</span> <span class="n">s</span> <span class="n">t</span> <span class="ow">=</span> <span class="n">levenshtein</span> <span class="n">s</span> <span class="n">t</span> <span class="o">*</span> <span class="mi">100</span> <span class="o">&lt;=</span> <span class="n">percentage</span> <span class="o">*</span> <span class="n">length</span> <span class="n">s</span>
+
+<span class="nf">main</span> <span class="ow">=</span> <span class="kr">do</span> <span class="n">s</span> <span class="ow">&lt;-</span> <span class="n">readFile</span> <span class="s">&quot;/usr/share/dict/words&quot;</span>
+          <span class="n">print</span> <span class="o">$</span> <span class="n">filter</span> <span class="p">(</span><span class="n">amatch</span> <span class="mi">20</span> <span class="s">&quot;balast&quot;</span><span class="p">)</span> <span class="p">(</span><span class="n">lines</span> <span class="n">s</span><span class="p">)</span>
+<span class="c1">-- [&quot;balant&quot;,&quot;balas&quot;,&quot;balat&quot;,&quot;ballast&quot;,&quot;belast&quot;,&quot;blast&quot;]</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN327"
+>Matching from Where the Last Pattern Left Off</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="kr">import</span> <span class="nn">List</span>
+<span class="kr">import</span> <span class="nn">Text.Regex</span>
+<span class="kr">import</span> <span class="nn">Text.Regex.Posix</span>
+<span class="kr">import</span> <span class="nn">Text.Printf</span>
+
+<span class="nf">allMatches</span> <span class="n">re</span> <span class="ow">=</span> <span class="n">unfoldr</span> <span class="p">(</span><span class="n">fmap</span> <span class="n">adjust</span> <span class="o">.</span> <span class="n">matchRegexAll</span> <span class="n">re</span><span class="p">)</span>
+    <span class="kr">where</span> <span class="n">adjust</span> <span class="p">(</span><span class="n">_before</span><span class="p">,</span> <span class="kr">_</span><span class="p">,</span> <span class="n">after</span><span class="p">,</span> <span class="n">matches</span><span class="p">)</span> <span class="ow">=</span> <span class="p">(</span><span class="n">matches</span><span class="p">,</span> <span class="n">after</span><span class="p">)</span>
+
+<span class="c1">-- special unfoldr (unfoldr only returns [b] whereas we also need the rest)</span>
+<span class="nf">unfoldr&#39;</span> <span class="ow">::</span> <span class="p">(</span><span class="n">a</span> <span class="ow">-&gt;</span> <span class="kt">Maybe</span> <span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">a</span><span class="p">))</span> <span class="ow">-&gt;</span> <span class="n">a</span> <span class="ow">-&gt;</span> <span class="p">([</span><span class="n">b</span><span class="p">],</span> <span class="n">a</span><span class="p">)</span>
+<span class="nf">unfoldr&#39;</span> <span class="n">f</span> <span class="n">b</span>  <span class="ow">=</span>
+  <span class="kr">case</span> <span class="n">f</span> <span class="n">b</span> <span class="kr">of</span>
+   <span class="kt">Just</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b&#39;</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="kr">let</span> <span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">b&#39;&#39;</span><span class="p">)</span> <span class="ow">=</span> <span class="n">unfoldr&#39;</span> <span class="n">f</span> <span class="n">b&#39;</span> <span class="kr">in</span> <span class="p">(</span><span class="n">a</span><span class="kt">:</span><span class="n">l</span><span class="p">,</span> <span class="n">b&#39;&#39;</span><span class="p">)</span>
+   <span class="kt">Nothing</span>      <span class="ow">-&gt;</span> <span class="p">(</span><span class="kt">[]</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+
+<span class="nf">allMatches&#39;</span> <span class="n">re</span> <span class="ow">=</span> <span class="n">unfoldr&#39;</span> <span class="p">(</span><span class="n">fmap</span> <span class="n">adjust</span> <span class="o">.</span> <span class="n">matchRegexAll</span> <span class="n">re</span><span class="p">)</span>
+    <span class="kr">where</span> <span class="n">adjust</span> <span class="p">(</span><span class="n">_before</span><span class="p">,</span> <span class="kr">_</span><span class="p">,</span> <span class="n">after</span><span class="p">,</span> <span class="n">matches</span><span class="p">)</span> <span class="ow">=</span> <span class="p">(</span><span class="n">matches</span><span class="p">,</span> <span class="n">after</span><span class="p">)</span>
+
+<span class="nf">t</span> <span class="ow">=</span> <span class="n">allMatches</span> <span class="p">(</span><span class="n">mkRegex</span> <span class="s">&quot;([0-9]+)&quot;</span><span class="p">)</span> <span class="s">&quot;3,4,5,9,120&quot;</span>
+<span class="c1">-- [[&quot;3&quot;],[&quot;4&quot;],[&quot;5&quot;],[&quot;9&quot;],[&quot;120&quot;]]</span>
+<span class="c1">-- (note that \d is not special, one must use [0-9] or [[:digit:]])</span>
+
+<span class="nf">mystr</span> <span class="ow">=</span> <span class="s">&quot;The year 1752 lost 10 days on the 3rd of September&quot;</span>
+<span class="nf">t2</span> <span class="ow">=</span> 
+    <span class="kr">let</span> <span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">remain</span><span class="p">)</span> <span class="ow">=</span> <span class="n">allMatches&#39;</span> <span class="p">(</span><span class="n">mkRegex</span> <span class="s">&quot;([0-9]+)&quot;</span><span class="p">)</span> <span class="n">mystr</span> <span class="kr">in</span>
+    <span class="kr">let</span> <span class="n">after</span> <span class="ow">=</span> <span class="n">remain</span> <span class="o">=~</span> <span class="s">&quot;</span><span class="se">\\</span><span class="s">S+&quot;</span> <span class="ow">::</span> <span class="kt">String</span> <span class="kr">in</span>
+    <span class="n">putStr</span> <span class="o">$</span> <span class="n">unlines</span> <span class="o">$</span> <span class="n">map</span> <span class="p">(</span><span class="nf">\</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="s">&quot;Found number &quot;</span> <span class="o">++</span> <span class="n">n</span><span class="p">)</span> <span class="n">l</span> <span class="o">++</span> 
+                        <span class="p">[</span> <span class="n">printf</span> <span class="s">&quot;Found %s after the last number&quot;</span> <span class="n">after</span> <span class="p">]</span>
+    
+<span class="c1">-- Found number 1752</span>
+<span class="c1">-- Found number 10</span>
+<span class="c1">-- Found number 3</span>
+<span class="c1">-- Found rd after the last number</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN330"
+>Greedy and Non-Greedy Matches</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN333"
+>Detecting Duplicate Words</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN336"
+>Expressing AND, OR, and NOT in a Single Pattern</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN339"
+>Matching Multiple-Byte Characters</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN342"
+>Matching a Valid Mail Address</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN345"
+>Matching Abbreviations</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN348"
+>Program: urlify</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN351"
+>Program: tcgrep</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN354"
+>Regular Expression Grabbag</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="hashes.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="fileaccess.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Hashes</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>File Access</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

@@ -1,0 +1,289 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Helpers</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Pliant"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Web Automation"
+HREF="webautomation.html"></HEAD
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="APPENDIX"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Pliant</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="webautomation.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+>&nbsp;</TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="APPENDIX"
+><H1
+CLASS="APPENDIX"
+><A
+NAME="AEN1102"
+>A. Helpers</A
+></H1
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">
+# multiline strings may be achieved by addition of a new
+# parser filter
+# We give here a full answer which goes a bit out the scope
+# of a basic tutorial, but emphasizes the power of Pliant reflexiveness.
+#
+
+module &quot;/pliant/language/parser.pli&quot;
+module &quot;/pliant/language/compiler.pli&quot;
+
+#
+# parser filter declaration helper function
+#     mod is the module in which the filter is declared
+#     section_name is the section in which the filter is inserted
+#     ad is the address of the filter function
+#     adp is the address of the filter parameter
+#
+function declare_filter2 mod section_name ad adp
+  arg_rw Module mod; arg Str section_name; arg Address ad; arg Arrow adp
+  var Link:ParserFilter lp :&gt; new ParserFilter
+  lp function :&gt; ad map Function
+  lp parameter := adp
+  mod define section_name addressof:lp
+
+#
+# declare_filter meta
+#
+#    syntax: declare_filter section filter parameter [link|copy]
+# inserts the filter 'filter' in section 'section' of the caller's module
+# with parameter 'parameter'; By default, parameter is copied.
+# parameter may be mapped by using 'link' keyword
+#
+
+meta declare_filter e
+  if (e:size &lt;&gt; 2) and (e:size&lt;&gt;3) and (e:size&lt;&gt;4)
+     return
+  var Bool copy:=true
+  if e:size=4
+     if not e:3:is_pure_ident
+        return
+     if e:3:ident=&quot;copy&quot;
+        copy:=true
+     eif e:3:ident=&quot;link&quot;
+        copy:=false
+     else
+        return
+  var Link:Expression ef :&gt; expression immediat (the_function fun ParserContext Str Address) substitute fun e:1 near e
+  var Address ad := ef evaluate
+  if error_notified
+    return
+  if ad=null
+    error error_id_unexpected &quot;Failed to evaluate expression at &quot;+e:position
+    e set_void_result
+  var Arrow adp
+  if e:size&gt;=3
+   e:2 compile ?
+   var Pointer:Type ptype :&gt; e:2:result:type
+   var Link:Expression type_id :&gt; expression ident ptype:name near e:2
+   if copy
+      ef :&gt; expression immediat (new ptype pvalue) substitute ptype type_id substitute pvalue e:2 near e
+      adp := ef evaluate
+   else
+      adp := e:2 evaluate
+   if error_notified
+      return
+   if adp=null
+      error error_id_unexpected &quot;Failed to evaluate expression at &quot;+e:position
+      e set_void_result
+  if (addressof e:module:external)=null
+     var Link:Argument adr :&gt; argument constant Address addressof:(e:module)
+  else
+     var Link:Argument adr :&gt; argument constant Address addressof:(e:module:external)
+  var Link:Argument ma :&gt; argument indirect Module adr 0
+  e add (instruction (the_function declare_filter2 Module Str Address Arrow) ma (argument constant Str e:0:ident) (argument constant Address ad) (argument constant Arrow adp))
+  e set_void_result
+#
+# generic parse_text parser filter
+# parameter is assumed to be a string corresponding to the keyword used.
+# If parameter is &quot;foo&quot;, then
+#   foo a b c
+#     hello
+#    How are you ?
+#       this morning...
+#
+# will be parsed as if written
+#
+#   foo a b c
+#    &quot; hello&quot;
+#    &quot;How are you ?&quot;
+#    &quot;   this morning...&quot;
+#
+
+function parse_text context line parameter
+  arg_rw ParserContext context ; arg Str line ; arg Address parameter
+  var Pointer:Str kwd :&gt; parameter map Str
+  if (line 0 kwd:len)=kwd
+    var Int x := 0
+    var Pointer:Str l :&gt; context:current_line map Str
+    while l:x = &quot; &quot;
+       x+=1
+    var Pointer:Arrow cur :&gt; context:text next context:current_line
+    while cur&lt;&gt;null and { var Pointer:Str l :&gt; cur map Str ; (l 0 x+1)=(repeat x+1 &quot; &quot;) or l=(repeat l:len &quot; &quot;) }
+      var Str t := l x+1 l:len
+      l := (repeat x+1 &quot; &quot;)+string:t
+      cur :&gt; context:text next cur
+
+#
+# simple multi-line text meta
+#
+# syntax:
+# inline_text [leftcut|ignorefirst]
+#   some text
+#    over multiple lines...
+#
+meta inline_text e
+  if e:size&lt;1
+     return
+  var Link:Expression body :&gt; e e:size-1
+  if body:ident&lt;&gt;&quot;{}&quot; or body:size=0
+     return
+  for (var Int i) 0 body:size-1
+     var Address ad := body:i constant Str
+     if ad=null
+        error error_id_unexpected &quot;text: argument #&quot;+string:i+&quot; is not a constant Str&quot;
+        return
+  var Bool leftcut := false; var Int leftmargin:=0; var Int start:=0
+  var Str s
+  if e:size&gt;1 and e:0:is_pure_ident
+   if e:0:ident=&quot;leftcut&quot;
+     leftcut:=true
+     leftmargin := -1 # stands for infinity
+   eif e:0:ident=&quot;ignorefirst&quot;
+     start := 1
+     var Pointer:Str ss :&gt; (body:0 constant Str) map Str
+     ss eparse spaces:s
+     leftmargin := s:len
+  if leftcut
+    for (var Int i) 0 body:size-1
+       var Pointer:Str ss :&gt; (body:i constant Str) map Str
+       ss eparse spaces:s
+       if s:len&lt;leftmargin or leftmargin&lt;0
+         leftmargin:=s:len
+  s:=&quot;&quot;
+  for (var Int i) start body:size-1
+    var Pointer:Str ss :&gt; (body:i constant Str) map Str
+    s += (ss leftmargin ss:len)+&quot;[lf]&quot;
+  e set_result (argument constant Str s) access_read
+
+#
+# filter declaration for immediat use
+#
+declare_filter 'pliant parser basic types' parse_text &quot;inline_text&quot; copy</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="webautomation.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>&nbsp;</TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Web Automation</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>&nbsp;</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

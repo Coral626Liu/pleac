@@ -1,0 +1,1679 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Arrays</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-REXX "
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Dates and Times"
+HREF="datesandtimes.html"><LINK
+REL="NEXT"
+TITLE="Hashes"
+HREF="hashes.html"></HEAD
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-REXX </TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="datesandtimes.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="hashes.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="ARRAYS"
+>4. Arrays</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN170"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* REXX is perhaps an unusual language in that it does not implement  */
+/* either C-style structures or C-style arrays. Instead, it implements*/
+/* what are called 'compound variables' which, under the covers, are a*/
+/* form of associative array [or 'hash', to use the Perl treminology].*/
+/* Compound variable usage will be further discussed in Chapter 5 in  */
+/* the context of Perl 'hashes'.                                      */
+/*                                                                    */
+/* Compound variable usage aside, array-like functionality may be had */
+/* via:                                                               */
+/*                                                                    */
+/* * Third party libraries ['rxHash' library illustrated here] which  */
+/*   merely involves manipulating array-like objects using relevant   */
+/*   library subroutines. Any mention of 'arrays' in this chapter is  */
+/*   to be understood as referring to entities created using this     */
+/*   library, and it should be appreciated that such code is not truly*/
+/*   portable, but specific to platforms on which this library is     */
+/*   available [currently UNIX / Linux, Win32, OS/2]                  */
+/*                                                                    */
+/* * Delimited strings; a character (usually a SPACE) delimits a set  */
+/*   of character sequences, each of which may be considered to be a  */
+/*   'word' or 'element'. BIF's such as WORD, WORDS, and DELWORD allow*/
+/*   delimited strings to model sets, records, and both single and    */
+/*   multi-dimension arrays. Whilst very useful, they suffer from two */
+/*   problems:                                                        */
+/*                                                                    */
+/*   - Immutable, so any modification sees a copy made [read: poor    */
+/*     performance when compared to in-place modification]            */
+/*                                                                    */
+/*   - Cannot be [easily] nested, so do not have quite the utility of */
+/*     true lists like those found in functional languages            */    
+/*                                                                    */
+/* In order to improve the readability of examples, and to avoid the  */
+/* presence of too much redundant code, a number of custom helper     */
+/* subroutines / functions will be used. Most of these routines are   */
+/* functionally similar to Perl or Python counterparts such as 'split'*/
+/* and 'join', while others are similar to Scheme routines such as    */
+/* 'foreach', 'map', and 'reduce'. Code and documentation for these   */
+/* will be found in the Appendix; listed here for easy reference:     */ 
+/*                                                                    */
+/* * Constructors / Finaliser                                         */
+/*   - array = makeArray(var1, var2, ...)                             */
+/*   - array = makeArrayRange(start, end, increment)                  */
+/*   - dropArray(array1, array2, ...)                                 */
+/*                                                                    */
+/* * Array Manipulation                                               */
+/*   - array = ajoin(array1, array2, ...)                             */
+/*                                                                    */
+/* * Perl / Python Hybrids                                            */
+/*   - array = split(string, delimiter)                               */
+/*   - array = chop(string, length)                                   */
+/*   - string = join(array, delimiter)                                */
+/*                                                                    */
+/* * Functional Hybrids                                               */
+/*   - forupdate(array, procname, procargs, ...)                      */
+/*   - foreach(array, procname, procargs, ...)                        */
+/*   - reduction = reduce(array, reduction, procname, procargs, ...)  */
+/*   - array = map(array, procname, procargs, ...)                    */
+/*                                                                    */
+/* In addition, the 'rxHash' library will be used to implement other  */
+/* useful data structure-handling routines, including:                */
+/*                                                                    */
+/* * ...                                                              */
+/*                                                                    */
+/* REXX purists will certainly criticise the approach taken as one    */
+/* that is:                                                           */
+/*                                                                    */
+/* * Non-portable, particularly to 'large-system' environments        */ 
+/* * Inefficient, particularly any use of the INTERPRET instruction   */
+/* * Non-REXX idiomatic, by trying to mimic Python or Scheme idioms   */
+/*                                                                    */
+/* However, I simply wish to counter by saying that this approach:    */
+/*                                                                    */
+/* * Helps REXX examples more closely resemble the Perl-originals     */
+/* * Non-compound variable 'arrays' are not REXX-idiomatic anyway, so */
+/*   it shouldn't be a concern [compound variable use will be covered */
+/*   in the chapter on hashes]                                        */
+/* * Showcases the versatility of the REXX language                   */
+/*                                                                    */
+/* Third-party library directions:                                    */
+/*                                                                    */
+/* Use of 'rxHash' assumes the following prologue / epilogue:         */
+/*                                                                    */
+/*   call rxFuncAdd 'arrLoadFuncs', 'rxhash', 'arrLoadFuncs'          */
+/*   call arrLoadFuncs                                                */
+/*   ...                                                              */
+/*   call arrDropFuncs                                                */
+/*                                                                    */
+/* whilst use of 'rexxUtil' requires:                                 */
+/*                                                                    */
+/*   call rxFuncAdd 'sysLoadFuncs', 'rexxutil', 'sysLoadFuncs'        */
+/*   call sysLoadFuncs                                                */
+/*   ...                                                              */
+/*   call sysDropFuncs                                                */
+/*                                                                    */
+/* A final thing worth mentioning is the reason for using 'rxHash' to */
+/* implement numerically-indexed arrays [which need to have elements  */
+/* 'shuffled' when middle element insertions and deletions are made]  */
+/* rather than other data structures like lists. The reason was so ma-*/
+/* ximum utility could be maintained:                                 */
+/*                                                                    */
+/* * Only numeric arrays can easily be converted to compound variables*/
+/*   [and vice versa] by library functions                            */
+/* * Only numeric arrays can easily be sorted, both by a supplied lib-*/
+/*   rary function [thus providing fast sorting] and in general, w/o  */
+/*   the need for copying elememts                                    */
+/* * Only numeric arrays are traversable via DO ... END; otherwise the*/
+/*   'arrStemDoOver' has to be used, and it neither iterates in order */
+/*   nor does it allow the number of elements to be discerned         */
+/* ------------------------------------------------------------------ */
+
+/* Load general-purpose functions from external library */
+call rxFuncAdd 'sysLoadFuncs', 'rexxUtil', 'sysLoadFuncs'
+call sysLoadFuncs
+
+/* Load array functions from external library */
+call rxFuncAdd 'arrLoadFuncs', 'rxHash', 'arrLoadFuncs'
+call arrLoadFuncs
+
+/* ----------------------------- */
+
+nested = makeArray(&quot;this&quot;, &quot;that&quot;, &quot;the&quot;, &quot;other&quot;) ; call arrDrop nested
+
+/* ----------- */
+
+/*
+   NESTED arrays are possible, though somewhat awkward to use because
+   references to any 'contained' arrays must be explicitly created
+   and explicitly destroyed [though they can be inlined if the
+   'containing' array will be freed using the 'dropArray' routine].
+   The situation is analogous to managing C pointers [in fact, that
+   *is* what is being done, albeit indirectly :)]
+*/
+
+/* Make inner array, store reference, add it as outer array element */
+lvl_1 = makeArray(&quot;the&quot;, &quot;other&quot;)
+nested = makeArray(&quot;this&quot;, &quot;that&quot;, lvl_1)
+
+/* Take care to destroy inner array reference before container itself */
+call arrDrop lvl_1 ; call arrDrop nested
+
+/* ----------- */
+
+/*
+   Alternative to above, but *must* free with 'dropArray'; preferable
+   to use latter anyway since it accepts multiple arguments except on
+   large arrays, or those containing deeply-nested arrays
+*/
+
+nested = makeArray(&quot;this&quot;, &quot;that&quot;, makeArray(&quot;the&quot;, &quot;other&quot;))
+
+call dropArray nested
+
+/* ----------------------------- */
+
+tune = makeArray(&quot;The&quot;, &quot;Star-spangled&quot;, &quot;Banner&quot;) ; call dropArray tune</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN173"
+>Specifying a List In Your Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* Array management entails:                                          */
+/*                                                                    */
+/* * Creating an array, and saving its 'handle'                       */
+/* * Using the handle for subsequent access, and updates              */
+/* * Explicitly destroying the array via the handle; failure to do    */
+/*   this will see memory leakages occur                              */
+/*                                                                    */
+/* Really no different to managing pointers in a language like C. Of  */
+/* course since it is a library facility rather than an language elem-*/
+/* ent, it is less convenient [i.e. no inlining of array creation cal-*/
+/* -ls, no 'array literals' etc] to use.                              */
+/* ------------------------------------------------------------------ */
+
+a = makeArray(&quot;quick&quot;, &quot;brown&quot;, &quot;fox&quot;) ; call dropArray a
+
+/* ----------------------------- */
+
+a = split(&quot;Why are you teasing me?&quot;) ; call dropArray a
+
+/* ----------------------------- */
+
+lines = makeArray()
+
+signal HEREDOC /*
+The boy stood on the burning deck,
+It was as hot as glass.
+*/
+
+HEREDOC:
+  do i = SIGL + 1
+    line = SOURCELINE(i)
+    if line = &quot;*/&quot; then ; leave
+    call asplice lines, -1, &quot;IA&quot;, line
+  end
+
+call dropArray lines
+
+/* ----------------------------- */
+
+bigarray = makeArray()
+
+parse value LINEIN(&quot;mydatafile.txt&quot;) with line
+do while line &lt;&gt; NULL
+  call asplice bigarry, -1, &quot;IA&quot;, line
+  parse value LINEIN(&quot;mydatafile.txt&quot;) with line
+end
+
+call dropArray bigarray
+
+/* ----------------------------- */
+
+banner = &quot;The Mines of Moria&quot;
+banner = 'The Mines of Moria'
+
+/* ----------------------------- */
+
+name = &quot;Gandalf&quot;
+banner = &quot;Speak,&quot; name || &quot;, and enter.&quot;
+
+/* ----------------------------- */
+
+his_host = &quot;www.perl.com&quot;
+
+host_info = nslookup(his_host)
+
+/* ----------- */
+
+nslookup : procedure expose (globals)
+  cmd = &quot;nslookup&quot; ARG(1) ; out = NULL
+  address SYSTEM cmd with OUTPUT STEM cmdout.
+  do i = 1 for cmdout.0 ; out = out NEWLINE cmdout.i ; end
+  return STRIP(out)
+
+/* ----------------------------- */
+
+banner = makeArray(&quot;Costs&quot;, &quot;only&quot;, &quot;$4.95&quot;) ; call dropArray banner
+banner = split(&quot;Costs only $4.95&quot;) ; call dropArray banner
+
+/* ----------------------------- */
+
+brax = split('&quot;' &quot;'&quot; &quot;( ) &lt; &gt; { } [ ]&quot;, SPACE)
+rings = split(&quot;'They're&quot; '&quot;Nenya Narya Vilya&quot;' || &quot;'&quot;, SPACE)
+tags = split(&quot;LI TABLE TR TD A IMG H1 P&quot;, SPACE)
+
+call dropArray brax, rings, tags
+
+banner = &quot;The '\' is often used in regular expressions.&quot;
+
+/* ----------------------------- */
+
+/*
+   For unicode support see 'rexxUtil' library's 'sysToUnicode' and
+   'sysFromUnicode' functions
+*/</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN176"
+>Printing a List with Commas</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">say commify_series(NULL)
+say commify_series(&quot;red&quot;)
+say commify_series(&quot;red yellow&quot;)
+say commify_series(&quot;red yellow green&quot;)
+
+mylist = &quot;red yellow green&quot;
+say &quot;I have&quot; commify_series(mylist) &quot;marbles.&quot;
+
+exit 0
+
+/* ----------- */
+
+commify_series : procedure expose (globals)
+  if ARG() &gt; 1 then ; return NULL
+
+  list = ARG(1) ; n = WORDS(list) 
+
+  select
+    when n == 0 then ; return NULL
+    when n == 1 then ; return WORD(list, 1)
+    when n == 2 then ; return WORD(list, 1) &quot;and&quot; WORD(list, 2)
+    otherwise
+      series = WORD(list, 1)  
+      do i = 2 to n - 1 ; series = series || &quot;,&quot; WORD(list, i) ; end
+      return STRIP(series) || &quot;, and&quot; WORD(list, n)
+  end
+
+/* ----------------------------- */
+
+/*
+   Implementation uses nested arrays
+*/
+
+data = makeArray(,
+  makeArray(&quot;just one thing&quot;),,
+  split(&quot;Mutt Jeff&quot;),,
+  split(&quot;Peter Paul Mary&quot;),,
+  makeArray(&quot;To our parents&quot;, &quot;Mother Theresa&quot;, &quot;God&quot;),,
+  makeArray(&quot;pastrami&quot;, &quot;ham and cheese&quot;,,
+            &quot;peanut butter and jelly&quot;, &quot;tuna&quot;),,
+  makeArray(&quot;recycle tired, old phrases&quot;,,
+            &quot;ponder big, happy thoughts&quot;),,
+  makeArray(&quot;recycle tired, old phrases&quot;,,
+            &quot;ponder big, happy thoughts&quot;,,
+            &quot;sleep and dream peacefully&quot;))
+
+call foreach data, &quot;print_list&quot;
+
+call dropArray data
+
+exit 0
+
+/* ----------- */
+
+print_list : procedure expose (globals)
+  say &quot;The list is:&quot; commify_series(ARG(1)) || &quot;.&quot;
+  return
+
+/* -- */
+
+commify_series : procedure expose (globals)
+  if ARG() &gt; 1 then ; return NULL
+
+  /* handle array */
+  if isArray(ARG(1)) then do
+    current = ARG(1) ; n = getArray(current, 0) 
+
+    select
+      when n == 0 then ; return NULL
+      when n == 1 then ; return getArray(current, 1)
+      when n == 2 then ; return getArray(current, 1) &quot;and&quot;,
+                         getArray(current, 2)
+      otherwise
+        series = getArray(current, 1)  
+        do i = 2 to n - 1
+          current_word = getArray(current, i)
+          if POS(&quot;,&quot;, current_word) &gt; 0 then
+            sepchar = &quot;;&quot;
+          else
+            sepchar = &quot;,&quot;
+          series = series || sepchar current_word
+        end
+        return STRIP(series) || sepchar &quot;and&quot; getArray(current, n)
+    end
+
+  end ; else do
+    /* handle multi-word string */
+    list = ARG(1) ; n = WORDS(list) 
+
+    select
+      when n == 0 then ; return NULL
+      when n == 1 then ; return WORD(list, 1)
+      when n == 2 then ; return WORD(list, 1) &quot;and&quot; WORD(list, 2)
+      otherwise
+        series = WORD(list, 1)  
+        do i = 2 to n - 1
+          current_word = WORD(list, i)
+          if POS(&quot;,&quot;, current_word) &gt; 0 then
+            sepchar = &quot;;&quot;
+          else
+            sepchar = &quot;,&quot;
+          series = series || sepchar current_word
+        end
+        return STRIP(series) || sepchar &quot;and&quot; WORD(list, n)
+    end
+  end</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN179"
+>Changing Array Size</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* Arrays, as implemented in the REXXToolkit functions [see Appendix] */
+/* using the 'rexxUtil' library, cannot be grown / shrunk to specified*/
+/* sizes as most of the examples in this section require. Their size  */
+/* does, however, dynamically alter as elements are added / removed   */
+/* via applications of the 'asplice' function.                        */
+/* ------------------------------------------------------------------ */
+
+people = split(&quot;Crosby Stills Nash Young&quot;, SPACE)
+
+call what_about_that_array people
+
+/*
+   Output:
+   The list has 4 elements.
+   The index of the last element is 4.
+   Element #4 is Young.
+
+   Note: REXX convention is for 1-based numerically-indexed arrays
+*/
+
+/* ----------- */
+
+call asplice people, -1, 'D' 1
+call what_about_that_array people
+
+/*
+   Output:
+   The list has 3 elements.
+   The index of the last element is 3.
+   Element #4 is .
+
+   Note: An invalid array element returns the empty-string, &quot;&quot; / NULL
+*/
+
+/* ----------------------------- */
+
+/* Growing / shrinking arrays to specified sizes is inapplicable */
+
+/* ----------------------------- */
+
+call dropArray people
+
+exit 0
+
+/* ----------- */
+
+what_about_that_array : procedure expose (globals)
+  arr = ARG(1)
+  say &quot;The list has&quot; arrGet(arr, 0) &quot;elements.&quot;
+  say &quot;The index of the last element is&quot; arrGet(arr, 0) || &quot;.&quot;
+  say &quot;Element #4 is&quot; arrGet(arr, 4) || &quot;.&quot;
+  return</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN182"
+>Doing Something with Every Element in a List</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* The canonical means of iterating in REXX is via the DO ... END con-*/
+/* trol structure. To traverse an array [quickly]:                    */
+/*                                                                    */
+/*   do i = 1 for arrGet(oldarr, 0)                                   */
+/*     call arrSet newarr, i, arrGet(oldarr, i)                       */
+/*   end                                                              */
+/*                                                                    */
+/* or more safely:                                                    */
+/*                                                                    */
+/*   do i = 1 for getArrayLength(oldarr)                              */
+/*     call setArray newarr, i, getArray(oldarr, i)                   */
+/*   end                                                              */
+/*                                                                    */
+/* For convenience this functionality is packaged in the REXXToolkit's*/
+/* 'foreach' and 'forupdate' functions. The former is modelled after  */
+/* the 'foreach' routine that is found in many functional and scripti-*/
+/* ng languages in which each element of a data structure is visited  */
+/* and a specified function is invoked. 'forupdate' is a variant that */
+/* updates each visited element.                                      */
+/*                                                                    */
+/* Of course if maximum performance is required, say, when working on */
+/* very large arrays which may be traversed multiple times, an inline */
+/* DO ... END structure that uses the array-access primitives like    */
+/* 'arrGet' and 'arrSet', should be used.                             */  
+/*                                                                    */
+/* It is also worth noting that Perl seems to make little distinction */
+/* between arrays and lists. In REXX, however, a language that doesn't*/
+/* implement a 'list' data structure, it is common to see strings of  */
+/* space-separated words used as lists, and use made of the PARSE ins-*/
+/* truction to 'traverse the list' much as one might use CAR and CDR  */
+/* in LISP or Scheme to do the same. Example:                         */
+/*                                                                    */
+/*   list = &quot;one two three&quot;                                           */
+/*   do while list &lt;&gt; NULL                                            */
+/*     parse var list token list                                      */
+/*       ... do something with 'token' ...                            */
+/*   end                                                              */
+/* ------------------------------------------------------------------ */
+
+mylist = makeArray(1, 2, 3, 4, 5) ; procname = &quot;print&quot;
+
+call foreach mylist, procname
+
+call dropArray mylist
+
+exit 0
+
+/* ----------- */
+
+print : procedure expose (globals)
+  say ARG(1) ; return
+
+/* ----------------------------- */
+
+bad_users = makeArray(&quot;Tom&quot;, &quot;Dick&quot;, &quot;Harry&quot;)
+
+call foreach bad_users, &quot;complain&quot;
+
+call dropArray bad_users
+
+exit 0
+
+/* ----------- */
+
+complain : procedure expose (globals)
+  say &quot;You are a *** very bad *** user,&quot; ARG(1) ; return
+
+/* ----------------------------- */
+
+/* Extract environment data into a compound variable, and sort */
+address SYSTEM &quot;set&quot; with OUTPUT STEM environ.
+call sysStemSort 'environ.'
+
+/* Array from compound variable; print with 'foreach' and helper */
+arr = arrFromStem('environ.')
+call foreach arr, &quot;showEnvironInfo&quot;
+
+call dropArray arr ; drop environ.
+
+/*
+   A more idiomatic REXX approach would be to access the compound
+   variable directly, so avoiding array conversion and access
+   overhead:
+
+   do i = 1 for environ.0
+     parse value environ.i with key &quot;=&quot; val
+     say key &quot;=&quot; val
+   end
+*/
+
+exit 0
+
+/* ----------- */
+
+showEnvironInfo : procedure expose (globals)
+  parse value ARG(1) with key &quot;=&quot; val
+  say key &quot;=&quot; val ; return
+
+/* ----------------------------- */
+
+all_users = split(get_all_users(), SPACE)
+MAX_QUOTA = get_max_quota()
+
+call foreach all_users, &quot;complain_if_overquota&quot;, MAX_QUOTA
+
+call dropArray all_users
+
+exit 0
+
+/* ----------- */
+
+complain_if_overquota : procedure expose (globals)
+  user = ARG(1) ; MAX_QUOTA = ARG(2)
+  if get_usage(user) &gt; MAX_QUOTA then
+    say &quot;You are a *** very bad *** user,&quot; ARG(1)
+  return
+
+/* Dummy routines - used for illustration only */
+
+get_max_quota : procedure expose (globals)
+  return 100
+
+get_all_users : procedure expose (globals)
+  return &quot;u1 u2 u3&quot; 
+
+get_usage : procedure expose (globals)
+  quotas = &quot;u1 99 u2 101 u3 102&quot;
+  return WORD(quotas, WORDPOS(ARG(1), quotas) + 1)
+
+/* ----------------------------- */
+
+/* Extract list of system users */
+address SYSTEM &quot;who|cut -d' ' -f1|uniq&quot; with OUTPUT STEM users.
+
+arr = arrFromStem('users.')
+
+/*
+   Iterate over array using 'arrDoOver'. Not strictly needed
+   for numerically-indexed arrays, but quite handy for for
+   non-numeric-indexed arrays
+*/
+
+userIdx = arrDoOver(arr)
+do while userIdx \= NULL
+  user = arrGet(arr, userIdx)
+  if user == &quot;tchrist&quot; then do ; say user ; leave ; end
+  userIdx = arrDoOver(arr)
+end
+
+call dropArray arr ; drop users.
+
+/* ----------------------------- */
+
+/*
+   REXXToolkit function, 'areadfile', may be used to read file contents
+   into an array; each element may be a line, word [optionally
+   delimited], character, or specified number of characters
+*/
+
+arr = areadfile(&quot;lines.txt&quot;, 'W')
+
+call foreach arr, &quot;rev_and_print&quot;
+
+call dropArray arr
+
+exit 0
+
+/* ----------- */
+
+rev_and_print : procedure expose (globals)
+  say REVERSE(ARG(1)) ; return
+
+/* ----------------------------- */
+
+arr = makeArray(1, 2, 3, 4, 5)
+
+call foreach arr, &quot;print&quot;
+
+call dropArray arr
+
+exit 0
+
+/* ----------- */
+
+print : procedure expose (globals)
+  say &quot;i =&quot; ARG(1) ; return
+
+/* ----------------------------- */
+
+/*
+   REXXToolkit function, 'forupdate', is a mutating version of,
+   'foreach' [it updates array elements], thus complements the
+   latter quite well. There is also a 'map' function which is
+   similar except that it returns a new array leaving the source
+   array untouched
+*/
+
+arr = makeArray(1, 2, 3)
+
+call forupdate arr, &quot;incr&quot;, -1
+
+call dropArray arr
+
+exit 0
+
+/* ----------- */
+
+incr : procedure expose (globals)
+  return ARG(1) + ARG(2)
+
+/* ----------------------------- */
+
+a = makeArray(0.5, 3) ; b = makeArray(0.5, 3)
+
+call forupdate_seq a, b, &quot;mul&quot;, 7
+
+call dropArray a, b
+
+exit 0
+
+/* ----------- */
+
+mul : procedure expose (globals)
+  return ARG(1) * ARG(2)
+
+/* ----------------------------- */
+
+/*
+   'foreach' and 'forupdate' only work with arrays - to also use
+   these functions with simple variables [scalars] and compound
+   variable [hashes], first convert the items to arrays ...
+*/
+
+scalar = 1 ; hash.0 = 3 ; hash.1 = 3 ; hash.2 = 6 ; hash.3 = 7
+
+a = makeArray(scalar) ; b = makeArray(...) ; c = arrFromStem('hash.')
+
+call forupdate_seq a, b, c, &quot;do_trim&quot;
+
+call dropArray a, b, c
+
+exit 0
+
+/* ----------- */
+
+do_trim : procedure expose (globals)
+  return STRIP(ARG(1))</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN185"
+>Iterating Over an Array by Reference</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* The REXXToolkit array functions are all passed one or more array   */
+/* references. Consequently the examples in this section illustrate   */
+/* functionality that has already been showcased in the previous sect-*/
+/* ion. Therefore, only one example will be implemented.              */ 
+/* ------------------------------------------------------------------ */
+
+fruits = makeArray(&quot;Apple&quot;, &quot;Blackberry&quot;)
+
+/* Pointless to do this in REXX */
+fruit_ref = fruits
+
+call foreach fruit_ref, &quot;print&quot;
+
+call dropArray fruit_ref
+
+exit 0
+
+/* ----------- */
+
+print : procedure expose (globals)
+  say ARG(1) &quot;tastes good in a pie.&quot; ; return</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN188"
+>Extracting Unique Elements from a List</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* The simplest way of removing duplicates is to use a data structure */
+/* that does so: a set is the usual candidate [illustarted below]. In */
+/* the absence of such a facility, more verbose approaches are needed,*/
+/* and, in the tradition of the Perl Cookbook, here are some of them !*/
+/* Also illustrated are the REXXToolkit's set and hash table routines */
+/* ------------------------------------------------------------------ */
+
+/*
+   The following code is modelled on the first example, making use of
+   a hash table to weed out duplicates and allow values to be loaded
+   from one array to another
+*/
+
+list = split(&quot; ... &quot;, SPACE) ; uniq = makeArray() ; seen = makeHash()
+
+call foreach list, &quot;uniq_if_not_seen&quot;, uniq, seen
+
+/* ... do something with 'uniq' ... */
+
+call dropArray list, uniq, seen
+
+exit 0
+
+/* ----------- */
+
+uniq_if_not_seen : procedure expose (globals)
+  key = ARG(1) ; uniq = ARG(2) ; seen = ARG(3)
+  if hashExist(seen, key) then ; return
+  call hashPut seen, key, TRUE ; call asplice uniq, -1, &quot;IA&quot;, key
+  return
+
+/* ----------------------------- */
+
+/*
+   A, rather contrived, variation of the above making use of
+   string parsing and a hash table  
+*/
+
+list = &quot; ... &quot; ; seen = makeHash() ; uniq = makeArray()
+
+do while list &lt;&gt; NULL
+  parse var list key list ; call hashPut seen, key, TRUE
+end
+
+uniqp = hashToPairs(seen)
+
+do while uniqp &lt;&gt; NULL
+  parse var uniqp key &quot;:&quot; value uniqp ; call asplice uniq, -1, &quot;IA&quot;, key
+end
+
+/* ... do something with 'uniq' ... */
+
+call dropArray uniq, seen
+
+exit 0
+
+/* ----------------------------- */
+
+/*
+   A much simpler alternative to all the above is to create a set, then 
+   extract an array from that set
+*/
+
+set = setFromStr(&quot; ... &quot;) ; uniq = arrFromSet(set)
+
+/* ... do something with 'uniq' ... */
+
+call dropArray uniq, set
+
+exit 0
+
+/* ----------------------------- */
+
+/*
+   Duplicates removed through type conversion:
+   - user list obtained as a compound variable [i.e. stem]
+   - convert stem to array, then array to set [removes duplicates]
+   - convert set to string for parsing, printing etc
+*/
+
+address SYSTEM &quot;who|cut -d' ' -f1&quot; with OUTPUT STEM ustem.
+uarr = arrFromStem('ustem.') ; uset = setFromArr(uarr)
+users = strFromSet(uset)
+
+/* Print user list as a single line */
+say &quot;users logged in:&quot; users
+
+/*
+   Free all intermediate data structures [stems and strings are
+   native] so no explicit freeing required
+*/
+call dropArray uarr, uset
+
+exit 0</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN191"
+>Finding Elements in One Array but Not Another</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* Most of the examples in this section are, at core, set difference  */
+/* operations, so can be easily and compactly solved if set type or   */
+/* set operation routines are available. Otherwise it involves rather */
+/* labourious multiple hash table lookup and traversal, an approach   */
+/* taken by most of the Perl examples.                                */
+/* ------------------------------------------------------------------ */
+
+/* Assume, 'a_arr' and 'b_arr' exist, and will not be freed here */
+
+seen = makeHash()
+
+call foreach a_arr, &quot;add_if_not_seen&quot;, seen
+call foreach b_arr, &quot;drop_if_seen&quot;, seen
+
+a_only = hashKeys(seen)
+
+/* ... do something with 'a_only' ... */
+
+call dropArray a_only, seen
+
+exit 0
+
+/* ----------- */
+
+add_if_not_seen : procedure expose (globals)
+  key = ARG(1) ; seen = ARG(2)
+  if hashExist(seen, key) then ; return
+  call hashPut seen, key, TRUE ; return
+
+/* ----------- */
+
+drop_if_seen : procedure expose (globals)
+  key = ARG(1) ; seen = ARG(2)
+  call hashDrop seen, key ; return
+
+/* ----------------------------- */
+
+/* 
+   The simplest way is by using the REXXToolkit's 'setd' routine to
+   perform a 'set difference' operation
+*/
+
+/* Assume, 'a_arr' and 'b_arr' exist, and will not be freed here */
+
+/* Convert arrays to sets, removing any duplicates in the process */
+a_set = setFromArr(a_arr) ; b_set = setFromArr(b_arr)
+
+/* Create a new set of items in 'a_set', but not in 'b_set' */
+a_only = setd(a_set, b_set)
+
+/* ... do something with 'a_only' ... */
+
+/* Free intermediate data structures */
+call dropArray a_set, b_set, a_only
+
+exit 0
+
+/* ----------------------------- */
+
+/*
+   Hash table usage examples ?
+*/
+
+/* Create empty hash table, add a couple of items */
+hash = makeHash()
+
+call hashPut hash, &quot;key1&quot;, 1 ; call hashPut hash, &quot;key2&quot;, 2 
+
+call dropArray hash
+
+/* ----------- */
+
+/*
+   Multiple values can be added when converting from a
+   string of key:value pairs
+*/
+hash = hashFromPairs(&quot;key1:value key2:value...&quot;)
+
+/* ----------- */
+
+/* Empty hash table by freeing it and creating another */
+call dropArray hash ; hash = makeHash()</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN194"
+>Computing Union, Intersection, or Difference of Unique Lists</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* REXXToolkit implements several set manipulation routines which make*/
+/* all manner of set operations quite straightforward. The examples   */
+/* follow the Perl lead, though this isn't the implementation route   */
+/* that would ordinarily be taken. Note: this section uses the array  */
+/* manipulation routines [getArray, setArray, getArrayLength] as an   */
+/* alternative to the 'foreach' and 'forupdate' routines.             */
+/* ------------------------------------------------------------------ */
+
+/*
+   Preferred approach: REXXToolkit set routines   
+*/
+
+a = makeSet(1, 3, 5, 6, 7, 8) ; b = makeSet(2, 3, 5, 7, 9)
+
+union = setu(a, b) ; isect = seti(a, b) ; diff = setd(a, b)
+
+call dropArray a, b, union, isect, diff
+
+/* ----------------------------- */
+
+a_arr = makeArray(1, 3, 5, 6, 7, 8) ; b_arr = makeArray(2, 3, 5, 7, 9)
+
+union_hash = makeHash() ; isect_hash = makeHash()
+diff_hash = makeHash()
+
+/* ----------- */
+
+do i = 1 to getArrayLength(a_rr)
+  call hashPut union_hash, getArray(a_arr, i), TRUE
+end
+
+do i = 1 to getArrayLength(b_rr)
+  if hashExist(union_hash, getArray(b_arr, i)) then
+    call hashPut isect_hash, getArray(b_arr, i), TRUE
+  call hashPut union_hash, getArray(a_arr, i), TRUE
+end
+
+union_arr = hashKeys(union_hash) ; isect_arr = hashKeys(isect_hash)
+
+call dropArray union_arr, isect_arr
+
+/* ----------- */
+
+call foreach_seq a_arr, b_arr, &quot;isect_if_not_union&quot;, union_hash,,
+                 isect_hash
+
+union_arr = hashKeys(union_hash) ; isect_arr = hashKeys(isect_hash)
+
+call dropArray union_arr, isect_arr
+
+exit 0
+
+/* -- */
+
+isect_if_not_union : procedure expose (globals)
+  key = ARG(1) ; union = ARG(2) ; isect = ARG(3)
+  if hashGet(union, key) \= TRUE then ; call hashPut isect, key, TRUE
+  call hashPut union, key, TRUE ; return
+
+/* ----------- */
+
+count_hash = makeHash()
+
+call foreach_seq a_arr, b_arr, &quot;count_keys&quot;, count_hash
+
+call dropArray union_arr, isect_arr, diff_arr
+
+union_arr = makeArray() ; isect_arr = makeArray()
+diff_arr = makeArray()
+
+count_keys = hashKeys(count_hash) 
+
+call foreach count_keys, &quot;select_count_members&quot;,,
+             count_hash, union_arr, isect_arr, diff_arr
+
+call dropArray count_hash, count_keys
+
+exit 0
+
+/* -- */
+
+count_keys : procedure expose (globals)
+  key = ARG(1) ; count = ARG(2)
+  if \hashExist(count, key) then do
+    call hashPut count, key, 1 ; return
+  end
+  call hashPut count, key, (hashGet(count, key) + 1)
+  return
+
+/* -- */
+
+select_count_members : procedure expose (globals)
+  key = ARG(1) ; count_hash = ARG(2) ; union_arr = ARG(3)
+  isect_arr = ARG(4) ; diff_arr = ARG(5)
+  call asplice union_arr, -1, &quot;IA&quot;, key
+  if hashGet(count, key) == 2 then
+    call asplice isect_arr, -1, &quot;IA&quot;, key
+  else
+    call asplice diff_arr, -1, &quot;IA&quot;, key
+  return
+
+/* ----------- */
+
+call dropArray a_arr, b_arr, union_arr, isect_arr, union_hash,,
+               isect_hash, diff_hash
+
+/* ----------------------------- */</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN197"
+>Appending One Array to Another</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/*
+   Use REXXToolkit function, 'ajoin' [see Appendix]. It may be used to
+   concatenate two or more arrays; by default it modifies the first
+   specified array, but may be used to create a new array
+*/
+
+arr1 = makeArray(...) ; arr2 = makeArray(...)
+
+/* New array from concatenation of 'arr1' and 'arr2' */
+arr3 = ajoin(arr1, arr2, 'C')
+
+call dropArray arr1, arr2, arr3
+
+/* ----------- */
+
+arr1 = makeArray(...) ; arr2 = makeArray(...)
+
+/* 'arr1' modified */
+call ajoin arr1, arr2
+
+call dropArray arr1, arr2
+
+/* ----------------------------- */
+
+members = makeArray(&quot;Time&quot;, &quot;Flies&quot;)
+initiates = makeArray(&quot;An&quot;, &quot;Arrow&quot;)
+
+/* 'members' modified: (&quot;Time&quot;, &quot;Flies&quot;, &quot;An&quot;, &quot;Arrow&quot;) */
+call ajoin members, initiates
+
+/* ----------- */
+
+/*
+  Use REXXToolkit function, 'asplice', to alter array contents
+  [see Appendix]; a handy alternative to explicitly using array
+  indexes e.g.
+
+    call asplice members, -2, 'R', &quot;A&quot;, &quot;Banana&quot;
+
+  or:
+
+    /* Fast, but crashes if 'members' is not an array */
+    call arrSet members, (arrGet(members, 0) - 1), &quot;A&quot;
+    call arrSet members, (arrGet(members, 0)), &quot;Banana&quot;
+
+  or:
+
+    /* Slower, but safer, than previous example */
+    call setArray members, (getArrayLength(members) - 1), &quot;A&quot;
+    call setArray members, (getArrayLength(members)), &quot;Banana&quot;
+*/
+
+call asplice members, 2, 'IA', &quot;Like&quot;, initiates
+printArray members
+
+call asplice members, 1, 'R', &quot;Fruit&quot;
+call asplice members, -2, 'R', &quot;A&quot;, &quot;Banana&quot;
+printArray members
+
+/*
+   was: (&quot;Time&quot;, &quot;Flies&quot;, &quot;An&quot;, &quot;Arrow&quot;)
+   now: (&quot;Fruit&quot;, &quot;Flies&quot;, &quot;Like&quot;, &quot;A&quot;, &quot;Banana&quot;)
+*/
+
+/* ----------- */
+
+call dropArray members, initiates</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN200"
+>Reversing an Array</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">arr = makeArray(4, 7, 2, 8, 3, 1) ; alen = arrGet(arr, 0)
+
+i = 1 ; j = alen
+
+do until i &gt; j
+  t = arrGet(arr, j)
+  call arrSet arr, j, arrGet(arr, i) ; call arrSet arr, i, t
+  i = i + 1 ; j = j - 1
+end
+
+call dropArray arr
+
+/* ----------------------------- */
+
+arr = makeArray(4, 7, 2, 8, 3, 1)
+
+/* Use REXXToolkit function, 'areverse' [see Appendix] */
+
+/* Reverse a copy of the array */
+cpy = areverse(arr, 'C')
+
+/* In-place reverse array */
+call areverse arr
+
+call dropArray arr, cpy</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN203"
+>Processing Multiple Elements of an Array</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN206"
+>Finding the First List Element That Passes a Test</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN209"
+>Finding All Elements in an Array Matching Certain Criteria</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN212"
+>Sorting an Array Numerically</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN215"
+>Sorting a List by Computable Field</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN218"
+>Implementing a Circular List</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/*
+   Example modelled directly on Perl code
+*/
+
+processes = makeArray(1, 2, 3, 4, 5)
+
+do forever
+  process = grab_and_rotate(processes)
+  say &quot;Handling process&quot; process
+  call sysSleep 1
+end
+
+call dropArray processes
+
+/* ----------- */
+
+grab_and_rotate : procedure expose (globals)
+  arr = ARG(1)
+  call asplice arr, -1, 'IA', getArray(arr, 1)
+  call asplice arr, 1, 'D' 1
+  return getArray(arr, 1)
+
+/* ----------------------------- */
+
+/*
+   Example utilising the REXX 'string as list' idiom
+*/
+
+processes = &quot;1 2 3 4 5&quot;
+
+do forever
+  process = WORD(processes, 1)
+  processes = grab_and_rotate(processes)
+  say &quot;Handling process&quot; process
+  call sysSleep 1
+end
+
+/* ----------- */
+
+grab_and_rotate : procedure expose (globals)
+  list = ARG(1) ; return DELWORD(list, 1, 1) WORD(list, 1)</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN221"
+>Randomizing an Array</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">alen = ... ; arr = makeArrayRange(1, alen, 1)
+
+/* Fischer-Yates Shuffle */
+do i = alen to 1 by -1
+  j = RANDOM(1, i) ; if i == j then ; iterate
+  tmp = arrGet(arr, i) ; call arrSet arr, i, arrGet(arr, j)
+  call arrSet arr, j, tmp
+end
+
+/* ----------- */
+
+/* Naive Shuffle */
+do alen
+  p1 = RANDOM(1, alen) ; p2 = RANDOM(1, alen)
+  do while p2 == p1 ; p2 = RANDOM(1, alen) ; end
+  tmp = arrGet(arr, p1) ; call arrSet arr, p1, arrGet(arr, p2)
+  call arrSet arr, p2, tmp
+end
+
+call dropArray arr
+
+/* ----------------------------- */
+
+alen = ... ; arr = makeArrayRange(1, alen, 1)
+
+/* Use REXXToolkit function, 'ashuffle' [see Appendix] */
+
+/* Shuffle a copy of the array */
+cpy = ashuffle(arr, 'C')
+
+/* In-place shuffle array */
+call ashuffle arr
+
+call dropArray arr, cpy</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN224"
+>Program: words</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">@@INCOMPLETE@@
+@@INCOMPLETE@@</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN227"
+>Program: permute</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">@@INCOMPLETE@@
+@@INCOMPLETE@@</PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="datesandtimes.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="hashes.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Dates and Times</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Hashes</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

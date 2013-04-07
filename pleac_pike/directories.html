@@ -1,0 +1,1053 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Directories</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Pike"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="File Contents"
+HREF="filecontents.html"><LINK
+REL="NEXT"
+TITLE="Subroutines"
+HREF="subroutines.html"></HEAD
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Pike</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="filecontents.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="subroutines.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="DIRECTORIES"
+>9. Directories</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN495"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">Stdio.Stat entry;
+
+entry = file_stat(&quot;/bin/vi&quot;);
+entry = file_stat(&quot;/usr/bin&quot;);
+entry = file_stat(argv[1]);
+
+// ------------
+
+Stdio.Stat entry; int ctime, size;
+
+entry = file_stat(&quot;/bin/vi&quot;);
+ctime = entry-&gt;ctime;
+size = entry-&gt;size;
+
+// ------------
+
+// A routine detecting whether a file is a 'text' file doesn't appear
+// to exist, so have implemented the following [crude] function(s)
+// which search for a LF / NEWLINE in the file:
+
+// Usable with any file
+int(0..1) containsText(Stdio.File file)
+{
+  string c;
+  while ((c = file-&gt;read(1)) != NULL) { (c == NEWLINE) &amp;&amp; return 1; }
+  return 0;
+}
+
+// Alternate version, expects a buffered file [usually containing text]
+int(0..1) containsText(Stdio.FILE file)
+{
+  int c;
+  while ((c = file-&gt;getchar()) != EOF) { (c == LF) &amp;&amp; return 1; }
+  return 0;
+}
+
+// Yet another alternative - this time we cheat and use the *NIX 'file'
+// utility :) !
+
+int(0..1) isTextFile(string filename)
+{
+  return chop(Process.popen(&quot;file -bN &quot; + filename), 1)  == &quot;ASCII text&quot;;
+}
+
+// ----
+
+containsText(Stdio.File(argv[1])) || write(&quot;File %s doesn't have any text in it\n&quot;, argv[1]);
+
+isTextFile(argv[1]) || write(&quot;File %s doesn't have any text in it\n&quot;, argv[1]);
+
+// ------------
+
+Filesystem.Traversion dirtree = Filesystem.Traversion(&quot;/usr/bin&quot;);
+
+foreach(dirtree; string dir; string file)
+{
+  write(&quot;Inside %s is something called %s\n&quot;, chop(dir, 1), file);
+}</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN498"
+>Getting and Setting Timestamps</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">string filename = &quot;example.txt&quot;;
+
+Stdio.Stat fs = file_stat(filename);
+int readtime = fs-&gt;atime, writetime = fs-&gt;mtime;
+
+System.utime(filename, readtime, writetime);
+
+// ----------------------------
+
+constant SECONDS_PER_DAY = 60 * 60 * 24;
+
+string filename = &quot;example.txt&quot;;
+
+Stdio.Stat fs = file_stat(filename);
+int atime = fs-&gt;atime, mtime = fs-&gt;mtime;
+
+atime -= 7 * SECONDS_PER_DAY; mtime -= 7 * SECONDS_PER_DAY;
+
+System.utime(filename, atime, mtime);
+
+// ----------------------------
+
+argc != 1 || die(&quot;usage: &quot; + argv[0] + &quot; filename&quot;);
+
+Stdio.Stat fs = file_stat(argv[1]);
+int atime = fs-&gt;atime, mtime = fs-&gt;mtime;
+
+Process.system(getenv(&quot;EDITOR&quot;) || &quot;vi&quot; + &quot; &quot; + argv[1]);
+
+mixed result = catch { System.utime(argv[1], atime, mtime); };
+(result == OK) || write(&quot;Error updating timestamp on file, %s!\n&quot;, argv[1]);</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN501"
+>Deleting a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">string filename = &quot;...&quot;;
+
+rm(filename) || write(&quot;Can't delete, %s!\n&quot;, filename);
+
+// ------------
+
+int(0..1) rmAll(array(string) filelist)
+{
+  mixed result = catch
+  {
+    foreach(filelist, string filename) { rm(filename) || throw(PROBLEM); }
+  };
+  
+  return result == OK;
+}
+
+// ----
+
+array(string) filelist = ({&quot;/tmp/x&quot;, &quot;/tmp/y&quot;, &quot;/tmp/z&quot;});
+
+rmAll(filelist) || write(&quot;Can't delete all files in array!\n&quot;);
+
+// ----------------------------
+
+void die(string msg, void|int(1..256) rc) { werror(msg + NEWLINE); exit(rc ? rc : PROBLEM); }
+
+// ----
+
+string filename = &quot;...&quot;;
+
+rm(filename) || die(&quot;Can't delete &quot; + filename);
+
+// ----------------------------
+
+array(string) filelist = ({&quot;/tmp/x&quot;, &quot;/tmp/y&quot;, &quot;/tmp/z&quot;});
+
+int deleted, count = sizeof(filelist);
+
+foreach(filelist, string filename) { rm(filename) &amp;&amp; ++deleted; }
+
+(deleted == count) || write(&quot;Could only delete %d of %d files\n&quot;, deleted, count);</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN504"
+>Copying or Moving a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">string oldfile = &quot;/tmp/old&quot;, newfile = &quot;/tmp/new&quot;;
+
+Stdio.cp(oldfile, newfile) || write(&quot;Error copying file\n&quot;);
+
+// ----------------------------
+
+string oldfile = &quot;/tmp/old&quot;, newfile = &quot;/tmp/new&quot;;
+
+mixed result = catch { Stdio.write_file(newfile, Stdio.read_file(oldfile)); };
+
+(result == OK) || write(&quot;Problem copying file %s to file %s\n&quot;, oldfile, newfile);
+
+// ----------------------------
+
+// Note: This is a cross between, 'Process.system', which displays
+// output on stdout, and, 'Process.popen', which does not display
+// output [it returns it as a string] but does not return the status
+// code
+int system(string cmd)
+{
+  Stdio.File fout = Stdio.File(), ferr = Stdio.File();
+  Stdio.File pout = fout-&gt;pipe(Stdio.PROP_IPC),
+             perr = ferr-&gt;pipe(Stdio.PROP_IPC);
+
+  int rc = Process.spawn(cmd, 0, pout, perr)-&gt;wait();
+
+  pout-&gt;close(); destruct(pout); fout-&gt;close(); destruct(fout);
+  perr-&gt;close(); destruct(perr); ferr-&gt;close(); destruct(ferr);
+
+  return rc;
+}
+
+int(0..1) unixFileCopy(string oldfile, string newfile)
+{
+  string cmd = &quot;cp --force --reply=yes &quot; + oldfile + &quot; &quot; + newfile;
+  return system(cmd) == OK;
+}
+
+int(0..1) vmsFileCopy(string oldfile, string newfile)
+{
+  string cmd = &quot;copy &quot; + oldfile + &quot; &quot; + newfile;
+  return system(cmd) == OK;
+}
+
+// ----
+
+string oldfile = &quot;/tmp/old&quot;, newfile = &quot;/tmp/new&quot;;
+
+unixFileCopy(oldfile, newfile) || write(&quot;Problem copying file %s to file %s\n&quot;, oldfile, newfile);
+
+// ----------------------------
+
+string oldfile = &quot;/tmp/old&quot;, newfile = &quot;/tmp/new&quot;;
+
+mv(oldfile, newfile) || write(&quot;Problem moving / renaming file %s to file %s\n&quot;, oldfile, newfile);</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN507"
+>Recognizing Two Names for the Same File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">mapping(array(int):int) seen = ([]);
+
+// ----
+
+void do_my_thing(string filename)
+{
+  Stdio.Stat fs = file_stat(filename);
+  array(int) arr = aggregate(fs-&gt;inode, fs-&gt;dev);
+
+  // Could do this [apply a lambda assigned to variable 'p']:
+  //
+  //    ... || (p(arr), seen[arr] = 1);
+  //
+  //    function p = lambda(array(int) arr) { ... };
+  //
+  // to process a file that has not previously been seen
+  
+  (seen[arr] &amp;&amp; (seen[arr] += 1)) || (seen[arr] = 1);
+}
+
+// ----------------------------
+
+constant SEP = &quot;:&quot;; mapping(array(int):string) seen = ([]);
+
+// ----
+
+array(string) files = ({&quot;f1.txt&quot;, &quot;f2.txt&quot;, &quot;f3.txt&quot;});
+
+foreach(files, string filename)
+{
+  Stdio.Stat fs = file_stat(filename);
+  array(int) arr = aggregate(fs-&gt;inode, fs-&gt;dev);
+  (seen[arr] &amp;&amp; (seen[arr] += (SEP + filename))) || (seen[arr] = filename);
+}
+
+// ----
+
+array(array(int)) idxarr = indices(seen); sort(idxarr);
+
+foreach(idxarr, array(int) inodev)
+{
+  foreach(seen[inodev] / SEP, string filename)
+  {
+    // ... do stuff with each filename ...
+    write(&quot;%s\n&quot;, filename);
+  }
+}</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN510"
+>Processing All Files in a Directory</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">string dirname = &quot;...&quot;; array(string) DIR = get_dir(dirname);
+
+foreach(DIR, string filename)
+{
+  string path = dirname + &quot;/&quot; + filename;
+  // ... do something with 'path' ...
+}
+
+// ----------------------------
+
+string dirname = &quot;/usr/local/bin&quot;; int|array(string) DIR = get_dir(dirname);
+
+DIR || die(&quot;Can't open &quot; + dirname);
+
+write(&quot;Text files in %s are:\n&quot;, dirname);
+
+foreach(DIR, string filename)
+{
+  string path = dirname + &quot;/&quot; + filename;
+
+  // 'isTextFile' defined in an earlier section
+  isTextFile(path) &amp;&amp; write(&quot;%s\n&quot;, filename);
+}
+
+// ----------------------------
+
+// '.' and '..' don't show up in a 'get_dir'-generated array
+
+// ----------------------------
+
+array(string) plain_files(string dirname)
+{
+  // 'filter' procedure
+  function fp =
+    lambda(string filename, string dirname)
+    {
+      // 'isTextFile' defined in an earlier section
+      return !has_prefix(filename, &quot;.&quot;) &amp;&amp; isTextFile(dirname + &quot;/&quot; + filename);
+    };
+
+  // 'map' procedure
+  function mp =
+    lambda(string filename, string dirname)
+    {
+      return dirname + &quot;/&quot; + filename;
+    };
+
+  array(string) paths = map(filter(get_dir(dirname), fp, dirname), mp, dirname);
+
+  sort(paths);
+
+  return paths;
+}</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN513"
+>Globbing, or Getting a List of Filenames Matching a Pattern</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// A 'glob' workalike that filters using regular expressions
+//
+// Note: Pike offers many non-regexp-based string pattern matching
+// functions [e.g. 'has_prefix' and other 'has_...' functions,
+// 'search', etc]. These are preferable in many situations as they are
+// much faster than regexprs. However, code shown here mostly uses
+// regexprs in order to better match the Perl examples
+//
+int(0..1)|array(string) grep(string regexp, string|array(string) arr)
+{
+  if (stringp(arr)) return Regexp.match(regexp, arr);
+
+  if (arrayp(arr))
+  {
+    function fp =
+      lambda(string filename, string regexp)
+      {
+        return Regexp.match(regexp, filename);
+      };
+
+    return filter(arr, fp, regexp);
+  }
+
+  return 0;
+}
+
+// ----------------------------
+
+string dirname = &quot;...&quot;;
+int|array(string) filenames = glob(&quot;*.c&quot;, get_dir(dirname));
+
+// ------------
+
+string dirname = &quot;...&quot;;
+int|array(string) filenames = grep(&quot;\.c$&quot;, get_dir(dirname));
+
+// ------------
+
+string dirname = &quot;...&quot;;
+int|array(string) filenames = grep(&quot;\.[CHch]$&quot;, get_dir(dirname));
+
+// ----------------------------
+
+string dirname = &quot;...&quot;;
+int|array(string) dir = get_dir(dirname);
+
+dir || die(&quot;Couldn't open &quot; + dirname + &quot; for reading&quot;);
+
+//
+// Note: Pike arrays are immutable, so we use a mapping to emulate
+// mutable arrays by using a numeric index as the key :)
+//
+mapping(int:string) files = ([]); int idx = -1; string path;    
+
+foreach(dir, string file)
+{
+  if (!grep(&quot;\.[CHch]$&quot;, file)) continue;
+  path = dirname + &quot;/&quot; + file;
+  isTextFile(path) &amp;&amp; (files[++idx] = path);
+}
+
+//
+// Note: Traverse a mapping-based, emulated array in index order:
+//
+//  foreach(sort(indices(files)), int i)
+//  {
+//    write(&quot;%d -&gt; %s\n&quot;, i, files[i]); 
+//  }
+//</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN516"
+>Processing All Files in a Directory Recursively</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">//
+// Routine inspired by library function, 'Stdio.recursive_rm'. A little
+// extra code helped make it more generally useful
+//
+void|mixed process_directory(string path, function(string, mixed ... : void|mixed) op, mixed ... extra_args)
+{
+  Stdio.Stat file = file_stat(path, 1); if (!file) return 0;
+
+  if (file-&gt;isdir)
+    if (array(string) files = get_dir(path))
+      foreach(files, string file)
+        process_directory(path + &quot;/&quot; + file, op, @extra_args);
+
+  return op(path, @extra_args);
+}
+
+// ----------------------------
+
+array(string) dirlist = ({ &quot;/tmp/d1&quot;, &quot;/tmp/d2&quot;, &quot;/tmp/d3&quot; });
+
+// Do something with each directory in the list
+foreach(dirlist, string dir)
+{
+  // Delete directory [if empty]     -&gt; rm(dir); 
+  // Make it the 'current directory' -&gt; cd(dir);
+  // Get list of files it contains   -&gt; array(string) filelist = get_dir(dir);
+  // Get directory metadata          -&gt; Stdio.Stat ds = file_stat(dir);
+}
+
+// ------------
+
+array(string) dirlist = ({ &quot;/tmp/d1&quot;, &quot;/tmp/d2&quot;, &quot;/tmp/d3&quot; });
+
+function pf =
+  lambda(string path)
+  {
+    // ... do something to the file or directory ...
+    write(&quot;%s\n&quot;, path);
+  };
+
+// For each directory in the list ...
+foreach(dirlist, string dir)
+{
+  int|array(string) filelist = get_dir(dir);
+
+  if (!filelist) { write(&quot;%s does not exist\n&quot;, dir); continue; }
+  if (sizeof(filelist) == 0) { write(&quot;%s is empty\n&quot;, dir); continue; }
+
+  // For each file / directory in the directory ...
+  foreach(filelist, string filename)
+  {
+    // Apply function to process the file / directory
+    pf(dir + &quot;/&quot; + filename);
+  }
+}
+
+// ------------
+
+// Special steps need to be taken in above routines to distinguish 
+// between files and directories. Easiest to abstract out directory
+// traversal into a single routine [so allowing for recursive traversal
+// of entire tree], and have it apply a lambda to each file
+
+array(string) dirlist = ({ &quot;/tmp/d1&quot;, &quot;/tmp/d2&quot;, &quot;/tmp/d3&quot; });
+
+function pf =
+  lambda(string path)
+  {
+    // ... do something to the file or directory ...
+    write(&quot;%s\n&quot;, path);
+  };
+
+// For each directory in the list ...
+foreach(dirlist, string dir)
+{
+  process_directory(dir, pf);
+}
+
+// ----------------------------
+
+void accum_filesize(string path, array(int) accum)
+{
+  int|Stdio.Stat fs = file_stat(path);
+
+  // Accumulate size only if it is a regular file
+  (fs &amp;&amp; fs-&gt;isreg) &amp;&amp; (accum[0] += fs-&gt;size);
+}
+
+// ------------
+
+// Verify arguments ...
+argc == 2 || die(&quot;usage: &quot; + argv[0] + &quot; dir&quot;);
+Stdio.Stat fs; string dir = argv[1];
+((fs = file_stat(dir)) &amp;&amp; fs-&gt;isdir) || die(dir + &quot; does not exist / not a directory&quot;);
+
+// Collect data [use an array to accumulate results]
+array(int) dirsize = ({0});
+process_directory(dir, accum_filesize, dirsize); 
+
+// Report results
+write(&quot;%s contains %d bytes\n&quot;, dir, dirsize[0]);
+
+// ----------------------------
+
+void biggest_file(string path, array(mixed) biggest)
+{
+  int|Stdio.Stat fs = file_stat(path);
+
+  if (fs &amp;&amp; fs-&gt;isreg &amp;&amp; biggest[1] &lt; fs-&gt;size)
+  {
+    biggest[0] = path; biggest[1] = fs-&gt;size;
+  }
+}
+
+// ------------
+
+// Verify arguments ...
+argc == 2 || die(&quot;usage: &quot; + argv[0] + &quot; dir&quot;);
+Stdio.Stat fs; string dir = argv[1];
+((fs = file_stat(dir)) &amp;&amp; fs-&gt;isdir) || die(dir + &quot; does not exist / not a directory&quot;);
+
+// Collect data [use an array to store results]
+array(mixed) biggest = ({&quot;&quot;, 0});
+process_directory(dir, biggest_file, biggest); 
+
+// Report results
+write(&quot;Biggest file is %s containing %d bytes\n&quot;, biggest[0], biggest[1]);
+
+// ----------------------------
+
+void youngest_file(string path, array(mixed) youngest)
+{
+  int|Stdio.Stat fs = file_stat(path);
+
+  if (fs &amp;&amp; fs-&gt;isreg &amp;&amp; youngest[1] &gt; fs-&gt;ctime)
+  {
+    youngest[0] = path; youngest[1] = fs-&gt;ctime;
+  }
+}
+
+// ------------
+
+// Verify arguments ...
+argc == 2 || die(&quot;usage: &quot; + argv[0] + &quot; dir&quot;);
+Stdio.Stat fs; string dir = argv[1];
+((fs = file_stat(dir)) &amp;&amp; fs-&gt;isdir) || die(dir + &quot; does not exist / not a directory&quot;);
+
+// Collect data [use an array to store results]
+array(mixed) youngest = ({&quot;&quot;, Int.NATIVE_MAX});
+process_directory(dir, youngest_file, youngest); 
+
+// Report results
+write(&quot;Youngest file is %s dating %s\n&quot;, youngest[0], ctime(youngest[1]));
+
+// ----------------------------
+
+void print_name_if_dir(string path)
+{
+  int|Stdio.Stat fs = file_stat(path);
+  if (fs &amp;&amp; fs-&gt;isdir) write(&quot;%s\n&quot;, path);
+}
+
+// ------------
+
+// Verify arguments ...
+argc == 2 || die(&quot;usage: &quot; + argv[0] + &quot; dir&quot;);
+Stdio.Stat fs; string dir = argv[1];
+((fs = file_stat(dir)) &amp;&amp; fs-&gt;isdir) || die(dir + &quot; does not exist / not a directory&quot;);
+
+// Print directory names
+process_directory(dir, print_name_if_dir); </PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN519"
+>Removing a Directory and Its Contents</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// Easy way - recommended
+int(0..1) rmTree(string dirname) { return Stdio.recursive_rm(dirname); }
+
+// ----
+
+string dirtree = &quot;/tmp/dirtree&quot;;
+
+rmTree(dirtree) || write(&quot;Problem removing directory tree %s\n&quot;, dirtree);
+
+// ----------------------------
+
+// Another way, but unnecessary - probably for customised deletions only
+int(0..1) rmTree(string dirname) { return process_directory(dirname, rm); }
+
+// ----
+
+string dirtree = &quot;/tmp/dirtree&quot;;
+
+rmTree(dirtree) || write(&quot;Problem removing directory tree %s\n&quot;, dirtree);</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN522"
+>Renaming Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// A list of file names
+array(string) names = ({&quot;f1.txt&quot;, &quot;f2.txt&quot;, &quot;f3.txt&quot;});
+
+// Dynamically assigned 'rename' procedure - can be reassigned at any time
+function rename = lambda(string name) { return replace(name, &quot;.txt&quot;, &quot;.text&quot;); };
+
+// Process all files
+foreach(names, string name)
+{
+  // Generate new name from existing name by applying 'rename' procedure
+  string newname = rename(name); 
+
+  // Perform actual rename task on file
+  mv(name, newname) || write(&quot;Could not rename %s to %s\n&quot;, name, newname);
+}
+
+// ----------------------------
+
+// Slightly different to the Perl example, though it does use regexp
+// and intent is roughly the same.
+//
+// pike SCRIPTNAME '\.txt$' '.text' f1.txt f2.txt df3.txg
+//
+//    f1.txt  -&gt; f1.text
+//    f2.txt  -&gt; f2.text
+//    df3.txg -&gt; df3.txg [no change]
+//
+
+argc &gt; 2 || die(&quot;usage: &quot; + argv[0] + &quot; expr repl files...&quot;);
+
+string expr = argv[1], repl = argv[2];
+
+foreach(argv[3..], string name)
+{
+  string newname = Regexp.replace(expr, name, repl); 
+
+  if (!equal(name, newname))
+    mv(name, newname) || write(&quot;Could not rename %s to %s\n&quot;, name, newname);
+} </PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN525"
+>Splitting a Filename into Its Component Parts</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">string file_extension(string filename, void|string separator)
+{
+  return (filename / (separator || &quot;.&quot;))[-1];
+}
+
+mapping(string:string) file_parse(string path)
+{
+  return
+    mkmapping(({&quot;dirname&quot;, &quot;basename&quot;, &quot;extension&quot;}),
+      ({dirname(path), basename(path), file_extension(basename(path))}));
+}
+
+// ----------------------------
+
+string path = &quot;/tmp/dirtree/s/s1/s1.txt&quot;;
+
+// ----
+
+string dir = dirname(path);
+string base = basename(path);
+
+mapping(string:string) pm = file_parse(path);
+write(&quot;%s\n&quot;, pm[&quot;dirname&quot;]);
+write(&quot;%s\n&quot;, pm[&quot;basename&quot;]);
+write(&quot;%s\n&quot;, pm[&quot;extension&quot;]);
+
+// ------------
+
+string path = &quot;/usr/lib/libc.a&quot;;
+
+// ----
+
+string dir = dirname(path);
+string base = basename(path);
+
+write(&quot;dir is %s, file is %s\n&quot;, dir, base);
+
+// ------------
+
+string path = &quot;/usr/lib/libc.a&quot;;
+
+// ----
+
+mapping(string:string) pm = file_parse(path);
+
+write(&quot;dir is %s, name is %s, extension is %s\n&quot;,
+  pm[&quot;dirname&quot;], pm[&quot;basename&quot;], &quot;.&quot; + pm[&quot;extension&quot;]);
+
+// ----------------------------
+
+// Handle as a general purpose parse task
+string path = &quot;Hard%20Drive:System%20Folder:README.txt&quot;;
+
+// ----
+
+mapping(string:string)
+  pm = mkmapping(({&quot;drive&quot;, &quot;folder&quot;, &quot;filename&quot;}),
+                 replace(path, &quot;%20&quot;, &quot; &quot;) / &quot;:&quot;),
+
+  fm = mkmapping(({&quot;name&quot;, &quot;extension&quot;}),
+                 pm[&quot;filename&quot;] / &quot;.&quot;);
+
+write(&quot;dir is %s, name is %s, extension is %s\n&quot;,
+  pm[&quot;drive&quot;] + &quot;:&quot; + pm[&quot;folder&quot;],
+  fm[&quot;name&quot;], &quot;.&quot; + fm[&quot;extension&quot;]);
+
+// ----------------------------
+
+// See implementation for 'file_extension' function above</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN528"
+>Program: symirror</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">@@INCOMPLETE@@
+@@INCOMPLETE@@</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN531"
+>Program: lst</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">@@INCOMPLETE@@
+@@INCOMPLETE@@</PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="filecontents.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="subroutines.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>File Contents</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Subroutines</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

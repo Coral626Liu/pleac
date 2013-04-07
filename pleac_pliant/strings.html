@@ -1,0 +1,710 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Strings</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Pliant"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="PLEAC-Pliant"
+HREF="index.html"><LINK
+REL="NEXT"
+TITLE="Numbers"
+HREF="numbers.html"></HEAD
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Pliant</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="index.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="numbers.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="STRINGS"
+>1. Strings</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN14"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"># In Pliant, the standard type to handle character strings is Str.
+# String variables must be declared -- if no value is given it's
+# value is the empty string (&quot;&quot;) if the variable is global.
+var Str string
+
+# special characters
+string := &quot;[lb]&quot;                   # character '['
+string := &quot;[rb]&quot;                   # character ']'
+string := &quot;[lf]&quot;                   # line feed
+string := &quot;[cr]&quot;                   # carriage return
+string := &quot;[tab]&quot;                  # tabulation
+string := &quot;[0]&quot;                    # null character
+string := &quot;Jon said [dq]hello[dq]&quot; # literal double quotes
+
+#
+# multiline text using inline_text meta and parse_text filters defined 
+# in the Appendix
+#
+
+var Str string := inline_text
+ This is a multiline here document
+ terminated by indentation rule
+ (the first indenting space is ignored).
+ In the multiline, &quot;special&quot; characters have not to be
+ [quoted].
+
+# remark each lines of string is ended with a [lf]
+
+var Str string := inline_text leftcut
+     This is a multiline here document
+       terminated by indentation rule
+   with left margin given by the leftest string
+
+var Str string := inline_text ignorefirst
+       ! left margin is here
+           This is a multiline here document
+  gna  with all characters left to the margin ignored,
+       as long as properly indented.</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN17"
+>Accessing Substrings</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">var Str s:=&quot;some string&quot;
+
+# extraction of at most length characters (less if the required
+# length is not available in the string) -&gt; new string
+
+var Str s1 
+s1 := s offset length
+s1 := s offset s:len      # extracts the end of the string
+
+# same, but the string is really a substring (like in Perl)
+# to do this, we add new methods to Str:
+
+method p map s from to
+  arg_rw Str p; arg Str s; arg Int from length
+  check to &lt; s:len
+  p set (s:characters translate Char from) to-from false
+#
+
+s1 map s offset offset+length
+s1 map s offset s:len-1
+
+#
+# The equivalent of unpack in Pliant is eparse. However,
+# no parsing method is present by default for fixed length
+# strings.
+# We should create some function FixedStr to create the
+# type &quot;string of length xxx&quot; and the from_string method
+# on these types. Then, the unpack could be writen as
+
+var FixedStr:5 leading
+var FixedStr:3 dummy
+var FixedStr:8 s1 s2
+var Str trailing data
+data eparse leading dummy s1 s2 any:trailing
+
+#
+# A string may be accessed as an array of Char, but if we
+# way to transfer a Str into an Array of Char, we need a loop
+#
+var Array:Char chars
+for (var Int i) 0 s:len
+  chars i := s i
+
+#
+#
+
+s := &quot;This is what you have&quot;
+
+# strings do not support backwards indexing as perl does, but we may
+# add this functionality
+method s 'new substring' i j -&gt; ss
+  arg Str s ss; arg Int i j
+  strong_definition
+  ss:= s (shunt i&lt;0 s:len+i i) j
+alias '' '. new substring' 
+#
+first  := string 0 1              # &quot;T&quot;
+start  := string 5 2              # &quot;is&quot;
+rest   := string 13 string:len    # &quot;you have&quot;
+last   := string -1 string:len    # &quot;e&quot;
+end    := string -4 string:len    # &quot;have&quot;
+piece  := string -8 3             # &quot;you&quot;
+#--------------------
+string := &quot;This is what you have&quot;
+console string
+#This is what you have</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN20"
+>Establishing a Default Value</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN23"
+>Exchanging Values Without Using Temporary Variables</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN26"
+>Converting Between ASCII Characters and Values</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"># characters have type Char in Pliant
+var Char char:=&quot;X&quot;
+var Int num := char number        # gets the ASCII code of char
+char := character num             # ASCII to character
+#-----------------------------
+# Here, we use a string
+var Str string:=&quot;Hello&quot;
+num := string:0:number            # ASCII code of first character
+string := character num           # implicit Char-&gt;Str cast
+#-----------------------------
+var Int ascii_value := &quot;e&quot;:number # now 101
+var Char char := character 101    # now &quot;e&quot;
+#-----------------------------
+var Str hal := &quot;HAL&quot;
+var Str ibm := hal
+for (var Int i) 0 ibm:len-1
+  ibm:i := character hal:i:number+1</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN29"
+>Processing a String One Character at a Time</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"># Since Pliant++ strings can be accessed one character at a time,
+# there's no need to do any processing on the string to convert
+# it into an array of characters
+
+var Str s
+
+for (var Int i) 0 s:len-1
+  # do something with s:i
+#------------------------------------------
+# we use an Index to sort implicitely the keys
+module &quot;/pliant/language/unsafe.pli&quot;         # at the moment Index is still considered unsafe
+module &quot;/pliant/language/type/set/each.pli&quot;  # each.pli has to be linked to explicitely
+var (Index Char Bool) seen
+var Str string := &quot;an apple a day&quot;
+for (var Int i) 0 string:len-1
+  if not (seen exists string:i)
+    seen insert string:i true
+console &quot;unique chars are: &quot;
+each c seen                       # warning, c is the value associated with the key
+  console (seen key c)
+console eol
+# unique chars are:  adelnpy
+#-------------------------------------------
+var Int sum:=0
+for (var Int i) 0 string:len-1
+  sum += s:i:number
+console sum eol
+# prints &quot;1248&quot; if string was &quot;an apple a day&quot;
+#---------------------------------------------</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN32"
+>Reversing a String by Word or Character</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN35"
+>Expanding and Compressing Tabs</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN38"
+>Expanding Variables in User Input</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN41"
+>Controlling Case</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN44"
+>Interpolating Functions and Expressions Within Strings</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN47"
+>Indenting Here Documents</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN50"
+>Reformatting Paragraphs</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN53"
+>Escaping Characters</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">var Str str := &quot;This is a [dq]string[dq] with [lf] special [lb]characters[rb] in it&quot;
+var Str quoted := string str
+# &quot;This is a [lb]dq[rb]string[lb]dq[rb] with [lb]lf[rb] special [lb]lb[rb]characters[lb]rb[rb] in it&quot;
+#
+# back to unquoted string (quoted -&gt; str)
+quoted eparse str
+#---------------------------------------------</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN56"
+>Trimming Blanks from the Ends of a String</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN59"
+>Parsing Comma-Separated Data</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">#
+# quoted &quot; ([lb][dq][rb]) are implictely dequoted when arising in a parsed string
+# 
+var Str string := &quot;XYZZY,[dq][dq],[dq]O'Reilly, Inc[dq],[dq]Wall, Larry[dq],[dq]a [lb]dq[rb]glug[lb]dq[rb] bit[dq], another [dq]glub[dq] bit, 5, [dq]Error, Core Dumped[dq]&quot;
+var Str a
+var Str b:=string+&quot;,&quot;
+var Array:Str fields
+while b&lt;&gt;&quot;&quot;
+  if not (b parse a &quot;,&quot; any:b)  # if not a quoted string
+    b parse any:a &quot;,&quot; any:b     # it is not quoted and ends with the next &quot;,&quot;
+  fields += a
+for (var Int i) 0 fields:size-1
+  console &quot;#&quot; i &quot;:&quot; fields:i eol
+
+#0 : XYZZY
+#1 :
+#2 : O'Reilly, Inc
+#3 : Wall, Larry
+#4 : a &quot;glug&quot; bit
+#5 : another &quot;glub&quot; bit
+#6 : 5
+#7 : Error, Core Dumped 
+#-----------------------------</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN62"
+>Soundex Matching</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN65"
+>Program: fixstyle</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN68"
+>Program: psgrep</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="numbers.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>PLEAC-Pliant</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Numbers</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

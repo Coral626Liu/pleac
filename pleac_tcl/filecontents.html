@@ -1,0 +1,968 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>File Contents</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Tcl"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="File Access"
+HREF="fileaccess.html"><LINK
+REL="NEXT"
+TITLE="Directories"
+HREF="directories.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Tcl</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="fileaccess.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="directories.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="FILECONTENTS"
+>8. File Contents</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN430"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2">foreach line [split [read -nonewline $fd] &quot;\n&quot;] {</span>
+<span class="s2">   puts [string length $line] # we get chomped line by default.</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set lines [split [read -nonewline $fd] &quot;\n&quot;]</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set data [read $fd]</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2"># not a direct equivalent but it is not required in tcl.</span>
+<span class="s2">puts $fd [list one two three]</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">puts {Baa baa black sheep.}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set buffer [read $fd 4096]</span>
+<span class="s2">set rv [string length $buffer]</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">chan truncate $fd $length</span>
+<span class="s2"># truncating with out a file handle is not possible directly in tcl.</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set pos [chan tell $datafd]</span>
+<span class="s2">puts &quot;I am $pos bytes from the start of datafd&quot;</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">chan seek $logfd 0 end</span>
+<span class="s2">chan seek $datafd $pos start</span>
+<span class="s2">chan seek $outfd -20 current</span>
+<span class="s2">#-----------------------------</span>
+<span class="s2"># in tcl, there is no partial write, as even in non blocking mode,</span>
+<span class="s2"># tcl writes in the background to complete the write.</span>
+<span class="s2">chan configure $datafd -blocking 0 -buffering none</span>
+<span class="s2">puts -nonewline $mystring</span>
+
+<span class="s2">chan configure $infd -blocking 0 -buffering none</span>
+<span class="s2">set block [read $infd 256]</span>
+<span class="s2">set len [string length $block]</span>
+<span class="s2">expr {($len != 256) ? [puts &quot;only read $len bytes&quot;] : 0 }</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set pos [seek $handle 0 current] #dont change position.</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN433"
+>Reading Lines with Continuation Characters</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2">while {[gets $fd line] &gt;= 0} {</span>
+<span class="s2">    while {[regexp -- {\\$} $line]} {</span>
+<span class="s2">        regsub -- {\\$} $line [gets $fd] line</span>
+<span class="s2">    }</span>
+<span class="s2">    #process the full $line here.</span>
+<span class="s2">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN436"
+>Counting Lines (or Paragraphs or Records) in a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2">set count [wc -l $filename]</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set fd [open $file]</span>
+<span class="s2">set count [llength [split [read -nonewline $fd] &quot;\n&quot;]]</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set count [expr [regsub -all -- &quot;\n&quot; [read -nonewline $fd] {} tmp] + 1]</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">for {set count 0} {[gets $fd line] &gt; -1} {incr count} {}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2"># para is just \n\n</span>
+<span class="s2">set count [expr [regsub -all -- &quot;\n\n&quot; [read -nonewline $fd] {} tmp] + 1]</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN439"
+>Processing Every Word in a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2">while {[gets $fd line] &gt;= 0} {</span>
+<span class="s2">    foreach word $line {</span>
+<span class="s2">        #do something with the word.</span>
+<span class="s2">    }</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">while {[gets $fd line] &gt;= 0} {</span>
+<span class="s2">    foreach word [regexp -all -inline -- {\w[\w&#39;-]*} $line] {</span>
+<span class="s2">        #do something with the word.</span>
+<span class="s2">    }</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2"># word frequency</span>
+<span class="s2">array set seen {}</span>
+<span class="s2">while {[gets $fd line] &gt;= 0} {</span>
+<span class="s2">    foreach word [regexp -all -inline -- {\w[\w&#39;-]*} $line] {</span>
+<span class="s2">        incr seen([string tolower $word])</span>
+<span class="s2">    }</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">array set seen {}</span>
+<span class="s2">while {[gets $fd line] &gt;= 0} {</span>
+<span class="s2">    incr seen([string tolower $line])</span>
+<span class="s2">}</span>
+
+<span class="s2">set names [lsort -command {apply {{a b} {upvar seen seen; expr $seen($a) &gt; $seen($b)}}} [array names seen]]</span>
+<span class="s2">foreach line $names {</span>
+<span class="s2">    puts &quot;$line $seen($line)&quot;</span>
+<span class="s2">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN442"
+>Reading a File Backwards by Line or Paragraph</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2">package require struct::list</span>
+
+<span class="s2">set lines [split [read -nonewline $fd] &quot;\n&quot;]</span>
+<span class="s2">foreach line [struct::list reverse $lines] {</span>
+<span class="s2">    # do something with the line.</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set lines [split [read -nonewline $fd] &quot;\n&quot;]</span>
+<span class="s2">for {set i [llength $lines]} {$i} {incr i -1} {</span>
+<span class="s2">    set line [lindex $lines $i-1]</span>
+<span class="s2">}</span>
+<span class="s2"># same strategy for paragraphs.</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN445"
+>Trailing a Growing File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2">while 1 {</span>
+<span class="s2">    myproc [read $fd]</span>
+<span class="s2">    while {[eof $fd]} {</span>
+<span class="s2">        after 5000</span>
+<span class="s2">        seek $fd 0 current</span>
+<span class="s2">    }</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set naptime 1000</span>
+<span class="s2">set fd [open {/tmp/logfile}]</span>
+<span class="s2">while 1 {</span>
+<span class="s2">    set out [gets $fd]</span>
+<span class="s2">    if [string length $out] {</span>
+<span class="s2">        puts $out</span>
+<span class="s2">    }</span>
+<span class="s2">    while {[eof $fd]} {</span>
+<span class="s2">        after $naptime</span>
+<span class="s2">        seek $fd 0 current</span>
+<span class="s2">    }</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">file stat $logfile info</span>
+<span class="s2">if {!$info(nlink)} {</span>
+<span class="s2">    exit 0</span>
+<span class="s2">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN448"
+>Picking a Random Line from a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2">set lines [split [read -nonewline $fd] &quot;\n&quot;]</span>
+<span class="s2">set randline [lindex $lines [expr &quot;round(rand() * [llength $lines])&quot;]]</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set fd [open {/usr/share/fortune/humorists}]</span>
+<span class="s2">set lines [split [regsub -all -- {%\n} [read -nonewline $fd] &quot;\0&quot;] &quot;\0&quot;]</span>
+<span class="s2">set idx [expr &quot;round(rand() * [llength $lines])&quot;]</span>
+<span class="s2">puts [lindex $lines $idx]</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN451"
+>Randomizing All Lines</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2">set lines [split [read -nonewline $input] &quot;\n&quot;]</span>
+<span class="s2">foreach line [shuffle $lines] { #assumes shuffle from chapt 4</span>
+<span class="s2">    puts $output $line</span>
+<span class="s2">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN454"
+>Reading a Particular Line in a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2">for {set i 0} {[gets $fd line] &gt;= 0} {incr i} {</span>
+<span class="s2">    if {$desired_line_number == $i} break</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set lines [split [read -nonewline $input] &quot;\n&quot;]</span>
+<span class="s2">set line [lindex $lines $desired_line_number]</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">proc build_index {data_file index_file} {</span>
+<span class="s2">    puts -nonewline $index_file [binary format i 0]</span>
+<span class="s2">    while {[gets $data_file line] &gt;= 0} {</span>
+<span class="s2">        puts -nonewline $index_file [binary format i [tell $data_file]]</span>
+<span class="s2">    }</span>
+<span class="s2">}</span>
+
+<span class="s2">proc line_with_index {data_file index_file line_no} {</span>
+<span class="s2">    set size [string length [binary format i 0]]</span>
+<span class="s2">    set i_offset [expr $size * ($line_no - 1)]</span>
+<span class="s2">    seek $index_file $i_offset start</span>
+<span class="s2">    if {[tell $index_file] != $i_offset} {</span>
+<span class="s2">        error &quot;Did not find $line_no&quot;</span>
+<span class="s2">    }</span>
+<span class="s2">    set entry [read $index_file $size]</span>
+<span class="s2">    binary scan $entry i* d_offset</span>
+<span class="s2">    seek $data_file $d_offset start</span>
+<span class="s2">    if {[tell $data_file] != $d_offset} {</span>
+<span class="s2">        error &quot;Did not find $line_no&quot;</span>
+<span class="s2">    }</span>
+<span class="s2">    return [gets $data_file]</span>
+<span class="s2">}</span>
+
+<span class="s2"># usage</span>
+<span class="s2">set dfd [open fortune.dat]</span>
+<span class="s2">set ifd [open fortune.dat.index w]</span>
+<span class="s2">build_index $dfd $ifd</span>
+<span class="s2">close $dfd</span>
+<span class="s2">close $ifd</span>
+
+<span class="s2">set dfd [open fortune.dat]</span>
+<span class="s2">set ifd [open fortune.dat.index]</span>
+<span class="s2">puts [line_with_index $dfd $ifd 90]</span>
+<span class="s2">close $dfd</span>
+<span class="s2">close $ifd</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2"># we dont have a tie.</span>
+<span class="s2">package require struct::list</span>
+
+<span class="s2">expr {([llength $argv] == 2) || [error &quot;usage: print_line FILENAME</span>
+<span class="s2">LINE_NUMBER\n&quot;]}</span>
+<span class="s2">::struct::list assign $argv filename linenumber</span>
+
+<span class="s2">set fd [open $filename]</span>
+<span class="s2">for {set i 0} {[gets $fd line] &gt;= 0} {incr i} {</span>
+<span class="s2">    if {$linenumber == $i} {</span>
+<span class="s2">        puts $line</span>
+<span class="s2">        exit 0</span>
+<span class="s2">    }</span>
+<span class="s2">}</span>
+<span class="s2">error &quot;Didn&#39;t find line $line_number in $filename\n&quot;</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">package require struct::list</span>
+
+<span class="s2">expr {([llength $argv] == 2) || [error &quot;usage: print_line FILENAME LINE_NUMBER\n&quot;]}</span>
+<span class="s2">::struct::list assign $argv filename linenumber</span>
+<span class="s2">set dfd [open $filename]</span>
+<span class="s2">set ifd [open $filename.index]</span>
+<span class="s2">build_index $dfd $ifd</span>
+<span class="s2">puts [line_with_index $dfd $ifd]</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN457"
+>Processing Variable-Length Text Fields</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2">set fields [split [regsub -all -- {PATTERN} $record {\0}] &quot;\0&quot;]</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set fields [split [regsub -all -- {:} $record {\0}] &quot;\0&quot;]</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set fields [split [regsub -all -- {\s+} $record {\0}] &quot;\0&quot;]</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set fields [split [regsub -all -- { } $record {\0}] &quot;\0&quot;]</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN460"
+>Removing the Last Line of a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2">set last 0</span>
+<span class="s2">while {[gets $fd line] &gt;= 0} {</span>
+<span class="s2">    if {![eof $fd]} {</span>
+<span class="s2">        set last [tell $fd]</span>
+<span class="s2">    }</span>
+<span class="s2">}</span>
+<span class="s2">chan truncate $fd $last</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN463"
+>Processing Binary Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2">chan configure $handle -translation binary</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set gifname &quot;picture.gif&quot;</span>
+<span class="s2">set gif [open $gifname]</span>
+<span class="s2">chan configure $gif -translation binary</span>
+<span class="s2">chan configure stdout -translation binary</span>
+<span class="s2">while {![eof $gif]} {</span>
+<span class="s2">    puts -nonewline [read $gif [expr 8 * 2**10]]</span>
+<span class="s2">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN466"
+>Using Random-Access I/O</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2">set addr [expr $recsize * $recno]</span>
+<span class="s2">seek $fh $addr start</span>
+<span class="s2">set data [read $fh $recsize]</span>
+<span class="s2">binary scan $buffer $format field1 field2 #we can not pass a list/array as argument.</span>
+<span class="s2">#update fields</span>
+<span class="s2">set buffer [binary format $format $field1 $field2]</span>
+<span class="s2">seek $fh -$recsize current</span>
+<span class="s2">puts -nonewline $fh $buffer</span>
+<span class="s2">close $fh</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2"># setting the login date.</span>
+<span class="s2"># @@INCOMPLETE@@</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN469"
+>Updating a Random-Access File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2">chan configure $fh -translation binary</span>
+<span class="s2">seek $fh $addr start</span>
+<span class="s2">set out [read $fh]</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">#not optimal. do not use it for large strings.</span>
+<span class="s2">proc get_till_null {fh} {</span>
+<span class="s2">    set out {}</span>
+<span class="s2">    while {![eof $fh]} {</span>
+<span class="s2">        set char [read $fh 1]</span>
+<span class="s2">        set out &quot;$out$char&quot;</span>
+<span class="s2">        if [regexp -- {\0} $char] break</span>
+<span class="s2">    }</span>
+<span class="s2">    return $out</span>
+<span class="s2">}</span>
+
+<span class="s2">foreach addr $addrs {</span>
+<span class="s2">    #seek will detect the oct if it is prefixed with &#39;0&#39;.</span>
+<span class="s2">    seek $fh $addr start</span>
+<span class="s2">    puts [format {%x %o %d &quot;%s&quot;} $addr $addr $addr [get_till_null $fh]]</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">set fh [open $argv]</span>
+<span class="s2">chan configure $fh -translation binary</span>
+<span class="s2">foreach line [split [read $fh] &quot;\0&quot;] {</span>
+<span class="s2">    foreach word [regexp -all -inline -- {[\x20-\x7e]+} $line] {</span>
+<span class="s2">        puts $word</span>
+<span class="s2">    }</span>
+<span class="s2">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN472"
+>Reading a String from a Binary File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2">chan configure $fh -translation binary</span>
+<span class="s2">while {![eof $fh]} {</span>
+<span class="s2">    set record [read $fh $recordsize]</span>
+<span class="s2">    binary scan $data $template field1 field2 field3</span>
+<span class="s2">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN475"
+>Reading Fixed-Length Records</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2">array set user_preferences {}</span>
+<span class="s2">foreach line [split [read -nonewline $fh] &quot;\n&quot;] {</span>
+<span class="s2">    regsub -- {#.*$} [string trim $line] {} line</span>
+<span class="s2">    if [string length $line] {</span>
+<span class="s2">        array set user_preferences [string map {= { }} $line]</span>
+<span class="s2">    }</span>
+<span class="s2">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN478"
+>Reading Configuration Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2">file stat $filename statinfo</span>
+<span class="s2"># statinfo now contains the relevant information.</span>
+<span class="s2">foreach var [array names statinfo] {</span>
+<span class="s2">    set $var $statinfo($var)</span>
+<span class="s2">}</span>
+<span class="s2">set mode [expr $mode &amp; 07777]</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">file stat $filename statinfo</span>
+<span class="s2">if {!$statinfo(uid)) {</span>
+<span class="s2">    puts &quot;Superuser owns $filename&quot;</span>
+<span class="s2">}</span>
+<span class="s2">if {$statinfo(atime) &gt; $statinfo(mtime)} {</span>
+<span class="s2">    puts &quot;$filename has been read since it was written.&quot;</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">proc is_safe path {</span>
+<span class="s2">    file stat $path info</span>
+<span class="s2">    # owner neither su nor me</span>
+<span class="s2">    if {$info(uid) &amp;&amp; ![file owned $path]} {</span>
+<span class="s2">        return 0</span>
+<span class="s2">    }</span>
+<span class="s2">    # check if group or other can write file.</span>
+<span class="s2">    if {$info(mode) &amp; 022} {</span>
+<span class="s2">        if {![file isdirectory $path]} {</span>
+<span class="s2">            return 0</span>
+<span class="s2">        }</span>
+<span class="s2">        if {!($info(mode) &amp; 01000)} {</span>
+<span class="s2">            return 0</span>
+<span class="s2">        }</span>
+<span class="s2">    }</span>
+<span class="s2">    return 1</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">proc is_verysafe path {</span>
+<span class="s2">    set build {}</span>
+<span class="s2">    foreach elem [file split $path] {</span>
+<span class="s2">        set build [file join $build $elem]</span>
+<span class="s2">        if {![is_safe $build]} {</span>
+<span class="s2">            return 0</span>
+<span class="s2">        }</span>
+<span class="s2">    }</span>
+<span class="s2">    return 1</span>
+<span class="s2">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN481"
+>Testing a File for Trustworthiness</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2">#struct tmp {</span>
+<span class="s2">#    short ut_type;                 +2      -&gt; s    short</span>
+<span class="s2">#                                   +2      -&gt; x2   padding</span>
+<span class="s2">#    pid_t ut_pid;                  +4      -&gt; i    int</span>
+<span class="s2">#    //alignment                    +20     -&gt; x20  padding</span>
+<span class="s2">#    char ut_line[UT_LINESIZE];     +12     -&gt; A12  char</span>
+<span class="s2">#    char ut_id[4];                 +4      -&gt; A4   char</span>
+<span class="s2">#    char ut_user[UT_NAMESIZE];     +32     -&gt; A32  char</span>
+<span class="s2">#    char ut_host[UT_HOSTSIZE];     +256    -&gt; A256 char</span>
+<span class="s2">#    struct exit_status ut_exit;    +4      -&gt; x4   skip</span>
+<span class="s2">#</span>
+<span class="s2">#    long ut_session;               +4      -&gt; x4   skip</span>
+<span class="s2">#    struct timeval ut_tv;          +8      -&gt; ii   int</span>
+<span class="s2">#    int32_t ut_addr_v6[4];         +16     -&gt; iiii int</span>
+<span class="s2">#    char pad[20];                          -&gt; x20  skip</span>
+<span class="s2">#};</span>
+
+<span class="s2">set typedef {s x2 i x20 A12 A4 A32 A256 x4 x4 ii iiii x20}</span>
+<span class="s2">set sizeof [string length [binary format $typedef 0 0 {} {} {} {} 0 0 0 0 0 0 ]]</span>
+
+<span class="s2">set wtmp [open {/var/log/wtmp}]</span>
+<span class="s2">seek $wtmp 0 end</span>
+<span class="s2">while 1 {</span>
+<span class="s2">        set buffer [read $wtmp $sizeof]</span>
+<span class="s2">        binary scan $buffer $typedef type pid line id user host tsec tmsec addr addr2 addr3 addr4</span>
+<span class="s2">        scan $user %c ord</span>
+<span class="s2">        if {!$user || !$time || !$ord} continue</span>
+<span class="s2">        puts &quot;type:$type user:$user uid:$line id:$id host:$host pid:$pid time:[clock format $tval1]&quot;</span>
+<span class="s2">        puts [format &quot;-&gt;%u.%u.%u.%u&quot; [expr $addr &amp; 0xff] [expr ($addr &gt;&gt; 8) &amp; 0xff] [expr ($addr &gt;&gt; 16) &amp; 0xff] [expr ($addr &gt;&gt; 24) &amp; 0xff]]</span>
+<span class="s2">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN484"
+>Program: tailwtmp</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2"># @@INCOMPLETE@@</span>
+<span class="s2"># @@INCOMPLETE@@</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN487"
+>Program: tctee</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">#-----------------------------</span>
+<span class="s2"># @@INCOMPLETE@@</span>
+<span class="s2"># @@INCOMPLETE@@</span>
+
+<span class="s2">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN490"
+>Program: laston</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="fileaccess.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="directories.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>File Access</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Directories</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

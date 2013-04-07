@@ -1,0 +1,1077 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Dates and Times</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-REXX "
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Numbers"
+HREF="numbers.html"><LINK
+REL="NEXT"
+TITLE="Arrays"
+HREF="arrays.html"></HEAD
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-REXX </TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="numbers.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="arrays.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="DATESANDTIMES"
+>3. Dates and Times</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN132"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* Unlike Perl, REXX has no predefined, global date/time variables    */
+/* [e.g. '$year', '$mday' etc]. Instead, native date/time support is  */
+/* offered by two built-in functions [BIFs]:                          */
+/*                                                                    */
+/* * DATE([option_out [, date [, option_in]]])                        */
+/* * TIME([option_out [, time [, option_in]]])                        */
+/*                                                                    */
+/* These BIFs operate in two modes:                                   */
+/*                                                                    */
+/* * Generate a date/time string formatted according to 'option_out'  */
+/*   using the current date/time                                      */
+/*                                                                    */
+/* * Accept a date/time string in format specified by 'option_in', and*/
+/*   use it to generate a string as specified by 'option_out'         */
+/*                                                                    */
+/* Typical REXX code will see either direct use of these BIF's along  */
+/* with parsing / formatting code, or more likely, used as part of    */
+/* custom date/time routines. It is this latter approach that will be */
+/* used here as most of the examples use routines from the REXXToolkit*/
+/* Library [see Appendix for details].                                */
+/*                                                                    */
+/* It is worth mentioning that REXX, unlike Perl, and other languages,*/
+/* sports no 'date' or 'time' type / structure / object, and that such*/
+/* values are always represented as strings. It is, however, quite a  */
+/* simple matter to implement functionally equivalent entities. This  */
+/* has been done: a 'super'-string, the Date-Time-String [DTS], is    */
+/* used in many of the examples. While useful in itself the motivation*/
+/* for implementing it has been to show how type / structure / object */
+/* can be implemented procedurally using non-mutable strings.         */
+/* ------------------------------------------------------------------ */</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN135"
+>Finding Today's Date</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* The usual way of obtaining the current date is to invoke the DATE()*/
+/* BIF to generate a recognised date format, parse, then manipulate,  */
+/* the resulting string as required.                                  */
+/*                                                                    */
+/* However since additional string manipulation of the resulting item */
+/* is usually required, it is usual to see custom native REXX routines*/
+/* implemented for such tasks. The examples make use of such as set of*/
+/* routines [REXXToolkit Library - see appendix for details]          */
+/* ------------------------------------------------------------------ */
+
+/* Generate, then parse, date string in 'standard' format: YYYYMMDD */
+parse value DATE('S') with year +4 month +2 day
+
+/* ----------------------------- */
+
+/* Formatting via basic string manipulation */
+SEP = SPACE
+say &quot;The current date is&quot; year || SEP || month || SEP || day
+
+SEP = DATESEP
+say &quot;The current date is&quot; year || SEP || month || SEP || day
+
+/* ----------------------------- */
+
+/* Using 'makeYMD' helper function */
+say &quot;The current date is&quot; makeYMD(SPACE, year, month, day)
+say &quot;The current date is&quot; makeYMD(SPACE)
+
+say &quot;The current date is&quot; makeYMD(DATESEP, year, month, day)
+say &quot;The current date is&quot; makeYMD(DATESEP)
+say &quot;The current date is&quot; makeYMD()
+
+/* Optional date validity check */
+current = makeYMD()
+if current == NULL then ; current = &quot;*invalid date*&quot;
+say &quot;The current date is&quot; current
+
+/* Alternative date validity check */
+current = makeYMD()
+if \isYMD(current) then ; current = &quot;*invalid date*&quot;
+say &quot;The current date is&quot; current
+
+/* ----------------------------- */
+
+/* Using 'localtime' and 'YMDHMS...' helper functions */
+say &quot;The current date is&quot; YMDHMS2YMD(EPS2YMDHMS(localtime()), SPACE)
+say &quot;The current date is&quot; YMDHMS2YMD(EPS2YMDHMS(localtime()))
+
+/* ----------------------------- */
+
+/* Using 'strftime' helper function */
+say &quot;The current date is&quot; strftime(&quot;+%Y %m %d&quot;)
+say &quot;The current date is&quot; strftime(&quot;+%Y-%m-%d&quot;)</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN138"
+>Converting DMYHMS to Epoch Seconds</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* UNIX-derived languages Perl and C store date/time values as 32 bit */
+/* entities - epoch seconds [seconds since Jan 1, 1970]. This provides*/
+/* for a simple, efficient, easily manipuable, and readily convertable*/
+/* format [i.e. minimal storage use, easy to perform date arithmetic].*/
+/*                                                                    */
+/* Since all REXX values are strings, and all arithmetic is string-   */
+/* based, there are no efficiency benefits in doing the same in REXX. */
+/* However, since epoch second use is so widespread, the 'DATE' BIF   */
+/* supports it via the 'T' option, thus allowing for some of the same */
+/* Perl / C techniques to be mimiced in REXX.                         */
+/* ------------------------------------------------------------------ */
+
+/* Get current date/time in Epoch Seconds */
+
+/* Local timezone */
+say &quot;Epoch seconds:&quot; DATE('T')          /* REXX BIF */
+
+say &quot;Epoch seconds:&quot; localtime()        /* Custom routines */
+say &quot;Epoch seconds:&quot; strftime(&quot;+%s&quot;)
+
+/* UTC */
+say &quot;Epoch seconds:&quot; gmtime()
+
+/* ----------------------------- */
+
+/* Convert YMDHMS-formatted current date/time to Epoch Seconds */
+
+ymdhms = makeYMDHMS(makeYMD(), makeHMS())
+
+/* Convert to Epoch Seconds [alternative: localtime(ymdhms)] */
+eps = YMDHMS2EPS(ymdhms)
+
+/* ----------------------------- */
+
+/* Convert YMDHMS-formatted date/time to Epoch Seconds */
+
+/* Literal string in YMDHMS format */
+ymdhms = &quot;2004-04-17 13:03:55&quot;  
+
+/* Alternatively, make YMDHMS-formatted date/time from components */
+y = 2004 ; mth = 4 ; d = 17 ; h = 13 ; m = 3 ; s = 55
+ymdhms = makeYMDHMS(makeYMD(DATESEP, y, mth, d),,
+         makeHMS(TIMESEP, h, m, s))
+
+/* Convert to Epoch Seconds [alternative: localtime(ymdhms)] */
+eps = YMDHMS2EPS(ymdhms)</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN141"
+>Converting Epoch Seconds to DMYHMS</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* See comments in previous section header                            */
+/* ------------------------------------------------------------------ */
+
+/* Convert Epoch Seconds to date/time [YMDHMS-format] */
+
+eps = localtime()               /* or: gmtime(), or DATE('T') */
+
+/* Convert to YMDHMS */
+ymdhms = EPS2YMDHMS(eps)
+
+/* ----------------------------- */
+
+/* Parse YMDHMS into components, format and print */
+parse var ymdhms,
+  year (DATESEP) month (DATESEP) day,
+  hour (TIMESEP) minute (TIMESEP) second
+
+fmtdate = hour || TIMESEP || minute || TIMESEP || second || &quot;-&quot; ||,
+          year || &quot;/&quot; || month || &quot;/&quot; || day
+say &quot;Dateline:&quot; fmtdate
+
+/* ----------------------------- */
+
+/* Use helpers to suitably format date for printing */
+fmtdate = YMDHMS2HMS(ymdhms, TIMESEP) || &quot;-&quot; || YMDHMS2YMD(ymdhms, &quot;/&quot;)
+say &quot;Dateline:&quot; fmtdate</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN144"
+>Adding to or Subtracting from a Date</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* Date/time arithmetic may be performed:                             */
+/*                                                                    */
+/* * Directly on date/time components                                 */
+/* * Converting to a base value, performing arithmetic, then back to  */
+/*   date/time format                                                 */
+/*                                                                    */
+/* REXX supports base value conversion approach via 'DATE' and 'TIME' */
+/* BIFs, and does so in two ways:                                     */
+/*                                                                    */
+/* * Base Date Method                                                 */
+/* * UNIX-derived 'epoch seconds' Method                              */
+/*                                                                    */
+/* The latter method is widely used so will not be described, but the */
+/* examples well illustrate its usage. The 'base date' method is day  */
+/* based [days since 1 Jan 0001 AD], and quite simple to use if date  */
+/* arithmetic is day-based. If finer granularity is needed then both  */
+/* the 'DATE' and 'TIME' BIF's must be used making this method less   */
+/* convenient to use. Despite this, it is the method of choice if     */
+/* cross-platform portability is a concern as not all REXX interpreter*/
+/* are guaranteed to support the 'epoch seconds' method.              */
+/* ------------------------------------------------------------------ */
+
+when = now + difference
+then = now - difference
+
+/* ----------------------------- */
+
+/* Helper function use: 'dateOffset', and 'dateInterval' */ 
+
+now = YMDHMS2EPS(makeYMDHMS(makeYMD(DATESEP, 2003, 8, 6), makeHMS()))
+
+diff1 = dateOffset(&quot;day=1&quot;) ; diff2 = dateOffset(&quot;weeks=-2&quot;)
+
+say &quot;One day in the future is:&quot; EPS2YMDHMS(now + diff1)
+
+say &quot;Two weeks in the past is:&quot; EPS2YMDHMS(now + diff2)
+
+d1 = YMDHMS2EPS(makeYMDHMS(makeYMD(DATESEP, 2003, 8, 6),,
+       makeHMS(TIMESEP))) 
+d2 = YMDHMS2EPS(makeYMDHMS(makeYMD(DATESEP, 2000, 8, 6),,
+       makeHMS(TIMESEP)))
+
+interval = d1 - d2
+say &quot;Interval - weeks:&quot; dateInterval(&quot;weeks&quot;, interval)
+say &quot;Interval - days:&quot; dateInterval(&quot;days&quot;, interval)
+say &quot;Interval - hours:&quot; dateInterval(&quot;hours&quot;, interval)
+say &quot;Interval - minutes:&quot; dateInterval(&quot;minutes&quot;, interval)
+say &quot;Interval - seconds:&quot; dateInterval(&quot;seconds&quot;, interval)
+
+/* ----------------------------- */
+
+/* Epoch second-based arithmetic */
+
+/* 18th January, 1973 3:45:50 am */
+birthtime = YMDHMS2EPS(makeYMD(DATESEP, 1973, 1, 18),
+                       makeHMS(TIMESEP, 3, 45, 50))
+
+interval = 5 + ,                      /* 5 seconds */
+           17 * 60 + ,                /* 17 minutes */
+           2 * 60 * 60 + ,            /* 2 hours */
+           55 * 60 * 60 * 24          /* 55 days */
+
+then = birthtime + interval
+
+say &quot;Then is:&quot; YMDHMS2UNIX(EPS2YMDHMS(then))
+
+/* ----------- */
+
+/* REXX 'Base Date'-based arithmetic */
+
+/* 18th January, 1973 3:45:50 am */
+bday = DATE('B', &quot;19730118&quot;, 'S') ; btime = TIME('S', &quot;03:45:50&quot;, 'N')
+
+interval_days = 55 ; interval_secs = 5 + 17 * 60 + 2 * 3600
+then_days = bday + interval_days ; then_secs = btime + interval_secs
+
+parse value DATE('S', then_days, 'B'),
+            TIME('N', then_secs, 'S'),
+            LEFT(DATE('W', then_days, 'B'), 3),
+            LEFT(DATE('M', then_days, 'B'), 3) with,
+            year +4 month +2 day +2 hms downame monthname
+
+say &quot;Then is:&quot; downame monthname day hms year
+
+/* ----------------------------- */
+
+/* 18th January, 1973 3:45:50 am */
+birth = YMDHMS2EPS(makeYMD(DATESEP, 1973, 1, 18),
+                   makeHMS(TIMESEP, 3, 45, 50))
+
+say &quot;Nat was 55 days old on:&quot;,
+  YMD2US(YMDHMS2YMD(EPS2YMDHMS(birth + dateOffset(&quot;days=55&quot;))),,&quot; / &quot;)
+
+/* ----------- */
+
+/* 18th January, 1973 3:45:50 am */
+bday = DATE('B', &quot;19730118&quot;, 'S')
+
+parse value DATE('S', bday + 55, 'B') with year +4 month +2 day +2
+
+say &quot;Nat was 55 days old on:&quot; month &quot;/&quot; day &quot;/&quot; year</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN147"
+>Difference of Two Dates</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* See comments in previous section header                            */
+/* ------------------------------------------------------------------ */
+
+when = now + difference
+then = now - difference
+
+/* ----------------------------- */
+
+bree = YMDHMS2EPS(makeYMD(DATESEP, 1981, 6, 16),
+                  makeHMS(TIMESEP, 4, 35, 25))
+
+nat = YMDHMS2EPS(makeYMD(DATESEP, 1973, 1, 18),
+                 makeHMS(TIMESEP, 3, 45, 50))
+
+diff = bree - nat
+
+say &quot;There were&quot; dateInterval(&quot;minutes&quot;, diff) &quot;minutes&quot;,
+    &quot;between Nat and Bree&quot;
+
+/* ----------- */
+
+say &quot;There were&quot; dateInterval(&quot;weeks&quot;, diff) &quot;weeks,&quot;,
+    diff // dateOffset(&quot;weeks=1&quot;) % dateOffset(&quot;days=1&quot;) || &quot;, days,&quot;,
+    S2HMS(diff // dateOffset(&quot;days=1&quot;)) &quot;between Nat and Bree&quot;
+
+/* ----------- */
+
+say &quot;There were&quot; dateInterval(&quot;days&quot;, diff) &quot;days&quot;,
+    &quot;between Nat and Bree&quot;</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN150"
+>Day in a Week/Month/Year or Week Number</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* The REXX-idiomatic approach to this task is to perform arithmetic  */
+/* using the value obtained from the relevant 'DATE' BIF call.        */
+/* However, as with many other date/time tasks, packaging them as     */
+/* custom routines allows them to be more reliably, and conveniently  */
+/* performed.                                                         */
+/* ------------------------------------------------------------------ */
+
+/* REXX-idiomatic approach using 'DATE' BIF */
+
+day_of_week = DATE('B') // 7 + 1
+day_of_week = DATE('B', YMDHMS2EPS(ymdhms), 'T') // 7 + 1
+
+day_of_year = DATE('D')
+day_of_year = DATE('D', YMDHMS2EPS(ymdhms), 'T')
+
+week_of_year = day_of_year % 7 + 1
+
+/* ----------------------------- */
+
+/*
+   DTS Format ['extractDTS' / 'updateDTS' indices below]:
+
+       yyyy-mm-dd hh:mm:ss +HHMM DOWNAME DOW DOY WOY EPS
+       1    2  3  4  5  6  7     8       9   10  11  12
+*/
+
+dts = makeDTS(makeYMD(), makeHMS())
+
+day_of_week = extractDTS(dts, 9)
+day_of_year = extractDTS(dts, 10)
+week_of_year = extractDTS(dts, 11)
+
+/* ----------------------------- */
+
+day_of_week = strftime(&quot;+%w&quot;)
+day_of_year = strftime(&quot;+%j&quot;)
+week_of_year = strftime(&quot;+%W&quot;)
+
+/* ----------- */
+
+day_of_week = getDOW()
+day_of_year = getDOY()
+week_of_year = getWOY()
+
+/* ----------------------------- */
+
+ymdhms = makeYMDHMS(makeYMD(DATESEP, 1981, 6, 16), makeHMS(TIMESEP))
+say YMDHMS2YMD(ymdhms, &quot;/&quot;) &quot;was a&quot; getDOWName(ymdhms)
+say &quot;in week&quot; getWOY(ymdhms) || &quot;.&quot;
+
+/* ----------- */
+
+dts = makeDTS(makeYMD(DATESEP, 1981, 6, 16), makeHMS(TIMESEP))
+
+say YMDHMS2YMD(DTS2YMDHMS(dts), &quot;/&quot;) &quot;was a&quot; extractDTS(dts, 8)
+say &quot;in week&quot; extractDTS(dts, 11) || &quot;.&quot;
+
+say YMDHMS2YMD(DTS2YMDHMS(dts), &quot;/&quot;) &quot;was a&quot; getDOWName(dts)
+say &quot;in week&quot; getWOY(dts) || &quot;.&quot;</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN153"
+>Parsing Dates and Times from Strings</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* REXX date/time validation can be performed a few ways:             */
+/*                                                                    */
+/* * Make 'DATE' / 'TIME' BIF calls, and check whether a SYNTAX       */
+/*   condition is generated [indicating a 'bad' date/time value]      */
+/* * Parse date/time values, and check individual component values    */
+/* * Regular expressions [via 'RxRe' external library]                */
+/*                                                                    */
+/* The first approach is easy to implement, but probably best used    */
+/* to create custom validation routines rather than in inline code.   */
+/* This is because condition-checking requires the use of SIGNAL, and */
+/* jumping to labels - such code is best quarantined within a routine */
+/* body.                                                              */
+/*                                                                    */
+/* The second approach sees the PARSE instruction used to break up    */
+/* date/time strings into components which are then conditionally     */
+/* tested. In short, very typical procedural code, of which several   */
+/* examples appear below. Of particular note is an implementation of  */
+/* the C-derived 'strptime' function, a very convenient validation    */
+/* routine.                                                           */
+/*                                                                    */
+/* The third approach is language-neutral, and is available in most   */
+/* modern languages. Not all REXX interpreters can be expected to     */
+/* offer it since it depends on external library availability         */
+/* ------------------------------------------------------------------ */
+
+/* Custom Validation Routine  [REXXToolkit] Examples */
+
+date = &quot;1998-06-03&quot;
+if \isYMD(date) then ; say &quot;*invalid date*&quot;
+
+time = &quot;22:19:34&quot;
+if \isHMS(date) then ; say &quot;*invalid time*&quot;
+
+/* ----------- */
+
+parse var date yyyy (DATESEP) mm (DATESEP) dd
+if \acceptableYMDValues(yyyy, mm, dd) then ; say &quot;*invalid date*&quot;
+
+parse var time h (TIMESEP) m (TIMEEP) s
+if \acceptableHMSValues(h, m, s) then ; say &quot;*invalid time*&quot;
+
+/* ----------------------------- */
+
+/* 'strptime' Examples */
+
+/* *** incomplete *** */
+
+/* ----------------------------- */
+
+/* Regex-based Examples */
+
+/* *** incomplete *** */</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN156"
+>Printing a Date</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* Formatting date/time values for printing or other output purposes  */
+/* sees 'raw' components [e.g. year, month, etc] variously converted, */
+/* and combined to meet requirements. Since such components are just  */
+/* strings in REXX, it amounts to no more than a string manipulation  */
+/* exercise. As such, no specialised date formatting facilities are   */
+/* offered - it is left to the programmer to perform as they see fit. */
+/* A few things are worth mentioning:                                 */
+/*                                                                    */
+/* * The 'DATE' and 'TIME' BIF's allow some inter-format conversions  */
+/*   but are too limited to be of much practical value on their own - */
+/*   additional string manipulation is nearly always required         */
+/*                                                                    */
+/* * The more common date formatting, conversion and validation tasks */
+/*   are packaged as native REXX 'helper' routines in the REXXToolkit */
+/*                                                                    */
+/* * The UNIX-derived [now POSIX standard] 'strftime' facility and    */
+/*   accompanying mini 'date formatting language' have proved to be so*/
+/*   versatile that a native REXX implementation is offered in the    */
+/*   REXXToolkit's set of date/time routines                          */
+/* ------------------------------------------------------------------ */
+
+/* 'DATE' and 'TIME' examples */
+
+ymd = &quot;20050825&quot; ; hms = &quot;11:08:04&quot;
+
+downame = DATE('W', ymd, 'S') ; monthname = DATE('M', ymd, 'S')
+parse var ymd year +4 month +2 day
+
+/* Standard UNIX Format: Thu Aug 25 11:08:04 2005 */
+unix = LEFT(downame, 3) LEFT(monthname, 3) day hms year
+
+/* As per Perl example */
+say &quot;'DATE' gives:&quot; downame month || &quot;/&quot; || day || &quot;/&quot; || RIGHT(year, 2)
+
+/* ----------------------------- */
+
+/* 'strftime' examples */
+
+ymdhms = &quot;2005-08-25 11:08:04&quot;
+
+/* Standard UNIX Format: Thu Aug 25 11:08:04 2005 */
+unix = strftime(&quot;+%c&quot;, ymdhms)
+unix = strftime(&quot;+%a %b %d %T %Y&quot;, ymdhms)
+
+/* As per Perl example */
+say &quot;strftime gives:&quot; strftime(&quot;+%A %D&quot;, ymdhms)
+
+/* ----------------------------- */
+
+/* Miscellaneous REXXToolkit routines examples */
+
+/* Year-Month-Day Formats */
+ymd = makeYMD()                       /* 2005-08-25 */
+say ymd
+
+say makeYMD(&quot;/&quot;)                      /* 2005/08/25 */
+say makeYMD(SPACE)                    /* 2005 08 25 */
+say makeYMD(NULL)                     /* 20050825 */
+
+/* Other Year-Month-Day Formats */
+say YMD2US(ymd)                       /* 08/25/2005 */
+say YMD2UK(ymd)                       /* 25/08/2005 */
+
+say YMD2ISOWD(ymd)                    /* 2005-W34-4 */
+say YMD2ISODDD(ymd)                   /* 2005-237 */
+
+/* ----------- */
+
+/* Hour-Minute-Second Formats */
+say makeHMS(TIMESEP)                  /* 00:00:00 */
+
+say makeHMS()                         /* 11:08:04 */
+say makeHMS(&quot;.&quot;, 11, 8, 4)            /* 11.08.04 */
+say makeHMS(SPACE, 11, 8, 4)          /* 11 08 04 */
+say makeHMS(NULL, 11, 8, 4)           /* 110804 */
+
+/* ----------- */
+
+/* YMDHMS Examples */
+
+/* 2005-08-25 11:08:04 */
+ymdhms = EPS2YMDHMS(localtime())
+ymdhms = makeYMDHMS(makeYMD(), makeHMS())
+
+/* Standard ISO Format: 2005-08-25T11:08:04 */
+iso = YMDHMS2ISO(ymdhms)
+
+iso = CHANGESTR(SPACE, ymdhms, ISOSEP)
+
+/* Standard UNIX Format: Thu Aug 25 11:08:04 2005 */
+unix = YMDHMS2UNIX(ymdhms)
+
+unix = LEFT(getDOWName(ymdhms), 3) LEFT(getMonthName(ymdhms), 3),
+       getDay(ymdhms) YMDHMS2HMS(ymdhms) getYear(ymdhms)
+
+/* As per Perl example */
+say &quot;YMDHMS gives:&quot; getDOWName(ymdhms) YMD2US(YMDHMS2YMD(ymdhms), 'S')
+
+/* ----------- */
+
+/* Date-Time-Structure [DTS] Examples */
+
+/* 2005-08-25 11:08:04 +1000 August Thursday 4 237 34 1124932084 */
+dts = makeDTS(makeYMD(), makeHMS())
+
+/* Standard UNIX Format: Thu Aug 25 11:08:04 2005 */
+unix = LEFT(extractDTS(dts, 9), 3) LEFT(extractDTS(dts, 8), 3),
+       extractDTS(dts, 3) YMDHMS2HMS(DTS2YMDHMS(dts)) extractDTS(dts, 1)
+
+unix = LEFT(getDOWName(dts), 3) LEFT(getMonthName(dts), 3),
+       getDay(dts) YMDHMS2HMS(DTS2YMDHMS(dts)) getYear(dts)
+
+/* As per Perl example */
+say &quot;DTS gives:&quot; extractDTS(dts, 9),
+                 YMD2US(YMDHMS2YMD(DTS2YMDHMS(dts)), 'S')</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN159"
+>High-Resolution Timers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* Timing in REXX is usually performed with the 'TIME' BIF, and it may*/
+/* take three forms:                                                  */
+/*                                                                    */
+/* * High resolution [sub-second-based] timing via, TIME('L')         */
+/* * Low resolution [second-based] timing via, TIME('T')              */
+/* * Stop watch [second-based] timing via, TIME('R') and TIME('E')    */
+/*                                                                    */
+/* The precision of high resolution timing is platform-specific, so   */
+/* caution is needed in interpreting the microsecond-based value      */
+/* returned from TIME('L') calls. On UNIX / Win32 desktop systems it  */
+/* is probably safest to assume that values are in the millisecond    */
+/* range, and no more accurate than about +/- 20 ms.                  */
+/*                                                                    */
+/* Low resolution timing via TIME('T') [i.e. Epoch second] calls is   */
+/* easily performed, but not all REXX interpreters may offer this     */
+/* option.                                                            */
+/*                                                                    */
+/* Stop watch timing is platform-independant, easy to use, hence quite*/
+/* widely used; it would qualifiy as a REXX-idiomatic practice        */
+/* ------------------------------------------------------------------ */
+
+/* High resolution timer [i.e. microsecond (us) granularity] */
+
+/* Start time - time of day ['long' format to us. resolution] */
+t1 = TIME('L')
+
+/* Perform timed operation(s) here */
+
+/* Stop Time */
+t2 = TIME('L') 
+
+/* Extract us. values, and compute elapsed time in ms.*/
+parse var t1 . &quot;.&quot; t1us ; parse var t2 . &quot;.&quot; t2us
+elapsed_ms = (t2us - t1us) / 1000
+
+/*
+   For timings likely to exceed 1 second then other time components
+   need to be extracted. The helper function, 'LHMS2S' computes time
+   in fractional seconds [to ms. precision]
+*/
+
+elapsed_s = LHMS2S(t2) - LHMS2S(t1)
+
+/* ----------------------------- */
+
+/* Low resolution timer [i.e. second (s) granularity] */
+
+/* Start time - time of day [Epoch seconds] */
+t1 = TIME('T')
+
+/* Perform timed operation(s) here */
+
+/* Stop Time */
+t2 = TIME('T') 
+
+/* Compute elapsed time in seconds */
+elapsed = t2 - t1
+
+/* ----------- */
+
+/* Low resolution 'stopwatch' timer [i.e. second (s) granularity] */
+
+/* Reset timer */
+call TIME 'R'
+
+/* Perform timed operation(s) here */
+
+/* Seconds since last timer reset */
+elapsed = TIME('E')
+
+/* ----------------------------- */
+
+/* Load general-purpose functions from external library */
+call rxFuncAdd 'sysLoadFuncs', 'rexxUtil', 'sysLoadFuncs'
+call sysLoadFuncs
+
+/* Extract before and after times for operation */
+before = TIME('L')
+call CHAROUT , &quot;Press any key ...&quot; ; call sysGetKey
+after = TIME('L') 
+
+/* Compute elapsed time in fractional seconds [to ms. precision] */
+elapsed = LHMS2S(after) - LHMS2S(before)
+
+say &quot;You took&quot; elapsed &quot;seconds&quot;
+
+/* Unload general-purpose functions */
+call sysDropFuncs
+
+exit 0
+
+/* ----------------------------- */
+
+/* Load general-purpose functions from external library */
+call rxFuncAdd 'sysLoadFuncs', 'rexxUtil', 'sysLoadFuncs'
+call sysLoadFuncs
+
+stem.0 = 500 ; repetitions = 100 ; total_time = 0 
+
+do repetitions
+  /* Load array */
+  do i = 1 for stem.0
+    stem.i = RANDOM()
+  end
+
+  /* Time sort operation */
+  start = TIME('L')
+  call sysStemSort 'stem.'
+  stop = TIME('L')
+
+  /* Extract timings and accumulate */  
+
+  /*
+     Given the sub-second duration of the operation, the following
+     approach could be used:
+
+       parse var start . &quot;.&quot; start ; parse var stop . &quot;.&quot; stop
+       elapsed = (stop - start) / 1000000
+
+     However, for maximum safety, best use 'LHMS2S'
+  */
+
+  elapsed = LHMS2S(stop) - LHMS2S(start)
+
+  total_time = total_time + elapsed
+end
+
+say &quot;On average, sorting&quot; stem.0 &quot;random numbers takes&quot;,
+    total_time / repetitions &quot;seconds&quot;
+
+drop stem.
+
+/* Unload general-purpose functions */
+call sysDropFuncs
+
+exit 0</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN162"
+>Short Sleeps</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* Given the platform-specific nature of this task, REXX offers no    */
+/* in-built support for it aside, of course, from allowing a 'busy    */
+/* wait' loop to be implemented, an approach best avoided if possible.*/
+/*                                                                    */
+/* As is typical for such tasks, the needed functionality is obtained */
+/* either from a third party library, or by invoking a system command */
+/* utility. Examples of each follow.                                  */
+/* ------------------------------------------------------------------ */
+
+/* 'busy waiting' using built-in 'TIME' function - *AVOID* */
+
+stoptime = TIME('S') + 3.5            /* 3.5 second pause */
+
+do while TIME('S') &lt; stoptime
+  /* Do nothing, except burn CPU cycles :) ! */
+  nop
+end
+
+/* ----------------------------- */
+
+/* Invoking 'sysSleep' function: fine granularity, no CPU wastage */
+
+/* Load general-purpose functions from external library */
+call rxFuncAdd 'sysLoadFuncs', 'rexxUtil', 'sysLoadFuncs'
+call sysLoadFuncs
+
+call sysSleep 3.5                    /* 3.5 second pause */
+call sysSleep 0.35                   /* 0.35 second pause */
+call sysSleep 0.035                  /* 0.035 second pause */
+
+/* Unload general-purpose functions */
+call sysDropFuncs
+
+exit 0
+
+/* ----------------------------- */
+
+/* Command: UNIX / Win32 'sleep' utility, granularity is seconds */
+
+cmd = &quot;sleep&quot; ; seconds = 3
+address SYSTEM cmd seconds with OUTPUT STREAM 'NUL:' ERROR STREAM 'NUL:'</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN165"
+>Program: hopdelta</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="numbers.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="arrays.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Numbers</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Arrays</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

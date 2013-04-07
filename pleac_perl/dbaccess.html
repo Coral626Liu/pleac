@@ -1,0 +1,1038 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Database Access</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Perl"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Classes, Objects, and Ties"
+HREF="classesetc.html"><LINK
+REL="NEXT"
+TITLE="User Interfaces"
+HREF="userinterfaces.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Perl</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="classesetc.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="userinterfaces.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="DBACCESS"
+>14. Database Access</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN754"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">AsciiDB   DBI Db     MLDBM    OLE    Pg        Sybase</span>
+
+<span class="cp">CDB_File  DBZ_ File  Fame     Msql   ObjStore  Postgres  XBase</span>
+
+<span class="cp">DBD       DB_File    Ingperl  MySQL  Oraperl   Sprite</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN757"
+>Making and Using a DBM File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">use DB_File;                      # optional; overrides default</span>
+<span class="cp">dbmopen %HASH, $FILENAME, 0666    # open database, accessed through %HASH</span>
+<span class="cp">    or die &quot;Can&#39;t open $FILENAME: $!\n&quot;;</span>
+
+<span class="cp">$V = $HASH{$KEY};                 # retrieve from database</span>
+<span class="cp">$HASH{$KEY} = $VALUE;             # put value into database</span>
+<span class="cp">if (exists $HASH{$KEY}) {         # check whether in database</span>
+<span class="cp">    # ...</span>
+<span class="cp">}</span>
+<span class="cp">delete $HASH{$KEY};               # remove from database</span>
+<span class="cp">dbmclose %HASH;                   # close the database</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">use DB_File;                      # load database module</span>
+
+<span class="cp">tie %HASH, &quot;DB_File&quot;, $FILENAME   # open database, to be accessed</span>
+<span class="cp">    or die &quot;Can&#39;t open $FILENAME:$!\n&quot;;    # through %HASH</span>
+
+<span class="cp">$V = $HASH{$KEY};                 # retrieve from database</span>
+<span class="cp">$HASH{$KEY} = $VALUE;             # put value into database</span>
+<span class="cp">if (exists $HASH{$KEY}) {         # check whether in database</span>
+<span class="cp">    # ...</span>
+<span class="cp">}</span>
+<span class="cp">delete $HASH{$KEY};               # delete from database</span>
+<span class="cp">untie %hash;                      # close the database</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch14/userstats</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl -w</span>
+<span class="cp"># userstats - generates statistics on who is logged in.</span>
+<span class="cp"># call with an argument to display totals</span>
+
+<span class="cp">use DB_File;</span>
+
+<span class="cp">$db = &#39;/tmp/userstats.db&#39;;       # where data is kept between runs</span>
+
+<span class="cp">tie(%db, &#39;DB_File&#39;, $db)         or die &quot;Can&#39;t open DB_File $db : $!\n&quot;;</span>
+
+<span class="cp">if (@ARGV) {</span>
+<span class="cp">    if (&quot;@ARGV&quot; eq &quot;ALL&quot;) {</span>
+<span class="cp">        @ARGV = sort keys %db;</span>
+<span class="cp">    }</span>
+<span class="cp">    foreach $user (@ARGV) {</span>
+<span class="cp">            print &quot;$user\t$db{$user}\n&quot;;</span>
+<span class="cp">    }</span>
+<span class="cp">} else {</span>
+<span class="cp">    @who = `who`;                                   # run who(1)</span>
+<span class="cp">    if ($?) {</span>
+<span class="cp">        die &quot;Couldn&#39;t run who: $?\n&quot;;               # exited abnormally</span>
+<span class="cp">    }</span>
+<span class="cp">    # extract username (first thing on the line) and update</span>
+<span class="cp">    foreach $line (@who) {</span>
+<span class="cp">        $line =~ /^(\S+)/;</span>
+<span class="cp">        die &quot;Bad line from who: $line\n&quot; unless $1;</span>
+<span class="cp">        $db{$1}++;</span>
+<span class="cp">    }</span>
+<span class="cp">}</span>
+
+<span class="cp">untie %db;</span>
+
+<span class="cp">#-----------------------------</span>
+<span class="cp">gnat     ttyp1   May 29 15:39   (coprolith.frii.com)</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN760"
+>Emptying a DBM File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">dbmopen(%HASH, $FILENAME, 0666)         or die &quot;Can&#39;t open FILENAME: $!\n&quot;;</span>
+<span class="cp">%HASH = ();</span>
+<span class="cp">dbmclose %HASH;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">use DB_File;</span>
+
+<span class="cp">tie(%HASH, &quot;DB_File&quot;, $FILENAME)        or die &quot;Can&#39;t open FILENAME: $!\n&quot;;</span>
+<span class="cp">%HASH = ();</span>
+<span class="cp">untie %hash;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">unlink $FILENAME</span>
+<span class="cp">    or die &quot;Couldn&#39;t unlink $FILENAME to empty the database: $!\n&quot;;</span>
+<span class="cp">dbmopen(%HASH, $FILENAME, 0666)</span>
+<span class="cp">    or die &quot;Couldn&#39;t create $FILENAME database: $!\n&quot;;</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN763"
+>Converting Between DBM Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch14/db2gdbm</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl -w</span>
+<span class="cp"># db2gdbm: converts DB to GDBM</span>
+
+<span class="cp">use strict;</span>
+
+<span class="cp">use DB_File;</span>
+<span class="cp">use GDBM_File;</span>
+
+<span class="cp">unless (@ARGV == 2) {</span>
+<span class="cp">    die &quot;usage: db2gdbm infile outfile\n&quot;;</span>
+<span class="cp">}</span>
+
+<span class="cp">my ($infile, $outfile) = @ARGV;                     </span>
+<span class="cp">my (%db_in, %db_out);                               </span>
+
+<span class="cp"># open the files</span>
+<span class="cp">tie(%db_in, &#39;DB_File&#39;, $infile)</span>
+<span class="cp">    or die &quot;Can&#39;t tie $infile: $!&quot;;</span>
+<span class="cp">tie(%db_out, &#39;GDBM_File&#39;, $outfile, GDBM_WRCREAT, 0666)</span>
+<span class="cp">    or die &quot;Can&#39;t tie $outfile: $!&quot;;</span>
+
+<span class="cp"># copy (don&#39;t use %db_out = %db_in because it&#39;s slow on big databases)</span>
+<span class="cp">while (my($k, $v) = each %db_in) {</span>
+<span class="cp">    $db_out{$k} = $v;</span>
+<span class="cp">}</span>
+
+<span class="cp"># these unties happen automatically at program exit</span>
+<span class="cp">untie %db_in;</span>
+<span class="cp">untie %db_out;</span>
+
+<span class="cp">#-----------------------------</span>
+<span class="cp">#% db2gdbm /tmp/users.db /tmp/users.gdbm</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN766"
+>Merging DBM Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">%OUTPUT = (%INPUT1, %INPUT2);</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">%OUTPUT = ();</span>
+<span class="cp">foreach $href ( \%INPUT1, \%INPUT2 ) {</span>
+<span class="cp">    while (my($key, $value) = each(%$href)) {</span>
+<span class="cp">        if (exists $OUTPUT{$key}) {</span>
+<span class="cp">            # decide which value to use and set $OUTPUT{$key} if necessary</span>
+<span class="cp">        } else {</span>
+<span class="cp">            $OUTPUT{$key} = $value;</span>
+<span class="cp">        }</span>
+<span class="cp">    }</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN769"
+>Locking DBM Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch14/dblockdemo</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl</span>
+<span class="cp"># dblockdemo - demo locking dbm databases</span>
+<span class="cp">use DB_File;</span>
+<span class="cp">use strict;</span>
+
+<span class="cp">sub LOCK_SH { 1 }                   # In case you don&#39;t have</span>
+<span class="cp">sub LOCK_EX { 2 }                   # the standard Fcntl module.  You</span>
+<span class="cp">sub LOCK_NB { 4 }                   # should, but who can tell</span>
+<span class="cp">sub LOCK_UN { 8 }                   # how those chips fall?</span>
+
+<span class="cp">my($oldval, $fd, $db, %db, $value, $key);</span>
+
+<span class="cp">$key    = shift || &#39;default&#39;;</span>
+<span class="cp">$value  = shift || &#39;magic&#39;;</span>
+<span class="cp">$value .= &quot; $$&quot;;</span>
+
+<span class="cp">$db = tie(%db, &#39;DB_File&#39;, &#39;/tmp/foo.db&#39;, O_CREAT|O_RDWR, 0666)</span>
+<span class="cp">    or die &quot;dbcreat /tmp/foo.db $!&quot;;</span>
+<span class="cp">$fd = $db-&gt;fd;                      # need this for locking</span>
+<span class="cp">print &quot;$$: db fd is $fd\n&quot;;</span>
+<span class="cp">open(DB_FH, &quot;+&lt;&amp;=$fd&quot;)</span>
+<span class="cp">    or die &quot;dup $!&quot;;</span>
+
+<span class="cp">unless (flock (DB_FH, LOCK_SH | LOCK_NB)) {</span>
+<span class="cp">    print &quot;$$: CONTENTION; can&#39;t read during write update!</span>
+<span class="cp">                Waiting for read lock ($!) ....&quot;;</span>
+<span class="cp">    unless (flock (DB_FH, LOCK_SH)) { die &quot;flock: $!&quot; }</span>
+<span class="cp">}</span>
+<span class="cp">print &quot;$$: Read lock granted\n&quot;;</span>
+
+<span class="cp">$oldval = $db{$key};</span>
+<span class="cp">print &quot;$$: Old value was $oldval\n&quot;;</span>
+<span class="cp">flock(DB_FH, LOCK_UN);</span>
+
+<span class="cp">unless (flock (DB_FH, LOCK_EX | LOCK_NB)) {</span>
+<span class="cp">    print &quot;$$: CONTENTION; must have exclusive lock!</span>
+<span class="cp">                Waiting for write lock ($!) ....&quot;;</span>
+<span class="cp">    unless (flock (DB_FH, LOCK_EX)) { die &quot;flock: $!&quot; }</span>
+<span class="cp">}</span>
+
+<span class="cp">print &quot;$$: Write lock granted\n&quot;;</span>
+<span class="cp">$db{$key} = $value;</span>
+<span class="cp">$db-&gt;sync;  # to flush</span>
+<span class="cp">sleep 10;</span>
+
+<span class="cp">flock(DB_FH, LOCK_UN);</span>
+<span class="cp">undef $db;</span>
+<span class="cp">untie %db;</span>
+<span class="cp">close(DB_FH);</span>
+<span class="cp">print &quot;$$: Updated db to $key=$value\n&quot;;</span>
+
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN772"
+>Sorting Large DBM Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">use DB_File;</span>
+
+<span class="cp"># specify the Perl sub to do key comparison using the</span>
+<span class="cp"># exported $DB_BTREE hash reference</span>
+<span class="cp">$DB_BTREE-&gt;{&#39;compare&#39;} = sub {</span>
+<span class="cp">    my ($key1, $key2) = @_ ;</span>
+<span class="cp">    return &quot;\L$key1&quot; cmp &quot;\L$key2&quot;;</span>
+<span class="cp">};</span>
+
+<span class="cp">tie(%hash, &quot;DB_File&quot;, $filename, O_RDWR|O_CREAT, 0666, $DB_BTREE)</span>
+<span class="cp">    or die &quot;can&#39;t tie $filename: $!&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch14/sortdemo</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl</span>
+<span class="cp"># sortdemo - show auto dbm sorting</span>
+<span class="cp">use strict;</span>
+<span class="cp">use DB_File;</span>
+
+<span class="cp">$DB_BTREE-&gt;{&#39;compare&#39;} = sub {</span>
+<span class="cp">    my ($key1, $key2) = @_ ;</span>
+<span class="cp">    &quot;\L$key1&quot; cmp &quot;\L$key2&quot; ;</span>
+<span class="cp">};</span>
+
+<span class="cp">my %hash;</span>
+<span class="cp">my $filename = &#39;/tmp/sorthash.db&#39;;</span>
+<span class="cp">tie(%hash, &quot;DB_File&quot;, $filename, O_RDWR|O_CREAT, 0666, $DB_BTREE)</span>
+<span class="cp">    or die &quot;can&#39;t tie $filename: $!&quot;;</span>
+
+<span class="cp">my $i = 0;</span>
+<span class="cp">for my $word (qw(Can&#39;t you go camp down by Gibraltar)) {</span>
+<span class="cp">    $hash{$word} = ++$i;</span>
+<span class="cp">}</span>
+
+<span class="cp">while (my($word, $number) = each %hash) {</span>
+<span class="cp">    printf &quot;%-12s %d\n&quot;, $word, $number;</span>
+<span class="cp">}</span>
+
+<span class="cp">#-----------------------------</span>
+<span class="cp">#by           6</span>
+<span class="cp">#</span>
+<span class="cp">#camp         4</span>
+<span class="cp">#</span>
+<span class="cp">#Can&#39;t        1</span>
+<span class="cp">#</span>
+<span class="cp">#down         5</span>
+<span class="cp">#</span>
+<span class="cp">#Gibraltar    7</span>
+<span class="cp">#</span>
+<span class="cp">#go           3</span>
+<span class="cp">#</span>
+<span class="cp">#you          2</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">tie(%hash, &quot;DB_File&quot;, undef, O_RDWR|O_CREAT, 0666, $DB_BTREE)</span>
+<span class="cp">        or die &quot;can&#39;t tie: $!&quot;;</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN775"
+>Treating a Text File as a Database Array</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">use DB_File;</span>
+
+<span class="cp">tie(@array, &quot;DB_File&quot;, &quot;/tmp/textfile&quot;, O_RDWR|O_CREAT, 0666, $DB_RECNO)</span>
+<span class="cp">    or die &quot;Cannot open file &#39;text&#39;: $!\n&quot; ;</span>
+
+<span class="cp">$array[4] = &quot;a new line&quot;;</span>
+<span class="cp">untie @array;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch14/recno_demo</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl -w</span>
+<span class="cp"># recno_demo - show how to use the raw API on recno bindings</span>
+<span class="cp">use strict;</span>
+<span class="cp">use vars qw(@lines $dbobj $file $i);</span>
+<span class="cp">use DB_File;</span>
+
+<span class="cp">$file = &quot;/tmp/textfile&quot;;</span>
+<span class="cp">unlink $file;               # just in case</span>
+
+<span class="cp">$dbobj = tie(@lines, &quot;DB_File&quot;, $file, O_RDWR|O_CREAT, 0666, $DB_RECNO)</span>
+<span class="cp">    or die &quot;Cannot open file $file: $!\n&quot;;</span>
+
+<span class="cp"># first create a text file to play with</span>
+<span class="cp">$lines[0] = &quot;zero&quot;;</span>
+<span class="cp">$lines[1] = &quot;one&quot;;</span>
+<span class="cp">$lines[2] = &quot;two&quot;;</span>
+<span class="cp">$lines[3] = &quot;three&quot;;</span>
+<span class="cp">$lines[4] = &quot;four&quot;;</span>
+
+<span class="cp"># Print the records in order.</span>
+<span class="cp">#</span>
+<span class="cp"># The length method is needed here because evaluating a tied</span>
+<span class="cp"># array in a scalar context does not return the number of</span>
+<span class="cp"># elements in the array.</span>
+
+<span class="cp">print &quot;\nORIGINAL\n&quot;;</span>
+<span class="cp">foreach $i (0 .. $dbobj-&gt;length - 1) {</span>
+<span class="cp">    print &quot;$i: $lines[$i]\n&quot;;</span>
+<span class="cp">}</span>
+
+<span class="cp"># use the push &amp; pop methods</span>
+<span class="cp">$a = $dbobj-&gt;pop;</span>
+<span class="cp">$dbobj-&gt;push(&quot;last&quot;);</span>
+<span class="cp">print &quot;\nThe last record was [$a]\n&quot;;</span>
+
+<span class="cp"># and the shift &amp; unshift methods</span>
+<span class="cp">$a = $dbobj-&gt;shift;</span>
+<span class="cp">$dbobj-&gt;unshift(&quot;first&quot;);</span>
+<span class="cp">print &quot;The first record was [$a]\n&quot;;</span>
+
+<span class="cp"># Use the API to add a new record after record 2.</span>
+<span class="cp">$i = 2;</span>
+<span class="cp">$dbobj-&gt;put($i, &quot;Newbie&quot;, R_IAFTER);</span>
+<span class="cp">    </span>
+<span class="cp"># and a new record before record 1.</span>
+<span class="cp">$i = 1;</span>
+<span class="cp">$dbobj-&gt;put($i, &quot;New One&quot;, R_IBEFORE);</span>
+
+<span class="cp"># delete record 3</span>
+<span class="cp">$dbobj-&gt;del(3);</span>
+
+<span class="cp"># now print the records in reverse order</span>
+<span class="cp">print &quot;\nREVERSE\n&quot;;</span>
+<span class="cp">for ($i = $dbobj-&gt;length - 1; $i &gt;= 0; -- $i) {</span>
+<span class="cp">    print &quot;$i: $lines[$i]\n&quot;;</span>
+<span class="cp">}</span>
+
+<span class="cp"># same again, but use the API functions instead</span>
+<span class="cp">print &quot;\nREVERSE again\n&quot;;</span>
+<span class="cp">my ($s, $k, $v)  = (0, 0, 0);</span>
+<span class="cp">for ($s = $dbobj-&gt;seq($k, $v, R_LAST);</span>
+<span class="cp">     $s == 0;</span>
+<span class="cp">     $s = $dbobj-&gt;seq($k, $v, R_PREV))</span>
+<span class="cp">{</span>
+<span class="cp">    print &quot;$k: $v\n&quot;</span>
+<span class="cp">}</span>
+
+<span class="cp">undef $dbobj;</span>
+<span class="cp">untie @lines;</span>
+
+<span class="cp">#-----------------------------</span>
+<span class="cp">#ORIGINAL</span>
+<span class="cp">#</span>
+<span class="cp">#0: zero</span>
+<span class="cp">#</span>
+<span class="cp">#1: one</span>
+<span class="cp">#</span>
+<span class="cp">#2: two</span>
+<span class="cp">#</span>
+<span class="cp">#3: three</span>
+<span class="cp">#</span>
+<span class="cp">#4: four</span>
+<span class="cp">#</span>
+<span class="cp">#</span>
+<span class="cp">#The last record was [four]</span>
+<span class="cp">#</span>
+<span class="cp">#The first record was [zero]</span>
+<span class="cp">#</span>
+<span class="cp">#</span>
+<span class="cp">#REVERSE</span>
+<span class="cp">#</span>
+<span class="cp">#5: last</span>
+<span class="cp">#</span>
+<span class="cp">#4: three</span>
+<span class="cp">#</span>
+<span class="cp">#3: Newbie</span>
+<span class="cp">#</span>
+<span class="cp">#2: one</span>
+<span class="cp">#</span>
+<span class="cp">#1: New One</span>
+<span class="cp">#</span>
+<span class="cp">#0: first</span>
+<span class="cp">#</span>
+<span class="cp">#</span>
+<span class="cp">#REVERSE again</span>
+<span class="cp">#</span>
+<span class="cp">#5: last</span>
+<span class="cp">#</span>
+<span class="cp">#4: three</span>
+<span class="cp">#</span>
+<span class="cp">#3: Newbie</span>
+<span class="cp">#</span>
+<span class="cp">#2: one</span>
+<span class="cp">#</span>
+<span class="cp">#1: New One</span>
+<span class="cp">#</span>
+<span class="cp">#0: first</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">    foreach $item (@lines) { }</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">    foreach $i (0 .. $dbobj-&gt;length - 1) { }</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">    for ($done_yet = $dbobj-&gt;get($k, $v, R_FIRST);</span>
+<span class="cp">         not $done_yet;</span>
+<span class="cp">         $done_yet = $dbobj-&gt;get($k, $v, R_NEXT) )</span>
+<span class="cp">    {</span>
+<span class="cp">        # process key or value</span>
+<span class="cp">    }</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN778"
+>Storing Complex Data in a DBM File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">use MLDBM &#39;DB_File&#39;;</span>
+<span class="cp">tie(%HASH, &#39;MLDBM&#39;, [... other DBM arguments]) or die $!;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># %hash is a tied hash</span>
+<span class="cp">$hash{&quot;Tom Christiansen&quot;} = [ &quot;book author&quot;, &#39;tchrist@perl.com&#39; ];          </span>
+<span class="cp">$hash{&quot;Tom Boutell&quot;} = [ &quot;shareware author&quot;, &#39;boutell@boutell.com&#39; ];</span>
+
+<span class="cp"># names to compare</span>
+<span class="cp">$name1 = &quot;Tom Christiansen&quot;;</span>
+<span class="cp">$name2 = &quot;Tom Boutell&quot;;</span>
+
+<span class="cp">$tom1 = $hash{$name1};      # snag local pointer</span>
+<span class="cp">$tom2 = $hash{$name2};      # and another           </span>
+
+<span class="cp">print &quot;Two Toming: $tom1 $tom2\n&quot;;</span>
+
+<span class="cp">Tom Toming: ARRAY(0x73048) ARRAY(0x73e4c)</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">if ($tom1-&gt;[0] eq $tom2-&gt;[0] &amp;&amp;</span>
+<span class="cp">    $tom1-&gt;[1] eq $tom2-&gt;[1]) {</span>
+<span class="cp">    print &quot;You&#39;re having runtime fun with one Tom made two.\n&quot;;</span>
+<span class="cp">} else {</span>
+<span class="cp">    print &quot;No two Toms are ever alike.\n&quot;;</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">if ($hash{$name1}-&gt;[0] eq $hash{$name2}-&gt;[0] &amp;&amp;     # INEFFICIENT</span>
+<span class="cp">    $hash{$name1}-&gt;[1] eq $hash{$name2}-&gt;[1]) {</span>
+<span class="cp">    print &quot;You&#39;re having runtime fun with one Tom made two.\n&quot;;</span>
+<span class="cp">} else {</span>
+<span class="cp">    print &quot;No two Toms are ever alike.\n&quot;;</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$hash{&quot;Tom Boutell&quot;}-&gt;[0] = &quot;Poet Programmer&quot;;      # WRONG</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$entry = $hash{&quot;Tom Boutell&quot;};                      # RIGHT</span>
+<span class="cp">$entry-&gt;[0] = &quot;Poet Programmer&quot;;</span>
+<span class="cp">$hash{&quot;Tom Boutell&quot;} = $entry;</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN781"
+>Persistent Data</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">use MLDBM &#39;DB_File&#39;;</span>
+
+<span class="cp">my ($VARIABLE1,$VARIABLE2);</span>
+<span class="cp">my $Persistent_Store = &#39;/projects/foo/data&#39;;</span>
+<span class="cp">BEGIN {</span>
+<span class="cp">    my %data;</span>
+<span class="cp">    tie(%data, &#39;MLDBM&#39;, $Persistent_Store)</span>
+<span class="cp">        or die &quot;Can&#39;t tie to $Persistent_Store : $!&quot;;</span>
+<span class="cp">    $VARIABLE1 = $data{VARIABLE1};</span>
+<span class="cp">    $VARIABLE2 = $data{VARIABLE2};</span>
+<span class="cp">    # ...</span>
+<span class="cp">    untie %data;</span>
+<span class="cp">}</span>
+<span class="cp">END {</span>
+<span class="cp">    my %data;</span>
+<span class="cp">    tie (%data, &#39;MLDBM&#39;, $Persistent_Store)</span>
+<span class="cp">        or die &quot;Can&#39;t tie to $Persistent_Store : $!&quot;;</span>
+<span class="cp">    $data{VARIABLE1} = $VARIABLE1;</span>
+<span class="cp">    $data{VARIABLE2} = $VARIABLE2;</span>
+<span class="cp">    # ...</span>
+<span class="cp">    untie %data;</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">push(@{$db{$user}}, $duration);</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch14/mldbm_demo</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl -w</span>
+<span class="cp"># mldbm_demo - show how to use MLDBM with DB_File</span>
+
+<span class="cp">use MLDBM &quot;DB_File&quot;;</span>
+
+<span class="cp">$db = &quot;/tmp/mldbm-array&quot;;</span>
+
+<span class="cp">tie %db, &#39;MLDBM&#39;, $db</span>
+<span class="cp">  or die &quot;Can&#39;t open $db : $!&quot;;</span>
+
+<span class="cp">while(&lt;DATA&gt;) {</span>
+<span class="cp">    chomp;</span>
+<span class="cp">    ($user, $duration) = split(/\s+/, $_);</span>
+<span class="cp">    $array_ref = exists $db{$user} ? $db{$user} : [];</span>
+<span class="cp">    push(@$array_ref, $duration);</span>
+<span class="cp">    $db{$user} = $array_ref;</span>
+<span class="cp">}</span>
+
+<span class="cp">foreach $user (sort keys %db) {</span>
+<span class="cp">    print &quot;$user: &quot;;</span>
+<span class="cp">    $total = 0;</span>
+<span class="cp">    foreach $duration (@{ $db{$user} }) {</span>
+<span class="cp">        print &quot;$duration &quot;;</span>
+<span class="cp">        $total += $duration;</span>
+<span class="cp">    }</span>
+<span class="cp">        print &quot;($total)\n&quot;;</span>
+<span class="cp">    }</span>
+
+<span class="cp">__END__</span>
+
+<span class="cp">#gnat        15.3</span>
+<span class="cp">#tchrist     2.5</span>
+<span class="cp">#jules       22.1</span>
+<span class="cp">#tchrist     15.9</span>
+<span class="cp">#gnat        8.7</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">use MLDBM qw(DB_File Storable);</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN784"
+>Executing an SQL Command Using DBI and DBD</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">use DBI;</span>
+
+
+<span class="cp">$dbh = DBI-&gt;connect(&#39;DBI:driver:database&#39;, &#39;username&#39;, &#39;auth&#39;,</span>
+
+<span class="cp">            { RaiseError =&gt; 1, AutoCommit =&gt; 1});</span>
+
+<span class="cp">$dbh-&gt;do($sql);</span>
+
+<span class="cp">$sth = $dbh-&gt;prepare($sql);</span>
+
+<span class="cp">$sth-&gt;execute();</span>
+
+<span class="cp">while (@row = $sth-&gt;fetchrow_array) {</span>
+
+<span class="cp">    # ...</span>
+
+<span class="cp">}</span>
+
+<span class="cp">$sth-&gt;finish();</span>
+
+<span class="cp">$dbh-&gt;disconnect();</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#disconnect(DBI::db=HASH(0x9df84)) invalidates 1 active cursor(s) </span>
+<span class="cp">#    at -e line 1.</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch14/dbusers</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl -w</span>
+<span class="cp"># dbusers - manage MySQL user table</span>
+<span class="cp">use DBI;</span>
+<span class="cp">use User::pwent;</span>
+
+<span class="cp">$dbh = DBI-&gt;connect(&#39;DBI:mysql:dbname:mysqlserver.domain.com:3306&#39;,</span>
+<span class="cp">                    &#39;user&#39;, &#39;password&#39;,</span>
+<span class="cp">                    { RaiseError =&gt; 1 })</span>
+<span class="cp">  or die &quot;connecting : $DBI::errstr\n&quot;;</span>
+
+<span class="cp">$dbh-&gt;do(&quot;CREATE TABLE users (uid INT, login CHAR(8))&quot;);</span>
+
+<span class="cp">$sql_fmt = &quot;INSERT INTO users VALUES( %d, %s )&quot;;</span>
+<span class="cp">while ($user = getpwent) {</span>
+<span class="cp">    $sql = sprintf($sql_fmt, $user-&gt;uid, $dbh-&gt;quote($user-&gt;name));</span>
+<span class="cp">    $dbh-&gt;do($sql);</span>
+<span class="cp">}</span>
+
+<span class="cp">$sth = $dbh-&gt;prepare(&quot;SELECT * FROM users WHERE uid &lt; 50&quot;);</span>
+<span class="cp">$sth-&gt;execute;</span>
+
+<span class="cp">while ((@row) = $sth-&gt;fetchrow) {</span>
+<span class="cp">    print join(&quot;, &quot;, map {defined $_ ? $_ : &quot;(null)&quot;} @row), &quot;\n&quot;;</span>
+<span class="cp">}</span>
+<span class="cp">$sth-&gt;finish;</span>
+
+<span class="cp">$dbh-&gt;do(&quot;DROP TABLE users&quot;);</span>
+
+<span class="cp">$dbh-&gt;disconnect;</span>
+
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN787"
+>Program: ggh - Grep Netscape Global History</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">#% ggh http://www.perl.com/index.html</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#% ggh perl</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#% ggh mailto:</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#% ggh -regexp &#39;(?i)\bfaq\b&#39;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#% ggh -epoch http://www.perl.com/perl/</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#% ggh -gmtime http://www.perl.com/perl/</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#% ggh | less</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#% ggh -epoch | sort -rn | less</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#% ggh -epoch | sort -rn | perl -pe &#39;s/\d+/localtime $&amp;/e&#39; | less</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch14/ggh</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl -w</span>
+<span class="cp"># ggh - grovel global history in netscape logs</span>
+<span class="cp">$USAGE = &lt;&lt;EO_COMPLAINT;</span>
+<span class="cp">usage: $0 [-database dbfilename] [-help]</span>
+<span class="cp">           [-epochtime | -localtime | -gmtime]</span>
+<span class="cp">           [ [-regexp] pattern] | href ... ]</span>
+<span class="cp">EO_COMPLAINT</span>
+
+<span class="cp">use Getopt::Long;</span>
+
+<span class="cp">($opt_database, $opt_epochtime, $opt_localtime,</span>
+<span class="cp"> $opt_gmtime,   $opt_regexp,    $opt_help,</span>
+<span class="cp"> $pattern,                                  )      = (0) x 7;</span>
+
+<span class="cp">usage() unless GetOptions qw{ database=s</span>
+<span class="cp">                              regexp=s</span>
+<span class="cp">                              epochtime localtime gmtime</span>
+<span class="cp">                              help</span>
+<span class="cp">                            };</span>
+
+<span class="cp">if ($opt_help) { print $USAGE; exit; }</span>
+
+<span class="cp">usage(&quot;only one of localtime, gmtime, and epochtime allowed&quot;)</span>
+<span class="cp">    if $opt_localtime + $opt_gmtime + $opt_epochtime &gt; 1;</span>
+
+<span class="cp">if ( $opt_regexp ) {</span>
+<span class="cp">    $pattern = $opt_regexp;</span>
+<span class="cp">} elsif (@ARGV &amp;&amp; $ARGV[0] !~ m(://)) {</span>
+<span class="cp">    $pattern = shift;</span>
+<span class="cp">}</span>
+
+<span class="cp">usage(&quot;can&#39;t mix URLs and explicit patterns&quot;)</span>
+<span class="cp">    if $pattern &amp;&amp; @ARGV;</span>
+
+<span class="cp">if ($pattern &amp;&amp; !eval { &#39;&#39; =~ /$pattern/; 1 } ) {</span>
+<span class="cp">    $@ =~ s/ at \w+ line \d+\.//;</span>
+<span class="cp">    die &quot;$0: bad pattern $@&quot;;</span>
+<span class="cp">}</span>
+
+<span class="cp">require DB_File; DB_File-&gt;import();  # delay loading until runtime</span>
+<span class="cp">$| = 1;                              # feed the hungry PAGERs</span>
+
+<span class="cp">$dotdir  = $ENV{HOME}    || $ENV{LOGNAME};</span>
+<span class="cp">$HISTORY = $opt_database || &quot;$dotdir/.netscape/history.db&quot;;</span>
+
+<span class="cp">die &quot;no netscape history dbase in $HISTORY: $!&quot; unless -e $HISTORY;</span>
+<span class="cp">die &quot;can&#39;t dbmopen $HISTORY: $!&quot; unless dbmopen %hist_db, $HISTORY, 0666;</span>
+
+<span class="cp"># the next line is a hack because the C programmers who did this</span>
+<span class="cp"># didn&#39;t understand strlen vs strlen+1.  jwz told me so. :-)</span>
+<span class="cp">$add_nulls   = (ord(substr(each %hist_db, -1)) == 0);</span>
+
+<span class="cp"># XXX: should now do scalar keys to reset but don&#39;t </span>
+<span class="cp">#      want cost of full traverse, required on tied hashes.</span>
+<span class="cp">#   better to close and reopen?</span>
+
+<span class="cp">$nulled_href = &quot;&quot;;  </span>
+<span class="cp">$byte_order  = &quot;V&quot;;         # PC people don&#39;t grok &quot;N&quot; (network order)</span>
+<span class="cp">    </span>
+<span class="cp">if (@ARGV) {</span>
+<span class="cp">    foreach $href (@ARGV) {</span>
+<span class="cp">        $nulled_href = $href . ($add_nulls &amp;&amp; &quot;\0&quot;);</span>
+<span class="cp">        unless ($binary_time = $hist_db{$nulled_href}) {</span>
+<span class="cp">            warn &quot;$0: No history entry for HREF $href\n&quot;;</span>
+<span class="cp">            next;</span>
+<span class="cp">        }</span>
+<span class="cp">        $epoch_secs = unpack($byte_order, $binary_time);</span>
+<span class="cp">        $stardate   = $opt_epochtime ? $epoch_secs</span>
+<span class="cp">                                     : $opt_gmtime ? gmtime    $epoch_secs</span>
+<span class="cp">                                                   : localtime $epoch_secs;</span>
+<span class="cp">        print &quot;$stardate $href\n&quot;;</span>
+<span class="cp">    }</span>
+<span class="cp">} else {</span>
+<span class="cp">    while ( ($href, $binary_time) = each %hist_db ) {</span>
+<span class="cp">        chop $href if $add_nulls;</span>
+<span class="cp">        # gnat reports some binary times are missing</span>
+<span class="cp">        $binary_time = pack($byte_order, 0) unless $binary_time;</span>
+<span class="cp">        $epoch_secs = unpack($byte_order, $binary_time);</span>
+<span class="cp">        $stardate   = $opt_epochtime ? $epoch_secs</span>
+<span class="cp">                                     : $opt_gmtime ? gmtime    $epoch_secs</span>
+<span class="cp">                                                   : localtime $epoch_secs;</span>
+<span class="cp">        print &quot;$stardate $href\n&quot; unless $pattern &amp;&amp; $href !~ /$pattern/o;</span>
+<span class="cp">    }</span>
+<span class="cp">}</span>
+
+<span class="cp">sub usage {</span>
+<span class="cp">    print STDERR &quot;@_\n&quot; if @_;</span>
+<span class="cp">    die $USAGE;</span>
+<span class="cp">}</span>
+
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="classesetc.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="userinterfaces.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Classes, Objects, and Ties</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>User Interfaces</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

@@ -1,0 +1,424 @@
+<!DOCTYPE html PUBLIC "-//IETF//DTD HTML 2.0//EN">
+<HTML>
+<HEAD>
+<TITLE>Enscript Output</TITLE>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF" TEXT="#000000" LINK="#1F00FF" ALINK="#FF0000" VLINK="#9900DD">
+<A NAME="top">
+<A NAME="file1">
+<H1>tmp.data</H1>
+
+<PRE>
+( -*- forth -*-
+
+@@PLEAC@@_NAME
+@@SKIP@@ Forth
+
+@@PLEAC@@_WEB
+@@SKIP@@ http://www.forth.org/
+
+@@PLEAC@@_INTRO
+Implementations vary wildly.
+I'm pretty sure these are all legal ANS.
+
+@@PLEAC@@_APPENDIX
+Variable names tend to assume you have made a word with that name which leaves
+the value you want on the stack.
+
+Some Forths have these and others do not, so to be safe: )
+
+-1 constant t
+0 constant nil
+: not ( f -- f ) 0= ;
+
+( @@PLEAC@@_1.0 )
+: string ( -- c- u ) s&quot; \n&quot; ; ( two characters, \ and an n )
+: string ( -- c- u ) s&quot; John 'Maddog' Orwant&quot; ; ( literal single quotes
+---------------------------- )
+: string ( -- ) cr ; ( a &quot;newline&quot; character, or: )
+: string ( -- ) newline type ; ( a &quot;newline&quot; character, or: )
+: string ( -- c ) 13 ; ( depending, obviously, on your platform's newline )
+
+( double quotes must be entered manually )
+: put-quote ( c- u -- )
+	+ 34 swap c!
+;
+: string ( -- c- u )
+	s&quot; Jon  Maddog  Orwant&quot;
+	over dup 4 put&quot; 11 put&quot; ( literal double quotes )
+;
+( no q/ / type quoting options
+----------------------------
+some words to make a here document: )
+: newline? ( c -- f )
+ dup 10 = swap 13 = or
+( or whatever the newline is for your platform )
+;
+: get-terminator ( -- c- u )
+ here dup
+ 12 chars allot
+ 12 accept
+ ( change 12 if you absolutely must have a larger EOF marker than 12 characters )
+ cr
+;
+: get-char ( -- c )
+ key dup emit dup here 1 chars allot c!
+;
+: line-in ( -- u )
+ 0 begin 1 + get-char 13 = until 1 -
+;
+: &lt;&lt;&lt; ( -- c- u )
+\ A parsing &lt;&lt;&lt; would be cute but I don't want to deal with writing one
+  get-terminator here -rot
+  begin
+  	line-in
+	here over - 1 - swap 2over
+  	compare not
+  until
+  drop drop here over -
+;
+&lt;&lt;&lt; EOF
+This is a multiline here document
+terminated by EOF on a line by itself
+EOF
+
+
+( @@PLEAC@@_1.1 )
+: substr ( c- u u u -- c- u )
+  dup 0=
+  if
+    drop tuck -
+  else
+    2dup + 2swap -rot dup -rot &gt;
+    if
+      rot drop 2dup swap - nip
+    else
+      drop swap
+    then
+  then
+  -rot + 0 -rot swap here swap 2dup chars allot drop 0
+  do
+    over i + c@ over i + c! rot 1+ -rot
+  loop
+  nip swap
+;
+: value string offset count substr ;
+: value string offset 0 substr ;
+
+: reassign ( c- u u u c- u -- c- u )
+  { addr1 strlen1 offset count addr2 strlen2 }
+  strlen1 count - strlen2 + allocate throw
+  addr1 over offset cmove
+  addr2 over offset chars + strlen2 cmove
+  addr1 offset chars + count chars +
+	over offset chars + strlen2 chars + strlen1 count - offset - cmove
+  strlen1 count - strlen2 +
+;
+string offset count newstring reassign
+( ----------------------------
+get a 5-byte string, skip 3, then grab 2 8-byte strings, then the rest. )
+: unpack ( c- u -- c-1 u1 c-2 u2 c-3 u3 c-4 u4 )
+  2&gt;r
+  5 chars allocate throw 2r@ drop over 5 cmove 5
+  8 chars allocate throw 2r@ drop 8 chars + over 8 cmove 8
+  8 chars allocate throw 2r@ drop 16 chars + over 8 cmove 8
+  2r&gt; 24 - dup chars allocate throw dup 2swap &gt;r r@ swap 24 + -rot cmove
+  r&gt;
+;
+
+( split at five byte boundaries )
+: fivers ( c- u -- c-1 u1 c-2 u2 ... c-n un )
+  5 / 0
+  do
+    5 chars allocate throw 2dup swap i 5 * chars + swap 5 cmove 5 rot
+  loop
+  drop
+;
+
+( chop string into individual characters )
+: chop ( c- u -- c1 c2 ... cn )
+  0 do dup i chars + c@ swap loop drop ;
+( ---------------------------- )
+: string s&quot; This is what you have&quot; ;
+: first string drop 1 ; ( &quot;T&quot; )
+: start string drop 5 chars + 2 ; ( &quot;is&quot; )
+: rest string 13 swap over - -rot chars + swap; ( &quot;you have&quot; )
+: last string 1 - chars + 1 ; ( &quot;e&quot; )
+: end string 4 - chars + 4 ; ( &quot;have&quot; )
+: piece string 8 - chars + 3 ; ( &quot;you&quot; )
+( ---------------------------- )
+: string s&quot; This is what you have&quot; ;
+string type
+( This is what you have )
+
+string 5 2 s&quot; wasn't&quot; reassign ( change &quot;is&quot; to &quot;wasn't&quot;
+This wasn't what you have )
+
+string 13 12 s&quot; ondrous&quot; reassign ( replace last 12 characters
+This wasn't wondrous )
+
+string swap 1 chars + swap 1 - ( delete first character
+his wasn't wondrous )
+
+string 10 - dup -rot resize throw swap ( delete last 10 characters
+his wasn' )
+( ----------------------------
+ TODO RE's
+------------------------------
+ exchange first and last letters in a string )
+: a s&quot; make a hat&quot; ;
+: exchange ( c- u -- )
+  1 - 2dup chars + c@ -rot over c@ -rot chars over + rot swap c! c!
+;
+a exchange type
+( take a ham
+
+------------------------------
+
+extract column )
+: a &quot;To be or not to be&quot; ;
+: b ( c- u u u -- c- u )
+  dup
+  chars
+  allocate throw swap ( c- len off cou c-2 )
+  &gt;r &gt;r nip chars + 2r@ cmove r&gt; r&gt;
+;
+
+a 6 6 ( skip 6, grab 6 )
+b type
+( or not )
+
+
+( @@PLEAC@@_1.2 )
+( use b if b is true, else c )
+: default ( x a- -- ) dup @ not if ! else 2drop then ;
+c b default a !
+
+( set x to y unless x is already true )
+: !? dup if ! else drop then ;
+x dup @ 0= y @ and  swap !?
+
+
+( @@PLEAC@@_1.3 )
+: swap! ( x x -- )
+  2dup @ swap @ rot ! swap !
+;
+var1 var2 swap!
+( ---------------------------- )
+variable temp
+a @ temp !
+b @ a !
+temp @ b !
+( ---------------------------- )
+
+
+( @@PLEAC@@_1.4 )
+( not an issue, really; a char is just an integer and stored as a cell on the stack )
+: ord ( c -- u ) ;
+: chr ( u -- c ) ;
+( or, to see the char  )
+: chr ( u -- ) emit ;
+( but if it's an actual variable rather than a stack element: )
+: ord ( c- -- a- ) 1 cells allocate throw swap c@ swap ! ;
+: chr ( a- -- c- ) 1 chars allocate throw swap @ swap c! ;
+
+
+( @@PLEAC@@_1.5 )
+( with a literal word )
+: process-string ( c- u -- variable stack effect )
+  0 do dup i chars + c@ ( your-word ) swap loop drop
+;
+
+( or better yet, with an execution token )
+: map-xt ( xt c- u -- variable stack effect )
+ 0 do 2dup i chars + c@ swap execute loop
+;
+
+( @@PLEAC@@_1.6 )
+
+: 4dup-nip ( a b c d -- a b c d a b d  )
+    2over 2over nip
+;
+
+: c[i]@ ( c- i -- c )   chars + c@
+;
+
+: c[i]! ( c- i c -- )
+    chars + c!
+;
+
+: -cmove ( c- x c- -- c- x  )
+    over 0
+    u+do 	i 4dup-nip
+	1+ - c[i]@
+	2over nip rot c[i]!
+    loop
+    rot drop swap
+;
+
+: revbytes ( c- x -- c- x )
+    dup allocate throw
+    -cmove
+;
+
+: gnirts s&quot; string&quot; revbytes ;
+
+: space?
+    32 =
+;
+
+: ^? ( c c- a -- c t )
+    c[i]@
+    tuck      space? not       swap      space? and     ;
+
+: -^? ( c c- a -- c t )
+    c[i]@
+    tuck
+    space?
+    swap
+    space? not and
+;
+
+: count-words ( c- x -- x )
+    0 -rot 32 swap
+    0 u+do
+	over i ^? if
+	    rot 1+ -rot
+	then
+    loop
+    drop drop
+;
+
+: last-spaces ( c- x -- x )
+    0 -rot
+    begin
+	1-
+	2dup
+	c[i]@
+	space?
+	over 0 &gt;=
+	and
+    while
+	    rot 1+ -rot
+    repeat
+    drop drop
+;
+
+: last-word ( c- x -- x )
+    0 -rot
+    begin
+	1-
+	2dup
+	c[i]@
+	space? not
+	over 0 &gt;=
+	and
+    while
+	    rot 1+ -rot
+    repeat
+    drop drop
+;
+
+: back&gt;front ( c- x c- x -- )
+    2swap 2dup last-word -rot
+    chars + over chars - swap
+    rot drop rot swap
+    cmove  ;
+
+: sback&gt;front ( c- x c- x -- )
+    2swap 2dup last-spaces -rot
+    chars + over chars - swap
+    rot drop rot swap
+    cmove
+;
+
+: sdrow ( c- x -- c- x )      2dup last-spaces -
+dup &gt;r dup chars allocate throw
+    dup &gt;r
+    over 2swap 2dup count-words               0 u+do
+2dup last-word &gt;r       	2over 2over 2swap back&gt;front r@
+	- rot drop dup -rot 2swap
+	r&gt;
+	rot + swap 2swap
+	2dup last-spaces &gt;r
+	2over 2over 2swap sback&gt;front r@
+	- rot drop dup -rot 2swap
+	r&gt;
+	rot + swap 2swap
+    loop
+    2drop 2drop
+    r&gt; r&gt;
+;
+
+: count-spaces ( c- x -- x )
+    0 -rot
+    0 u+do
+	dup i c[i]@ space? if
+	    swap 1+ swap
+	then
+    loop
+    drop
+;
+
+: move-if-not-space ( c- c- -- f )
+    swap c@ dup space?
+    if
+	drop drop false
+    else
+	swap c! true
+    then
+;
+
+: squash-words ( c- x -- c- x )
+    2dup count-spaces
+    over swap -
+    dup chars allocate throw
+    swap &gt;r dup &gt;r
+    -rot
+    0 u+do
+	2dup
+	i chars +
+	swap
+	move-if-not-space if
+	    swap 1 chars + swap
+	then
+    loop
+    drop drop r&gt; r&gt;
+;
+
+: confused ( c- x -- c- x )
+    squash-words
+    revbytes
+;
+
+80 constant biggest-word
+create buff biggest-word 2 + allot
+
+: palindrome? ( c- x -- f )
+    2dup revbytes
+    compare not
+;
+
+: chomp ( c- x -- c- x )
+    2dup last-spaces -
+;
+s&quot; /usr/share/dict/words&quot;  r/o open-file throw value dict
+
+: scan-dictionary ( c- x --  )
+    begin
+	buff biggest-word dict read-line throw
+    while
+	    dup buff swap chomp
+	    dup 5 &gt; -rot
+	    palindrome? and if
+		buff swap type cr
+	    else
+		drop
+	    then
+    repeat
+;
+</PRE>
+<HR>
+<ADDRESS>Generated by <A HREF="http://www.iki.fi/~mtr/genscript/">GNU Enscript 1.6.5.90</A>.</ADDRESS>
+</BODY>
+</HTML>

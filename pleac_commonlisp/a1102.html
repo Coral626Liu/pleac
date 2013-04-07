@@ -1,0 +1,206 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Helpers</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Common Lisp"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Web Automation"
+HREF="webautomation.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="APPENDIX"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Common Lisp</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="webautomation.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+>&nbsp;</TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="APPENDIX"
+><H1
+CLASS="APPENDIX"
+><A
+NAME="AEN1102"
+>A. Helpers</A
+></H1
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="p">(</span><span class="nb">defun</span> <span class="nv">chomp</span> <span class="p">(</span><span class="nb">string</span><span class="p">)</span>
+  <span class="s">&quot;Similar  to Perl&#39;s chomp(),  although it  returns the  new value  of `STRING&#39;</span>
+<span class="s">rather than the number of characters removed, and doesn&#39;t modify its argument.&quot;</span>
+  <span class="p">(</span><span class="nb">string-right-trim</span> <span class="o">#(</span><span class="sc">#\Newline</span> <span class="sc">#\Return</span><span class="p">)</span> <span class="nb">string</span><span class="p">))</span>
+
+<span class="p">(</span><span class="nb">defmacro</span> <span class="nv">when-let</span> <span class="p">((</span><span class="nv">var</span> <span class="nv">value</span><span class="p">)</span> <span class="k">&amp;body</span> <span class="nv">body</span><span class="p">)</span>
+  <span class="s">&quot;Evaluate  `VALUE&#39;, and  bind  it to  `VAR&#39;.  When `VALUE&#39;  evaluates to  some</span>
+<span class="s">non-NIL value, evaluate `BODY&#39; in the same binding scope.&quot;</span>
+  <span class="o">`</span><span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="o">,</span><span class="nv">var</span> <span class="o">,</span><span class="nv">value</span><span class="p">))</span> <span class="p">(</span><span class="nb">when</span> <span class="o">,</span><span class="nv">var</span> <span class="o">,@</span><span class="nv">body</span><span class="p">)))</span>
+
+<span class="p">(</span><span class="nb">defmacro</span> <span class="nv">perl-grep</span> <span class="p">(</span><span class="nc">sequence</span> <span class="k">&amp;body</span> <span class="nv">predicate-body</span><span class="p">)</span>
+  <span class="s">&quot;Like Perl&#39;s grep.  Predicate is a body  of code that can refer to `IT&#39; as the</span>
+<span class="s">current element of the list.&quot;</span>
+  <span class="o">`</span><span class="p">(</span><span class="nb">remove-if-not</span> <span class="nf">#&#39;</span><span class="p">(</span><span class="k">lambda</span> <span class="p">(</span><span class="nv">it</span><span class="p">)</span> <span class="o">,@</span><span class="nv">predicate-body</span><span class="p">)</span> <span class="o">,</span><span class="nc">sequence</span><span class="p">))</span>
+
+<span class="c1">;; The following could be made more efficient by using a faster TEST</span>
+<span class="c1">;; function if the keys appear to be simpler.</span>
+<span class="p">(</span><span class="nb">defun</span> <span class="nv">mkhash</span> <span class="p">(</span><span class="k">&amp;rest</span> <span class="nv">keys/values</span><span class="p">)</span>
+  <span class="s">&quot;Utility for making new EQUAL hashes easily, similar to Perl&#39;s</span>
+<span class="s">built-in funcionality.&quot;</span>
+  <span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nv">newhash</span> <span class="p">(</span><span class="nb">make-hash-table</span> <span class="ss">:test</span> <span class="ss">&#39;equal</span> <span class="c1">; use EQUAL so strings work as keys</span>
+                                  <span class="ss">:size</span> <span class="p">(</span><span class="nb">truncate</span> <span class="p">(</span><span class="nb">/</span> <span class="p">(</span><span class="nb">length</span> <span class="nv">keys/values</span><span class="p">)</span>
+                                                     <span class="mi">2</span><span class="p">)))))</span>
+    <span class="p">(</span><span class="nb">loop</span>
+       <span class="nv">for</span> <span class="nv">key</span> <span class="nv">in</span> <span class="nv">keys/values</span> <span class="nv">by</span> <span class="nf">#&#39;</span><span class="nb">cddr</span>
+       <span class="nv">for</span> <span class="nv">value</span> <span class="nv">in</span> <span class="p">(</span><span class="nb">cdr</span> <span class="nv">keys/values</span><span class="p">)</span> <span class="nv">by</span> <span class="nf">#&#39;</span><span class="nb">cddr</span>
+       <span class="nb">do</span> <span class="p">(</span><span class="nb">setf</span> <span class="p">(</span><span class="nb">gethash</span> <span class="nv">key</span> <span class="nv">newhash</span><span class="p">)</span> <span class="nv">value</span><span class="p">))</span>
+    <span class="nv">newhash</span><span class="p">))</span>
+
+<span class="c1">;; Section 12.1 has an example usage of this, including how</span>
+<span class="c1">;; *EXPORT-TAGS* should be formatted.</span>
+<span class="p">(</span><span class="nb">defun</span> <span class="nv">import-tags</span> <span class="p">(</span><span class="nv">package-designator</span> <span class="k">&amp;rest</span> <span class="nv">tags</span><span class="p">)</span>
+  <span class="s">&quot;Helps emulate Perl&#39;s EXPORT_TAGS functionality, which has no</span>
+<span class="s">equivalent in standard CL.&quot;</span>
+  <span class="p">(</span><span class="k">let*</span> <span class="p">((</span><span class="nv">current-package</span> <span class="vg">*package*</span><span class="p">)</span>
+         <span class="p">(</span><span class="vg">*package*</span> <span class="p">(</span><span class="nb">find-package</span> <span class="nv">package-designator</span><span class="p">))</span>
+         <span class="c1">;; Otherwise we&#39;ll find the *export-tags* from the &quot;calling&quot;</span>
+         <span class="c1">;; package.</span>
+         <span class="p">(</span><span class="nv">export-tags</span> <span class="p">(</span><span class="nb">symbol-value</span> <span class="p">(</span><span class="nb">find-symbol</span> <span class="s">&quot;*EXPORT-TAGS*&quot;</span> <span class="vg">*package*</span><span class="p">))))</span>
+    <span class="p">(</span><span class="nb">dolist</span> <span class="p">(</span><span class="nv">tag</span> <span class="nv">tags</span><span class="p">)</span>
+      <span class="p">(</span><span class="nb">import</span> <span class="p">(</span><span class="nb">cadr</span> <span class="p">(</span><span class="nb">assoc</span> <span class="nv">tag</span> <span class="nv">export-tags</span><span class="p">))</span>
+              <span class="nv">current-package</span><span class="p">))))</span>
+
+<span class="c1">;; Like Perl&#39;s keys function.</span>
+<span class="p">(</span><span class="nb">defun</span> <span class="nv">hash-keys</span> <span class="p">(</span><span class="nv">hash</span><span class="p">)</span>
+  <span class="p">(</span><span class="nb">loop</span> <span class="nv">for</span> <span class="nv">k</span> <span class="nv">being</span> <span class="k">the</span> <span class="nv">hash-keys</span> <span class="nv">of</span> <span class="nv">hash</span> <span class="nv">collect</span> <span class="nv">k</span><span class="p">))</span>
+
+Common Lisp code makes use of the following for</span>
+package/loading:</span>
+(require :PACKAGENAME)</span>
+
+SBCL code makes use of the following for package /</span>
+library loading:</span>
+(asdf:operate &#39;asdf:load-op :date-calc) ; load the package</span>
+(use-package &#39;date-calc)                ; import the symbols</span>
+(load &quot;time.lisp&quot;)              ; replace with your location of the pdl library</span>
+(use-package &#39;CyberTiggyr-Time) ; for printing times in various formats</span>
+
+Packages / libraries used include:</span>
+http://cybertiggyr.com/gene/pdl/</span>
+http://www.cliki.net/asdf</span>
+http://www.cliki.net/cl-interpol</span>
+http://www.cliki.net/cl-ppcre</span>
+http://www.cliki.net/date-calc</span>
+http://www.cliki.net/iterate</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="webautomation.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>&nbsp;</TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Web Automation</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>&nbsp;</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

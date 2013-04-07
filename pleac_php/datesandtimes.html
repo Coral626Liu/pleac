@@ -1,0 +1,773 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Dates and Times</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-PHP"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Numbers"
+HREF="numbers.html"><LINK
+REL="NEXT"
+TITLE="Arrays"
+HREF="arrays.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-PHP</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="numbers.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="arrays.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="DATESANDTIMES"
+>3. Dates and Times</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN132"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// PHP&#39;s date / time suport is quite extensive, and appears grouped into three areas of</span>
+<span class="c1">// functionality:</span>
+<span class="c1">//</span>
+<span class="c1">// * UNIX / C Library [libc]-based routines, which include [among others]:</span>
+<span class="c1">//   - localtime, gmtime</span>
+<span class="c1">//   - strftime, strptime, mktime</span>
+<span class="c1">//   - time, getdate, gettimeofday, </span>
+<span class="c1">//</span>
+<span class="c1">// * PHP &#39;native&#39; functions, those date / time routines released in earlier versions,</span>
+<span class="c1">//   and which otherwise provide &#39;convenience&#39; functionality; these include:</span>
+<span class="c1">//   - date</span>
+<span class="c1">//   - strtotime</span>
+<span class="c1">//</span>
+<span class="c1">// * &#39;DateTime&#39; class-based. This facility appears [according to the PHP documentation]</span>
+<span class="c1">//   to be extremely new / experimental, so whilst usage examples will be provided, they</span>
+<span class="c1">//   should not be taken to be &#39;official&#39; examples, and obviously, subject to change.</span>
+<span class="c1">//   My own impression is that this facility is currently only partially implemented,</span>
+<span class="c1">//   so there is limited use for these functions. The functions included in this group</span>
+<span class="c1">//   are some of the &#39;date_&#39;-prefixed functions; they are, however, not used standalone,</span>
+<span class="c1">//   but as methods in conjunction with an object. Typical usage:</span>
+<span class="c1">//</span>
+<span class="c1">//     $today = new DateTime();             // actually calls: date_create($today, ...);</span>
+<span class="c1">//     echo $today-&gt;format(&#39;U&#39;) . &quot;\n&quot;;     // actually calls: date_format($today, ...);</span>
+<span class="c1">//</span>
+<span class="c1">// Also worth mentioning is the PEAR [PHP Extension and Repository] package, &#39;Calendar&#39;,</span>
+<span class="c1">// which offers a rich set of date / time manipulation facilities. However, since it is</span>
+<span class="c1">// not currently shipped with PHP, no examples appear</span>
+
+<span class="c1">// Helper functions for performing date arithmetic </span>
+
+<span class="k">function</span> <span class="nf">dateOffset</span><span class="p">()</span>
+<span class="p">{</span>
+  <span class="k">static</span> <span class="nv">$tbl</span> <span class="o">=</span> <span class="k">array</span><span class="p">(</span><span class="s1">&#39;sec&#39;</span> <span class="o">=&gt;</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;min&#39;</span> <span class="o">=&gt;</span> <span class="mi">60</span><span class="p">,</span> <span class="s1">&#39;hou&#39;</span> <span class="o">=&gt;</span> <span class="mi">3600</span><span class="p">,</span> <span class="s1">&#39;day&#39;</span> <span class="o">=&gt;</span> <span class="mi">86400</span><span class="p">,</span> <span class="s1">&#39;wee&#39;</span> <span class="o">=&gt;</span> <span class="mi">604800</span><span class="p">);</span>
+  <span class="nv">$delta</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+  <span class="k">foreach</span> <span class="p">(</span><span class="nb">func_get_args</span><span class="p">()</span> <span class="k">as</span> <span class="nv">$arg</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="nv">$kv</span> <span class="o">=</span> <span class="nb">explode</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">,</span> <span class="nv">$arg</span><span class="p">);</span>
+    <span class="nv">$delta</span> <span class="o">+=</span> <span class="nv">$kv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="nv">$tbl</span><span class="p">[</span><span class="nx">strtolower</span><span class="p">(</span><span class="nx">substr</span><span class="p">(</span><span class="nv">$kv</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">))];</span>
+  <span class="p">}</span>
+
+  <span class="k">return</span> <span class="nv">$delta</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">function</span> <span class="nf">dateInterval</span><span class="p">(</span><span class="nv">$intvltype</span><span class="p">,</span> <span class="nv">$timevalue</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">static</span> <span class="nv">$tbl</span> <span class="o">=</span> <span class="k">array</span><span class="p">(</span><span class="s1">&#39;sec&#39;</span> <span class="o">=&gt;</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;min&#39;</span> <span class="o">=&gt;</span> <span class="mi">60</span><span class="p">,</span> <span class="s1">&#39;hou&#39;</span> <span class="o">=&gt;</span> <span class="mi">3600</span><span class="p">,</span> <span class="s1">&#39;day&#39;</span> <span class="o">=&gt;</span> <span class="mi">86400</span><span class="p">,</span> <span class="s1">&#39;wee&#39;</span> <span class="o">=&gt;</span> <span class="mi">604800</span><span class="p">);</span>
+  <span class="k">return</span> <span class="p">(</span><span class="nx">int</span><span class="p">)</span> <span class="nx">round</span><span class="p">(</span><span class="nv">$timevalue</span> <span class="o">/</span> <span class="nv">$tbl</span><span class="p">[</span><span class="nx">strtolower</span><span class="p">(</span><span class="nx">substr</span><span class="p">(</span><span class="nv">$intvltype</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">))]);</span>
+<span class="p">}</span>
+
+<span class="c1">// ----------------------------</span>
+
+<span class="c1">// Extract indexed array from &#39;getdate&#39;</span>
+<span class="nv">$today</span> <span class="o">=</span> <span class="nb">getdate</span><span class="p">();</span>
+<span class="nb">printf</span><span class="p">(</span><span class="s2">&quot;Today is day %d of the current year</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nv">$today</span><span class="p">[</span><span class="s1">&#39;yday&#39;</span><span class="p">]);</span>
+
+<span class="c1">// Extract indexed, and associative arrays, respectively, from &#39;localtime&#39;</span>
+<span class="nv">$today</span> <span class="o">=</span> <span class="nb">localtime</span><span class="p">();</span>
+<span class="nb">printf</span><span class="p">(</span><span class="s2">&quot;Today is day %d of the current year</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nv">$today</span><span class="p">[</span><span class="mi">7</span><span class="p">]);</span>
+
+<span class="nv">$today</span> <span class="o">=</span> <span class="nb">localtime</span><span class="p">(</span><span class="nb">time</span><span class="p">(),</span> <span class="k">TRUE</span><span class="p">);</span>
+<span class="nb">printf</span><span class="p">(</span><span class="s2">&quot;Today is day %d of the current year</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nv">$today</span><span class="p">[</span><span class="s1">&#39;tm_yday&#39;</span><span class="p">]);</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN135"
+>Finding Today's Date</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="nb">define</span><span class="p">(</span><span class="nx">SEP</span><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">);</span>
+
+<span class="c1">// ------------</span>
+
+<span class="nv">$today</span> <span class="o">=</span> <span class="nb">getdate</span><span class="p">();</span>
+
+<span class="nv">$day</span> <span class="o">=</span> <span class="nv">$today</span><span class="p">[</span><span class="s1">&#39;mday&#39;</span><span class="p">];</span>
+<span class="nv">$month</span> <span class="o">=</span> <span class="nv">$today</span><span class="p">[</span><span class="s1">&#39;mon&#39;</span><span class="p">];</span>
+<span class="nv">$year</span> <span class="o">=</span> <span class="nv">$today</span><span class="p">[</span><span class="s1">&#39;year&#39;</span><span class="p">];</span>
+
+<span class="c1">// Either do this to use interpolation:</span>
+<span class="nv">$sep</span> <span class="o">=</span> <span class="nx">SEP</span><span class="p">;</span>
+<span class="k">echo</span> <span class="s2">&quot;Current date is: </span><span class="si">{</span><span class="nv">$year</span><span class="si">}{</span><span class="nv">$sep</span><span class="si">}{</span><span class="nv">$month</span><span class="si">}{</span><span class="nv">$sep</span><span class="si">}{</span><span class="nv">$day</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">;</span>
+
+<span class="c1">// or simply concatenate:</span>
+<span class="k">echo</span> <span class="s1">&#39;Current date is: &#39;</span> <span class="o">.</span> <span class="nv">$year</span> <span class="o">.</span> <span class="nx">SEP</span> <span class="o">.</span> <span class="nv">$month</span> <span class="o">.</span> <span class="nx">SEP</span> <span class="o">.</span> <span class="nv">$day</span> <span class="o">.</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">;</span>
+
+<span class="c1">// ------------</span>
+
+<span class="nv">$today</span> <span class="o">=</span> <span class="nb">localtime</span><span class="p">(</span><span class="nb">time</span><span class="p">(),</span> <span class="k">TRUE</span><span class="p">);</span>
+
+<span class="nv">$day</span> <span class="o">=</span> <span class="nv">$today</span><span class="p">[</span><span class="s1">&#39;tm_mday&#39;</span><span class="p">];</span>
+<span class="nv">$month</span> <span class="o">=</span> <span class="nv">$today</span><span class="p">[</span><span class="s1">&#39;tm_mon&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+<span class="nv">$year</span> <span class="o">=</span> <span class="nv">$today</span><span class="p">[</span><span class="s1">&#39;tm_year&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1900</span><span class="p">;</span>
+
+<span class="nb">printf</span><span class="p">(</span><span class="s2">&quot;Current date is: %4d%s%2d%s%2d</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nv">$year</span><span class="p">,</span> <span class="nx">SEP</span><span class="p">,</span> <span class="nv">$month</span><span class="p">,</span> <span class="nx">SEP</span><span class="p">,</span> <span class="nv">$day</span><span class="p">);</span>
+
+<span class="c1">// ------------</span>
+
+<span class="nv">$format</span> <span class="o">=</span> <span class="s1">&#39;Y&#39;</span> <span class="o">.</span> <span class="nx">SEP</span> <span class="o">.</span> <span class="s1">&#39;n&#39;</span> <span class="o">.</span> <span class="nx">SEP</span> <span class="o">.</span> <span class="s1">&#39;d&#39;</span><span class="p">;</span>
+
+<span class="nv">$today</span> <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="nv">$format</span><span class="p">);</span>
+
+<span class="k">echo</span> <span class="s2">&quot;Current date is: </span><span class="si">{</span><span class="nv">$today</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">;</span>
+
+<span class="c1">// ------------</span>
+
+<span class="nv">$sep</span> <span class="o">=</span> <span class="nx">SEP</span><span class="p">;</span>
+
+<span class="nv">$today</span> <span class="o">=</span> <span class="nb">strftime</span><span class="p">(</span><span class="s2">&quot;%Y</span><span class="si">$sep</span><span class="s2">%m</span><span class="si">$sep</span><span class="s2">%d&quot;</span><span class="p">);</span>
+
+<span class="k">echo</span> <span class="s2">&quot;Current date is: </span><span class="si">{</span><span class="nv">$today</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">;</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN138"
+>Converting DMYHMS to Epoch Seconds</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="nv">$timestamp</span> <span class="o">=</span> <span class="nb">mktime</span><span class="p">(</span><span class="nv">$hour</span><span class="p">,</span> <span class="nv">$min</span><span class="p">,</span> <span class="nv">$sec</span><span class="p">,</span> <span class="nv">$month</span><span class="p">,</span> <span class="nv">$day</span><span class="p">,</span> <span class="nv">$year</span><span class="p">);</span>
+
+<span class="nv">$timestamp</span> <span class="o">=</span> <span class="nb">gmmktime</span><span class="p">(</span><span class="nv">$hour</span><span class="p">,</span> <span class="nv">$min</span><span class="p">,</span> <span class="nv">$sec</span><span class="p">,</span> <span class="nv">$month</span><span class="p">,</span> <span class="nv">$day</span><span class="p">,</span> <span class="nv">$year</span><span class="p">);</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN141"
+>Converting Epoch Seconds to DMYHMS</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="nv">$dmyhms</span> <span class="o">=</span> <span class="nb">getdate</span><span class="p">();</span>            <span class="c1">// timestamp: current date / time</span>
+
+<span class="nv">$dmyhms</span> <span class="o">=</span> <span class="nb">getdate</span><span class="p">(</span><span class="nv">$timestamp</span><span class="p">);</span>  <span class="c1">// timestamp: arbitrary</span>
+
+<span class="nv">$day</span> <span class="o">=</span> <span class="nv">$dmyhms</span><span class="p">[</span><span class="s1">&#39;mday&#39;</span><span class="p">];</span>
+<span class="nv">$month</span> <span class="o">=</span> <span class="nv">$dmyhms</span><span class="p">[</span><span class="s1">&#39;mon&#39;</span><span class="p">];</span>
+<span class="nv">$year</span> <span class="o">=</span> <span class="nv">$dmyhms</span><span class="p">[</span><span class="s1">&#39;year&#39;</span><span class="p">];</span>
+
+<span class="nv">$hours</span> <span class="o">=</span> <span class="nv">$dmyhms</span><span class="p">[</span><span class="s1">&#39;hours&#39;</span><span class="p">];</span>
+<span class="nv">$minutes</span> <span class="o">=</span> <span class="nv">$dmyhms</span><span class="p">[</span><span class="s1">&#39;minutes&#39;</span><span class="p">];</span>
+<span class="nv">$seconds</span> <span class="o">=</span> <span class="nv">$dmyhms</span><span class="p">[</span><span class="s1">&#39;seconds&#39;</span><span class="p">];</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN144"
+>Adding to or Subtracting from a Date</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// Date arithmetic is probably most easily performed using timestamps [i.e. *NIX Epoch</span>
+<span class="c1">// Seconds]. Dates - in whatever form - are converted to timestamps, these are</span>
+<span class="c1">// arithmetically manipulated, and the result converted to whatever form required.</span>
+<span class="c1">// Note: use &#39;mktime&#39; to create timestamps properly adjusted for daylight saving; whilst</span>
+<span class="c1">// &#39;strtotime&#39; is more convenient to use, it does not, AFAIK, include this adjustment</span>
+
+<span class="nv">$when</span> <span class="o">=</span> <span class="nv">$now</span> <span class="o">+</span> <span class="nv">$difference</span><span class="p">;</span>
+<span class="nv">$then</span> <span class="o">=</span> <span class="nv">$now</span> <span class="o">-</span> <span class="nv">$difference</span><span class="p">;</span>
+
+<span class="c1">// ------------</span>
+
+<span class="nv">$now</span> <span class="o">=</span> <span class="nb">mktime</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">2003</span><span class="p">);</span>
+
+<span class="nv">$diff1</span> <span class="o">=</span> <span class="nx">dateOffset</span><span class="p">(</span><span class="s1">&#39;day=1&#39;</span><span class="p">);</span> <span class="nv">$diff2</span> <span class="o">=</span> <span class="nx">dateOffset</span><span class="p">(</span><span class="s1">&#39;weeks=2&#39;</span><span class="p">);</span>
+
+<span class="k">echo</span> <span class="s1">&#39;Today is:                 &#39;</span> <span class="o">.</span> <span class="nb">date</span><span class="p">(</span><span class="s1">&#39;Y-m-d&#39;</span><span class="p">,</span> <span class="nv">$now</span><span class="p">)</span> <span class="o">.</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">;</span>
+<span class="k">echo</span> <span class="s1">&#39;One day in the future is: &#39;</span> <span class="o">.</span> <span class="nb">date</span><span class="p">(</span><span class="s1">&#39;Y-m-d&#39;</span><span class="p">,</span> <span class="nv">$now</span> <span class="o">+</span> <span class="nv">$diff1</span><span class="p">)</span> <span class="o">.</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">;</span>
+<span class="k">echo</span> <span class="s1">&#39;Two weeks in the past is: &#39;</span> <span class="o">.</span> <span class="nb">date</span><span class="p">(</span><span class="s1">&#39;Y-m-d&#39;</span><span class="p">,</span> <span class="nv">$now</span> <span class="o">-</span> <span class="nv">$diff2</span><span class="p">)</span> <span class="o">.</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">;</span>
+
+<span class="c1">// ----------------------------</span>
+
+<span class="c1">// Date arithmetic performed using a custom function, &#39;dateOffset&#39;. Internally, offset may</span>
+<span class="c1">// be computed in one of several ways:</span>
+<span class="c1">// * Direct timestamp manipulation - fastest, but no daylight saving adjustment </span>
+<span class="c1">// * Via &#39;date&#39; built-in function - slower [?], needs a base time from which to</span>
+<span class="c1">//   compute values, but has daylight saving adjustment </span>
+<span class="c1">// * Via &#39;strtotime&#39; built-in function - as for &#39;date&#39;</span>
+<span class="c1">// * Via &#39;DateTime&#39; class</span>
+<span class="c1">//</span>
+<span class="c1">// Approach used here is to utilise direct timestamp manipulation in &#39;dateOffset&#39; [it&#39;s</span>
+<span class="c1">// performance can also be improved by replacing $tbl with a global definition etc],</span>
+<span class="c1">// and to illustrate how the other approaches might be used </span>
+
+<span class="c1">// 1. &#39;dateOffset&#39;</span>
+
+<span class="nv">$birthtime</span> <span class="o">=</span> <span class="nb">mktime</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">45</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">18</span><span class="p">,</span> <span class="mi">1973</span><span class="p">);</span>
+
+<span class="nv">$interval</span> <span class="o">=</span> <span class="nx">dateOffset</span><span class="p">(</span><span class="s1">&#39;day=55&#39;</span><span class="p">,</span> <span class="s1">&#39;hours=2&#39;</span><span class="p">,</span> <span class="s1">&#39;min=17&#39;</span><span class="p">,</span> <span class="s1">&#39;sec=5&#39;</span><span class="p">);</span>
+
+<span class="nv">$then</span> <span class="o">=</span> <span class="nv">$birthtime</span> <span class="o">+</span> <span class="nv">$interval</span><span class="p">;</span>
+
+<span class="nb">printf</span><span class="p">(</span><span class="s2">&quot;Birthtime is: %s</span><span class="se">\n</span><span class="s2">then is:      %s</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">date</span><span class="p">(</span><span class="nx">DATE_RFC1123</span><span class="p">,</span> <span class="nv">$birthtime</span><span class="p">),</span> <span class="nb">date</span><span class="p">(</span><span class="nx">DATE_RFC1123</span><span class="p">,</span> <span class="nv">$then</span><span class="p">));</span>
+
+<span class="c1">// ------------</span>
+
+<span class="c1">// 2. &#39;date&#39;</span>
+
+<span class="c1">// Base values, and offsets, respectively</span>
+<span class="nv">$hr</span> <span class="o">=</span> <span class="mi">3</span><span class="p">;</span> <span class="nv">$min</span> <span class="o">=</span> <span class="mi">45</span><span class="p">;</span> <span class="nv">$sec</span> <span class="o">=</span> <span class="mi">50</span><span class="p">;</span> <span class="nv">$mon</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="nv">$day</span> <span class="o">=</span> <span class="mi">18</span><span class="p">;</span> <span class="nv">$year</span> <span class="o">=</span> <span class="mi">1973</span><span class="p">;</span>
+
+<span class="nv">$yroff</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nv">$monoff</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nv">$dayoff</span> <span class="o">=</span> <span class="mi">55</span><span class="p">;</span> <span class="nv">$hroff</span> <span class="o">=</span> <span class="mi">2</span><span class="p">;</span> <span class="nv">$minoff</span> <span class="o">=</span> <span class="mi">17</span><span class="p">;</span> <span class="nv">$secoff</span> <span class="o">=</span> <span class="mi">5</span><span class="p">;</span>
+
+<span class="c1">// Base date</span>
+<span class="nv">$birthtime</span> <span class="o">=</span> <span class="nb">mktime</span><span class="p">(</span><span class="nv">$hr</span><span class="p">,</span> <span class="nv">$min</span><span class="p">,</span> <span class="nv">$sec</span><span class="p">,</span> <span class="nv">$mon</span><span class="p">,</span> <span class="nv">$day</span><span class="p">,</span> <span class="nv">$year</span><span class="p">,</span> <span class="k">TRUE</span><span class="p">);</span>
+
+<span class="nv">$year</span> <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s1">&#39;Y&#39;</span><span class="p">,</span> <span class="nv">$birthtime</span><span class="p">)</span> <span class="o">+</span> <span class="nv">$yroff</span><span class="p">;</span>
+<span class="nv">$mon</span> <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s1">&#39;m&#39;</span><span class="p">,</span> <span class="nv">$birthtime</span><span class="p">)</span> <span class="o">+</span> <span class="nv">$monoff</span><span class="p">;</span>
+<span class="nv">$day</span> <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="nv">$birthtime</span><span class="p">)</span> <span class="o">+</span> <span class="nv">$dayoff</span><span class="p">;</span>
+
+<span class="nv">$hr</span> <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s1">&#39;H&#39;</span><span class="p">,</span> <span class="nv">$birthtime</span><span class="p">)</span> <span class="o">+</span> <span class="nv">$hroff</span><span class="p">;</span>
+<span class="nv">$min</span> <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s1">&#39;i&#39;</span><span class="p">,</span> <span class="nv">$birthtime</span><span class="p">)</span> <span class="o">+</span> <span class="nv">$minoff</span><span class="p">;</span>
+<span class="nv">$sec</span> <span class="o">=</span> <span class="nb">date</span><span class="p">(</span><span class="s1">&#39;s&#39;</span><span class="p">,</span> <span class="nv">$birthtime</span><span class="p">)</span> <span class="o">+</span> <span class="nv">$secoff</span><span class="p">;</span>
+
+<span class="c1">// Offset date</span>
+<span class="nv">$then</span> <span class="o">=</span> <span class="nb">mktime</span><span class="p">(</span><span class="nv">$hr</span><span class="p">,</span> <span class="nv">$min</span><span class="p">,</span> <span class="nv">$sec</span><span class="p">,</span> <span class="nv">$mon</span><span class="p">,</span> <span class="nv">$day</span><span class="p">,</span> <span class="nv">$year</span><span class="p">,</span> <span class="k">TRUE</span><span class="p">);</span>
+
+<span class="nb">printf</span><span class="p">(</span><span class="s2">&quot;Birthtime is: %s</span><span class="se">\n</span><span class="s2">then is:      %s</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">date</span><span class="p">(</span><span class="nx">DATE_RFC1123</span><span class="p">,</span> <span class="nv">$birthtime</span><span class="p">),</span> <span class="nb">date</span><span class="p">(</span><span class="nx">DATE_RFC1123</span><span class="p">,</span> <span class="nv">$then</span><span class="p">));</span>
+
+<span class="c1">// ------------</span>
+
+<span class="c1">// 3. &#39;strtotime&#39;</span>
+
+<span class="c1">// Generate timestamp whatever way is preferable</span>
+<span class="nv">$birthtime</span> <span class="o">=</span> <span class="nb">mktime</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">45</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">18</span><span class="p">,</span> <span class="mi">1973</span><span class="p">);</span>
+<span class="nv">$birthtime</span> <span class="o">=</span> <span class="nb">strtotime</span><span class="p">(</span><span class="s1">&#39;1/18/1973 03:45:50&#39;</span><span class="p">);</span>
+
+<span class="nv">$then</span> <span class="o">=</span> <span class="nb">strtotime</span><span class="p">(</span><span class="s1">&#39;+55 days 2 hours 17 minutes 2 seconds&#39;</span><span class="p">,</span> <span class="nv">$birthtime</span><span class="p">);</span>
+
+<span class="nb">printf</span><span class="p">(</span><span class="s2">&quot;Birthtime is: %s</span><span class="se">\n</span><span class="s2">then is:      %s</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">date</span><span class="p">(</span><span class="nx">DATE_RFC1123</span><span class="p">,</span> <span class="nv">$birthtime</span><span class="p">),</span> <span class="nb">date</span><span class="p">(</span><span class="nx">DATE_RFC1123</span><span class="p">,</span> <span class="nv">$then</span><span class="p">));</span>
+
+<span class="c1">// ------------</span>
+
+<span class="c1">// 4. &#39;DateTime&#39; class</span>
+
+<span class="nv">$birthtime</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">DateTime</span><span class="p">(</span><span class="s1">&#39;1/18/1973 03:45:50&#39;</span><span class="p">);</span>
+<span class="nv">$then</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">DateTime</span><span class="p">(</span><span class="s1">&#39;1/18/1973 03:45:50&#39;</span><span class="p">);</span>
+<span class="nv">$then</span><span class="o">-&gt;</span><span class="na">modify</span><span class="p">(</span><span class="s1">&#39;+55 days 2 hours 17 minutes 2 seconds&#39;</span><span class="p">);</span>
+
+<span class="nb">printf</span><span class="p">(</span><span class="s2">&quot;Birthtime is: %s</span><span class="se">\n</span><span class="s2">then is:      %s</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nv">$birthtime</span><span class="o">-&gt;</span><span class="na">format</span><span class="p">(</span><span class="nx">DATE_RFC1123</span><span class="p">),</span> <span class="nv">$then</span><span class="o">-&gt;</span><span class="na">format</span><span class="p">(</span><span class="nx">DATE_RFC1123</span><span class="p">));</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN147"
+>Difference of Two Dates</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// Date intervals are most easily computed using timestamps [i.e. *NIX Epoch</span>
+<span class="c1">// Seconds] which, of course, gives the interval result is seconds from which</span>
+<span class="c1">// all other interval measures [days, weeks, months, years] may be derived.</span>
+<span class="c1">// Refer to previous section for discussion of daylight saving and other related</span>
+<span class="c1">// problems</span>
+
+<span class="nv">$interval_seconds</span> <span class="o">=</span> <span class="nv">$recent</span> <span class="o">-</span> <span class="nv">$earlier</span><span class="p">;</span>
+
+<span class="c1">// ----------------------------</span>
+
+<span class="c1">// Conventional approach ...</span>
+<span class="nv">$bree</span> <span class="o">=</span> <span class="nb">strtotime</span><span class="p">(</span><span class="s1">&#39;16 Jun 1981, 4:35:25&#39;</span><span class="p">);</span>
+<span class="nv">$nat</span> <span class="o">=</span> <span class="nb">strtotime</span><span class="p">(</span><span class="s1">&#39;18 Jan 1973, 3:45:50&#39;</span><span class="p">);</span>
+
+<span class="c1">// ... or, with daylight saving adjustment</span>
+<span class="nv">$bree</span> <span class="o">=</span> <span class="nb">mktime</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">35</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">1981</span><span class="p">,</span> <span class="k">TRUE</span><span class="p">);</span>
+<span class="nv">$nat</span> <span class="o">=</span> <span class="nb">mktime</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">45</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">18</span><span class="p">,</span> <span class="mi">1973</span><span class="p">,</span> <span class="k">TRUE</span><span class="p">);</span>
+
+<span class="nv">$difference</span> <span class="o">=</span> <span class="nv">$bree</span> <span class="o">-</span> <span class="nv">$nat</span><span class="p">;</span>
+
+<span class="c1">// &#39;dateInterval&#39; custom function computes intervals in several measures given an</span>
+<span class="c1">// interval in seconds. Note, &#39;month&#39; and &#39;year&#39; measures not provided</span>
+<span class="nb">printf</span><span class="p">(</span><span class="s2">&quot;There were %d seconds between Nat and Bree</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nv">$difference</span><span class="p">);</span>
+<span class="nb">printf</span><span class="p">(</span><span class="s2">&quot;There were %d weeks between Nat and Bree</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nx">dateInterval</span><span class="p">(</span><span class="s1">&#39;weeks&#39;</span><span class="p">,</span> <span class="nv">$difference</span><span class="p">));</span>
+<span class="nb">printf</span><span class="p">(</span><span class="s2">&quot;There were %d days between Nat and Bree</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nx">dateInterval</span><span class="p">(</span><span class="s1">&#39;days&#39;</span><span class="p">,</span> <span class="nv">$difference</span><span class="p">));</span>
+<span class="nb">printf</span><span class="p">(</span><span class="s2">&quot;There were %d hours between Nat and Bree</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nx">dateInterval</span><span class="p">(</span><span class="s1">&#39;hours&#39;</span><span class="p">,</span> <span class="nv">$difference</span><span class="p">));</span>
+<span class="nb">printf</span><span class="p">(</span><span class="s2">&quot;There were %d minutes between Nat and Bree</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nx">dateInterval</span><span class="p">(</span><span class="s1">&#39;mins&#39;</span><span class="p">,</span> <span class="nv">$difference</span><span class="p">));</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN150"
+>Day in a Week/Month/Year or Week Number</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// &#39;getdate&#39; accepts a timestamp [or implicitly calls &#39;time&#39;] and returns an array of</span>
+<span class="c1">// date components. It returns much the same information as &#39;strptime&#39; except that</span>
+<span class="c1">// the component names are different</span>
+
+<span class="nv">$today</span> <span class="o">=</span> <span class="nb">getdate</span><span class="p">();</span>
+
+<span class="nv">$weekday</span> <span class="o">=</span> <span class="nv">$today</span><span class="p">[</span><span class="s1">&#39;wday&#39;</span><span class="p">];</span>
+<span class="nv">$monthday</span> <span class="o">=</span> <span class="nv">$today</span><span class="p">[</span><span class="s1">&#39;mday&#39;</span><span class="p">];</span>
+<span class="nv">$yearday</span> <span class="o">=</span> <span class="nv">$today</span><span class="p">[</span><span class="s1">&#39;yday&#39;</span><span class="p">];</span>
+
+<span class="nv">$weeknumber</span> <span class="o">=</span> <span class="p">(</span><span class="nx">int</span><span class="p">)</span> <span class="nx">round</span><span class="p">(</span><span class="nv">$yearday</span> <span class="o">/</span> <span class="mf">7.0</span><span class="p">);</span>
+
+<span class="c1">// Safter method of obtaining week number</span>
+<span class="nv">$weeknumber</span> <span class="o">=</span> <span class="nb">strftime</span><span class="p">(</span><span class="s1">&#39;%U&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+
+<span class="c1">// ----------------------------</span>
+
+<span class="nb">define</span><span class="p">(</span><span class="nx">SEP</span><span class="p">,</span> <span class="s1">&#39;/&#39;</span><span class="p">);</span>
+
+<span class="nv">$day</span> <span class="o">=</span> <span class="mi">16</span><span class="p">;</span>
+<span class="nv">$month</span> <span class="o">=</span> <span class="mi">6</span><span class="p">;</span>
+<span class="nv">$year</span> <span class="o">=</span> <span class="mi">1981</span><span class="p">;</span>
+
+<span class="nv">$timestamp</span> <span class="o">=</span> <span class="nb">mktime</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nv">$month</span><span class="p">,</span> <span class="nv">$day</span><span class="p">,</span> <span class="nv">$year</span><span class="p">);</span>
+
+<span class="nv">$date</span> <span class="o">=</span> <span class="nb">getdate</span><span class="p">(</span><span class="nv">$timestamp</span><span class="p">);</span>
+
+<span class="nv">$weekday</span> <span class="o">=</span> <span class="nv">$date</span><span class="p">[</span><span class="s1">&#39;wday&#39;</span><span class="p">];</span>
+<span class="nv">$monthday</span> <span class="o">=</span> <span class="nv">$date</span><span class="p">[</span><span class="s1">&#39;mday&#39;</span><span class="p">];</span>
+<span class="nv">$yearday</span> <span class="o">=</span> <span class="nv">$date</span><span class="p">[</span><span class="s1">&#39;yday&#39;</span><span class="p">];</span>
+
+<span class="nv">$weeknumber</span> <span class="o">=</span> <span class="p">(</span><span class="nx">int</span><span class="p">)</span> <span class="nx">round</span><span class="p">(</span><span class="nv">$yearday</span> <span class="o">/</span> <span class="mf">7.0</span><span class="p">);</span>
+
+<span class="nv">$weeknumber</span> <span class="o">=</span> <span class="nb">strftime</span><span class="p">(</span><span class="s1">&#39;%U&#39;</span><span class="p">,</span> <span class="nv">$timestamp</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+
+<span class="c1">// Interpolate ...</span>
+<span class="nv">$sep</span> <span class="o">=</span> <span class="nx">SEP</span><span class="p">;</span>
+<span class="k">echo</span> <span class="s2">&quot;</span><span class="si">{</span><span class="nv">$month</span><span class="si">}{</span><span class="nv">$sep</span><span class="si">}{</span><span class="nv">$day</span><span class="si">}{</span><span class="nv">$sep</span><span class="si">}{</span><span class="nv">$year</span><span class="si">}</span><span class="s2"> was a </span><span class="si">{</span><span class="nv">$date</span><span class="p">[</span><span class="s1">&#39;weekday&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> in week </span><span class="si">{</span><span class="nv">$weeknumber</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">;</span>
+
+<span class="c1">// ... or, concatenate</span>
+<span class="k">echo</span> <span class="nv">$month</span> <span class="o">.</span> <span class="nx">SEP</span> <span class="o">.</span> <span class="nv">$day</span> <span class="o">.</span> <span class="nx">SEP</span> <span class="o">.</span> <span class="nv">$year</span> <span class="o">.</span> <span class="s1">&#39; was a &#39;</span> <span class="o">.</span> <span class="nv">$date</span><span class="p">[</span><span class="s1">&#39;weekday&#39;</span><span class="p">]</span>
+     <span class="o">.</span> <span class="s1">&#39; in week &#39;</span> <span class="o">.</span> <span class="nv">$weeknumber</span> <span class="o">.</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">;</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN153"
+>Parsing Dates and Times from Strings</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// &#39;strtotime&#39; parses a textual date expression by attempting a &#39;best guess&#39; at</span>
+<span class="c1">// the format, and either fails, or generates a timestamp. Timestamp could be fed</span>
+<span class="c1">// into any one of the various functions; example:</span>
+<span class="nv">$timestamp</span> <span class="o">=</span> <span class="nb">strtotime</span><span class="p">(</span><span class="s1">&#39;1998-06-03&#39;</span><span class="p">);</span> <span class="k">echo</span> <span class="nb">strftime</span><span class="p">(</span><span class="s1">&#39;%Y-%m-%d&#39;</span><span class="p">,</span> <span class="nv">$timestamp</span><span class="p">)</span> <span class="o">.</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">;</span>
+
+<span class="c1">// &#39;strptime&#39; parses a textual date expression according to a specified format,</span>
+<span class="c1">// and returns an array of date components; components can be easily dumped</span>
+<span class="nb">print_r</span><span class="p">(</span><span class="nb">strptime</span><span class="p">(</span><span class="s1">&#39;1998-06-03&#39;</span><span class="p">,</span> <span class="s1">&#39;%Y-%m-%d&#39;</span><span class="p">));</span>
+
+<span class="c1">// ----------------------------</span>
+
+<span class="c1">// Parse date string according to format</span>
+<span class="nv">$darr</span> <span class="o">=</span> <span class="nb">strptime</span><span class="p">(</span><span class="s1">&#39;1998-06-03&#39;</span><span class="p">,</span> <span class="s1">&#39;%Y-%m-%d&#39;</span><span class="p">);</span>
+
+<span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="k">empty</span><span class="p">(</span><span class="nv">$darr</span><span class="p">))</span>
+<span class="p">{</span>
+  <span class="c1">// Show date components in &#39;debug&#39; form</span>
+  <span class="nb">print_r</span><span class="p">(</span><span class="nv">$darr</span><span class="p">);</span>
+
+  <span class="c1">// Check whether there was a parse error i.e. one or more components could not</span>
+  <span class="c1">// be extracted from the string</span>
+  <span class="k">if</span> <span class="p">(</span><span class="k">empty</span><span class="p">(</span><span class="nv">$darr</span><span class="p">[</span><span class="s1">&#39;unparsed&#39;</span><span class="p">]))</span>
+  <span class="p">{</span>
+    <span class="c1">// Properly parsed date, so validate required components using, &#39;checkdate&#39;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nb">checkdate</span><span class="p">(</span><span class="nv">$darr</span><span class="p">[</span><span class="s1">&#39;tm_mon&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nv">$darr</span><span class="p">[</span><span class="s1">&#39;tm_mday&#39;</span><span class="p">],</span> <span class="nv">$darr</span><span class="p">[</span><span class="s1">&#39;tm_year&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1900</span><span class="p">))</span>
+      <span class="k">echo</span> <span class="s2">&quot;Parsed date verified as correct</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">;</span>
+    <span class="k">else</span>
+      <span class="k">echo</span> <span class="s2">&quot;Parsed date failed verification</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="k">else</span>
+  <span class="p">{</span>
+    <span class="k">echo</span> <span class="s2">&quot;Date string parse not complete; failed components: </span><span class="si">{</span><span class="nv">$darr</span><span class="p">[</span><span class="s1">&#39;unparsed&#39;</span><span class="p">]</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">;</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+<span class="k">else</span>
+<span class="p">{</span>
+  <span class="k">echo</span> <span class="s2">&quot;Date string could not be parsed</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">;</span>
+<span class="p">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN156"
+>Printing a Date</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// &#39;date&#39; and &#39;strftime&#39; both print a date string based on:</span>
+<span class="c1">// * Format String, describing layout of date components</span>
+<span class="c1">// * Timestamp [*NIX Epoch Seconds], either given explicitly, or implictly</span>
+<span class="c1">//   via a call to &#39;time&#39; which retrieves current time value</span>
+
+<span class="nv">$ts</span> <span class="o">=</span> <span class="mi">1234567890</span><span class="p">;</span>
+
+<span class="nb">date</span><span class="p">(</span><span class="s1">&#39;Y/m/d&#39;</span><span class="p">,</span> <span class="nv">$ts</span><span class="p">);</span> 
+<span class="nb">date</span><span class="p">(</span><span class="s1">&#39;Y/m/d&#39;</span><span class="p">,</span> <span class="nb">mktime</span><span class="p">(</span><span class="nv">$h</span><span class="p">,</span> <span class="nv">$m</span><span class="p">,</span> <span class="nv">$s</span><span class="p">,</span> <span class="nv">$mth</span><span class="p">,</span> <span class="nv">$d</span><span class="p">,</span> <span class="nv">$y</span><span class="p">,</span> <span class="nv">$is_dst</span><span class="p">));</span> 
+
+<span class="nb">date</span><span class="p">(</span><span class="s1">&#39;Y/m/d&#39;</span><span class="p">);</span>         <span class="c1">// same as: date(&#39;Y/m/d&#39;, time());</span>
+
+<span class="c1">// ------------</span>
+
+<span class="nv">$ts</span> <span class="o">=</span> <span class="mi">1234567890</span><span class="p">;</span>
+
+<span class="nb">strftime</span><span class="p">(</span><span class="s1">&#39;%Y/%m/%d&#39;</span><span class="p">,</span> <span class="nv">$ts</span><span class="p">);</span>
+<span class="nb">strftime</span><span class="p">(</span><span class="s1">&#39;%Y/%m/%d&#39;</span><span class="p">,</span> <span class="nb">mktime</span><span class="p">(</span><span class="nv">$h</span><span class="p">,</span> <span class="nv">$m</span><span class="p">,</span> <span class="nv">$s</span><span class="p">,</span> <span class="nv">$mth</span><span class="p">,</span> <span class="nv">$d</span><span class="p">,</span> <span class="nv">$y</span><span class="p">,</span> <span class="nv">$is_dst</span><span class="p">));</span>
+
+<span class="nb">strftime</span><span class="p">(</span><span class="s1">&#39;%Y/%m/%d&#39;</span><span class="p">);</span>  <span class="c1">// same as: strftime(&#39;%Y/%m/%d&#39;, time());</span>
+
+<span class="c1">// ----------------------------</span>
+
+<span class="c1">// &#39;mktime&#39; creates a local time timestamp</span>
+<span class="nv">$t</span> <span class="o">=</span> <span class="nb">strftime</span><span class="p">(</span><span class="s1">&#39;%a %b %e %H:%M:%S %z %Y&#39;</span><span class="p">,</span> <span class="nb">mktime</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">45</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">18</span><span class="p">,</span> <span class="mi">73</span><span class="p">,</span> <span class="k">TRUE</span><span class="p">));</span>
+<span class="k">echo</span> <span class="s2">&quot;</span><span class="si">{</span><span class="nv">$t</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">;</span>
+
+<span class="c1">// &#39;gmmktime&#39; creates a GMT time timestamp</span>
+<span class="nv">$t</span> <span class="o">=</span> <span class="nb">strftime</span><span class="p">(</span><span class="s1">&#39;%a %b %e %H:%M:%S %z %Y&#39;</span><span class="p">,</span> <span class="nb">gmmktime</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">45</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">18</span><span class="p">,</span> <span class="mi">73</span><span class="p">));</span>
+<span class="k">echo</span> <span class="s2">&quot;</span><span class="si">{</span><span class="nv">$t</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">;</span>
+
+<span class="c1">// ----------------------------</span>
+
+<span class="c1">// &#39;strtotime&#39; parses a textual date expression, and generates a timestamp </span>
+<span class="nv">$t</span> <span class="o">=</span> <span class="nb">strftime</span><span class="p">(</span><span class="s1">&#39;%A %D&#39;</span><span class="p">,</span> <span class="nb">strtotime</span><span class="p">(</span><span class="s1">&#39;18 Jan 1973, 3:45:50&#39;</span><span class="p">));</span>
+<span class="k">echo</span> <span class="s2">&quot;</span><span class="si">{</span><span class="nv">$t</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">;</span>
+
+<span class="c1">// This should generate output identical to previous example</span>
+<span class="nv">$t</span> <span class="o">=</span> <span class="nb">strftime</span><span class="p">(</span><span class="s1">&#39;%A %D&#39;</span><span class="p">,</span> <span class="nb">mktime</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">45</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">18</span><span class="p">,</span> <span class="mi">73</span><span class="p">,</span> <span class="k">TRUE</span><span class="p">));</span>
+<span class="k">echo</span> <span class="s2">&quot;</span><span class="si">{</span><span class="nv">$t</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">;</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN159"
+>High-Resolution Timers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// PHP 5 and above can use the built-in, &#39;microtime&#39;. Crude implementation for ealier versions:</span>
+<span class="c1">// function microtime() { $t = gettimeofday(); return (float) ($t[&#39;sec&#39;] + $t[&#39;usec&#39;] / 1000000.0); } </span>
+
+<span class="c1">// ------------</span>
+
+<span class="nv">$before</span> <span class="o">=</span> <span class="nb">microtime</span><span class="p">();</span>
+
+<span class="nv">$line</span> <span class="o">=</span> <span class="nb">fgets</span><span class="p">(</span><span class="nx">STDIN</span><span class="p">);</span>
+
+<span class="nv">$elapsed</span> <span class="o">=</span> <span class="nb">microtime</span><span class="p">()</span> <span class="o">-</span> <span class="nv">$before</span><span class="p">;</span>
+
+<span class="nb">printf</span><span class="p">(</span><span class="s2">&quot;You took %.3f seconds</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nv">$elapsed</span><span class="p">);</span>
+
+<span class="c1">// ------------</span>
+
+<span class="nb">define</span><span class="p">(</span><span class="nx">NUMBER_OF_TIMES</span><span class="p">,</span> <span class="mi">100</span><span class="p">);</span>
+<span class="nb">define</span><span class="p">(</span><span class="nx">SIZE</span><span class="p">,</span> <span class="mi">500</span><span class="p">);</span>
+
+<span class="k">for</span><span class="p">(</span><span class="nv">$i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nv">$i</span> <span class="o">&lt;</span> <span class="nx">NUMBER_OF_TIMES</span><span class="p">;</span> <span class="nv">$i</span><span class="o">++</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="nv">$arr</span> <span class="o">=</span> <span class="k">array</span><span class="p">();</span>
+  <span class="k">for</span><span class="p">(</span><span class="nv">$j</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nv">$j</span> <span class="o">&lt;</span> <span class="nx">SIZE</span><span class="p">;</span> <span class="nv">$j</span><span class="o">++</span><span class="p">)</span> <span class="nv">$arr</span><span class="p">[]</span> <span class="o">=</span> <span class="nx">rand</span><span class="p">();</span>
+
+  <span class="nv">$begin</span> <span class="o">=</span> <span class="nb">microtime</span><span class="p">();</span>
+  <span class="nb">sort</span><span class="p">(</span><span class="nv">$arr</span><span class="p">);</span>
+  <span class="nv">$elapsed</span> <span class="o">=</span> <span class="nb">microtime</span><span class="p">()</span> <span class="o">-</span> <span class="nv">$begin</span><span class="p">;</span>
+
+  <span class="nv">$total_time</span> <span class="o">+=</span> <span class="nv">$elapsed</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="nb">printf</span><span class="p">(</span><span class="s2">&quot;On average, sorting %d random numbers takes %.5f seconds</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nx">SIZE</span><span class="p">,</span> <span class="nv">$total_time</span> <span class="o">/</span> <span class="p">(</span><span class="nx">float</span><span class="p">)</span> <span class="nx">NUMBER_OF_TIMES</span><span class="p">);</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN162"
+>Short Sleeps</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// Low-resolution: sleep time specified in seconds</span>
+<span class="nb">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+
+<span class="c1">// High-resolution: sleep time specified in microseconds [not reliable under Windows]</span>
+<span class="nb">usleep</span><span class="p">(</span><span class="mi">250000</span><span class="p">);</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN165"
+>Program: hopdelta</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// @@INCOMPLETE@@</span>
+<span class="c1">// @@INCOMPLETE@@</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="numbers.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="arrays.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Numbers</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Arrays</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

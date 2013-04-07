@@ -1,0 +1,5019 @@
+<!DOCTYPE html PUBLIC "-//IETF//DTD HTML 2.0//EN">
+<HTML>
+<HEAD>
+<TITLE>Enscript Output</TITLE>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF" TEXT="#000000" LINK="#1F00FF" ALINK="#FF0000" VLINK="#9900DD">
+<A NAME="top">
+<A NAME="file1">
+<H1>tmp.data</H1>
+
+<PRE>
+// -*- pike -*-
+// @@PLEAC@@_NAME
+// @@SKIP@@ Pike
+
+// @@PLEAC@@_WEB
+// @@SKIP@@ http://pike.ida.liu.se/
+
+// @@PLEAC@@_INTRO
+// @@SKIP@@ Most examples will work with pike 7.2 or even older,
+// @@SKIP@@ some may need 7.4 or even 7.6
+// @@SKIP@@ In pike variables must be declared, but may not
+// @@SKIP@@ be declared twice, I am not yet sure if it is
+// @@SKIP@@ better to declare all variables for each individual example
+// @@SKIP@@ or per section...
+
+// @@PLEAC@@_APPENDIX
+// (this section is optional; use it if you need to import very
+// generic stuff for the whole code)
+//
+// Note: To avoid clutter each example will only include any necessary
+// code. However, it should be understood that:
+//
+// * The following constants need to be defined:
+//
+//    constant FALSE = 0, TRUE = 1, PROBLEM = 1, OK = 0,
+//      EOF = -1, NULL = &quot;&quot;, NEWLINE = &quot;\n&quot;, LF = 10, SPACE = 32;
+//
+// * Each example needs to be enclosed within the following block:
+//
+//    int main(int argc, array(string) argv)
+//    {
+//      ...
+//    }
+//
+//   where a 'main' is not provided. Also:
+//
+//   - Any function definitions would ordinarily be placed
+//     before, and outside of, 'main'
+//   - Variables can be assumed to be locals residing in 'main';
+//     any 'global' variables will be defined at the start of the
+//     code example prior to any function definitions
+
+// ----------------------------
+
+string chop(string s, void|int size)
+{
+  int length = sizeof(s);
+  return size &gt; 0 &amp;&amp; size &lt; length ? s[..length - (size + 1)] : s;
+}
+
+// @@PLEAC@@_1.0
+// in pike only double quotes are used for strings
+// they are not interpolated.
+// single quotes are used for chars (the integer value of a character)
+// see chapter 1.4
+//-----------------------------
+string str;                     // declare a variable of type string
+str = &quot;\n&quot;;                     // a &quot;newline&quot; character
+str = &quot;Jon \&quot;Maddog\&quot; Orwant&quot;;  // literal double quotes
+//-----------------------------
+str =
+#&quot;This is a multiline string
+terminated by a double-quote like any other string&quot;;
+//-----------------------------
+
+// @@PLEAC@@_1.1
+// accessing part of a string
+//------------------------------
+string str, value;
+int offset, count;
+value = str[offset..offset+count];
+value = str[offset..];
+
+string newstring, newtail;
+str = str[..offset-1]+newstring+str[offset+count..];
+str = str[..offset-1]+newtail;
+
+//------------------------------
+// get a 5-byte string, skip 3, then grab 2 8-byte strings, then the rest
+string leading, s1, s2, trailing;
+[leading, s1, s2, trailing] = array_sscanf(str, &quot;%5s%*3s%8s%8s%s&quot;);
+
+// split at five byte boundaries
+array(string) fivers = str/5;
+
+// chop string into individual characters
+array(string) chars = str/&quot;&quot;;
+
+//------------------------------
+
+str = &quot;This is what you have&quot;; 
+
+string first, start, rest, last, end, piece;
+int t = str[0];
+// 84
+first = str[0..0];                     
+// &quot;T&quot;          
+start = str[5..5+1]; 
+// &quot;is&quot;
+rest  = str[13..];   
+// &quot;you have&quot;
+last  = str[sizeof(str)-1..sizeof(str)-1];
+// &quot;e&quot;
+end   = str[sizeof(str)-4..]; 
+// &quot;have&quot;                 
+piece = str[sizeof(str)-8..sizeof(str)-8+2];
+// &quot;you&quot;
+               
+str = &quot;This is what you have&quot;;               
+str = replace(str, ([ &quot; is &quot;:&quot; wasn't &quot; ]) );
+// &quot;This wasn't what you have&quot;
+str = str[..sizeof(str)-13]+&quot;ondrous&quot;;       
+// &quot;This wasn't wondrous&quot;
+str = str[1..]; 
+// &quot;his wasn't wondrous&quot;               
+str = str[..sizeof(str)-11];
+// &quot;his wasn'&quot;            
+str = &quot;This is what you have&quot;;
+str = replace(str[..4], ([ &quot;is&quot;:&quot;at&quot; ]) )+str[5..];
+// &quot;That is what you have&quot;    
+str = &quot;make a hat&quot;;
+// &quot;make a hat&quot;          
+[str[0], str[-1]] = ({ str[-1], str[0] });
+// &quot;take a ham&quot;
+
+string a, b, c;
+a = &quot;To be or not to be&quot;;    
+b = a[6..11];      
+// &quot;or not&quot;                
+b = a[6..7]; c=a[3..4];            
+write(&quot;%s\n%s\n&quot;, b, c);
+/*
+or                  
+be
+*/
+//------------------------------------------------
+
+string cut2fmt(int ... positions)
+{ 
+  string template = &quot;&quot;;
+  int lastpos  = 1;
+  foreach(positions ;; int place) 
+  {      
+    template += &quot;A&quot; + (place - lastpos) + &quot; &quot;;
+    lastpos = place;     
+  }
+  template += &quot;A*&quot;;
+  return template;
+}
+
+string fmt = cut2fmt(8, 14, 20, 26, 30);
+write(&quot;%s\n&quot;, fmt);
+//A7 A6 A6 A6 A4 A*         
+
+// @@PLEAC@@_1.2
+// set a default, ie, only set the value if no other value is set.
+//-----------------------------
+// use b if b is true, else c
+a = b || c;
+
+// set x to y unless x is already true
+if(!x)
+  x = y;
+
+// use b if b is defined, else c
+// an undefined variable would be a compile time error so this
+// does not really apply. 
+
+// return b if b is defined (was supplied by the caller), else c
+int foo(int c, int|void b)
+{
+  return zero_type(b) ? c : b;
+}
+
+foo = bar || &quot;DEFAULT VALUE&quot;;
+argv = argv[1..];              // remove program, as that is always set.
+dir = argv[0] || &quot;/tmp&quot;;       // and see if anything is left...
+dir = sizeof(argv) ? argv[0] : &quot;/tmp&quot;;
+count[shell||&quot;/bin/sh&quot;]++;     
+
+user = getenv(&quot;USER&quot;) || getenv(&quot;LOGNAME&quot;) || getpwuid(getuid())[0] ||
+&quot;Unknown uid number &quot;+getuid();
+
+if(!starting_point)
+  starting_point = &quot;Greenwich&quot;;
+
+if(!sizeof(a))                  
+  a = b;              // copy only if empty              
+a = (sizeof(b)?b:c);  // assign b if nonempty, else c
+
+// @@PLEAC@@_1.3
+[var1, var2] = ({ var2, var1 });  // gee, i love this example.        
+                                  // it didn't even occur to me before
+                                  // :-)
+temp = a;
+a    = b;             
+b    = temp;
+
+a = &quot;alpha&quot;;
+b = &quot;omega&quot;;
+[a, b] = ({ b, a });
+
+[alpha, beta, production] = &quot;January March August&quot;/&quot; &quot;;
+[alpha, beta, production] = ({ beta, production, alpha });
+
+
+// @@PLEAC@@_1.4
+// print the ascii value of a char, or the char from its ascii value
+int i;                          // declare a variable of type int             
+i = 'a';                        // the ascii value of &quot;a&quot;
+i = '\n';                       // the ascii value of a &quot;newline&quot;
+//-----------------------------
+string char = &quot;foo&quot;;
+int num = char[0];   // gets the ascii value from the first char (that's
+                     // what ord() in perl does)
+char = String.int2char(num);
+
+char = sprintf(&quot;%c&quot;,num);   // the same as String.int2char(num) :-)
+write(&quot;Number %d is character %[0]c\n&quot;, num);
+
+Number 101 is character e
+
+string str;
+array(int) arr;
+arr = (array)str;
+str = (string)arr;
+int ascii_value = 'e';                      // now 101
+string character = String.int2char(101);    // now &quot;e&quot;                  
+
+write(&quot;Number %d is character %[0]c\n&quot;, 101);
+
+
+array(int) ascii_character_numbers = (array(int))&quot;sample&quot;;
+write(&quot;%s\n&quot;, (array(string))ascii_character_numbers*&quot; &quot;);    
+
+string word = (string)ascii_character_numbers;
+string word = (string)({ 115, 97, 109, 112, 108, 101 });  // same
+write(word+&quot;\n&quot;);
+// sample           
+
+string hal =&quot;HAL&quot;;
+array(int) ascii = (array)hal;
+array(int) ibm = ascii[*]+1;       // add 1 to each element in the array.
+array(int) ibm = map(ascii, `+, 1) // apply the function +, with the argument
+                                   // 1, to each element in the array.
+write(ibm+&quot;\n&quot;);                   // prints &quot;IBM&quot;
+
+// @@PLEAC@@_1.5
+string hello = &quot;Hello world!&quot;;
+array(string) chars = hello/&quot;&quot;;     // array of characters as strings
+
+foreach(chars;; string char)        // this also matches newlines
+  ;  // do stuff with char
+//-----------------------------
+string data = &quot;an apple a day&quot;;
+array(string) chars = data/&quot;&quot;;
+mapping(string:int) seen = ([]);
+
+foreach(chars ;; string char)
+  seen[char]++; 
+
+write(&quot;unique chars are: %s\n&quot;, sort(indices(seen))*&quot;&quot;);
+// unique chars are:  adelnpy
+//-----------------------------
+string data = &quot;an apple a day&quot;;
+string result = sort(indices(mkmapping(data/&quot;&quot;, allocate(sizeof(data))))*&quot;&quot;;
+
+write(&quot;unique chars are: %s\n&quot;, result);
+// unique chars are:  adelnpy
+//-----------------------------
+string data = &quot;an apple a day&quot;;
+int sum;
+
+foreach(data ;; int char)
+  sum += char;
+
+write(&quot;sum is %d\n&quot;, sum);
+// sum is 1248
+//-----------------------------
+string data = &quot;an apple a day&quot;;
+int sum=`+(@(array)data);  
+
+write(&quot;sum is %d\n&quot;, sum);
+// sum is 1248
+//-----------------------------
+// <font size="-1"><a href="http://pleac.sourceforge.net/include/pike/ch01/sum">download the following standalone program</a></font>
+#/usr/bin/pike
+// chapter 1.5
+void main(int argc, array(string) argv)
+{
+  string data = Stdio.read_file(argv[1]);
+  int checksum;
+
+  foreach(data ;; int char)
+    checksum += char;
+
+  checksum %= pow(2,16)-1;
+  write(&quot;%d\n&quot;, checksum);
+}
+
+//-----------------------------
+// alternate version
+// <font size="-1"><a href="http://pleac.sourceforge.net/include/pike/ch01/sum2">download the following standalone program</a></font>
+#!/usr/bin/pike
+// chapter 1.5
+void main(int argc, array(string) argv)
+{
+  string data=Stdio.read_file(argv[1]);
+  int checksum = `+(@(array)data) % ((1&lt;&lt;16)-1);
+  write(&quot;%d\n&quot;, checksum);
+}
+
+//-----------------------------
+// <font size="-1"><a href="http://pleac.sourceforge.net/include/pike/ch01/slowcat">download the following standalone program</a></font>
+#!/usr/bin/pike
+// chapter 1.5
+// slowcat - emulate a   s l o w  line printer
+// usage: slowcat [-DELAY] [files ...]
+void main(int argc, array argv)
+{
+  array(string) files;
+  int delay = 1;
+
+  if(argv[1][0] == '-')
+  {
+    files = argv[2..];
+    delay = (int)argv[1][1..];
+  }
+  else
+    files = argv[1..];
+
+  foreach(files, string file)
+  {
+    string data = Stdio.read_file(file);
+    foreach(data/&quot;&quot;, string char)
+    {
+      write(char);
+      sleep(0.005*delay);
+    }
+  }
+}
+
+// @@PLEAC@@_1.6
+// #1.6 (reverse a string by char/word)
+// by Olivier Girondel
+
+string s = &quot;This is  a string&quot;;
+// Result: &quot;This is  a string&quot;
+
+reverse(s);
+// Result: &quot;gnirts a  si sihT&quot;
+
+reverse(s/&quot; &quot;) * &quot; &quot;;               // preserve whitespace
+// Result: &quot;string a  is This&quot;
+
+(reverse(s/&quot; &quot;)-({ &quot;&quot; })) * &quot; &quot;;    // collapse whitespace
+// Result: &quot;string a is This&quot;
+//-----------------------------
+string word = &quot;reviver&quot;;
+int is_palindrome = word==reverse(word);
+//-----------------------------
+// <font size="-1"><a href="http://pleac.sourceforge.net/include/pike/ch01/palindrome">download the following standalone program</a></font>
+#!/usr/bin/pike
+// chapter 1.6
+void main(int argc, array(string) argv)
+{
+  string data=Stdio.read_file(argv[1]);
+  foreach(data/&quot;\n&quot;, string line)
+  {
+    if(line==reverse(line) &amp;&amp; sizeof(line)&gt;5)
+    write(&quot;%s\n&quot;, line);
+  }
+}
+
+// @@PLEAC@@_1.7
+string s = &quot;This   	 is                a    \n   string&quot;;
+
+string notabs=String.expand_tabs(s);
+// Result: &quot;This     is                a    \n   string&quot;
+
+string notabs=String.expand_tabs(s, 4);
+// Result: &quot;This     is            a    \n   string&quot;
+
+string notabs=String.expand_tabs(s, 4, &quot;-&quot;);
+// Result: &quot;This   - is --------   a ---\n   string&quot;
+//-----------------------------
+string s = &quot;This     is      a     string&quot;;
+string tabs=&quot;&quot;;
+
+foreach(s/8.0 ;; string stop)
+{ 
+  int spaces=sizeof(String.common_prefix(({ reverse(stop), &quot;        &quot;}))); 
+  tabs+=stop[..7-spaces]; 
+  if(spaces)
+    tabs+=&quot;^I&quot;;
+}
+// Result: &quot;This\t is\t a     string&quot;
+
+string notabs=&quot;&quot;; 
+foreach(tabs/&quot;^I&quot; ;; string stop)
+{ 
+  notabs+=stop; 
+  if(sizeof(stop)&lt;8) 
+    notabs+=&quot; &quot;*(8-sizeof(stop)); 
+}
+// Result: &quot;This     is      a     string&quot;
+
+// @@PLEAC@@_1.8
+// since variable names in pike do not have a special notation we need to 
+// &quot;invent&quot; one for this.
+// there are a few ways to solve this problem.
+// here is one:
+
+mapping(string:string) vars = ([ &quot;$fruit$&quot;:&quot;apple&quot;, &quot;$desert$&quot;:&quot;pudding&quot; ]);
+string template  = &quot;Todays fruit is $fruit$, and for desert we have $desert$&quot;;
+string menu = replace(template, vars);
+
+// Result: &quot;Todays fruit is apple, and for desert we have pudding&quot;
+
+
+// @@PLEAC@@_1.9
+string upper, lower, result;
+upper = &quot;DON'T SHOUT!&quot;;
+result = lower_case(upper);
+// Result: &quot;don't shout!&quot;
+//-----------------------------
+lower = &quot;speak up&quot;;
+result = upper_case(lower);
+// Result: &quot;SPEAK UP&quot;
+//-----------------------------
+result = String.capitalize(lower);
+// Result: &quot;Speak up&quot;
+
+//-----------------------------
+string text = &quot;thIS is a loNG liNE&quot;;
+array(string) words = text/&quot; &quot;;       // splits the line into words
+words = lower_case(words[*]);         // lower_case each word
+words = String.capitalize(words[*]);  // capitalize each word
+text = words*&quot; &quot;;                     // join back
+// you may do the same in one short line:
+text = String.capitalize(lower_case((text/&quot; &quot;)[*])[*])*&quot; &quot;;
+
+// <font size="-1"><a href="http://pleac.sourceforge.net/include/pike/ch01/randcap">download the following standalone program</a></font>
+#!/usr/bin/pike
+// chapter 1.9
+// randcap: filter to randomly capitalize 20% of the letters
+
+void main()
+{
+  string input;
+  while(input=Stdio.stdin.read(1))
+    write(randcap(input));
+}
+
+string randcap(string char)
+{
+  if(random(100)&lt;20)
+    char=String.capitalize(char);
+  return char;
+}
+
+
+// @@PLEAC@@_1.10
+// since pike does not provide any string interpolation 
+// there are no sneaky tricks here.
+// a solution could be similar to the one in chapter 1.8
+// putting functions into the mapping instead of string values, or use xml and
+// callbacks
+// TODO: provide an example of using the xml parser here
+
+// @@PLEAC@@_1.11
+// we believe that indenting the string and then removing that indent does not
+// actually enhance readability of the code.
+// but if you insist the following will remove all whitespace at the beginning
+// of each line:
+string here=#&quot;your text
+              goes here&quot;;
+    
+string there=array_sscanf((here/&quot;\n&quot;)[*], &quot;%*[\t ]%s&quot;)[*][0]*&quot;\n&quot;;
+
+// expanded version:
+array tmp=({});
+foreach(here/&quot;\n&quot;;; string line)
+{
+  tmp+=array_sscanf(line, &quot;%*[\t ]%s&quot;);
+}
+string there=tmp*&quot;\n&quot;;
+
+// @@PLEAC@@_1.12
+// pike sprintf() provides a facility for wrapping (column mode):
+// sprintf(&quot;%-=&lt;int width&gt;s&quot;, text);
+// <font size="-1"><a href="http://pleac.sourceforge.net/include/pike/ch01/wrapdemo">download the following standalone program</a></font>
+#!/usr/bin/pike
+// chapter 1.12
+// wrapdemo - show how wrapping with sprintf works
+void main()
+{
+  array(string) input = ({ &quot;Folding and splicing is the work of an editor,&quot;,
+                           &quot;not a mere collection of silicon&quot;,
+                           &quot;and&quot;,
+                           &quot;mobile electrons!&quot;});
+  int columns = 20;
+
+  write(&quot;0123456789&quot;*2+&quot;\n&quot;);
+  write(wrap(input*&quot; &quot;, 20, &quot;  &quot;, &quot;  &quot;)+&quot;\n&quot;);
+}
+
+// unlike the perl version here leadtab is relative to nexttab, 
+// to get a shorter lead use a negative int value. this allows the default of 0
+// to be a lead indent that is the same as nexttab, and it also has the
+// advantage of allowing you to change the indent without having to worry about
+// the lead getting messed up.
+// a negative lead will cut away from the nexttab which will be visible if you
+// use something other than spaces
+string wrap(string text, void|int width, 
+            void|string|int nexttab, void|string|int leadtab)
+{
+  string leadindent=&quot;&quot;;
+  string indent=&quot;&quot;; 
+  string indent2=&quot;&quot;;
+
+  if(!width)
+    width=Stdio.stdout-&gt;tcgetattr()-&gt;columns;
+
+  if(stringp(nexttab))
+  {
+    indent=nexttab;
+    width-=sizeof(nexttab);  // this will be off if there are chars that have a
+                             // different width than 1.
+  }
+  else if(intp(nexttab))
+  {
+    indent=&quot; &quot;*nexttab;
+    width-=nexttab;
+  }
+
+  if(stringp(leadtab))
+    leadindent=leadtab;
+  else if(intp(leadtab))
+    if(leadtab &gt; 0)
+      leadindent=&quot; &quot;*leadtab;
+    else if(leadtab &lt; 0)
+    {
+      write(indent+&quot;.\n&quot;);
+      indent=indent[..(sizeof(indent)+leadtab)-1];
+      write(indent+&quot;.\n&quot;);
+      indent2=text[..-leadtab-1]; 
+      text=text[-leadtab..];
+    }
+  return sprintf(&quot;%^s%=*s%-=*s&quot;, indent, sizeof(indent2), indent2, 
+                                 width, leadindent+text);
+}
+
+//----------------------------------------------
+$ ./wrapdemo 
+01234567890123456789
+    Folding and     
+  splicing is the   
+  work of an editor,
+  not a mere        
+  collection of     
+  silicon and mobile
+  electrons!        
+
+// merge multiple lines into one, then wrap one long line
+inherit &quot;wrapdemo.pike&quot;;
+wrap(replace(text, &quot;\n&quot;, &quot; &quot;));
+
+// read stdin and split by paragraph,
+// remove \n in paragraphs
+// reformat
+// add paragraph break
+foreach(Stdio.stdin-&gt;read()/&quot;\n\n&quot;;; string para)
+  write(wrap(replace(para, &quot;\n&quot;, &quot; &quot;))+&quot;\n\n&quot;);
+
+// @@PLEAC@@_1.13
+// we need to escape the \ for this example, ironic, eh?
+array(string) charlist=({ &quot;%&quot;, &quot;\\&quot; }); 
+string var=&quot;some input % text with \\&quot;;
+
+// backslash
+var=replace(var, charlist, &quot;\\&quot;+charlist[*]);
+
+// double
+var=replace(var, charlist, charlist[*]+charlist[*]);
+
+// @@PLEAC@@_1.14
+string line=&quot; foo\n\t &quot;;
+array(string) many=({ &quot; bar\n\t &quot;, &quot; baz\t &quot; });
+
+// remove spaces and tabs
+line=String.trim_whites(line);
+many=String.trim_whites(many[*]);
+
+//remove spaces, tabs, newlines and carriage returns
+line=String.trim_all_whites(line);
+many=String.trim_all_whites(many[*]);
+
+// @@PLEAC@@_1.16
+// contributed by martin nilsson
+
+write(&quot;Lookup user: &quot;);
+string user = String.soundex(Stdio.stdin.gets());
+foreach(get_all_users(), array u) 
+{
+  string firstname=&quot;&quot;, lastname=&quot;&quot;;
+  sscanf(u[4], &quot;%s %s,&quot;, firstname, lastname);
+  if( user==String.soundex(u[0]) ||
+      user==String.soundex(firstname) ||
+      user==String.soundex(lastname) )
+    write(&quot;%s: %s %s\n&quot;, u[0], firstname, lastname);
+}
+
+
+// @@PLEAC@@_2.1
+string number=&quot;123.3asdf&quot;;
+
+int|float realnumber= (int)number;  // casting to int will throw away all
+                                    // nonnumber parts
+string rest;
+[realnumber, rest] = array_sscanf(number, &quot;%d%s&quot;); // scan for an integer
+// if rest contains anything but the empty string, then there was more than a
+// number in the string
+// use %f to scan for float, %x for hex or %o for octal
+
+// @@PLEAC@@_2.2
+int same(float one, float two, int accuracy)
+{
+  return sprintf(&quot;%.*f&quot;, accuracy, one) == sprintf(&quot;%.*f&quot;, accuracy, two);
+}
+
+int wage=536;
+int week=40*wage;
+write(&quot;one week's wage is: $%.2f\n&quot;, week/100.0);
+
+// @@PLEAC@@_2.3
+float unrounded=3.5;
+string rounded=sprintf(&quot;%.*f&quot;, accuracy, unrounded);
+
+float a=0.255;
+string b=sprintf(&quot;%.2f&quot;, a);
+
+write(&quot;Unrounded: %f\nRounded: %s\n&quot;, a, b);
+write(&quot;Unrounded: %f\nRounded: %.2f\n&quot;, a, a);
+
+// dec to bin
+string bin=sprintf(&quot;%b&quot;, 5);
+
+int dec=array_sscanf(&quot;0000011111111111111&quot;, &quot;%b&quot;)[0]; 
+                // array_sscanf returns an array
+
+int num = array_sscanf(&quot;0110110&quot;, &quot;%b&quot;)[0];  // num is 54
+string binstr = sprintf(&quot;%b&quot;, 54);           // binstr is 110110
+
+
+// @@PLEAC@@_2.4
+// contributed by martin nilsson.
+
+string dec2bin(int n) 
+{ 
+  return sprintf(&quot;%b&quot;,n); 
+}
+
+int bin2dec(string n) 
+{ 
+  return array_sscanf(n, &quot;%b&quot;)[0];
+}
+
+// @@PLEAC@@_2.5
+// foreach(enumerate(int count, int step, int start);; int val)
+// {
+//   // val is set to each of count integers starting at start
+// }
+
+foreach(enumerate(y-x+1,1,x);; int val)
+{
+  // val is set to every integer from X to Y, inclusive
+}
+
+for(int i=x; i&lt;=y; i++)
+{
+  // val is set to every integer from X to Y, inclusive
+}
+
+for(int i=x; i&lt;=y; i+=7)
+{
+  // val is set to every integer from X to Y, stepsize = 7
+}
+
+foreach(enumerate(y-x+1,7,x);; int val)
+{
+  // val is set to every integer from X to Y, stepsize = 7
+}
+
+//----------------------------------------
+write(&quot;Infancy is: &quot;);
+foreach(enumerate(3);; int val) 
+{
+  write(&quot;%d &quot;, val);
+}
+write(&quot;\n&quot;);
+
+write(&quot;Toddling is: %{%d %}\n&quot;, enumerate(2,1,3));
+
+write(&quot;Childhood is: &quot;);
+for (int i = 5; i &lt;= 12; i++) 
+{
+  write(&quot;%d &quot;, i);
+}
+write(&quot;\n&quot;);
+
+// Infancy is: 0 1 2 
+// Toddling is: 3 4 
+// Childhood is: 5 6 7 8 9 10 11 12 
+
+// @@PLEAC@@_2.6
+int arabic;
+string roman = String.int2roman(arabic);        // handles values up to 10000
+
+array nums=enumerate(10001);                
+array romans=String.int2roman(nums[*]);     
+mapping roman2int = mkmapping(romans, nums);                   
+
+int arabic = roman2int[roman];
+
+//------------------------------------------------
+string roman_fifteen = String.int2roman(15);    //  &quot;XV&quot;
+write(&quot;Roman for fifteen is %s\n&quot;, roman_fifteen);
+
+int arabic_fifteen = roman2int[roman_fifteen];
+write(&quot;Converted back, %s is %d\n&quot;, roman_fifteen, arabic_fifteen);
+
+// Roman for fifteen is XV
+// Converted back, XV is 15
+
+// @@PLEAC@@_2.7
+int y,x;
+int rand = random(y-x+1)+x;
+
+float y,x;
+float rand = random(y-x+1)+x;
+
+int rand = random(51)+25;
+write(&quot;%d\n&quot;, rand);
+
+array arr;
+mixed elt = arr[random(sizeof(arr))];
+mixed elt = random(arr);
+
+array chars=&quot;ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@$%^&amp;*&quot;/&quot;&quot;;
+string password = &quot;&quot;;
+for(int i=1; i&lt;=8; i++)
+{
+  password+=random(chars);
+}
+
+string password = random((({chars})*8)[*])*&quot;&quot;;
+
+string password = random_string(8);      // creates an untypable string
+
+// turn the string into something typable using the base64 charset
+string password = MIME.encode_base64(random_string(8))[..7];
+
+// @@PLEAC@@_2.8
+random_seed(int seed);
+random_seed((int)argv[1]);
+
+// @@PLEAC@@_2.9
+// Crypto.Random.random(int max)
+// Crypto.Random.random_string(int length)
+// Crypto.Random.blocking_random_string(int length)
+// Crypto.Random.add_entropy(string random_data, int entropy)
+
+// @@PLEAC@@_2.10
+float gaussian_rand()
+{
+  float u1, u2, w, g1, g2;
+  
+  do
+  {
+    u1 = 2.0 * random(1.0) - 1.0; u2 = 2.0 * random(1.0) - 1.0;
+    w = u1 * u1 + u2 * u2;
+  } while (w &gt; 1.0);
+  
+  w = sqrt((-2.0 * log(w)) / w); g2 = u1 * w; g1 = u2 * w;
+
+  return g1;
+}
+
+// ----
+
+float mean = 25.0, sdev = 2.0;
+float salary = gaussian_rand() * mean + sdev;
+
+write(&quot;You have been hired at: %.2f\n&quot;, salary);
+
+// @@PLEAC@@_2.11
+float deg2rad(float deg)
+{
+  return (deg / 180.0) * Math.pi;
+}
+
+float rad2deg(float rad)
+{
+  return (rad / Math.pi) * 180.0;
+}
+
+// ----
+
+write(&quot;%f\n&quot;, Math.convert_angle(180, &quot;deg&quot;, &quot;rad&quot;));
+write(&quot;%f\n&quot;, deg2rad(180.0));
+
+// ----------------------------
+
+float degree_sin(float deg)
+{
+  return sin(deg2rad(deg));
+}
+
+// ----
+
+float rad = deg2rad(380.0);
+write(&quot;%f\n&quot;, sin(rad));
+write(&quot;%f\n&quot;, degree_sin(380.0));
+
+// @@PLEAC@@_2.12
+float my_tan(float theta)
+{
+  return sin(theta) / cos(theta);
+}
+
+// ----
+
+float theta = 3.7;
+
+write(&quot;%f\n&quot;, my_tan(theta));
+write(&quot;%f\n&quot;, tan(theta));
+
+// @@PLEAC@@_2.13
+float value = 100.0;
+
+float log_e = log(value);
+float log_10 = Math.log10(value);
+
+// ----------------------------
+
+float log_base(float base, float value)
+{
+  return log(value) / log(base);
+}
+
+// ----
+
+float answer = log_base(10.0, 10000.0);
+
+write(&quot;log(10, 10,000) = %f\n&quot;, answer);
+
+// @@PLEAC@@_2.14
+// Pike offers a solid matrix implementation; highlights:
+// * Operator overloading makes matrix operations succinct
+// * Matrices may be of various types, thus allowing user to
+//   choose between range representation and speed
+// * Wide variety of operations available
+
+Math.Matrix a = Math.Matrix( ({ ({3, 2, 3}), ({5, 9, 8})  }) ),
+            b = Math.Matrix( ({ ({4, 7}), ({9, 3}), ({8, 1}) }) );
+
+Math.Matrix c = a * b;
+
+// ------------
+
+Math.Matrix t = c-&gt;transpose();
+
+// @@PLEAC@@_2.15
+// @@INCOMPLETE@@
+
+// @@PLEAC@@_2.16
+// Like C, Pike supports decimal-alternate notations. Thus, for example,
+// the integer value, 867, is expressable in literal form as:
+//
+//   Hexadecimal -&gt; 0x363
+//   Octal       -&gt; 01543
+//
+// For effecting such conversions using strings there is 'sprintf' and
+// 'sscanf'.
+
+int dec = 867;
+string hex = sprintf(&quot;%x&quot;, dec);
+string oct = sprintf(&quot;%o&quot;, dec);
+
+// ------------
+
+int dec;
+string hex = &quot;363&quot;; sscanf(hex, &quot;%x&quot;, dec);
+
+// ------------
+
+int dec;
+string oct = &quot;1543&quot;; sscanf(oct, &quot;%o&quot;, dec);
+
+// ----------------------------
+
+int number;
+
+write(&quot;Gimme a number in decimal, octal, or hex: &quot;);
+sscanf(Stdio.stdin-&gt;gets(), &quot;%D&quot;, number);
+
+write(&quot;%d %x %o\n&quot;, number, number, number);
+
+// @@PLEAC@@_2.17
+string commify_series(int series)
+{
+  return reverse((reverse((string)series) / 3.0) * &quot;,&quot;);
+}
+
+// ----
+
+int hits = 3452347;
+
+write(&quot;Your website received %s accesses last month.\n&quot;, commify_series(hits));
+
+// ----------------------------
+
+string commify(string s)
+{
+  function t = lambda(string m) { return reverse((reverse(m) / 3.0) * &quot;,&quot;); };
+  return Regexp.PCRE(&quot;([0-9]+)&quot;)-&gt;replace(s, t);
+}
+
+// ----
+
+int hits = 3452347;
+string output = sprintf(&quot;Your website received %d accesses last month.&quot;, hits);
+
+write(&quot;%s\n&quot;, commify(output));
+
+// @@PLEAC@@_2.18
+string pluralise(int value, string root, void|string singular_, void|string plural_)
+{
+  string singular = singular_ ? singular_ : &quot;&quot;;
+  string plural = plural_ ? plural_ : &quot;s&quot;;
+
+  return root + ( (value &gt; 1) ? plural : singular );
+}
+
+// ----
+
+int duration = 1;
+write(&quot;It took %d %s\n&quot;, duration, pluralise(duration, &quot;hour&quot;));
+write(&quot;%d %s %s enough.\n&quot;, duration, pluralise(duration, &quot;hour&quot;),
+      pluralise(duration, &quot;&quot;, &quot;is&quot;, &quot;are&quot;));
+
+duration = 5;
+write(&quot;It took %d %s\n&quot;, duration, pluralise(duration, &quot;hour&quot;));
+write(&quot;%d %s %s enough.\n&quot;, duration, pluralise(duration, &quot;hour&quot;),
+      pluralise(duration, &quot;&quot;, &quot;is&quot;, &quot;are&quot;));
+
+// ----------------------------
+
+// Non-regexp implementation, uses the string-based, 'has_prefix'
+// and 'replace' library functions
+string plural(string singular)
+{
+  mapping(string : string) e2 =
+    ([&quot;ss&quot;:&quot;sses&quot;, &quot;ph&quot;:&quot;phes&quot;, &quot;sh&quot;:&quot;shes&quot;, &quot;ch&quot;:&quot;ches&quot;,
+      &quot;ey&quot;:&quot;eys&quot;, &quot;ix&quot;:&quot;ices&quot;, &quot;ff&quot;:&quot;ffs&quot;]);
+
+  mapping(string : string) e1 =
+    ([&quot;z&quot;:&quot;zes&quot;, &quot;f&quot;:&quot;ves&quot;, &quot;y&quot;:&quot;ies&quot;, &quot;s&quot;:&quot;ses&quot;, &quot;x&quot;:&quot;xes&quot;]);
+
+  foreach(({e2, e1}), mapping(string : string) endings) 
+  {
+    foreach(indices(endings), string ending)
+    {
+      if (has_suffix(singular, ending))
+      {
+        return replace(singular, ending, endings[ending]);
+      }
+    }
+  }
+
+  return singular;
+}
+
+// ----
+
+int main()
+{
+  foreach(aggregate(&quot;mess&quot;, &quot;index&quot;, &quot;leaf&quot;, &quot;puppy&quot;), string word)
+    write(&quot;%6s -&gt; %s\n&quot;, word, plural(word));
+}
+
+// @@PLEAC@@_2.19
+// <font size="-1"><a href="http://pleac.sourceforge.net/include/pike/ch02/bigfact">download the following standalone program</a></font>
+#!/usr/bin/pike
+// contributed by martin nilsson
+
+void main(int n, array args) 
+{
+  foreach(args[1..], string arg) 
+  {
+    mapping r = ([]);
+    foreach(Math.factor((int)arg), int f)
+      r[f]++;
+    write(&quot;%-10s&quot;, arg);
+    if(sizeof(r)==1)
+      write(&quot; PRIME&quot;);
+    else 
+    {
+      foreach(sort(indices(r)), int f) 
+      {
+        write(&quot; %d&quot;, f);
+        if(r[f]&gt;1) write(&quot;**%d&quot;, r[f]);
+      }
+    }
+    write(&quot;\n&quot;);
+  }
+}
+
+
+
+// @@PLEAC@@_3.0
+// Pike has an extensive Calendar module that provides all manners of
+// manipulating dates and times.
+write(&quot;Today is day %d of the current year.\n&quot;, localtime(time())-&gt;yday+1);
+// Today is day 325 of the current year.
+
+write(&quot;Today is day %d of the current year.\n&quot;, Calendar.now()-&gt;year_day());
+// Today is day 325 of the current year.
+
+// @@PLEAC@@_3.1
+int day, month, year;
+mapping now=localtime(time());
+year  = now-&gt;year+1900;
+month = now-&gt;mon+1;
+day   = now-&gt;mday;
+
+write(&quot;The current date is %04d %02d %02d\n&quot;, year, month, day);
+
+object now=Calendar.now();
+year  = now-&gt;year_no();
+month = now-&gt;month_no();
+day   = now-&gt;month_day();
+
+write(&quot;The current date is %04d %02d %02d\n&quot;, year, month, day);
+
+write(&quot;The current date is %04d %02d %02d\n&quot;, @lambda(){ return ({ now-&gt;year_no(), now-&gt;month_no(), now-&gt;month_day() }); }(Calendar.now()));
+// this is essentially the same as the respective perl code:
+// lambda creates an anonymous function, which in this case takes one argument 
+// and returns an array. the array is the spliced into the arguments of write().
+// if the goal is to get by without a temporary variable this is a rather
+// pointless exercise, as there is still a temporary variable (in the function)
+// and the temporary function on top of that. more interresting is the
+// functional approach aspect.
+
+// @@PLEAC@@_3.2
+// dwim_time() handles most common date and time formats.
+Calendar.dwim_time(&quot;2:40:25 23.11.2004&quot;);
+// Result: Second(Tue 23 Nov 2004 2:40:25 CET)
+Calendar.dwim_time(&quot;2:40:25 23.11.2004&quot;)-&gt;unix_time();
+// Result: 1101174025
+
+Calendar.dwim_time(&quot;2:40:25 UTC 23.11.2004&quot;);
+// Result: Second(Tue 23 Nov 2004 2:40:25 UTC)
+
+// faster, because there is no need for guessing:
+Calendar.parse(&quot;%Y-%M-%D %h:%m:%s %z&quot;,&quot;2004-11-23 2:40:25 UTC&quot;);
+// Result: Second(Tue 23 Nov 2004 2:40:25 UTC)
+
+// without parsing
+Calendar.Second(2004, 11, 23, 2, 40, 25);
+// Result: Second(Tue 23 Nov 2004 2:40:25 CET)
+
+// functional
+Calendar.Year(2004)-&gt;month(11)-&gt;day(23)-&gt;hour(2)-&gt;minute(40)-&gt;second(25);
+// Result: Second(Tue 23 Nov 2004 2:40:25 CET)
+
+Calendar.Day(2004, 11, 23)-&gt;set_timezone(&quot;UTC&quot;)-&gt;hour(2)-&gt;minute(40)-&gt;second(25);
+// Result: Second(Tue 23 Nov 2004 2:40:25 UTC)
+
+// set a time today
+Calendar.dwim_time(&quot;2:40:25&quot;);    
+// Result: Second(Tue 23 Nov 2004 2:40:25 CET)
+Calendar.dwim_time(&quot;2:40:25 UTC&quot;);           
+// Result: Second(Tue 23 Nov 2004 2:40:25 UTC)
+
+Calendar.parse(&quot;%h:%m:%s %z&quot;,&quot;2:40:25 UTC&quot;);                    
+// Result: Second(Tue 23 Nov 2004 2:40:25 UTC)
+Calendar.Day()-&gt;set_timezone(&quot;UTC&quot;)-&gt;hour(2)-&gt;minute(40)-&gt;second(25);
+// Result: Second(Tue 23 Nov 2004 2:40:25 UTC)
+
+// @@PLEAC@@_3.3
+int unixtime=1101174025;
+int day, month, year;
+mapping then=localtime(unixtime);
+year  = then-&gt;year+1900;
+month = then-&gt;mon+1;
+day   = then-&gt;mday;
+
+write(&quot;Dateline: %02d:%02d:%02d-%04d/%02d/%02d\n&quot;, then-&gt;hour, then-&gt;min, then-&gt;sec, then-&gt;year+1900, then-&gt;mon+1, then-&gt;mday);
+// Dateline: 02:40:25-2004/11/23
+
+object othen=Calendar.Second(unixtime);
+// Result: Second(Tue 23 Nov 2004 2:40:25 CET)
+
+write(&quot;Dateline: %02d:%02d:%02d-%04d/%02d/%02d\n&quot;, othen-&gt;hour_no(), 
+      othen-&gt;minute_no(), othen-&gt;second_no(), othen-&gt;year_no(), 
+      othen-&gt;month_no(), othen-&gt;month_day());
+// Dateline: 02:40:25-2004/11/23
+
+// @@PLEAC@@_3.4
+int days_offet=55;
+int hour_offset=2;
+int minute_offset=17;
+int second_offset=5;
+
+object then=Calendar.parse(&quot;%D/%M/%Y, %h:%m:%s %p&quot;,&quot;18/Jan/1973, 3:45:50 pm&quot;)
+            +Calendar.Day()*days_offet
+            +Calendar.Hour()*hour_offset
+            +Calendar.Minute()*minute_offset
+            +Calendar.Second()*second_offset;
+write(&quot;Then is %s\n&quot;, then-&gt;format_ctime());
+// Then is Wed Mar 14 18:02:55 1973
+write(&quot;To be precise: %d:%d:%d, %d/%d/%d\n&quot;, 
+             then-&gt;hour_no(), then-&gt;minute_no(), then-&gt;second_no(),
+             then-&gt;month_no(), then-&gt;month_day(), then-&gt;year_no());
+// To be precise: 18:2:55, 3/14/1973
+
+int years   = 1973;
+int months  = 1;
+int days    = 18;
+int offset  = 55;
+object then = Calendar.Day(years, months, days)+offset;
+write(&quot;Nat was 55 days old on: %d/%d/%d\n&quot;, then-&gt;month_no(), then-&gt;month_day(),then-&gt;year_no());
+// Nat was 55 days old on: 3/14/1973
+
+// @@PLEAC@@_3.5
+int bree = 361535725;         // 16 Jun 1981, 4:35:25
+int nat  = 96201950;          // 18 Jan 1973, 3:45:50
+
+int difference = bree-nat;
+write(&quot;There were %d seconds between Nat and Bree\n&quot;, difference);
+// There were 265333775 seconds between Nat and Bree
+
+int seconds =  difference                % 60;
+int minutes = (difference / 60)          % 60;
+int hours   = (difference / (60*60) )    % 24;
+int days    = (difference / (60*60*24) ) % 7;
+int weeks   =  difference / (60*60*24*7);
+
+write(&quot;(%d weeks, %d days, %d:%d:%d)\n&quot;, weeks, days, hours, minutes, seconds);
+// (438 weeks, 4 days, 23:49:35)
+
+object bree = Calendar.dwim_time(&quot;16 Jun 1981, 4:35:25&quot;);
+// Result: Second(Tue 16 Jun 1981 4:35:25 CEST)
+object nat  = Calendar.dwim_time(&quot;18 Jan 1973, 3:45:50&quot;);
+// Result: Second(Thu 18 Jan 1973 3:45:50 CET)
+object difference = nat-&gt;range(bree);
+// Result: Second(Thu 18 Jan 1973 3:45:50 CET - Tue 16 Jun 1981 4:35:26 CEST)
+
+write(&quot;There were %d days between Nat and Bree\n&quot;, difference/Calendar.Day());
+// There were 3071 days between Nat and Bree
+
+int days=difference/Calendar.Day();
+object left=difference-&gt;add(days,Calendar.Day)-&gt;range(difference-&gt;end());
+
+// Calendar handles timezone differences, and since the range crosses from
+// normal to daylight savings time, there is one day which has only 23 hours.
+// by adding the number of days we effectively move the beginning of the range
+// to the same day as the end, leaving us with a range that is less than a day
+// long. when adding the days, the daylight savings switch will be taken into
+// account.
+
+write(&quot;Bree came %d days, %d:%d:%d after Nat\n&quot;, 
+                   days, 
+                   (left/Calendar.Hour())%24,
+                   (left/Calendar.Minute())%60,
+                   (left/Calendar.Second())%60,
+                   );
+
+// Bree came 3071 days, 0:49:36 after Nat
+
+// the following is more accurate, taking into account that the days where
+// daylight savings time is switched do not have 24, but 23 and 25 hours.
+// thanks to mirar on the pike list for pointing this out and providing a
+// correct solution.
+
+array(int) breakdown_elapsed(object u, void|array on)
+{  
+  array res=({});
+  if (!on) on=({Day,Hour,Minute,Second});
+  foreach (on;;program|TimeRange p)
+  {  
+    if (u==u-&gt;end()) { res+=({0}); continue; }
+    int x=u/p;
+    u=u-&gt;add(x,p)-&gt;range(u-&gt;end());
+    res+=({x});
+  }
+  return res;
+}
+
+write(&quot;Bree came %d days, %d:%d:%d after Nat\n&quot;,
+      @breakdown_elapsed(difference));
+
+// Bree came 3071 days, 0:49:36 after Nat
+
+// @@PLEAC@@_3.6
+mapping day=localtime(time());
+day-&gt;mday;
+// Result: 2
+day-&gt;wday;
+// Result: 4
+day-&gt;yday;
+// Result: 336
+
+int year=1981;
+int month=6;
+int day=16;
+object date;
+date = Calendar.Day(year, month, day);
+// Result: Day(Tue 16 Jun 1981)
+
+date-&gt;week_day();
+// Result: 3
+date-&gt;week_no();
+// Result: 24
+date-&gt;year_day();
+// Result: 167
+write(&quot;%d/%d/%d was a %s\n&quot;, month, day, year, date-&gt;week_day_name());
+// 6/16/1981 was a Tuesday
+
+write(&quot;in the week number %d.\n&quot;, date-&gt;week_no());
+// in the week number 25.
+
+// @@PLEAC@@_3.7
+string date = &quot;1998-06-03&quot;;
+int yyyy;
+int mm;
+int dd;
+[yyyy, mm, dd] = array_sscanf(date, &quot;%d-%d-%d&quot;);
+
+object day;
+day=Calendar.dwim_day(date);
+day=Calendar.parse(&quot;%Y-%M-%D&quot;, date);
+
+day-&gt;unix_time();
+// Result: 896824800
+day-&gt;year_no();                      
+// Result: 1998
+day-&gt;month_no();
+// Result: 6
+day-&gt;month_day();
+// Result: 3
+
+// @@PLEAC@@_3.8
+object now=Calendar.dwim_time(&quot;Sun Sep 21 15:33:36 1997&quot;);
+// Result: Second(Sun 21 Sep 1997 15:33:36 CEST)
+
+now-&gt;format_ctime();
+// Result: &quot;Sun Sep 21 15:33:36 1997\n&quot;
+
+// there is no equivalent to scalar localtime
+
+now = Calendar.Second(1973, 1, 18, 3, 45, 50);
+write(&quot;strftime gives: %s %02d/%02d/%!2d\n&quot;, now-&gt;week_day_name(), 
+        now-&gt;month_no(), now-&gt;month_day(), now-&gt;year_no());
+// strftime gives: Sunday 01/18/73
+// pike doesn't have strftime, but hey.
+
+// instead Calendar provides a large array of predefined formats:
+
+// format_nice() and format_nicez() depend on the unit:
+now-&gt;format_nice();           // &quot;18 Jan 1973 3:45:50&quot;
+now-&gt;week()-&gt;format_nice();   // &quot;w3 1973&quot;
+now-&gt;format_nicez();          // &quot;18 Jan 1973 3:45:50 CET&quot;
+now-&gt;hour()-&gt;format_nicez();  // &quot;18 Jan 1973 3:00 CET&quot;
+
+// others are unit independant.
+now-&gt;format_ext_time();       // &quot;Thursday, 18 January 1973 03:45:50&quot;
+now-&gt;format_ext_ymd();        // &quot;Thursday, 18 January 1973&quot;
+now-&gt;format_iso_time();       // &quot;1973-01-18 (Jan) -W03-4 (Thu) 03:45:50 UTC+1&quot;
+now-&gt;format_iso_ymd();        // &quot;1973-01-18 (Jan) -W03-4 (Thu)&quot;
+now-&gt;format_mod();            // &quot;03:45&quot;
+now-&gt;format_month();          // &quot;1973-01&quot;
+now-&gt;format_month_short();    // &quot;197301&quot;
+now-&gt;format_mtime();          // &quot;1973-01-18 03:45&quot;
+now-&gt;format_time();           // &quot;1973-01-18 03:45:50&quot;
+now-&gt;format_time_short();     // &quot;19730118 03:45:50&quot;
+now-&gt;format_time_xshort();    // &quot;730118 03:45:50&quot;
+now-&gt;format_tod();            // &quot;03:45:50&quot;
+now-&gt;format_tod_short();      // &quot;034550&quot;
+now-&gt;format_todz();           // &quot;03:45:50 CET&quot;
+now-&gt;format_todz_iso();       // &quot;03:45:50 UTC+1&quot;
+now-&gt;format_week();           // &quot;1973-w3&quot;
+now-&gt;format_week_short();     // &quot;1973w3&quot;
+now-&gt;format_iso_week();       // &quot;1973-W03&quot;
+now-&gt;format_iso_week_short(); // &quot;197303&quot;
+now-&gt;format_xtime();          // &quot;1973-01-18 03:45:50.000000&quot;
+now-&gt;format_xtod();           // &quot;03:45:50.000000&quot;
+now-&gt;format_ymd();            // &quot;1973-01-18&quot;
+now-&gt;format_ymd_short();      // &quot;19730118&quot;
+now-&gt;format_ymd_xshort();     // &quot;730118&quot;
+
+now-&gt;format_ctime();          // &quot;Thu Jan 18 03:45:50 1973\n&quot;
+now-&gt;format_smtp();           // &quot;Thu, 18 Jan 1973 3:45:50 +0100&quot;
+now-&gt;format_http();           // &quot;Thu, 18 Jan 1973 02:45:50 GMT&quot;
+
+// @@PLEAC@@_3.9
+int t=time();                 // current time in unixtime seconds
+float t0=time(t);             // higher precision time passed since t
+float t1=time(t);
+float elapsed=t1-t0;
+// Result: 0.009453
+
+//-------------------------------------------
+write(&quot;Press return when ready: &quot;);
+array(int) before=System.gettimeofday();
+Stdio.stdin-&gt;gets();
+array(int) after=System.gettimeofday();
+int elapsed_sec=after[0]-before[0];
+int elapsed_usec=after[1]-before[1];
+if(elapsed_usec&lt;0)
+{
+  elapsed_sec--;
+  elapsed_usec+=1000000;
+}
+
+write(&quot;You took %d.%d seconds.\n&quot;, elapsed_sec, elapsed_usec);
+//-------------------------------------
+// this is an expanded example compared to the one given for perl
+// to allow comparison of different types.
+// bignum are objects of the gmp library, which are seamlessly integrated with
+// regular integers.
+
+int main()
+{
+  // size values are adjusted so that each run takes about the same length.
+  gaugethis(5000000, 100, lambda(){ return random(pow(2,31)-1); });
+               // values to fit into a signed 32bit int.
+  gaugethis(50000, 100, lambda(){ return pow(2,64)+random(pow(2,64)); });
+               // make sure values are bignum even in case 64bit ints are used.
+  gaugethis(500000, 100, lambda(){ return random_string(10); });
+               // might be interresting to compare longer strings too.
+}
+
+void gaugethis(int size, int number_of_times, function rand)
+{
+  array gauged_times = ({});
+  float average;
+
+  int swidth=sizeof((string)size);
+  int nwidth=sizeof((string)number_of_times);
+  for(int i; i&lt;number_of_times; i++)
+  { 
+    write(&quot;%*d: &quot;, nwidth, i);
+    array(int) arr=({});
+    write(&quot;creating array: &quot;);
+    for(int j; j&lt;size; j++)
+    {
+      arr += ({ rand() }); 
+    }
+    write(&quot; sorting: &quot;);
+
+    float gaugetime=gauge // gauge measures cpu time, giving better results
+    { 
+      arr=sort(arr);
+    };
+    gauged_times += ({ gaugetime });
+    write(&quot; %f          \r&quot;, gaugetime);
+  }
+  average=`+(@gauged_times)/(float)number_of_times;
+  gauged_times=sort(gauged_times);
+
+  write(&quot;average: %O, min: %O, max: %O                           \n&quot;, 
+        average, gauged_times[0], gauged_times[-1]);
+}
+
+// @@PLEAC@@_3.10
+int abort_on_signal=1;         // if true, aport on signal
+sleep(0.25, abort_on_signal);
+
+delay(0.25); // uses busy-wait for accuracy,
+             // may be interrupted by signal handlers
+
+// @@PLEAC@@_3.11
+Calendar.dwim_time(&quot;Tue, 26 May 1998 23:57:38 -0400&quot;)-&gt;distance(
+    Calendar.dwim_time(&quot;Wed, 27 May 1998 05:04:03 +0100&quot;))-&gt;format_elapsed();   
+// Result: &quot;0:06:25&quot;
+
+// <font size="-1"><a href="http://pleac.sourceforge.net/include/pike/ch03/hopdelta">download the following standalone program</a></font>
+#!/usr/bin/pike
+// chapter 3.11
+// hopdelta - feed mail header, produce lines
+//            showing delay at each hop.
+int main()
+{
+  MIME.Message        mail = MIME.Message(Stdio.stdin.read());
+  
+  array           received = reverse(mail-&gt;headers-&gt;received/&quot;\0&quot;);
+  Calendar.Second lasttime = Calendar.dwim_time(mail-&gt;headers-&gt;date);
+
+  array delays=({ ({ &quot;Sender&quot;, &quot;Recipient&quot;, &quot;Time&quot;, &quot;Delta&quot; }) });
+  delays+=({ ({ mail-&gt;headers-&gt;from, 
+                array_sscanf(received[0], &quot;from %[^ ]&quot;)[0], 
+                mail-&gt;headers-&gt;date, 
+                &quot;&quot; 
+          }) });
+          
+
+  foreach(received;; string hop)
+  {
+    string fromby, date;
+    [fromby, date] = hop/&quot;;&quot;;
+    Calendar.Second thistime = Calendar.dwim_time(date);
+
+    delays+= ({ array_sscanf(fromby, &quot;from %[^ ]%*sby %[^ ]%*s&quot;) + 
+                ({ date, lasttime-&gt;distance(thistime)-&gt;format_elapsed() }) 
+             });
+
+    lasttime=thistime;
+  }
+
+  write(&quot;%{%-=22s %-=22s %-=20s %=10s\n%}\n&quot;, delays);
+  return 0;
+}
+
+
+// @@PLEAC@@_4.0
+// nested arrays are supported
+array flat = ({ &quot;this&quot;, &quot;that&quot;, &quot;the&quot;, &quot;other&quot; });
+array nested = ({ &quot;this&quot;, &quot;that&quot;, ({ &quot;the&quot;, &quot;other&quot; }) });
+
+
+array tune = ({ &quot;The&quot;, &quot;Star-Spangled&quot;, &quot;Banner&quot; });
+tune[0];
+// Result: &quot;The&quot;
+tune[1];
+// Result: &quot;Star-Spangled&quot;
+
+
+// the typing may be more specific
+// only strings allowed in the array (thus no nesting!)
+array(string) flat = ({ &quot;this&quot;, &quot;that&quot;, &quot;the&quot;, &quot;other&quot; });
+
+// allow one level of nesting
+array(string|array(string)) admit1 = ({ &quot;this&quot;, &quot;that&quot;, ({ &quot;the&quot;, &quot;other&quot; }) });
+
+// the first level may only contain arrays, other levels may contain anything
+array(array) require1 ({ ({ &quot;this&quot;, &quot;that&quot; }), ({ &quot;the&quot;, &quot;other&quot; }) });
+
+
+// @@PLEAC@@_4.1
+// list
+array(string) a = ({ &quot;quick&quot;, &quot;brown&quot;, &quot;fox&quot; });
+
+// words
+array(string) a = &quot;Why are you teasing me?&quot;/&quot; &quot;;
+
+// lines
+array(string) lines = #&quot;The boy stood on the burning deck,
+It was as hot as glass.&quot;/&quot;\n&quot;;
+
+// file
+array(string) bigarray = Stdio.read_file(&quot;mydatafile&quot;)/&quot;\n&quot;;
+
+// the quoting issues do not apply.
+
+array(string) ships = &quot;Nińa Pinta Santa María&quot;/&quot; &quot;;         // wrong
+array(string) ships = ({ &quot;Nińa&quot;, &quot;Pinta&quot;, &quot;Santa María&quot; }); // right
+
+ 
+// @@PLEAC@@_4.2
+// <font size="-1"><a href="http://pleac.sourceforge.net/include/pike/ch04/commify_series">download the following standalone program</a></font>
+#!/usr/bin/pike
+// chapter 4.2
+// commify_series - show proper comma insertion in list output
+
+array(array(string)) lists =
+  ({
+    ({ &quot;just one thing&quot; }),
+    ({ &quot;Mutt&quot;, &quot;Jeff&quot; }),
+    ({ &quot;Peter&quot;, &quot;Paul&quot;, &quot;Mary&quot; }),
+    ({ &quot;To our parents&quot;, &quot;Mother Theresa&quot;, &quot;God&quot; }),
+    ({ &quot;pastrami&quot;, &quot;ham and cheese&quot;, &quot;peanut butter and jelly&quot;, &quot;tuna&quot; }),
+    ({ &quot;recycle tired, old phrases&quot;, &quot;ponder big, happy thoughts&quot; }),
+    ({ &quot;recycle tired, old phrases&quot;,
+       &quot;ponder big, happy thoughts&quot;,
+       &quot;sleep and dream peacefully&quot; }),
+  });
+
+void main()
+{
+  write(&quot;The list is: %s.\n&quot;, commify_list(lists[*])[*]);
+}
+
+string commify_list(array(string) list)
+{
+  switch(sizeof(list))
+  {
+    case 1: return list[0];
+    case 2: return sprintf(&quot;%s and %s&quot;, @list);
+    default: 
+      string seperator=&quot;,&quot;;
+      int count;
+      while(count&lt;sizeof(list) &amp;&amp; search(list[count], seperator)==-1)
+        count++;
+      if(count&lt;sizeof(list))
+        seperator=&quot;;&quot;;
+      return sprintf(&quot;%{%s&quot;+seperator+&quot; %}and %s&quot;, 
+                     list[..sizeof(list)-2], list[-1]);
+  }
+}
+
+
+// @@PLEAC@@_4.3
+void what_about_that_array(array list)
+{
+    write(&quot;The array now has %d elements.\n&quot;, sizeof(list));
+    write(&quot;The index of the last element is %d.\n&quot;, sizeof(list)-1);
+    write(&quot;Element #3 is %O.\n&quot;, list[3]);
+}
+
+array people = ({ &quot;Crosby&quot;, &quot;Stills&quot;, &quot;Nash&quot;, &quot;Young&quot; });
+what_about_that_array(people);
+// The array now has 4 elements.
+// The index of the last element is 3.
+// Element #3 is &quot;Young&quot;.
+
+people=people[..sizeof(people)-2];
+what_about_that_array(people);
+// The array now has 3 elements.
+// The index of the last element is 2.
+// Index 3 is out of array range -3..2.
+
+people+=allocate(10001-sizeof(people));
+what_about_that_array(people);
+// The array now has 10001 elements.
+// The index of the last element is 10000.
+// Element #3 is 0.
+
+array people = ({ &quot;Crosby&quot;, &quot;Stills&quot;, &quot;Nash&quot;, &quot;Young&quot; }); // resetting the array
+people[10000]=0;
+// Index 10000 is out of array range -4..3.
+// accessing a nonexisting index is always an error.
+// arrays can not be enlarged this way.
+
+
+// @@PLEAC@@_4.4
+foreach(list; int index; mixed item)
+{
+  // do something with item (and possibly index)
+}
+
+foreach(bad_users;; object user)
+{
+  complain(user);
+}
+
+// for such simple cases pike provides a convenient automap feature:
+complain(bad_users[*]);
+// will do the same as the foreach above.
+
+foreach(sort(indices(getenv()));; string var)
+{
+  write(&quot;%s=%s\n&quot;, var, getenv(var));
+}
+
+// if you don't need an assurance that the indices are sorted (they most likely
+// are sorted anyways) you may use:
+foreach(getenv(); string var; string value)
+{
+  write(&quot;%s=%s\n&quot;, var, value);
+}
+
+foreach(all_users;; string user)
+{
+  int disk_space = get_usage(user);
+  if(disk_space &gt; MAX_QUOTA)
+    complain(user);
+}
+
+// continue; to jump to the next
+// break; to stop the loop
+// redo can be done by doing a loop with the proper checks in the block
+
+object pipe=Stdio.File();
+Process.create_process(({ &quot;who&quot; }), ([ &quot;stdout&quot;:pipe-&gt;pipe() ]));
+foreach(pipe-&gt;line_iterator();; string line)
+{
+  if(search(line, &quot;tchrist&quot;)&gt;-1)
+    write(line+&quot;\n&quot;);
+}
+
+object fh=Stdio.File(&quot;somefile&quot;);
+foreach(fh-&gt;line_iterator(); int linenr; string line)
+{
+  foreach(Process.split_quoted_string(line);; string word)//split on whitespace
+  {
+    write(reverse(word));
+  }
+}
+
+
+array(int) list = ({ 1,2,3 });
+foreach(list;; int item)
+{
+  item--;
+}
+write(&quot;%{%d %}\n&quot;, list);
+// Result: 1 2 3 
+
+// we can still use foreach instead of for, 
+// because foreach gives us the index as well:
+foreach(list; int index;)
+{
+  list[index]--;
+}
+write(&quot;%{%d %}\n&quot;, list);
+// Result: 0 1 2
+
+array a = ({ 0.5, 3 });
+array b = ({ 0, 1 });
+// foreach handles only one array so there is nothing to gain here. 
+// better use automap:
+array a_ = a[*]*7;
+array b_ = b[*]*7;
+write(&quot;%{%O %}\n&quot;, a_+b_);
+// 3.500000 21 0 7
+
+string scalar = &quot; abc &quot;;
+array(string) list = ({ &quot; a &quot;, &quot; b &quot; });
+mapping(mixed:string) hash = ([ &quot;a&quot;:&quot; a &quot;, &quot;b&quot;:&quot; b &quot; ]);
+
+scalar = String.trim_whites(scalar);
+list = String.trim_whites(list[*]);
+foreach(hash; int key;)
+{
+  hash[key]=String.trim_whites(hash[key]);
+}
+
+// @@PLEAC@@_4.5
+// pike does not distinguish between arrays and array references 
+// (they are all references anyways) so this section does not apply
+
+// @@PLEAC@@_4.6
+mapping seen = ([]);
+array   uniq = ({});
+foreach(list;; mixed item)
+{
+  if(!seen[item])
+    seen[item] = 1;
+  else
+    uniq += ({ item });
+}
+
+
+mapping seen = ([]);
+array   uniq = ({});
+foreach(list;; mixed item)
+{
+  if(!seen[item]++)
+    uniq += ({ item });
+}
+
+mapping seen = ([]);
+array   uniq = ({});
+foreach(list;; mixed item)
+{
+  if(!seen[item]++)
+    some_func(item);
+}
+
+// the following is probably the most natural for pike
+mapping seen = ([]);
+array   uniq = ({});
+foreach(list;; mixed item)
+{
+  seen[item]++;
+}
+uniq = indices(seen);
+
+
+// not necessarily faster but shorter:
+array uniq = indices(({ list[*],1 }));
+
+// also short, and preserving the originaal order:
+array uniq = list&amp;indices(({ list[*],1 }));
+
+
+object pipe = Stdio.File();
+Process.create_process(({ &quot;who&quot; }), ([ &quot;stdout&quot;:pipe-&gt;pipe() ]));
+mapping ucnt = ([]);
+foreach(pipe-&gt;line_iterator();; string line)
+{
+  ucnt[(line/&quot; &quot;)[0]]++;
+}
+
+array users = sort(indices(ucnt));
+write(&quot;users logged in: %s\n&quot;, users*&quot; &quot;);
+
+
+// @@PLEAC@@_4.7
+// one of pikes strenghts are operators.
+// the following are the only idiomatic solutions to the problem
+
+array A = ({ 1, 2, 3 });
+array B = ({ 2, 3, 4 });
+array aonly = A-B;
+// Result: ({ 1 });
+
+
+// @@PLEAC@@_4.8
+array a = ({ 1, 3, 5, 6, 7, 8 });
+array b = ({ 2, 3, 5, 7, 9 });
+
+// union:
+array union = a|b;
+// ({ 1, 3, 5, 6, 7, 8, 2, 9 })
+
+// intersection
+array intersection = a&amp;b;
+// ({ 3, 5, 7 })
+
+// difference
+array difference = a-b; 
+// ({ 1, 6, 8 })
+
+// symetric difference
+array symdiff= a^b;
+// ({ 1, 6, 8, 2, 9 })
+
+// @@PLEAC@@_4.9
+// join arrays
+
+// appending to an array will always create a new array and pike is designed to
+// handle this efficiently.
+
+array members = ({ &quot;Time&quot;, &quot;Flies&quot; });
+array initiates = ({ &quot;An&quot;, &quot;Arrow&quot; });
+members += initiates;
+// members is now ({ &quot;Time&quot;, &quot;Flies&quot;, &quot;An&quot;, &quot;Arrow&quot; })
+
+members = members[..1]+({ &quot;Like&quot; })+members[2..];
+write(&quot;%s\n&quot;, members*&quot; &quot;);
+
+members[0] = &quot;Fruit&quot;;
+members = members[..sizeof(members)-3]+({ &quot;A&quot;, &quot;Banana&quot; });
+write(&quot;%s\n&quot;, members*&quot; &quot;);
+
+// Time Flies Like An Arrow
+// Fruit Flies Like A Banana
+
+// @@PLEAC@@_4.10
+// almost any operation you do on the elements will add more overhead than
+// reversing the array, if there is any possible optimization, pike will do it
+// for you.
+
+array reversed = reverse(arr);
+
+// unless you were going to use for anyways then foreach(reverse( ...)) is
+// preferable.
+foreach(reverse(arr);; mixed item)
+{
+  // do something with item
+}
+
+for(int i=sizeof(arr)-1; i&lt;=0; i--)
+{
+  // so something with arr[i]
+}
+
+array ascending = sort(users);
+array descending = reverse(sort(users));
+
+// reverse(sort()) is faster by a magnitude
+array descending = Array.sort_array(users, lambda(mixed a, mixed b)
+                                           { 
+                                             return a&lt;b; 
+                                           }
+                                   );
+
+// @@PLEAC@@_4.11
+array arr = ({ 0,1,2,3,4,5,6,7,8,9 });
+int n=3;
+array front = arr[..n-1];
+arr = arr[n..];
+
+array back = arr[sizeof(arr)-n..];
+arr = arr[..sizeof(arr)-(n+1)];
+
+// since new arrays are created if elements are added or removed
+// shift and pop are not usefull here.
+
+// if you need shift and pop capabilities use the ADT classes:
+
+array shift2(ADT.Queue queue)
+{
+  return ({ queue-&gt;read(), queue-&gt;read() });
+}
+
+ADT.Queue friends = ADT.Queue(&quot;Peter&quot;, &quot;Paul&quot;, &quot;Mary&quot;, &quot;Jim&quot;, &quot;Tim&quot;);
+string this, that;
+[this, that] = shift2(friends);
+// this contains Peter, that has Paul, and
+// friends has Mary, Jim, and Tim
+
+ADT.Stack beverages = ADT.Stack();
+beverages-&gt;set_stack(({ &quot;Dew&quot;, &quot;Jolt&quot;, &quot;Cola&quot;, &quot;Sprite&quot;, &quot;Fresca&quot; }));
+array pair = beverages-&gt;pop(2); // implementing pop2 would gain nothing here
+// pair[0] contains Sprite, pair[1] has Fresca,
+// and beverages has (Dew, Jolt, Cola)
+
+
+// to be able to shift and pop on the same list use the following:
+
+array shift2(ADT.CircularList list)
+{
+  return ({ list-&gt;pop_front(), list-&gt;pop_front() });
+}
+
+array pop2(ADT.CircularList list)
+{
+  return reverse( ({ list-&gt;pop_back(), list-&gt;pop_back() }) );
+}
+  
+ADT.CircularList friends = ADT.CircularList( ({&quot;Peter&quot;, &quot;Paul&quot;, &quot;Mary&quot;, &quot;Jim&quot;, &quot;Tim&quot;}) );
+string this, that;
+[this, that] = shift2(friends);
+// this contains Peter, that has Paul, and
+// friends has Mary, Jim, and Tim
+
+ADT.CircularList beverages = ADT.CircularList( ({ &quot;Dew&quot;, &quot;Jolt&quot;, &quot;Cola&quot;, &quot;Sprite&quot;, &quot;Fresca&quot; }) );
+array pair = pop2(beverates);
+// pair[0] contains Sprite, pair[1] has Fresca,
+// and beverages has (Dew, Jolt, Cola)
+
+// @@PLEAC@@_4.12
+mixed match = search(arr, element);
+
+int test(mixed element)
+{
+  if(sizeof(element)==5)
+    return 1;
+  else
+    return 0;
+}
+
+mixed match = Array.search_array(arr, test);
+
+if(match != -1)
+{
+  // do something with arr[match]
+}
+else
+{
+  // do something else
+}
+
+// another convenient way if you do many tests on the same list,
+// and you do not care for the position is:
+
+if( (multiset)arr[element] )
+{
+  // found
+}
+else
+{
+  // not found
+}
+
+
+// @@PLEAC@@_4.13
+array matching=({});
+
+foreach(list;; mixed element)
+{
+  if(test(element))
+    matching+=({ element });
+}
+
+array matching = map(list, test)-({ 0 });
+array matching = test(list[*])-({ 0 }); 
+// apply test() on each element in list, collect the results, and remove
+// results that are 0.
+
+
+// @@PLEAC@@_4.14
+// since pike has different types for strings and numbers, ints and floats are
+// of course sorted numerically 
+// (sort() is destructive, the original array is changed)
+
+array(int) unsorted = ...;
+array(int) sorted = sort(unsorted);
+
+
+// but suppose you want to sort an array of strings by their numeric value then
+// things get a bit more interresting:
+
+array(string) unsorted = ({ &quot;123asdf&quot;, &quot;3poiu&quot;, &quot;23qwert&quot;, &quot;3ayxcv&quot; });
+
+sort((array(int))unsorted, unsorted);
+// unsorted is now sorted.
+
+// @@PLEAC@@_4.15
+array unordered;
+int compare(mixed a, mixed b)
+{
+  // return comparison of a and b
+}
+array ordered = Array.sort_array(unordered, compare);
+
+//-------------------------------------------------------------
+int compute(mixed element)
+{
+  // return computation from element
+}
+array precomputed = map(unordered, compute);
+sort(precomputed, unordered); // will destructively sort unordered in the same
+array ordered = unordered;    // manner as precomputed.
+
+//-------------------------------------------------------------
+sort(map(unordered, compute), unordered); // without a temp variable
+sort(compute(unordered[*]), unordered);   // using the automap operator
+                                          // both get compiled to the same code
+
+
+//-------------------------------------------------------------
+array ordered = sort(employees, lambda(mixed a, mixed b)
+                                { 
+                                  return a-&gt;name &gt; b-&gt;name;
+                                }
+                    );
+
+//-------------------------------------------------------------
+foreach(Array.sort_array(employees, 
+                         lambda(mixed a, mixed b){ return a-&gt;name &gt; b-&gt;name; })
+        ;; mixed employee)
+{
+  write(&quot;%s earns $%d\n&quot;, employee-&gt;name, employee-&gt;salary);
+}
+
+//-------------------------------------------------------------
+array ordered_employees = 
+        Array.sort_array(employees, 
+                         lambda(mixed a, mixed b){ return a-&gt;name &gt; b-&gt;name; });
+foreach(ordered_employees;; mixed employee)
+{
+  write(&quot;%s earns $%d\n&quot;, employee-&gt;name, employee-&gt;salary);
+}
+
+mapping bonus;
+foreach(ordered_employees;; mixed employee)
+{
+  // you are not supposed to use the social security number as an id
+  if(bonus[employee-&gt;id])  
+    write(&quot;%s got a bonus!\n&quot;, employee-&gt;name);
+}
+
+//-------------------------------------------------------------
+array sorted = Array.sort_array(employees, 
+                                lambda(mixed a, mixed b)
+                                {
+                                  if(a-&gt;name!=b-&gt;name)
+                                    return (a-&gt;name &lt; b-&gt;name)
+                                  return (b-&gt;age &lt; a-&gt;age);
+                                }
+                               );
+
+//-------------------------------------------------------------
+array(array) users = System.get_all_users();
+
+sort(users); 
+// System.get_all_users() returns an array of arrays, with the name as the
+// first element in each inner array, sort handles multidimensional arrays, so
+// we can skip creating our own sort function.
+
+// if we wanted to sort on something else one could rearrange the array:
+array user;
+while(user=System.getpwent())
+{
+  users += ({ user[2], user });
+}
+System.endpwent();
+sort(users);  // now we are sorting by uid.
+
+// alternative:
+array(array) users = System.get_all_users();
+sort(users[*][2], users);
+
+write(users[*][0]*&quot;\n&quot;);
+write(&quot;\n&quot;);
+
+//-------------------------------------------------------------
+array names;
+array sorted = Array.sort_array(names, lambda(mixed a, mixed b)
+                                       {
+                                         return a[1] &lt; b[1];
+                                       }
+                               );
+// faster:
+sort(names[*][1], names);
+sorted=names;
+//-------------------------------------------------------------
+array strings;
+array sorted = Array.sort_array(strings, lambda(mixed a, mixed b)
+                                       {
+                                         return sizeof(a) &lt; sizeof(b);
+                                       }
+                               );
+// faster:
+sort(sizeof(strings[*]), strings);
+sorted=strings;
+//-------------------------------------------------------------
+array strings;
+array temp = map(strings, sizeof);
+sort(temp, strings); 
+array sorted = strings;
+//-------------------------------------------------------------
+array strings;
+sort(map(strings, sizeof), strings);   // pick one
+sort(sizeof(strings[*]), strings);
+sorted=strings;
+//-------------------------------------------------------------
+array fields;
+array temp = map(fields, array_sscanf, &quot;%*s%d%*s&quot;);
+sort(temp, fields);
+array sorted_fields=fields;
+
+//-------------------------------------------------------------
+sort(array_sscanf(fields[*], &quot;%*s%d%*s&quot;), fields);
+array sorted_fields=fields;
+//-------------------------------------------------------------
+array passwd_lines = (Stdio.read_file(&quot;/etc/passwd&quot;)/&quot;\n&quot;)-({&quot;&quot;});
+array(array) passwd = passwd_lines[*]/&quot;:&quot;;
+
+int compare(mixed a, mixed b)
+{ 
+  if(a[3]!=b[3])
+    return (int)a[3]&lt;(int)b[3];
+  if(a[2]!=b[2])
+    return (int)a[2]&lt;(int)b[2];
+  return a[0]&lt;b[0];
+}
+
+array sorted_passwd = Array.sort_array(passwd, compare);
+
+// alternatively the following uses the builtin sort
+sort( passwd[*][0], passwd);
+sort( ((array(int))passwd[*][2]), passwd);
+sort( ((array(int))passwd[*][3]), passwd);
+
+// @@PLEAC@@_4.16
+ADT.CircularList circular;
+circular-&gt;push_front(circular-&gt;pop_back());
+circular-&gt;push_back(circular-&gt;pop_front());
+//-------------------------------------------------------------
+mixed grab_and_rotate(ADT.CircularList list)
+{
+  mixed element = list-&gt;pop_front();
+  list-&gt;push_back(element);
+  return element;
+}
+
+ADT.CircularList processes = ADT.CircularList( ({ 1, 2, 3, 4, 5 }) );
+while(1)
+{
+  int process = grab_and_rotate(processes);
+  write(&quot;Handling process %d\n&quot;, process);
+  sleep(1);
+}
+
+// @@PLEAC@@_4.17
+array arr;
+Array.shuffle(arr);  // this uses the fisher-yates shuffle
+
+
+//-------------------------------------------------------------
+
+// being creative with the algorithm, this is not as memory efficient,
+// but it shows the utility of multisets.
+array set_shuffle(array list)
+{
+  multiset elements=(multiset)list;
+  list=({});                     // reset the list
+  while(sizeof(elements))        // while we still have elements left
+  {
+    mixed pick=random(elements); // pick a random element
+    list+=({ pick });            // add it to the new list
+    elements[pick]--;            // remove the element we picked
+  }
+  return list;
+}
+
+array list;
+list=set_shuffle(list);
+
+//-------------------------------------------------------------
+
+inherit &quot;mjd_permute&quot;;
+int permutations = factorial(sizeof(list));
+array shuffle = list[n2perm(random(permutations)+1, sizeof(list))[*]];
+
+//-------------------------------------------------------------
+
+void naive_shuffle(array list)
+{
+  for(int i=0; i&lt;sizeof(list); i++)
+  {
+    int j=random(sizeof(list)-1);
+    [ list[i], list[j] ] = ({ list[j], list[i] });
+  }
+}
+
+// @@PLEAC@@_4.18
+// <font size="-1"><a href="http://pleac.sourceforge.net/include/pike/ch04/words">download the following standalone program</a></font>
+#!/usr/bin/pike
+// section 4.18 example 4.2
+// words - gather lines, present in columns
+
+void main()
+{
+  array words=Stdio.stdin.read()/&quot;\n&quot;;   // get all input
+  int maxlen=sort(sizeof(words[*]))[-1]; // sort by size and pick the largest
+  maxlen++;                              // add space
+
+  // get boundaries, this should be portable
+  int cols = Stdio.stdout-&gt;tcgetattr()-&gt;columns/maxlen;
+  int rows = (sizeof(words)/cols) + 1;
+
+  string mask=&quot;%{%-&quot;+maxlen+&quot;s%}\n&quot;;     // compute format
+
+  words=Array.transpose(words/rows);     // split into groups as large as the
+                                         // number of rows and then transpose
+  write(mask, words[*]);                 // apply mask to each group
+}
+
+
+
+// @@PLEAC@@_4.19
+int factorial(int n)
+{
+  int s=1;
+  while(n)
+    s*=n--;
+  return s;
+}
+write(&quot;%d\n&quot;, factorial(500));
+// TODO: provide a short example using Array.permute()
+//-------------------------------------------------------------
+// <font size="-1"><a href="http://pleac.sourceforge.net/include/pike/ch04/permute">download the following standalone program</a></font>
+#!/usr/bin/pike
+
+void main()
+{
+  string line;
+  while(line=Stdio.stdin-&gt;gets())
+  {
+    permute(line/&quot; &quot;);
+  }
+}
+
+void permute(array items, array|void perms)
+{
+  if(!perms)
+    perms=({});
+  if(!sizeof(items))
+    write((perms*&quot; &quot;)+&quot;\n&quot;);
+  else
+  {
+    foreach(items; int i;)
+    {
+      array newitems=items[..i-1]+items[i+1..];
+      array newperms=items[i..i]+perms;
+      permute(newitems, newperms);
+    }
+  }
+}
+
+//-------------------------------------------------------------
+// <font size="-1"><a href="http://pleac.sourceforge.net/include/pike/ch04/mjd_permute">download the following standalone program</a></font>
+#!/usr/bin/pike
+
+mapping fact=([ 1:1 ]);
+
+int factorial(int n)
+{
+  if(!fact[n])
+    fact[n]=n*factorial(n-1);
+  return fact[n];
+}
+
+array n2pat(int N, int len)
+{
+  int i=1;
+  array pat=({});
+
+  while(i &lt;= len)
+  {
+    pat += ({ N%i });
+    N/=i;
+    i++;
+  }
+  return pat;
+}
+
+array pat2perm(array pat)
+{
+  array source=indices(pat);
+  array perm=({});
+  while(sizeof(pat))
+  {
+    perm += ({ source[pat[-1]] });
+    source = source[..pat[-1]-1]+source[pat[-1]+1..];
+    pat=pat[..sizeof(pat)-2];
+  }
+  return perm;
+}
+
+array n2perm(int N, int len)
+{
+  return pat2perm(n2pat(N, len));
+}
+
+void main()
+{
+  array data;
+  while(data=Stdio.stdin-&gt;gets()/&quot; &quot;)
+  {
+    int num_permutations = factorial(sizeof(data));
+    for(int i; i&lt;num_permutations; i++)
+    {
+      array permutation = data[n2perm(i, sizeof(data))[*]];
+      write(permutation*&quot; &quot;+&quot;\n&quot;);
+    }
+  }
+}
+
+
+// @@PLEAC@@_5.0
+// creating a mapping from arrays
+mapping age = mkmapping( ({ &quot;Nat&quot;, &quot;Jules&quot;, &quot;Josh&quot;, }), ({ 24, 25, 17 }) );
+
+// initialize one index at a time
+mapping age = ([]);
+age[&quot;Nat&quot;] = 24;
+age[&quot;Jules&quot;] = 25;
+age[&quot;Josh&quot;] = 17;
+
+// if your index names are valid identifiers:
+age-&gt;Nat = 24;
+age-&gt;Jules = 25;
+age-&gt;Josh = 17;
+
+// the traditional way to initialize mappings
+mapping age = ([ &quot;Nat&quot;:24, &quot;Jules&quot;:25, &quot;Josh&quot;:17 ]);
+
+mapping(string:string) food_color = ([ 
+                                      &quot;Apple&quot;:&quot;red&quot;,
+                                      &quot;Banana&quot;:&quot;yellow&quot;,
+                                      &quot;Lemon&quot;:&quot;yellow&quot;,
+                                      &quot;Carrot&quot;:&quot;orange&quot;
+                                     ]);
+
+// a index may be of any type
+mapping any = ([ &quot;1&quot;:&quot;a string&quot;, 1:&quot;an int&quot;, 1.0:&quot;a float&quot; ]);
+
+// you may use other types too, but be aware that they are matched by
+// reference, and not by value.
+// @@PLEAC@@_5.1
+
+mapping[mixed] = mixed;
+mapping-&gt;string = mixed;  //any string that is a valid identifier
+
+// food_color as per section 5.0
+food_color-&gt;Raspberry = &quot;pink&quot;;
+write(&quot;Known foods:\n&quot;);
+foreach(food_color; string food; )
+{
+  write(food+&quot;\n&quot;);
+}
+// Lemon
+// Banana
+// Apple
+// Carrot
+// Raspberry
+
+// @@PLEAC@@_5.2
+// an undefined value in a mapping gets turned to 0.
+// assigning 0 as a value is allowed and will not remove the index.
+// checking for the index will of course return 0 and be interpreted as false.
+// to check if the index is really there, use zero_type()
+
+if(!zero_type(mapping-&gt;index))
+{
+  // it exists
+}
+else
+{
+  // it doesn't
+}
+
+// food_color as per section 5.0
+foreach( ({ &quot;Banana&quot;, &quot;Milk&quot; }) ;; string name)
+{
+  if(!zero_type(food_color[name]))
+    write(&quot;%s is a food.\n&quot;, name);
+  else
+    write(&quot;%s is a drink.\n&quot;, name);
+}
+// Banana is a food.
+// Milk is a drink.
+
+// ---------------------------------------------------------
+mapping age = ([ &quot;Toddler&quot;:3, 
+                 &quot;Unborn&quot;:0, 
+                 &quot;Newborn&quot;:0.0, 
+                 &quot;Phantasm&quot;:UNDEFINED ]);
+
+foreach( ({ &quot;Toddler&quot;, &quot;Unborn&quot;, &quot;Newborn&quot;, &quot;Phantasm&quot;, &quot;Relic&quot; });; string thing) 
+{
+    write(thing+&quot;:&quot;);
+    if(!zero_type(age[thing]))
+      write(&quot; Exists&quot;);
+    if(age[thing])
+      write(&quot; True&quot;);
+    write(&quot;\n&quot;);
+}
+// Toddler: Exists True
+// Unborn: Exists
+// Newborn: Exists True
+// Phantasm: Exists
+// Relic:
+
+// age-&gt;Toddler exists, because zero_type() is only true if the index is not in
+// the mapping. it is true because the value is not 0.
+// age-&gt;Unborn exists, but is false because 0 is false
+// age-&gt;Newborn exists and is true, because 0.0 is not false
+// age-&gt;Phantasm exists and is false, like Unborn
+// age-&gt;Relic does not exist
+
+// we can not test for defined. UNDEFINED is a special value used internally by
+// the compiler. it gets converted to 0 as soon as it is assigned in a mapping
+
+// however we can create something equivalent that can be treated like any
+// other value, except that it is false:
+
+class Nil
+{
+  // this is a minimal example. 
+  // a more complete one would also handle casting
+
+  int `!() {return 1;}
+  string _sprintf() {return &quot;Nil&quot;;}
+
+  // we could have this function externally, but this is more convenient
+  int defined(mixed var)
+  {
+    return !zero_type(var) &amp;&amp; var!=this;
+  }
+}
+
+Nil NIL = Nil();                    // create an instance so we can use it
+function defined = NIL-&gt;defined;  // just for symetry
+ 
+mapping age = ([ &quot;Toddler&quot;:3, 
+                 &quot;Unborn&quot;:0, 
+                 &quot;Phantasm&quot;:NIL ]);
+
+foreach( ({ &quot;Toddler&quot;, &quot;Unborn&quot;, &quot;Phantasm&quot;, &quot;Relic&quot; });; string thing) 
+{
+    write(thing+&quot;:&quot;);
+    if(!zero_type(age[thing]))
+      write(&quot; Exists&quot;);
+    if(defined(age[thing]))
+      write(&quot; Defined&quot;);
+    if(age[thing])
+      write(&quot; True&quot;);
+    write(&quot;\n&quot;);
+}
+
+// Toddler: Exists Defined True
+// Unborn: Exists Defined
+// Phantasm: Exists
+// Relic:
+ 
+// age-&gt;Toddler exists, because zero_type() is only true if the index is not in
+// the mapping. it is defined because it exists an is not NIL. 
+// it is true because the value is not 0.
+// age-&gt;Unborn exists, and is defined, but is false because 0 is false
+// age-&gt;Phantasm exists, is not defined because it is NIL, 
+// it is not true because NIL is false.
+// age-&gt;Relic does not exist, it is not defined even though it is not NIL
+// because it doesn't exist. it is also not true, because it does not exist.
+
+// ----------------------------------------------------
+mapping size = ([]);
+string filename;
+while(filename = Stdio.stdin-&gt;gets())
+{
+  filename -= &quot;\n&quot;;
+  if(size[filename])                // wrong
+    continue;
+  if(!zero_type(size[filename]))    // right
+    continue
+  object stat = file_stat(filename)  
+  if(stat)
+    size[filename] = stat-&gt;size;
+  else
+    size[filename] = -1; // since sizes can't be negative, this will do.
+                         // if -1 is a valid value, use NIL
+}
+
+// @@PLEAC@@_5.3
+// users occasionally may get the idea that mapping[index]=0; may remove index
+// from mapping. the normal way to remove a index from a mapping is to
+// subtract: mapping -= ([ index:0 ]); the following shall demonstrate the
+// difference between subtracting a index and assigning 0 to it.
+
+// food_color as per section 5.0
+void print_foods()
+{
+  write(&quot;Foods:%{ %s%}\n&quot;, indices(food_color));
+  write(&quot;Values: &quot;);
+
+  foreach(food_color; string food; string color)
+  {
+    if(color)
+      write(color+&quot; &quot;);
+    else
+      write(&quot;(no value) &quot;);
+  }
+  write(&quot;\n&quot;);
+}
+
+write(&quot;Initially:\n&quot;);
+print_foods();
+
+write(&quot;\nWith Banana set to 0\n&quot;);
+food_color-&gt;Banana = 0;
+print_foods();
+
+write(&quot;\nWith Banana deleted\n&quot;);
+food_color -= ([ &quot;Banana&quot;:&quot;the value is irrelevant&quot; ]);
+print_foods();
+
+// Initially:
+// Foods: Lemon Banana Apple Carrot
+// Values: yellow yellow red orange
+//
+// With Banana set to 0
+// Foods: Banana Lemon Apple Carrot
+// Values: (no value) yellow red orange 
+//  
+// With Banana deleted
+// Foods: Lemon Carrot Apple
+// Values: yellow orange red
+
+// you can also subtract multiple indices:
+food_color -= ([ &quot;Banana&quot;:0, &quot;Apple&quot;:0, &quot;Cabbage&quot;:0 ]);
+
+// note that subtracting a mapping from another creates a new mapping.
+// thus any references you have to a mapping will be broken.
+// in most cases this is what you want anyways. if it is not, you can also
+// remove indices using m_delete();
+
+m_delete(food_color, &quot;Banana&quot;);
+
+// @@PLEAC@@_5.4
+
+foreach( mapping; type index; type value)
+{
+  //do something with index and value
+}
+
+// food_color as per 5.0
+foreach(food_color; string food; string color)
+{
+  write(&quot;%s is %s.\n&quot;, food, color);
+}
+
+// Banana is yellow.
+// Lemon is yellow.
+// Carrot is orange.
+// Apple is red.
+
+
+foreach(sort(indices(food_color));; string food)
+{
+  write(&quot;%s is %s.\n&quot;, food, food_color[food]);
+}
+
+// Apple is red.
+// Banana is yellow.
+// Carrot is orange.
+// Lemon is yellow.
+
+// since pike does not have any equivalent to each() its problems do not apply
+
+// <font size="-1"><a href="http://pleac.sourceforge.net/include/pike/ch05/countfrom">download the following standalone program</a></font>
+#!/usr/bin/pike
+// countfrom - count number of messages from each sender
+
+void main(int argc, array argv)
+{
+  object file;
+  mapping from = ([]);
+
+  if(sizeof(argv)&gt;1)
+    file = Stdio.File(argv[1], &quot;r&quot;);
+  else
+    file = Stdio.stdin;
+
+  
+  foreach(file; int count; string line)
+  {
+    array email = array_sscanf(line, &quot;From: %s&quot;);
+    if(sizeof(email))
+      from[email[0]]++;
+  }
+  write(&quot;end\n&quot;);
+
+  foreach(sort(indices(from));; string person)
+  {
+    write(&quot;%s: %d\n&quot;, person, from[person]);
+  }
+}
+
+
+// @@PLEAC@@_5.5
+// perls problems and solutions do not apply to pike
+// here are a few ways to print a mapping:
+// food_color as per 5.0
+
+// debugging style
+write(&quot;%O\n&quot;, food_color);
+// ([ /* 4 elements */
+//   &quot;Apple&quot;: &quot;red&quot;,
+//   &quot;Banana&quot;: &quot;yellow&quot;,
+//   &quot;Carrot&quot;: &quot;orange&quot;,
+//   &quot;Lemon&quot;: &quot;yellow&quot;
+// ])
+
+// one element at a time:
+foreach(food_color; string food; string color)
+{
+  write(&quot;%s is %s\n&quot;, food, color);
+}
+// Lemon is yellow
+// Carrot is orange
+// Banana is yellow
+// Apple is red
+
+// with the help of an array
+write(&quot;%{%s is %s\n%}&quot;, sort((array)food_color));
+// Apple is red
+// Banana is yellow
+// Carrot is orange
+// Lemon is yellow
+
+// @@PLEAC@@_5.6
+// for this we need to first create an OrderedMapping class.
+// work for this is in progress
+// @@INCOMPLETE@@
+// @@INCOMPLETE@@
+// @@PLEAC@@_5.7
+
+mapping(string:array(string)) ttys = ([]);
+
+object pipe = Stdio.File();
+Process.create_process(({ &quot;who&quot; }), ([ &quot;stdout&quot;:pipe-&gt;pipe() ]));
+
+foreach(pipe-&gt;line_iterator();; string line)
+{
+  array tty=(line/&quot; &quot;)-({ &quot;&quot; });
+  if(!ttys[tty[0]])
+    ttys[tty[0]] = ({ tty[1] });
+  else
+    ttys[tty[0]] += ({ tty[1] });
+}
+
+foreach(sort(indices(ttys));; string user)
+{
+  write(&quot;%s: %{%s %}\n&quot;, user, ttys[user]);
+}
+
+foreach(sort(indices(ttys));; string user)
+{
+  write(&quot;%s: %d ttys.\n&quot;, user, sizeof(ttys[user]));
+  foreach(ttys[user];; string tty)
+  {
+    object stat = file_stat(&quot;/dev/&quot;+tty);
+    string user;
+    if(stat)
+      user = getpwuid(stat-&gt;uid)[0];
+    else
+      user = &quot;(not available)&quot;;
+    write(&quot;\t%s (owned by %s)\n&quot;, tty, user);
+  }
+}
+
+mapping multihash_delete(mapping hash, mixed key, mixed value)
+{
+  if(arrayp(hash[key]))
+    hash[key]-=({ value });
+  if(!sizeof(hash[key]))
+    m_delete(hash, key);
+  return hash;
+}
+
+// @@PLEAC@@_5.8
+// search for a value in a mapping
+mapping lookup;
+mixed value;
+mixed key = search(lookup, value);
+
+// transposing: (this will break if there are multiple occurances of a value)
+mapping lookup;
+mapping reverse = mkmapping(values(lookup), indices(lookup));
+//----------------------------------------------------------
+mapping surname = ([ &quot;Mickey&quot;:&quot;Mantle&quot;, &quot;Babe&quot;:&quot;Ruth&quot; ]);
+write(&quot;%s\n&quot;, search(surname, &quot;Mantle&quot;));
+// Mikey
+
+// with a transposed mapping (only worth doing if you'd have to search a lot)
+mapping first_name = mkmapping(values(surname), indices(surname));
+write(&quot;%s\n&quot;, first_name-&gt;Mantle);
+// Mikey
+//----------------------------------------------------------
+// <font size="-1"><a href="http://pleac.sourceforge.net/include/pike/ch05/foodfind">download the following standalone program</a></font>
+#!/usr/bin/pike
+
+void main(int argc, array(string) argv)
+{
+  if(argc &lt; 2)
+  {
+    write(&quot;usage: foodfind food_or_color\n&quot;);
+  }
+
+  string given = argv[1];
+  mapping color = ([ &quot;Apple&quot;:&quot;red&quot;,
+                     &quot;Banana&quot;:&quot;yellow&quot;,
+                     &quot;Lemon&quot;:&quot;yellow&quot;,
+                     &quot;Carrot&quot;:&quot;orange&quot;
+                  ]);
+  if(color[given])
+    write(&quot;%s is a food with color %s\n&quot;, given, color[given]);
+    
+  string food = search(color, given);
+  if(food)
+    write(&quot;%s is a food with color %s\n&quot;, food, given);
+
+// search will only find one value, 
+// but it can be given a place where it should start searching
+
+  array foods = ({ search(color, given) });
+  food = 0;
+  while(food = search(color, given, foods[-1]))
+  { 
+    foods += ({ food });
+  }
+  write(&quot;%{%s %}were %s foods.\n&quot;, foods, given);
+
+}
+
+//----------------------------------------------------------
+
+// food_color as per 5.0
+mapping foods_with_color = ([]);
+foreach(food_color; string food; string color)
+{
+  if(!foods_with_color[color])
+    foods_with_color[color] = ({ food });
+  else
+    foods_with_color[color] += ({ food });
+}
+
+write(&quot;%{%s %}were yellow foods.\n&quot;, foods_with_color-&gt;yellow);
+
+// @@PLEAC@@_5.9
+mapping hash;
+foreach(sort(indices(hash));; mixed key)
+{
+  mixed value = hash[key];
+  // do something with key, value
+}
+
+foreach(sort(indices(food_color));; string food)
+{
+  write(&quot;%s is %s.\n&quot;, food, food_color[food]);
+}
+
+array foods = indices(food_color);
+sort(sizeof(values(food_color)[*]), foods);
+
+foreach(foods;; string food)
+{
+  write(&quot;%s is %s.\n&quot;, food, food_color[food]);
+}
+
+
+// @@PLEAC@@_5.10
+// the natural way to merge two mappings is to use + or |
+// for mappings both operations are equivalent.
+mapping A, B;
+mapping merged = A + B;
+mapping merged = A | B;
+
+// if an index is in both mappings, the value will be taken from the second
+// one. 
+
+mapping drink_color = ([ &quot;Milk&quot;:&quot;white&quot;,
+                         &quot;Tomato juice&quot;:&quot;red&quot; ]);
+
+mapping ingested_color = drink_color + food_color;
+
+//  Result: ([ /* 6 elements */
+//             &quot;Apple&quot;: &quot;red&quot;,
+//             &quot;Banana&quot;: &quot;yellow&quot;,
+//             &quot;Carrot&quot;: &quot;orange&quot;,
+//             &quot;Lemon&quot;: &quot;yellow&quot;,
+//             &quot;Milk&quot;: &quot;white&quot;,
+//             &quot;Tomato juice&quot;: &quot;red&quot;
+//           ])
+
+// @@PLEAC@@_5.11
+
+// create a mapping where indices are in both A and B
+mapping both = A &amp; B;
+
+// in A or B, but not in both
+mapping one = A ^ B;
+
+// in A, but not in B
+mapping exA = A - B;
+
+mapping citrus_color = ([ &quot;Lemon&quot;:&quot;yellow&quot;,
+                          &quot;Orange&quot;:&quot;orange&quot;,
+                          &quot;Lime&quot;:&quot;green&quot; 
+                       ]);
+
+array non_citrus = indices(food_color - citrus_color);
+
+
+// @@PLEAC@@_5.12
+// this problem does not apply to pike
+// any value may be used as an index, if you get an object reference from
+// anywhere, if will work, if the index in the mapping is actually the same
+// object.
+// however note that the same value is not the same reference:
+array a = ({ 1,2 });
+array b = ({ 1,2 });
+mapping m = ([ a:&quot;a&quot; ]);
+m[b];  
+// Result: 0 (b will not be found.)
+m[b]=&quot;b&quot;;
+m;
+// Result: ([ ({ 1, 2 }): &quot;a&quot;,
+//            ({ 1, 2 }): &quot;b&quot;
+//           ])
+// this looks as if the mapping has the same index twice
+// but since they are references this is not the case.
+
+// @@PLEAC@@_5.13
+// this problem does not apply to pike
+// pike uses a smart preallocation algorythm that will avoid the need to
+// allocate memory everytime an element is added
+
+// @@PLEAC@@_5.14
+mapping count = ([]);
+foreach(ARRAY;; mixed element)
+{
+    count[element]++;
+}
+
+// @@PLEAC@@_5.15
+mapping father = ([ &quot;Cain&quot;:&quot;Adam&quot;,
+                    &quot;Abel&quot;:&quot;Adam&quot;,
+                    &quot;Seth&quot;:&quot;Adam&quot;,
+                    &quot;Enoch&quot;:&quot;Cain&quot;,
+                    &quot;Irad&quot;:&quot;Enoch&quot;,
+                    &quot;Mehujael&quot;:&quot;Irad&quot;,
+                    &quot;Methusael&quot;:&quot;Mehujael&quot;,
+                    &quot;Lamech&quot;:&quot;Methusael&quot;,
+                    &quot;Jabal&quot;:&quot;Lamech&quot;,
+                    &quot;Jubal&quot;:&quot;Lamech&quot;,
+                    &quot;Tubalcain&quot;:&quot;Lamech&quot;,
+                    &quot;Enos&quot;:&quot;Seth&quot; 
+                 ]);
+
+foreach(Stdio.stdin;; string name)
+{
+  do
+  {
+    write(&quot;%s &quot;, name);
+  } while(name = father[name]);
+  write(&quot;\n&quot;);
+}
+
+mapping children = ([]);
+foreach(father; string k; string v)
+{
+  if(!children[v])
+    children[v] = ({ k });
+  else
+    children[v] += ({ k });
+}
+
+foreach(Stdio.stdin;; string name)
+{
+  write(&quot;%s begat %s.\n&quot;, name, (children[name]||({ &quot;nobody&quot; }))*&quot;, &quot;);
+}
+
+//-----------------------------------------------------
+
+mapping includes = ([]);
+foreach(files, string file)
+{
+  string F = Stdio.read_file(file);
+  if(!F)
+    werror(&quot;Couldn't read %s; skipping.\n&quot;, file);
+
+  foreach(F/&quot;\n&quot;;; string line)
+  {
+    array included = array_sscanf(line, &quot;%*[ \t]#include%*[ \t]%*[&lt;\&quot;]%s%*[&gt;\&quot;]%*[ \t]&quot;);
+    if(sizeof(included))
+    {
+      if(!includes[included[0]])
+        includes[included[0]] = ({ file });
+      else
+        includes[included[0]] += ({ file });
+    }
+  }
+}
+//-----------------------------------------------------
+
+array uniq = `|( @values(includes) );
+array include_free = sort( uniq - indices(includes) );
+
+// values(includes) is an array of arrays.
+// @ splices values(includes) as arguments into `|()
+// `|() is a function that represents the | operator: a|b|c is `|(a,b,c)
+// | on arrays creates a new array with elements in a or b
+// the resulting array is unique as long as each array only has unique elements
+// from the uniq array we remove all those that are used as indices in the
+// includes mapping.
+// at last we sort the remaining list.
+
+// @@PLEAC@@_5.16
+// <font size="-1"><a href="http://pleac.sourceforge.net/include/pike/ch05/dutree">download the following standalone program</a></font>
+#!/usr/bin/pike
+// dutree - print sorted indented rendition of du output
+// as a slight deviation from the perl version, the sizes are still in one
+// column, to make it more readable.
+
+array input(array(string) args)
+{
+  mapping Dirsize=([]);
+  mapping Kids=([]);
+
+  object pipe = Stdio.File();
+  Process.create_process(({ &quot;du&quot; })+args, ([ &quot;stdout&quot;:pipe-&gt;pipe() ]));
+
+  string name;
+  foreach(pipe-&gt;line_iterator();; string line)
+  {
+    int size;
+    [size, name] = array_sscanf(line, &quot;%d%*[ \t]%s&quot;);
+    Dirsize[name] = size;
+    array path = name/&quot;/&quot;;
+    string parent = path[..sizeof(path)-2]*&quot;/&quot;;
+    if(!Kids[parent])
+      Kids[parent] = ({ name });
+    else
+      Kids[parent] += ({ name });
+  }
+  return ({ name, Dirsize, Kids });
+}
+
+void getdots(string root, mapping Dirsize, mapping Kids)
+{
+  int size, cursize;
+  size = cursize = Dirsize[root];
+  if(Kids[root])
+  {
+    foreach(Kids[root];; string kid)
+    {
+      cursize -= Dirsize[kid]; 
+      getdots(kid, Dirsize, Kids);
+    }
+  }
+  else
+    Kids[root] = ({});
+
+  if(size != cursize)
+  {
+    string dot = root+&quot;/.&quot;;    
+    Dirsize[dot] = cursize;
+    Kids[root] += ({ dot });
+  }
+}
+
+void output(string root, mapping Dirsize, mapping Kids, 
+            int width, void|string prefix)
+{
+  if(!prefix)
+    prefix=&quot;&quot;;
+  string path = (root/&quot;/&quot;)[-1];
+  int size = Dirsize[root];
+  write(&quot;%*d %s%s\n&quot;, width, size, prefix, path);
+  prefix += &quot;|&quot; + &quot; &quot;*(sizeof(path)-1);
+  if(Kids[root])
+  {
+    array kids = Kids[root];
+    // get the dirsize for each kid and sort by that
+    sort(Dirsize[kids[*]], kids); 
+    
+    // make the output for each kid
+    output(kids[*], Dirsize, Kids, width, prefix);
+  }
+}
+
+void main(int argc, array(string) argv)
+{
+  mapping Dirsize;
+  mapping Kids;
+  string topdir;
+
+  [ topdir, Dirsize, Kids ] = input(argv[1..]);
+  getdots(topdir, Dirsize, Kids);
+  output(topdir, Dirsize, Kids, sizeof((string)sort(values(Dirsize))[-1]));
+}
+
+
+// @@PLEAC@@_6.1
+// @@INCOMPLETE@@
+
+// by Scott McCoy [tag at cpan.org] 
+
+ /* Copying and Substituting Simultaniously */
+dst = Regexp(&quot;this&quot;)-&gt;replace(src, &quot;that&quot;);
+ /* Copying and replacing...Same thing */
+dst = Regexp(&quot;this&quot;)-&gt;replace(src, &quot;that&quot;);
+ /* Strip to basename */
+ // Note this is best done with string manipulation functions, regexp here is
+ // wasteful.  Same is true in perl.
+dst = Regexp(&quot;^.*/&quot;)-&gt;replace(argv[0], &quot;&quot;);
+
+string capword = Regexp(&quot;[a-z]+&quot;)-&gt;replace
+        (&quot;foo.bar&quot;, 
+            lambda (string c) { 
+                c[0] = upper_case(c[0]); 
+                return c; 
+            } );
+
+/* For the captured substitution, I'll have to figure out PCRE. */
+
+// @@PLEAC@@_7.0
+// if you are going to read the whole file, the most common way is to use 
+// Stdio.read_file()
+
+string INPUT = Stdio.read_file(&quot;/usr/local/widgets/data&quot;);
+if(!INPUT)
+{
+  werror(&quot;Couldn't open /usr/local/widgets/data for reading\n&quot;);
+  exit(1);
+}
+
+foreach(INPUT/&quot;\n&quot;;; string line)
+{
+  if(search(line, &quot;blue&quot;)!=-1)
+    write(line+&quot;\n&quot;);
+}
+
+// if you need more control over the process you can get a filehandle with
+// Stdio.File()
+
+Stdio.File INPUT = Stdio.File(&quot;/usr/local/widgets/data&quot;, &quot;r&quot;);
+if(!INPUT)
+{
+  werror(&quot;Couldn't open /usr/local/widgets/data for reading\n&quot;);
+  exit(1);
+}
+
+foreach(INPUT-&gt;line_iterator();; string line)
+{
+  if(search(line, &quot;blue&quot;)!=-1)
+    write(line+&quot;\n&quot;);
+}
+INPUT-&gt;close();
+
+//---------------------------------------------------------
+
+foreach(Stdio.stdin;; string line)            // reads from STDIN
+{
+  if(!sizeof(array_sscanf(line, &quot;%*s%d&quot;)))
+    werror(&quot;No digit found.\n&quot;);              // writes to STDERR
+  write(&quot;Read: %s\n&quot;, line);                  // writes ot STDOUT
+}
+Stdio.stdout-&gt;close() || werror(&quot;couldn't close STDOUT\n&quot;) &amp;&amp; exit(1);
+
+// just as with Stdio.read_file(), there are convenience functions for writing:
+// Stdio.write_file() and Stdio.append_file()
+
+Stdio.File logfile = Stdio.File(&quot;/tmp/log&quot;, &quot;w&quot;);
+
+// access modes are &quot;r&quot; for reading, &quot;w&quot; for writing and &quot;a&quot; for append
+// default mode is &quot;rw&quot;
+
+// to read a line you may use Stdio.File()-&gt;gets() or get a line_iterator() and
+// read lines from it.
+
+object LOGFILE = logfile-&gt;line_iterator();
+do
+{
+  string line=LOGFILE-&gt;value();
+}
+while(LOGFILE-&gt;next())
+logfile-&gt;close();
+
+// or use foreach as shown above.
+
+// write() is actually a shortcut for Stdio.stdout-&gt;write()
+// you could get yourself a different shortcut by assigning that to a variable:
+
+function write = logfile-&gt;write;     //  switch to LOGFILE for write();
+write(&quot;Countdown initiated ...\n&quot;);
+write = Stdio.stdout-&gt;write;         //  return to stdout
+write(&quot;You have 30 seconds to reach minimum safety distance.\n&quot;);
+
+// Stdio.File is unbuffered. a buffered version is provided by Stdio.FILE
+
+// @@PLEAC@@_7.1
+// use Stdio.read_file(), Stdio.write_file() and Stdio.append_file() for
+// convenience, or Stdio.File for precision and to get a filehandle.
+
+string path;
+
+// open file for reading
+string file = Stdio.read_file(path);
+Stdio.File file = Stdio.File(path, &quot;r&quot;);
+
+// open file for writing, create new file if needed, or else truncate old file
+Stdio.write_file(path, &quot;content&quot;);
+Stdio.File file = Stdio.File(path, &quot;wc&quot;);
+
+// same with setting access permissions
+Stdio.write_file(path, &quot;content&quot;, 0600);
+Stdio.File file = Stdio.File(path, &quot;wc&quot;, 0600);
+
+// open file for writing, create new file, file must not exist
+if(!file_stat(path))
+  Stdio.write_file(path, &quot;content&quot;);
+Stdio.File file = Stdio.File(path, &quot;wcx&quot;);
+
+if(!file_stat(path))
+  Stdio.write_file(path, &quot;content&quot;, 0600);
+Stdio.File file = Stdio.File(path, &quot;wcx&quot;, 0600);
+
+// open file for appending, create if necessary
+Stdio.append_file(path, &quot;content&quot;);
+Stdio.File file = Stdio.File(path, &quot;wac&quot;);
+
+Stdio.append_file(path, &quot;content&quot;, 0600);
+Stdio.File file = Stdio.File(path, &quot;wac&quot;, 0600);
+
+// open file for appending, file must exist
+Stdio.File file = Stdio.File(path, &quot;wacx&quot;);
+
+// open file for update, file must exist
+string file = Stdio.read_file(path);
+string updated = file+&quot;foo&quot;  // update contents of file
+Stdio.write_file(path, updated);
+
+Stdio.File file = Stdio.File(path);          // this is the default operation
+
+// open file for update, file must not exist
+Stdio.File file = Stdio.File(path, &quot;rwcx&quot;);
+
+
+// @@PLEAC@@_7.2
+// since the filename is contained in a string, this problem does not apply
+
+// @@PLEAC@@_7.3
+string filename;
+
+if(filename[0] == &quot;~&quot;)
+{
+  string user, path, home;
+  [ user, path ] = array_sscanf(filename, &quot;~%[^/]%s&quot;);
+  if(user == &quot;&quot;)
+    home = getenv(&quot;HOME&quot;) || getenv(&quot;LOGDIR&quot;) || getpwuid(geteuid())[5];
+  else
+    home = getpwnam(user)[5];
+  filename = home+path;
+}
+
+// @@PLEAC@@_7.4
+string path = &quot;/tmp/fooo&quot;;
+mixed error = catch
+{
+  Stdio.File file = Stdio.File(path, &quot;r&quot;);
+};
+
+if(error)
+{
+  werror(&quot;Couldn't open %s for reading:\n&quot;, path);
+  werror(error[0]);
+}
+// Couldn't open /tmp/fooo for reading: 
+// Failed to open &quot;/tmp/fooo&quot; mode &quot;r&quot; : No such file or directory
+
+// @@PLEAC@@_7.5
+
+Stdio.File fh;
+string name;
+do
+{
+  name = &quot;/tmp/&quot;+MIME.encode_base64(random_string(10));
+  fh = Stdio.File(name, &quot;rwcx&quot;);
+}
+while(!fh)
+
+atexit(lambda(){ fh-&gt;close(); rm(name); });
+
+
+// if you don't really need the file to be on disk (or if /tmp is a ramdisk)
+// but you need an object that behaves like a file, then use Stdio.FakeFile
+
+fh = Stdio.FakeFile();
+
+// and use fh like any other filehandle.
+
+
+// @@PLEAC@@_7.6
+// since the usual way to handle files is to read them into a string, then just
+// assign your data to a string and work from there:
+
+string data = &quot;your data goes here&quot;;
+
+
+// or for convenient multiline data:
+
+string data = #&quot;your data goes here
+and here
+and ends here&quot;;
+
+
+// or use Stdio.FakeFile for a Stdio.File compatible interface
+// see 7.5
+
+//-----------------------------------------------------------------
+
+object stat = file_stat(__FILE__);
+int raw_time = stat-&gt;ctime;
+int size     = stat-&gt;size;
+int kilosize = size/1024;
+
+write(&quot;&lt;P&gt;Script size is %dk\n&quot;, kilosize);
+write(&quot;&lt;P&gt;Last script update: %s\n&quot;, Calendar.Second(raw_time)-&gt;format_nicez());
+
+
+// @@PLEAC@@_8.2
+// Does not check file existence but return a correct value with empty (size=0) files
+// Does count paragraphs correctly (does not count empty lines (\n\n))
+int main(int argc, array(string) argv) {
+    int count=0;
+    object f = Stdio.FILE(argv[1]);
+    foreach(f-&gt;line_iterator(f); int number; string paragraph) {
+        count++;
+        // write(number+&quot; &quot;+paragraph+&quot;\n&quot;);
+    }
+    write(&quot;number of paragraphs= &quot;+count+&quot;\n&quot;);
+    return 0;
+}
+
+
+// @@PLEAC@@_9.0
+Stdio.Stat entry;
+
+entry = file_stat(&quot;/bin/vi&quot;);
+entry = file_stat(&quot;/usr/bin&quot;);
+entry = file_stat(argv[1]);
+
+// ------------
+
+Stdio.Stat entry; int ctime, size;
+
+entry = file_stat(&quot;/bin/vi&quot;);
+ctime = entry-&gt;ctime;
+size = entry-&gt;size;
+
+// ------------
+
+// A routine detecting whether a file is a 'text' file doesn't appear
+// to exist, so have implemented the following [crude] function(s)
+// which search for a LF / NEWLINE in the file:
+
+// Usable with any file
+int(0..1) containsText(Stdio.File file)
+{
+  string c;
+  while ((c = file-&gt;read(1)) != NULL) { (c == NEWLINE) &amp;&amp; return 1; }
+  return 0;
+}
+
+// Alternate version, expects a buffered file [usually containing text]
+int(0..1) containsText(Stdio.FILE file)
+{
+  int c;
+  while ((c = file-&gt;getchar()) != EOF) { (c == LF) &amp;&amp; return 1; }
+  return 0;
+}
+
+// Yet another alternative - this time we cheat and use the *NIX 'file'
+// utility :) !
+
+int(0..1) isTextFile(string filename)
+{
+  return chop(Process.popen(&quot;file -bN &quot; + filename), 1)  == &quot;ASCII text&quot;;
+}
+
+// ----
+
+containsText(Stdio.File(argv[1])) || write(&quot;File %s doesn't have any text in it\n&quot;, argv[1]);
+
+isTextFile(argv[1]) || write(&quot;File %s doesn't have any text in it\n&quot;, argv[1]);
+
+// ------------
+
+Filesystem.Traversion dirtree = Filesystem.Traversion(&quot;/usr/bin&quot;);
+
+foreach(dirtree; string dir; string file)
+{
+  write(&quot;Inside %s is something called %s\n&quot;, chop(dir, 1), file);
+}
+
+// @@PLEAC@@_9.1
+string filename = &quot;example.txt&quot;;
+
+Stdio.Stat fs = file_stat(filename);
+int readtime = fs-&gt;atime, writetime = fs-&gt;mtime;
+
+System.utime(filename, readtime, writetime);
+
+// ----------------------------
+
+constant SECONDS_PER_DAY = 60 * 60 * 24;
+
+string filename = &quot;example.txt&quot;;
+
+Stdio.Stat fs = file_stat(filename);
+int atime = fs-&gt;atime, mtime = fs-&gt;mtime;
+
+atime -= 7 * SECONDS_PER_DAY; mtime -= 7 * SECONDS_PER_DAY;
+
+System.utime(filename, atime, mtime);
+
+// ----------------------------
+
+argc != 1 || die(&quot;usage: &quot; + argv[0] + &quot; filename&quot;);
+
+Stdio.Stat fs = file_stat(argv[1]);
+int atime = fs-&gt;atime, mtime = fs-&gt;mtime;
+
+Process.system(getenv(&quot;EDITOR&quot;) || &quot;vi&quot; + &quot; &quot; + argv[1]);
+
+mixed result = catch { System.utime(argv[1], atime, mtime); };
+(result == OK) || write(&quot;Error updating timestamp on file, %s!\n&quot;, argv[1]);
+
+// @@PLEAC@@_9.2
+string filename = &quot;...&quot;;
+
+rm(filename) || write(&quot;Can't delete, %s!\n&quot;, filename);
+
+// ------------
+
+int(0..1) rmAll(array(string) filelist)
+{
+  mixed result = catch
+  {
+    foreach(filelist, string filename) { rm(filename) || throw(PROBLEM); }
+  };
+  
+  return result == OK;
+}
+
+// ----
+
+array(string) filelist = ({&quot;/tmp/x&quot;, &quot;/tmp/y&quot;, &quot;/tmp/z&quot;});
+
+rmAll(filelist) || write(&quot;Can't delete all files in array!\n&quot;);
+
+// ----------------------------
+
+void die(string msg, void|int(1..256) rc) { werror(msg + NEWLINE); exit(rc ? rc : PROBLEM); }
+
+// ----
+
+string filename = &quot;...&quot;;
+
+rm(filename) || die(&quot;Can't delete &quot; + filename);
+
+// ----------------------------
+
+array(string) filelist = ({&quot;/tmp/x&quot;, &quot;/tmp/y&quot;, &quot;/tmp/z&quot;});
+
+int deleted, count = sizeof(filelist);
+
+foreach(filelist, string filename) { rm(filename) &amp;&amp; ++deleted; }
+
+(deleted == count) || write(&quot;Could only delete %d of %d files\n&quot;, deleted, count);
+
+// @@PLEAC@@_9.3
+string oldfile = &quot;/tmp/old&quot;, newfile = &quot;/tmp/new&quot;;
+
+Stdio.cp(oldfile, newfile) || write(&quot;Error copying file\n&quot;);
+
+// ----------------------------
+
+string oldfile = &quot;/tmp/old&quot;, newfile = &quot;/tmp/new&quot;;
+
+mixed result = catch { Stdio.write_file(newfile, Stdio.read_file(oldfile)); };
+
+(result == OK) || write(&quot;Problem copying file %s to file %s\n&quot;, oldfile, newfile);
+
+// ----------------------------
+
+// Note: This is a cross between, 'Process.system', which displays
+// output on stdout, and, 'Process.popen', which does not display
+// output [it returns it as a string] but does not return the status
+// code
+int system(string cmd)
+{
+  Stdio.File fout = Stdio.File(), ferr = Stdio.File();
+  Stdio.File pout = fout-&gt;pipe(Stdio.PROP_IPC),
+             perr = ferr-&gt;pipe(Stdio.PROP_IPC);
+
+  int rc = Process.spawn(cmd, 0, pout, perr)-&gt;wait();
+
+  pout-&gt;close(); destruct(pout); fout-&gt;close(); destruct(fout);
+  perr-&gt;close(); destruct(perr); ferr-&gt;close(); destruct(ferr);
+
+  return rc;
+}
+
+int(0..1) unixFileCopy(string oldfile, string newfile)
+{
+  string cmd = &quot;cp --force --reply=yes &quot; + oldfile + &quot; &quot; + newfile;
+  return system(cmd) == OK;
+}
+
+int(0..1) vmsFileCopy(string oldfile, string newfile)
+{
+  string cmd = &quot;copy &quot; + oldfile + &quot; &quot; + newfile;
+  return system(cmd) == OK;
+}
+
+// ----
+
+string oldfile = &quot;/tmp/old&quot;, newfile = &quot;/tmp/new&quot;;
+
+unixFileCopy(oldfile, newfile) || write(&quot;Problem copying file %s to file %s\n&quot;, oldfile, newfile);
+
+// ----------------------------
+
+string oldfile = &quot;/tmp/old&quot;, newfile = &quot;/tmp/new&quot;;
+
+mv(oldfile, newfile) || write(&quot;Problem moving / renaming file %s to file %s\n&quot;, oldfile, newfile);
+
+// @@PLEAC@@_9.4
+mapping(array(int):int) seen = ([]);
+
+// ----
+
+void do_my_thing(string filename)
+{
+  Stdio.Stat fs = file_stat(filename);
+  array(int) arr = aggregate(fs-&gt;inode, fs-&gt;dev);
+
+  // Could do this [apply a lambda assigned to variable 'p']:
+  //
+  //    ... || (p(arr), seen[arr] = 1);
+  //
+  //    function p = lambda(array(int) arr) { ... };
+  //
+  // to process a file that has not previously been seen
+  
+  (seen[arr] &amp;&amp; (seen[arr] += 1)) || (seen[arr] = 1);
+}
+
+// ----------------------------
+
+constant SEP = &quot;:&quot;; mapping(array(int):string) seen = ([]);
+
+// ----
+
+array(string) files = ({&quot;f1.txt&quot;, &quot;f2.txt&quot;, &quot;f3.txt&quot;});
+
+foreach(files, string filename)
+{
+  Stdio.Stat fs = file_stat(filename);
+  array(int) arr = aggregate(fs-&gt;inode, fs-&gt;dev);
+  (seen[arr] &amp;&amp; (seen[arr] += (SEP + filename))) || (seen[arr] = filename);
+}
+
+// ----
+
+array(array(int)) idxarr = indices(seen); sort(idxarr);
+
+foreach(idxarr, array(int) inodev)
+{
+  foreach(seen[inodev] / SEP, string filename)
+  {
+    // ... do stuff with each filename ...
+    write(&quot;%s\n&quot;, filename);
+  }
+}
+
+// @@PLEAC@@_9.5
+string dirname = &quot;...&quot;; array(string) DIR = get_dir(dirname);
+
+foreach(DIR, string filename)
+{
+  string path = dirname + &quot;/&quot; + filename;
+  // ... do something with 'path' ...
+}
+
+// ----------------------------
+
+string dirname = &quot;/usr/local/bin&quot;; int|array(string) DIR = get_dir(dirname);
+
+DIR || die(&quot;Can't open &quot; + dirname);
+
+write(&quot;Text files in %s are:\n&quot;, dirname);
+
+foreach(DIR, string filename)
+{
+  string path = dirname + &quot;/&quot; + filename;
+
+  // 'isTextFile' defined in an earlier section
+  isTextFile(path) &amp;&amp; write(&quot;%s\n&quot;, filename);
+}
+
+// ----------------------------
+
+// '.' and '..' don't show up in a 'get_dir'-generated array
+
+// ----------------------------
+
+array(string) plain_files(string dirname)
+{
+  // 'filter' procedure
+  function fp =
+    lambda(string filename, string dirname)
+    {
+      // 'isTextFile' defined in an earlier section
+      return !has_prefix(filename, &quot;.&quot;) &amp;&amp; isTextFile(dirname + &quot;/&quot; + filename);
+    };
+
+  // 'map' procedure
+  function mp =
+    lambda(string filename, string dirname)
+    {
+      return dirname + &quot;/&quot; + filename;
+    };
+
+  array(string) paths = map(filter(get_dir(dirname), fp, dirname), mp, dirname);
+
+  sort(paths);
+
+  return paths;
+}
+
+// @@PLEAC@@_9.6
+// A 'glob' workalike that filters using regular expressions
+//
+// Note: Pike offers many non-regexp-based string pattern matching
+// functions [e.g. 'has_prefix' and other 'has_...' functions,
+// 'search', etc]. These are preferable in many situations as they are
+// much faster than regexprs. However, code shown here mostly uses
+// regexprs in order to better match the Perl examples
+//
+int(0..1)|array(string) grep(string regexp, string|array(string) arr)
+{
+  if (stringp(arr)) return Regexp.match(regexp, arr);
+
+  if (arrayp(arr))
+  {
+    function fp =
+      lambda(string filename, string regexp)
+      {
+        return Regexp.match(regexp, filename);
+      };
+
+    return filter(arr, fp, regexp);
+  }
+
+  return 0;
+}
+
+// ----------------------------
+
+string dirname = &quot;...&quot;;
+int|array(string) filenames = glob(&quot;*.c&quot;, get_dir(dirname));
+
+// ------------
+
+string dirname = &quot;...&quot;;
+int|array(string) filenames = grep(&quot;\.c$&quot;, get_dir(dirname));
+
+// ------------
+
+string dirname = &quot;...&quot;;
+int|array(string) filenames = grep(&quot;\.[CHch]$&quot;, get_dir(dirname));
+
+// ----------------------------
+
+string dirname = &quot;...&quot;;
+int|array(string) dir = get_dir(dirname);
+
+dir || die(&quot;Couldn't open &quot; + dirname + &quot; for reading&quot;);
+
+//
+// Note: Pike arrays are immutable, so we use a mapping to emulate
+// mutable arrays by using a numeric index as the key :)
+//
+mapping(int:string) files = ([]); int idx = -1; string path;    
+
+foreach(dir, string file)
+{
+  if (!grep(&quot;\.[CHch]$&quot;, file)) continue;
+  path = dirname + &quot;/&quot; + file;
+  isTextFile(path) &amp;&amp; (files[++idx] = path);
+}
+
+//
+// Note: Traverse a mapping-based, emulated array in index order:
+//
+//  foreach(sort(indices(files)), int i)
+//  {
+//    write(&quot;%d -&gt; %s\n&quot;, i, files[i]); 
+//  }
+//
+
+// @@PLEAC@@_9.7
+//
+// Routine inspired by library function, 'Stdio.recursive_rm'. A little
+// extra code helped make it more generally useful
+//
+void|mixed process_directory(string path, function(string, mixed ... : void|mixed) op, mixed ... extra_args)
+{
+  Stdio.Stat file = file_stat(path, 1); if (!file) return 0;
+
+  if (file-&gt;isdir)
+    if (array(string) files = get_dir(path))
+      foreach(files, string file)
+        process_directory(path + &quot;/&quot; + file, op, @extra_args);
+
+  return op(path, @extra_args);
+}
+
+// ----------------------------
+
+array(string) dirlist = ({ &quot;/tmp/d1&quot;, &quot;/tmp/d2&quot;, &quot;/tmp/d3&quot; });
+
+// Do something with each directory in the list
+foreach(dirlist, string dir)
+{
+  // Delete directory [if empty]     -&gt; rm(dir); 
+  // Make it the 'current directory' -&gt; cd(dir);
+  // Get list of files it contains   -&gt; array(string) filelist = get_dir(dir);
+  // Get directory metadata          -&gt; Stdio.Stat ds = file_stat(dir);
+}
+
+// ------------
+
+array(string) dirlist = ({ &quot;/tmp/d1&quot;, &quot;/tmp/d2&quot;, &quot;/tmp/d3&quot; });
+
+function pf =
+  lambda(string path)
+  {
+    // ... do something to the file or directory ...
+    write(&quot;%s\n&quot;, path);
+  };
+
+// For each directory in the list ...
+foreach(dirlist, string dir)
+{
+  int|array(string) filelist = get_dir(dir);
+
+  if (!filelist) { write(&quot;%s does not exist\n&quot;, dir); continue; }
+  if (sizeof(filelist) == 0) { write(&quot;%s is empty\n&quot;, dir); continue; }
+
+  // For each file / directory in the directory ...
+  foreach(filelist, string filename)
+  {
+    // Apply function to process the file / directory
+    pf(dir + &quot;/&quot; + filename);
+  }
+}
+
+// ------------
+
+// Special steps need to be taken in above routines to distinguish 
+// between files and directories. Easiest to abstract out directory
+// traversal into a single routine [so allowing for recursive traversal
+// of entire tree], and have it apply a lambda to each file
+
+array(string) dirlist = ({ &quot;/tmp/d1&quot;, &quot;/tmp/d2&quot;, &quot;/tmp/d3&quot; });
+
+function pf =
+  lambda(string path)
+  {
+    // ... do something to the file or directory ...
+    write(&quot;%s\n&quot;, path);
+  };
+
+// For each directory in the list ...
+foreach(dirlist, string dir)
+{
+  process_directory(dir, pf);
+}
+
+// ----------------------------
+
+void accum_filesize(string path, array(int) accum)
+{
+  int|Stdio.Stat fs = file_stat(path);
+
+  // Accumulate size only if it is a regular file
+  (fs &amp;&amp; fs-&gt;isreg) &amp;&amp; (accum[0] += fs-&gt;size);
+}
+
+// ------------
+
+// Verify arguments ...
+argc == 2 || die(&quot;usage: &quot; + argv[0] + &quot; dir&quot;);
+Stdio.Stat fs; string dir = argv[1];
+((fs = file_stat(dir)) &amp;&amp; fs-&gt;isdir) || die(dir + &quot; does not exist / not a directory&quot;);
+
+// Collect data [use an array to accumulate results]
+array(int) dirsize = ({0});
+process_directory(dir, accum_filesize, dirsize); 
+
+// Report results
+write(&quot;%s contains %d bytes\n&quot;, dir, dirsize[0]);
+
+// ----------------------------
+
+void biggest_file(string path, array(mixed) biggest)
+{
+  int|Stdio.Stat fs = file_stat(path);
+
+  if (fs &amp;&amp; fs-&gt;isreg &amp;&amp; biggest[1] &lt; fs-&gt;size)
+  {
+    biggest[0] = path; biggest[1] = fs-&gt;size;
+  }
+}
+
+// ------------
+
+// Verify arguments ...
+argc == 2 || die(&quot;usage: &quot; + argv[0] + &quot; dir&quot;);
+Stdio.Stat fs; string dir = argv[1];
+((fs = file_stat(dir)) &amp;&amp; fs-&gt;isdir) || die(dir + &quot; does not exist / not a directory&quot;);
+
+// Collect data [use an array to store results]
+array(mixed) biggest = ({&quot;&quot;, 0});
+process_directory(dir, biggest_file, biggest); 
+
+// Report results
+write(&quot;Biggest file is %s containing %d bytes\n&quot;, biggest[0], biggest[1]);
+
+// ----------------------------
+
+void youngest_file(string path, array(mixed) youngest)
+{
+  int|Stdio.Stat fs = file_stat(path);
+
+  if (fs &amp;&amp; fs-&gt;isreg &amp;&amp; youngest[1] &gt; fs-&gt;ctime)
+  {
+    youngest[0] = path; youngest[1] = fs-&gt;ctime;
+  }
+}
+
+// ------------
+
+// Verify arguments ...
+argc == 2 || die(&quot;usage: &quot; + argv[0] + &quot; dir&quot;);
+Stdio.Stat fs; string dir = argv[1];
+((fs = file_stat(dir)) &amp;&amp; fs-&gt;isdir) || die(dir + &quot; does not exist / not a directory&quot;);
+
+// Collect data [use an array to store results]
+array(mixed) youngest = ({&quot;&quot;, Int.NATIVE_MAX});
+process_directory(dir, youngest_file, youngest); 
+
+// Report results
+write(&quot;Youngest file is %s dating %s\n&quot;, youngest[0], ctime(youngest[1]));
+
+// ----------------------------
+
+void print_name_if_dir(string path)
+{
+  int|Stdio.Stat fs = file_stat(path);
+  if (fs &amp;&amp; fs-&gt;isdir) write(&quot;%s\n&quot;, path);
+}
+
+// ------------
+
+// Verify arguments ...
+argc == 2 || die(&quot;usage: &quot; + argv[0] + &quot; dir&quot;);
+Stdio.Stat fs; string dir = argv[1];
+((fs = file_stat(dir)) &amp;&amp; fs-&gt;isdir) || die(dir + &quot; does not exist / not a directory&quot;);
+
+// Print directory names
+process_directory(dir, print_name_if_dir); 
+
+// @@PLEAC@@_9.8
+// Easy way - recommended
+int(0..1) rmTree(string dirname) { return Stdio.recursive_rm(dirname); }
+
+// ----
+
+string dirtree = &quot;/tmp/dirtree&quot;;
+
+rmTree(dirtree) || write(&quot;Problem removing directory tree %s\n&quot;, dirtree);
+
+// ----------------------------
+
+// Another way, but unnecessary - probably for customised deletions only
+int(0..1) rmTree(string dirname) { return process_directory(dirname, rm); }
+
+// ----
+
+string dirtree = &quot;/tmp/dirtree&quot;;
+
+rmTree(dirtree) || write(&quot;Problem removing directory tree %s\n&quot;, dirtree);
+
+// @@PLEAC@@_9.9
+// A list of file names
+array(string) names = ({&quot;f1.txt&quot;, &quot;f2.txt&quot;, &quot;f3.txt&quot;});
+
+// Dynamically assigned 'rename' procedure - can be reassigned at any time
+function rename = lambda(string name) { return replace(name, &quot;.txt&quot;, &quot;.text&quot;); };
+
+// Process all files
+foreach(names, string name)
+{
+  // Generate new name from existing name by applying 'rename' procedure
+  string newname = rename(name); 
+
+  // Perform actual rename task on file
+  mv(name, newname) || write(&quot;Could not rename %s to %s\n&quot;, name, newname);
+}
+
+// ----------------------------
+
+// Slightly different to the Perl example, though it does use regexp
+// and intent is roughly the same.
+//
+// pike SCRIPTNAME '\.txt$' '.text' f1.txt f2.txt df3.txg
+//
+//    f1.txt  -&gt; f1.text
+//    f2.txt  -&gt; f2.text
+//    df3.txg -&gt; df3.txg [no change]
+//
+
+argc &gt; 2 || die(&quot;usage: &quot; + argv[0] + &quot; expr repl files...&quot;);
+
+string expr = argv[1], repl = argv[2];
+
+foreach(argv[3..], string name)
+{
+  string newname = Regexp.replace(expr, name, repl); 
+
+  if (!equal(name, newname))
+    mv(name, newname) || write(&quot;Could not rename %s to %s\n&quot;, name, newname);
+} 
+
+// @@PLEAC@@_9.10
+string file_extension(string filename, void|string separator)
+{
+  return (filename / (separator || &quot;.&quot;))[-1];
+}
+
+mapping(string:string) file_parse(string path)
+{
+  return
+    mkmapping(({&quot;dirname&quot;, &quot;basename&quot;, &quot;extension&quot;}),
+      ({dirname(path), basename(path), file_extension(basename(path))}));
+}
+
+// ----------------------------
+
+string path = &quot;/tmp/dirtree/s/s1/s1.txt&quot;;
+
+// ----
+
+string dir = dirname(path);
+string base = basename(path);
+
+mapping(string:string) pm = file_parse(path);
+write(&quot;%s\n&quot;, pm[&quot;dirname&quot;]);
+write(&quot;%s\n&quot;, pm[&quot;basename&quot;]);
+write(&quot;%s\n&quot;, pm[&quot;extension&quot;]);
+
+// ------------
+
+string path = &quot;/usr/lib/libc.a&quot;;
+
+// ----
+
+string dir = dirname(path);
+string base = basename(path);
+
+write(&quot;dir is %s, file is %s\n&quot;, dir, base);
+
+// ------------
+
+string path = &quot;/usr/lib/libc.a&quot;;
+
+// ----
+
+mapping(string:string) pm = file_parse(path);
+
+write(&quot;dir is %s, name is %s, extension is %s\n&quot;,
+  pm[&quot;dirname&quot;], pm[&quot;basename&quot;], &quot;.&quot; + pm[&quot;extension&quot;]);
+
+// ----------------------------
+
+// Handle as a general purpose parse task
+string path = &quot;Hard%20Drive:System%20Folder:README.txt&quot;;
+
+// ----
+
+mapping(string:string)
+  pm = mkmapping(({&quot;drive&quot;, &quot;folder&quot;, &quot;filename&quot;}),
+                 replace(path, &quot;%20&quot;, &quot; &quot;) / &quot;:&quot;),
+
+  fm = mkmapping(({&quot;name&quot;, &quot;extension&quot;}),
+                 pm[&quot;filename&quot;] / &quot;.&quot;);
+
+write(&quot;dir is %s, name is %s, extension is %s\n&quot;,
+  pm[&quot;drive&quot;] + &quot;:&quot; + pm[&quot;folder&quot;],
+  fm[&quot;name&quot;], &quot;.&quot; + fm[&quot;extension&quot;]);
+
+// ----------------------------
+
+// See implementation for 'file_extension' function above
+
+// @@PLEAC@@_9.11
+@@INCOMPLETE@@
+@@INCOMPLETE@@
+
+// @@PLEAC@@_9.12
+@@INCOMPLETE@@
+@@INCOMPLETE@@
+
+// @@PLEAC@@_10.0
+// Here, in this simple example, 'greeted', is used as a 'global'
+// variable. In a more complex program, however, this would not be
+// the case [subsequent sections exlain why]
+int greeted;
+
+// ----
+
+void hello()
+{
+  write(&quot;hi there!, this procedure has been called %d times\n&quot;, ++greeted);
+}
+
+int how_many_greetings()
+{
+  return greeted;
+}
+
+// ------------
+
+int main()
+{
+  hello();
+  int greetings = how_many_greetings();
+  write(&quot;bye there!, there have been %d greetings so far\n&quot;, greetings);
+}
+
+// ----------------------------
+
+// Alternate means of defining functions [could, optionally, have also
+// included type information in 'function' declaration]; could also
+// have been done within scope of 'main'
+
+int greeted;
+
+// ----
+
+function hello = lambda()
+  {
+    write(&quot;hi there!, this procedure has been called %d times\n&quot;, ++greeted);
+  };
+
+function how_many_greetings = lambda() { return greeted; };
+
+// ------------
+
+int main()
+{
+  hello();
+  int greetings = how_many_greetings();
+  write(&quot;bye there!, there have been %d greetings so far\n&quot;, greetings);
+}
+
+// @@PLEAC@@_10.1
+// Subroutine parameters are named, that is, access to these items from
+// within a function is reliant on their being named in the parameter
+// list [together with mandatory type information], something which is
+// in line with many other commonly-used languages
+
+float hypotenuse(float side1, float side2)
+{
+  // Arguments passed to this function are accessable as, 'side1',
+  // and 'side2', respectively, and each is expected to be a 'float'
+  // type
+  return side1 * side1 + side2 * side2;
+}
+
+// ----
+
+// 'side1' -&gt; 3.0
+// 'side2' -&gt; 4.0
+float diag = hypotenuse(3.0, 4.0);
+
+// ------------
+
+// However, Pike also allows parameters [and return types where applicable]:
+// * To have one of a set of types [see (1)]
+// * To have a generic type [see (2)]
+// * To be optional, in which case any arguments are packaged as an
+//   array, and array notation needed to access each item [see (3)]
+
+// (1). Here the function will accept either 'int' or 'float'
+// arguments, and perform runtime type checking to identify what is
+// supplied
+float hypotenuse(int|float side1, int|float side2)
+{
+  // If 'int' arguments passed. convert to 'float'
+  float s1 = intp(side1) ? (float) side1 : side1;
+  float s2 = intp(side2) ? (float) side2 : side2;
+
+  return s1 * s1 + s2 * s2;
+}
+
+// ----
+
+// Both are legal calls
+float diag = hypotenuse(3.0, 4.0);
+float diag = hypotenuse(3, 4);
+
+// ------------
+
+// (2). Here the function still expects to be called with two arguments 
+// but each may be of *any* type [admittedly a very contrived example
+// of little utility except for illustrative value]. Such a function
+// is almost entirely reliant on careful runtime type checking if it
+// is to behave reliably
+float hypotenuse(mixed side1, mixed side2)
+{
+  if (stringp(side1)) { ... }
+  if (arrayp(side1)) { ... }
+  if (objectp(side1)) { ... }
+  ...  
+}
+
+// ----
+
+// All are legal calls
+float diag = hypotenuse(3.0, 4.0);
+float diag = hypotenuse(3, 4);
+float diag = hypotenuse(&quot;3&quot;, &quot;4&quot;);
+float diag = hypotenuse(({3}), ({4}));
+
+// ------------
+
+// (3). Here, the function is defined to accept two, mandatory
+// parameters [still accessable via name], then a set of zero or more
+// optional parameters, which are accessable within the function body
+// via an array [the placeholder, 'args', represents an array of zero
+// or more elements each corresponding to one of the passed arguments
+float hypotenuse(float side1, mixed side2, mixed ... args)
+{
+  // Mandatory parameters still accessable as usual
+  ... side1 ... side2 ...
+
+  // Total number of arguments passed to function determinable via:
+  int total_passed_args = query_num_arg();
+  
+  // 'args' contains all optional arguments: 0 - N
+  int optional_args = sizeof(args);
+
+  // Process variable arguments ...
+  foreach(args, mixed arg)
+  {
+    ... if (strinp(arg)) { ... }
+  }
+
+  ...
+}
+
+// ----
+
+// All are legal calls
+float diag = hypotenuse(3.0, 4.0);
+float diag = hypotenuse(3.0, 4.0, &quot;a&quot;);
+float diag = hypotenuse(3.0, 4.0, lambda(){ return 5; }, &quot;fff&quot;);
+float diag = hypotenuse(3.0, 4.0, 1, &quot;x&quot;, ({ 6, 7, 9 }));
+
+// ----------------------------
+
+// Modifies copy
+array(int|float) int_all(array(int|float) arr)
+{
+  array(int|float) retarr = copy_value(arr);
+  int i; for(int i; i &lt; sizeof(retarr); ++i) { retarr[i] = (int) arr[i]; }
+  return retarr;
+}
+
+// Modifies original
+array(int|float) trunc_all(array(int|float) arr)
+{
+  int i; for(int i; i &lt; sizeof(arr); ++i) { arr[i] = (int) arr[i]; }
+  return arr;
+}
+
+// ----
+
+array(int|float) nums = ({1.4, 3.5, 6.7});
+
+// Copy modified - 'ints' and 'nums' separate arrays
+array(int|float) ints = int_all(nums);
+write(&quot;%O\n&quot;, nums);
+write(&quot;%O\n&quot;, ints);
+
+// Original modified - 'ints' acts as alias for 'nums'
+ints = trunc_all(nums);
+write(&quot;%O\n&quot;, nums);
+write(&quot;%O\n&quot;, ints);
+
+// @@PLEAC@@_10.2
+void some_func()
+{
+  // Variables declared within a function are local to that function
+  mixed variable = something;
+}
+
+// ----------------------------
+
+// Assuming these are defined at file level, that is, outside of 'main'
+// or any other function they are accessable by every other member of
+// the same file [and if this file (read: class or program) is the
+// only one comprising the 'system', they are effectively 'global']
+string name = argv[1]; int age = (int) argv[2];
+
+int c = fetch_time();
+
+int condition;
+
+// ------------
+
+int run_check()
+{
+  ...
+  condition = 1;
+}
+
+int check_x(int x)
+{
+  string y = &quot;whatever&quot;;
+
+  // Whilst 'run_check' has access to 'name', 'age', and 'c' [because
+  // these are declared at a higher scope], it does not have access to
+  // 'y' or any other locally defined variable
+  run_check();
+
+  // 'run_check' will have updated 'condition'
+  if (condition) write(&quot;got x: %d\n&quot;, x);
+}
+
+// @@PLEAC@@_10.3
+// Pike does not implement C style 'static' variables [i.e. persisent
+// local variables], nor does it implement C++ style 'class variables'
+// [oddly enough, also implemented in C++ via use of the 'static'
+// keyword], both of which could be used to implement solutions to the
+// problems presented in this section. Also, there is no direct
+// equivalent to Perl's 'BEGIN' block [closest equivalent is the
+// class 'create' method]. So, to solve a problem like implementing a
+// 'counter':
+//
+// * Use Pike's OOP facilities [simple, natural]
+// * Use closures [somewhat unwieldly, but possible]
+
+// OOP Approach
+class Counter
+{
+  private int counter;
+
+  static void create(int start) { counter = start; }
+  public int next() { return ++counter; }
+  public int prev() { return --counter; }
+}
+
+// ----
+
+int main()
+{
+  Counter counter = Counter(42);
+
+  write(&quot;%d\n&quot;, counter-&gt;next());
+  write(&quot;%d\n&quot;, counter-&gt;prev());
+}
+
+// ----------------------------
+
+// A refinement of the previous implementation that mimics 'static'
+// variables
+
+class Static
+{
+  // 'static' variable that is shared by all instance of 'Counter'
+  int counter;
+
+  class Counter
+  {
+    public int next() { return ++counter; }
+    public int prev() { return --counter; }
+  }
+
+  Counter make() { return Counter(); }
+
+  public void create(int counter_) { counter = counter_; }
+}
+
+// ----
+
+int main()
+{
+  Static mkst = Static(42);
+
+  Static.Counter counter_1 = mkst-&gt;make();
+  Static.Counter counter_2 = mkst-&gt;make();
+
+  // Same value of, 'counter', is accessed by each object
+  write(&quot;%d\n&quot;, counter_1-&gt;next());
+  write(&quot;%d\n&quot;, counter_1-&gt;next());
+
+  write(&quot;%d\n&quot;, counter_2-&gt;next());
+  write(&quot;%d\n&quot;, counter_2-&gt;prev());
+}
+
+// ----------------------------
+
+// Closure Approach [Admittedly somewhat contrived: a Scheme overdose ;) !]
+
+function(string : function(void : int)) make_counter(int start)
+{
+  int counter = start;
+  int next_counter() { return ++counter; };
+  int prev_counter() { return --counter; };
+  
+  return
+    lambda(string op)
+    {
+      if (op == &quot;next&quot;) return next_counter;
+      if (op == &quot;prev&quot;) return prev_counter;
+      return 0;
+    };
+}
+
+int next_counter(function(string : function(void : int)) counter)
+{
+  return counter(&quot;next&quot;)();
+}
+
+int prev_counter(function(string : function(void : int)) counter)
+{
+  return counter(&quot;prev&quot;)();
+}
+
+// ----
+
+int main()
+{
+  function(string : function(void : int)) counter = make_counter(42);
+
+  write(&quot;%d\n&quot;, next_counter(counter));
+  write(&quot;%d\n&quot;, prev_counter(counter));
+}
+
+// @@PLEAC@@_10.4
+// It's possible to obtain a great deal of program metadata through the
+// following sets of library functions:
+//
+// * 'this_object', and the sets of 'object_...' and 'program_...'
+//   functions
+// * 'Program' module [provides object inheritance metadata]
+//
+// The use of, 'this_object', in particular, allows the current object
+// instance to be interrogated like a hash table i.e. all variables and
+// methods are accessable as hash table entries.
+//
+// Unfortunately, however, it doesn't appear possible to obtain the
+// current method / function name, at least, not without resorting
+// to tricks like embedding a string in each method explicitly naming
+// it.
+//
+// An example of program metadata use appears in chapter 'Objects and
+// Ties'. Since the function name cannot, AFAICT, be obtained, the
+// current section is not implemented.
+//
+
+// @@PLEAC@@_10.5
+// Procedure parameters are passed by reference [read: the handle or
+// address (or whatever) of an object is passed and is used to uniquely
+// identify that object], so there is no special treatment required.
+// If an argument represents a mutable object then care should be taken
+// to not mutate the object within the function, either by making a copy
+// of the object [e.g. use 'copy_value' to clone it], or by using a
+// 'read-only' control structure like 'foreach' [if applicable] to
+// access it
+
+int|array(int) array_diff(array(int) a, array(int) b)
+{
+  // Ensure an array copy is made ...
+  int|array(int) ret = sizeof(a) != sizeof(b) ? 0 : copy_value(a);
+  if (!ret) ret;
+
+  // ... transformed, and returned
+  for (int i; i &lt; sizeof(ret); ++i) { ret[i] -= b[i]; }; return ret;
+}
+
+// ----------------------------
+
+int|array(int) add_vec_pair(array(int) a, array(int) b)
+{
+  int vecsize = sizeof(a);
+
+  // Ensure an array copy is made ...
+  int|array(int) ret = vecsize != sizeof(b) ? 0 : allocate(vecsize);
+  if (!ret) ret;
+
+  // ... transformed, and returned
+  for (int i; i &lt; vecsize; ++i) { ret[i] = a[i] + b[i]; }; return ret;
+}
+
+// ----
+
+array(int) a = ({1, 2}), b = ({5, 8});
+array(int) c = add_vec_pair(a, b);
+write(&quot;%O\n&quot;, c);
+
+// @@PLEAC@@_10.6
+// Just as for subroutine parameters, Pike allows variation in return
+// types, where it may be of a specific type, one of a set of types, or
+// a generic return type. Whilst the Perl examples require that the
+// user to nominate a return type when the function is called, in Pike
+// it is handled in one of two ways:
+//
+// * Ensure function and receiving variable type match [see (1)]
+// * Use generic receiving variable, and type check [see (2)]
+
+// (1). Subroutine has set of return types. Whilst type checking
+// does occur [thus user code only need handle these known types
+// because other types won't be allowed], caller/ receiver needs to
+// type check so as correctly handle known cases
+int|array(int)|string mysub()
+{
+  ...
+  return 5;
+  ...
+  return ({5});
+  ...
+  return &quot;5&quot;;
+}
+
+// ----
+
+int|array(int)|string receiver = mysub();
+
+if (intp(receiver)) { ... }
+if (arrayp(receiver)) { ... }
+if (stringp(receiver)) { ... }
+...
+
+// ----------------------------
+
+// (2). Subroutine has generic return type, so no type checking occurs.
+// It is up to the caller / receiver to thoroughly type check lest
+// some unforseen type be returned and possibly mishandled
+mixed mysub()
+{
+  ...
+  return 5;
+  ...
+  return ({5});
+  ...
+  return &quot;5&quot;;
+}
+
+// ----
+
+mixed receiver = mysub();
+
+if (intp(receiver)) { ... }
+if (arrayp(receiver)) { ... }
+if (stringp(receiver)) { ... }
+...
+
+// @@PLEAC@@_10.7
+// Pike doesn't directly support named / keyword parameters, but these
+// can be easily mimiced using an array of mappings as function arguments
+// The mappings, themselves, could be implemented via a custom class
+// [see (1)], or via the 'mapping'type [see (2) - Perl examples]
+
+// (1)
+class KeyedValue
+{
+  string key; mixed value;
+
+  static void create(string key_, mixed value_)
+  {
+    key = key_; value = value_;
+  }
+}
+
+void the_func(array(KeyedValue) keyargs)
+{
+  foreach(keyargs, KeyedValue kv)
+  {
+    write(&quot;Key: %10s|Value: %10O\n&quot;, kv-&gt;key, kv-&gt;value);
+  }
+}
+
+// ----
+
+int main()
+{
+  array(KeyedValue) keyargs =
+    aggregate(KeyedValue(&quot;name&quot;, &quot;Bob&quot;),
+              KeyedValue(&quot;age&quot;, 36),
+              KeyedValue(&quot;income&quot;, 51000));
+
+  the_func(keyargs);
+}
+
+// ----------------------------
+
+// (2)
+class RaceTime
+{
+  int time; string dim;
+
+  static void create(int time_, string dim_)
+  {
+    time = time_; dim = dim_;
+  }
+}
+
+void the_func(mapping(string : RaceTime) ... args)
+{
+  int start_time, finish_time, increment_time;
+  string start_dim, finish_dim, increment_dim;
+
+  foreach(args, mapping(string : RaceTime) arg)
+  {
+    arg[&quot;start&quot;] &amp;&amp; (start_time = arg[&quot;start&quot;]-&gt;time, start_dim = arg[&quot;start&quot;]-&gt;dim);
+    arg[&quot;finish&quot;] &amp;&amp; (finish_time = arg[&quot;finish&quot;]-&gt;time, finish_dim = arg[&quot;finish&quot;]-&gt;dim);
+    arg[&quot;increment&quot;] &amp;&amp; (increment_time = arg[&quot;increment&quot;]-&gt;time, increment_dim = arg[&quot;increment&quot;]-&gt;dim);
+  }
+
+  write(&quot;times: start %d, finish %d, increment %d\n&quot;,
+        start_time, finish_time, increment_time);
+}
+
+// ----
+
+int main()
+{
+  array(mapping(string : RaceTime)) named_args =
+    ({
+      ([&quot;increment&quot; : RaceTime(20, &quot;s&quot;)]),
+      ([&quot;start&quot; : RaceTime(5, &quot;m&quot;)]),
+      ([&quot;finish&quot; : RaceTime(3, &quot;m&quot;)]) });
+
+  // Package arguments as array for passing to function
+  the_func(@named_args);
+
+  named_args =
+    ({
+      ([&quot;start&quot; : RaceTime(5, &quot;m&quot;)]),
+      ([&quot;finish&quot; : RaceTime(30, &quot;m&quot;)]) });
+
+  // Ditto
+  the_func(@named_args);
+
+  // Pass argument(s) directly in argument list
+  the_func(([&quot;finish&quot; : RaceTime(30, &quot;m&quot;)]));
+}
+
+// @@PLEAC@@_10.8
+// It is languages that support pattern matching, such as Prolog, Oz and
+// SML, that tend to offer such facilities. These languages all offer
+// a 'match all and throw away' operator that can be used in place of 
+// an identifier name(s), and have the resultant value(s) be discarded.
+// Such a facility helps keep code uncluttered because only values
+// that are required need to be named.
+//
+// Pike does not implement pattern matching, so does not sport such an
+// operator, nor any equivalent facility. Thus, none of the examples in
+// this section are directly implementable.
+//
+
+// @@PLEAC@@_10.9
+// Pike supports the return of a single value from a function. Where
+// multiple values need to be returned, they can be packaged as an
+// aggregate such as an array or mapping, and *that* item returned.
+// The caller / receiver would, of course, be responsible for
+// appropriately extracting required elements from that returned item
+// (this process could be hardcoded, or generalised using extensive
+// runtime type checking). Alternatively, a custom class encapsulating
+// the return values can be used and an instance of that item returned
+// and processed
+//
+
+array(mixed) somefunc()
+{
+  array(int) arr = ({1, 2, 3});
+  mapping(string : int) hash = ([&quot;x&quot; : 1, &quot;y&quot; : 2, &quot;z&quot; : 3]);
+
+  // Return an array containing an array and a hash
+  return aggregate(arr, hash);
+}
+
+// ----
+
+// Get return array
+array(mixed) arr = somefunc();
+
+// Extract and process elements
+foreach(arr, mixed item)
+{
+  write(&quot;Return item has type: %t, value: %O\n&quot;, item, item);
+}
+
+// ----------------------------
+
+class RetValues
+{
+  array(int) arr; mapping(string : int) hash;
+
+  static void create()
+  {
+    arr = aggregate(1, 2, 3);
+    hash = aggregate_mapping(&quot;x&quot;, 1, &quot;y&quot;, 2, &quot;z&quot;, 3);
+  }
+}
+  
+RetValues somefunc() { return RetValues(); }
+
+// ----
+
+RetValues rv = RetValues();
+
+write(&quot;Return item has type: %t, value: %O\n&quot;, rv-&gt;arr, rv-&gt;arr);
+write(&quot;Return item has type: %t, value: %O\n&quot;, rv-&gt;hash, rv-&gt;hash);
+
+// @@PLEAC@@_10.10
+// Pike offers a very simple, consistent means of 'returning failure':
+// return 0 [representing 'false'] when a task does not succeed, otherwise
+// return whatever was the expected value. This design is extensively
+// used in the Pike library, and is well supported by the language in
+// that:
+// * Alternate return types may be specified
+// * A 'mixed' return type, indicating possible return of any type
+//   value, may be used
+
+void die(string msg, void|int(1..256) rc) { werror(msg + NEWLINE); exit(rc ? rc : PROBLEM); }
+
+// ----
+
+int|array(string) afunc()
+{
+  ...
+
+  if (ok)
+    // ... return an array ...
+  else
+    // failure, so return 0
+    return 0;
+}
+
+// ----
+
+int main()
+{
+  int|array(string) arr = afunc();
+
+  if (!arr) die(&quot;Error with 'afunc' ...&quot;);
+
+  // ok, so use 'arr' ...
+}
+
+// @@PLEAC@@_10.11
+// Whether Pike is seen to support prototyping depends on the definition
+// of this term used:
+//
+// * Prototyping along the lines used in Ada, Modula X, and even C / C++,
+//   in which a procedure's interface is declared separately from its
+//   implementation, is *not* supported
+//
+// * Prototyping in which, as part of the procedure definition, parameter
+//   information must be supplied. This is a requirement in Pike in that
+//   parameter number, names and type, must be given. Return types must
+//   also be specified, but there is an exeption when using lambdas
+
+void func_with_no_arg() { ... }
+
+void func_with_one_arg(int arg1) { ... }
+
+void func_with_two_arg(int arg1, string arg2) { ... }
+
+void func_with_three_arg(int arg1, string arg2, float arg3) { ...}
+
+// ----
+
+// Return type, 'void', specified 
+function f = lambda(int arg1 : void) { ... }
+
+// Return type not specified, defaults to 'mixed'
+function g = lambda(int arg1) { ... }
+
+// @@PLEAC@@_10.12
+// Like so many modern languages, Pike implements exception handling
+// using the 'catch' and 'throw' keywords 
+
+// ----
+
+// Not exactly like the Perl example, but a way of immediately exiting
+// from an application [note: using, 'exit', prevents any of the 'atexit'
+// call backs from executing, so application cleanup may be compromised]
+
+void die(string msg, void|int(1..256) rc) { werror(msg + NEWLINE); exit(rc ? rc : PROBLEM); }
+
+// ----
+
+die(&quot;some message&quot;);
+
+// ----------------------------
+
+int(0..1) rmAll(array(string) filelist)
+{
+  // 'result' will be 0 if the 'catch' block succeeds
+  mixed result = catch
+  {
+    foreach(filelist, string filename) { rm(filename) || throw(PROBLEM); }
+  };
+
+  // Return value of 'catch' block can be tested, and appropriate
+  // action taken; here, a non-zero return code will be returned
+  // [like many library functions] to indicate failure
+  return result == OK;
+}
+
+// ----
+
+// Attempt to remove the following files ...
+
+array(string) files = ({&quot;...&quot;, &quot;...&quot;, &quot;...&quot;});
+
+rmAll(files) || die(&quot;Could not remove all files - exiting&quot;);
+
+// @@PLEAC@@_10.13
+
+// Global variable
+int age = 18;
+
+// ----
+
+void print_age()
+{
+  // Global value, 'age', is accessed
+  write(&quot;Age is %d\n&quot;, age);
+}
+
+// ------------
+
+int main()
+{
+  // A local variable named, 'age' will act to 'shadow' the globally
+  // defined version, thus any changes to, 'age', will not affect
+  // the global version
+  int age = 5;
+
+  // Prints 18, the current value of the global version
+  print_age();
+
+  // Local version is altered, *not* global version
+  age = 23;
+
+  // Prints 18, the current value of the global version
+  print_age();
+}
+
+// ----------------------------
+
+// Global variable
+int age = 18;
+
+// ----
+
+void print_age()
+{
+  // Global value, 'age', is accessed
+  write(&quot;Age is %d\n&quot;, age);
+}
+
+// ------------
+
+int main()
+{
+  // Here no local version declared: any changes affect global version
+  age = 5;
+
+  // Prints 5, the new value of the global version
+  print_age();
+
+  // Global version again altered
+  age = 23;
+
+  // Prints 23, the new value of the global version
+  print_age();
+}
+
+// ----------------------------
+
+// Global variable
+int age = 18;
+
+// ----
+
+void print_age()
+{
+  // Global value, 'age', is accessed
+  write(&quot;Age is %d\n&quot;, age);
+}
+
+// ------------
+
+int main()
+{
+  // Global version value saved into local version
+  int age = global::age;
+
+  // Prints 18, the new value of the global version
+  print_age();
+
+  // Global version this time altered
+  global::age = 23;
+
+  // Prints 23, the new value of the global version
+  print_age();
+
+  // Global version value restored from saved local version
+  global::age = age;
+
+  // Prints 18, the restored value of the global version
+  print_age();
+}
+
+// @@PLEAC@@_10.14
+// Define functions - will be considered constant / unchangeable
+void grow() { write(&quot;grow\n&quot;); }
+void shrink() { write(&quot;shrink\n&quot;); }
+
+// ----
+
+// Execute functions: 'grow', 'shrink' output respectively
+grow(); shrink();
+
+// Attempt to redefine, 'grow' fails because it is considered a
+// constant value:
+//
+//   grow = shrink;
+//
+
+// However, it is possible to bind 'shrink' to a new local variable
+// called, 'grow'
+function grow = shrink;
+
+// Execute functions: 'shrink', 'shrink' output respectively because
+// local 'grow' shadows global version, and it is referencing the
+// code for 'shrink'
+grow(); shrink();
+
+// ------------
+
+// Define functions by assigning lambdas to global variables
+function(void : void) grow = lambda() { write(&quot;grow\n&quot;); }
+function(void : void) shrink = lambda() { write(&quot;shrink\n&quot;); }
+
+// ----
+
+// Execute functions: 'grow', 'shrink' output respectively
+grow(); shrink();
+
+// Attempt to redefine, 'grow' successful since a simple variable
+// assignment is being performed
+grow = shrink;
+
+// Execute functions: 'shrink', 'shrink' output respectively - 'grow'
+// has, effectively, been 'redefined' [note: reference to original
+// 'grow' code has been lost (but it could have been saved, then
+// restored)]
+grow(); shrink();
+
+// ----------------------------
+
+function barney = lambda() { ... };
+
+// ...
+
+// 'fred' is now an alias for the code attached to 'barney'
+function fred = barney;
+
+// ----------------------------
+
+function red = lambda(string text)
+  {
+    return &quot;&lt;FONT COLOR='red'&gt;&quot; + text + &quot;&lt;/FONT&gt;&quot;;
+  };
+
+// ----
+
+write(&quot;%s\n&quot;, red(&quot;careful here&quot;));
+
+// ------------
+
+function colour_font = lambda(string colour, string text)
+  {
+    return &quot;&lt;FONT COLOR='&quot; + colour + &quot;'&gt;&quot; + text + &quot;&lt;/FONT&gt;&quot;;
+  };
+
+function red = lambda(string text) { return colour_font(&quot;red&quot;, text); };
+function green = lambda(string text) { return colour_font(&quot;green&quot;, text); };
+
+// ... more 'colour' functions ...
+
+// ----
+
+write(&quot;%s\n&quot;, red(&quot;careful here&quot;));
+write(&quot;%s\n&quot;, green(&quot;careful there&quot;));
+// ... 
+
+// ------------
+
+// Pike offers the 'compile' family of functions that allow for the
+// runtime compilation and [in combinaton with other Pike functions]
+// the subsequent execution, of Pike code, obtained either as a
+// dynamically-generated string, or loaded from file / URL. This,
+// AFAICT, is the Pike feature closest to that of the 'eval' function
+// found in languages like Scheme. The example here is rather
+// contrived and unwieldly, but it does show how code is generated,
+// compiled, and executed, and it *does* closely follow the Perl code
+//
+
+// Assemble text needed to build function
+string build_colour_func(string colour)
+{
+  // Could also use library function, 'sprintf', to build string
+  string bodytext = &quot;\&quot;&lt;FONT COLOR='&quot; + colour + &quot;'&gt;\&quot; + text + \&quot;&lt;/FONT&gt;\&quot;&quot;;
+  return &quot;string &quot; + colour + &quot;(string text) { return &quot; + bodytext + &quot;; };&quot;;
+}
+
+int main(int argc, array(string) argv)
+{
+  // 1. Generate source code. A function is built for each colour by
+  //    calling, 'build_colour_func', and all the text collected into
+  //    'cf_text'
+  array(string) colours =
+    ({&quot;red&quot;, &quot;blue&quot;, &quot;green&quot;, &quot;yellow&quot;, &quot;orange&quot;, &quot;purple&quot;, &quot;violet&quot;});
+
+  string cf_text = &quot;&quot;;
+
+  foreach(colours, string colour)
+  {
+    cf_text += build_colour_func(colour);
+  }
+
+  // 2. Compile generated source code, and make it accessable to the
+  //    current program. These two steps are, here, combined for brevity,
+  //    but consist of the following:
+  //
+  //        program prog = compile_string(cf_text);
+  //        object cf_code = prog();
+  //
+  //    The latter step sees the code's 'create' method called for
+  //    initialisation, and also makes items accessable via:
+  //
+  //        cf_code[ITEMNAME]
+  //  
+  //    For example, the function, 'red', may be:
+  //        referenced -&gt; cf_code[&quot;red&quot;]
+  //        applied    -&gt; cf_code[&quot;red&quot;](&quot; ... &quot;)
+  //  
+  object cf_code = compile_string(cf_text)();
+
+  // 3. Apply the generated functions
+  mapping(string:string) colours_and_text = 
+    ([&quot;red&quot;:&quot;baron&quot;, &quot;blue&quot;:&quot;zephyr&quot;, &quot;green&quot;:&quot;beret&quot;,
+      &quot;yellow&quot;:&quot;ribbon&quot;, &quot;orange&quot;:&quot;county&quot;, &quot;purple&quot;:&quot;haze&quot;,
+      &quot;violet&quot;:&quot;temper&quot;]);
+
+  foreach(indices(colours_and_text), string colour)
+  {
+    // Get relevant function
+    function colour_func = cf_code[colour];
+
+    // Apply function with relevant argument(s)
+    write(&quot;%s\n&quot;, colour_func(colours_and_text[colour]));
+
+    // Or, above lines can be replaced with:
+    //     write(&quot;%s\n&quot;, cf_code[colour](colours_and_text[colour]));
+  }
+}    
+
+// @@PLEAC@@_10.15
+// @@INCOMPLETE@@
+
+// in your class
+
+  mapping functions = ([]);
+  function `-&gt;(string fun) 
+  {
+    if(!functions-&gt;fun)
+      functions[fun]=lambda(mixed|void ... args)
+                     { 
+                       return sprintf(&quot;&lt;FONT COLOR=%s&gt;%{%s %}&lt;/FONT&gt;&quot;, fun, args); 
+                     };
+    return functions[fun];
+  }
+
+// then outside
+write(object_of_your_class-&gt;chartreuse(&quot;stuff&quot;));
+
+// @@PLEAC@@_10.16
+// Alternate, though identically-behaving, nested subroutine definitions
+
+int outer(int arg)
+{
+  int x = arg + 35;
+  int inner() { return x * 19; };
+  return x + inner();
+}
+
+// ------------
+
+int outer(int arg)
+{
+  int x = arg + 35;
+  function(void : int) inner = lambda() { return x * 19; };
+  return x + inner();
+}
+
+// ------------
+
+function outer = lambda(int arg)
+  {
+    int x = arg + 35;
+    return (lambda() { return x * 19; })() + x;
+  };
+
+// ------------
+
+function(int : int) outer = lambda(int arg)
+  {
+    int x = arg + 35;
+    return (lambda() { return x * 19; })() + x;
+  };
+
+// @@PLEAC@@_10.17
+@@INCOMPLETE@@
+@@INCOMPLETE@@
+
+
+// ^^PLEAC^^_17.0
+//-----------------------------
+
+//Pike doesn't normally use packed IP addresses. Strings such as &quot;204.148.40.9&quot; are used literally.
+
+// -----------------------------
+
+// DNS lookups can be done with gethostbyname() and gethostbyaddr()
+[string host,array ip,array alias] = gethostbyname(&quot;www.example.com&quot;);
+// ip[0] is a string &quot;192.0.32.10&quot;
+
+//-----------------------------
+
+// ^^PLEAC^^_17.1
+//-----------------------------
+Stdio.File sock=Stdio.File();
+if (!sock-&gt;connect(remote_host,remote_port)) //Connection failed. Error code is in sock-&gt;errno() .
+{
+    werror(&quot;Couldn't connect to %s:%d: %s\n&quot;,remote_host,remote_port,strerror(sock-&gt;errno()));
+    return 1;
+}
+sock-&gt;write(&quot;Hello, world!&quot;); //Send something to the socket
+string answer=sock-&gt;read(); //Read until the remote side disconnects. Use sock-&gt;read(1024,1) to read only some (up to 1KB here).
+sock-&gt;close(); //Not necessary if the sock object goes out of scope here.
+
+//-----------------------------
+
+// ^^PLEAC^^_17.2
+//-----------------------------
+Stdio.Port mainsock=Stdio.Port();
+if (!mainsock-&gt;bind(server_port))
+{
+    werror(&quot;Couldn't be a tcp server on port %d: %s\n&quot;,server_port,strerror(mainsock-&gt;errno()));
+    return 1;
+}
+while (1)
+{
+    Stdio.File sock=mainsock-&gt;accept();
+    if (!sock) break;
+    // sock is the new connection
+    // if you don't do anything and just let sock expire, the client connection will be closed
+}
+//-----------------------------
+
+// ^^PLEAC^^_17.3
+//-----------------------------
+sock-&gt;write(&quot;What is your name?\n&quot;);
+string response=sock-&gt;read(1024,1); //Reads up to 1KB or whatever is available (minimum 1 byte).
+//Buffered reads:
+Stdio.FILE sock2=Stdio.FILE(); sock2-&gt;assign(sock);
+string response=sock2-&gt;gets();
+//-----------------------------
+
+//-----------------------------
+
+// ^^PLEAC^^_17.7
+//-----------------------------
+string other_end=sock-&gt;query_address(); //eg &quot;10.1.1.1 123&quot;
+//-----------------------------
+
+// ^^PLEAC^^_17.9
+//-----------------------------
+sock-&gt;close(&quot;r&quot;);   //Close the read direction
+sock-&gt;close(&quot;w&quot;);   //Close the write direction
+sock-&gt;close(&quot;rw&quot;);  //Shut down both directions
+sock-&gt;close();      //Close completely
+//-----------------------------
+
+// ^^PLEAC^^_17.11
+//-----------------------------
+
+//Forking is generally unnecessary in Pike, as the driver works more efficiently with other models.
+//-----------------------------
+
+// ^^PLEAC^^_17.13
+//-----------------------------
+
+//Incomplete. There's multiple ways to do this, including:
+//1) Threaded server (works like forking but clients can share global state if desired)
+//2) Multiplexing using select()
+//3) Callback mode (puts the sockets under the control of a Backend which uses select())
+//-----------------------------
+
+// ^^PLEAC^^_17.14
+//-----------------------------
+Stdio.Port mainsock=Stdio.Port();
+if (!mainsock-&gt;bind(server_port))
+{
+    werror(&quot;Couldn't be a tcp server on port %d: %s\n&quot;,server_port,strerror(mainsock-&gt;errno()));
+    return 1;
+}
+while (1)
+{
+    Stdio.File sock=mainsock-&gt;accept();
+    if (!sock) break;
+    string localaddr=sock-&gt;query_address(1); //Is the IP address and port connected to.
+    //The IP will be that of one of your interfaces, and the port should be equal to server_port
+}
+//-----------------------------
+
+// ^^PLEAC^^_17.15
+//-----------------------------
+if (!System.chroot(&quot;/var/daemon&quot;)) werror(&quot;Unable to chroot to /var/daemon: %s\n&quot;,strerror(errno()));
+//Incomplete (I don't fork in Pike). See predef::fork() and Process.create_process() for details.
+//-----------------------------
+
+// ^^PLEAC^^_17.16
+//-----------------------------
+//The best way to restart the server is to adopt a microkernel concept and restart only the parts of
+//the server that need updating. However, if you must reload, see Process.exec()
+//-----------------------------
+
+</PRE>
+<HR>
+<ADDRESS>Generated by <A HREF="http://www.iki.fi/~mtr/genscript/">GNU Enscript 1.6.5.90</A>.</ADDRESS>
+</BODY>
+</HTML>

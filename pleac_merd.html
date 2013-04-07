@@ -1,0 +1,938 @@
+<!DOCTYPE html PUBLIC "-//IETF//DTD HTML 2.0//EN">
+<HTML>
+<HEAD>
+<TITLE>Enscript Output</TITLE>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF" TEXT="#000000" LINK="#1F00FF" ALINK="#FF0000" VLINK="#9900DD">
+<A NAME="top">
+<A NAME="file1">
+<H1>tmp.data</H1>
+
+<PRE>
+# -*- merd -*-
+# The examples are taken from the Perl Cookbook
+# By Tom Christiansen &amp; Nathan Torkington
+# see http://www.oreilly.com/catalog/cookbook for more
+
+#@@PLEAC@@_NAME
+Merd
+
+#@@PLEAC@@_WEB
+http://merd.sf.net/
+
+#@@PLEAC@@_1.1
+
+s = &quot;This is what you have&quot;
+first = s[0]                            # &quot;T&quot;
+start = s[5..7]                         # &quot;is&quot;
+rest  = s[13..]                         # &quot;you have&quot;
+last  = s.last                          # &quot;e&quot;
+end   = s.lasts(4)                      # &quot;have&quot;
+piece = s.lasts(8 .. 5)                 # &quot;you&quot;
+
+# magic substr not usefull (?)
+
+s.subst!(G, &quot;is&quot;, &quot;at&quot;)
+
+
+#@@PLEAC@@_1.2
+
+2 &amp;&amp;&amp; &quot;ee&quot; # -&gt; &quot;ee&quot;
+0 &amp;&amp;&amp; &quot;ee&quot; # -&gt; &quot;&quot;
+
+&quot;a&quot; ||| &quot;b&quot; # -&gt; &quot;a&quot;
+ &quot;&quot; ||| &quot;b&quot; # -&gt; &quot;b&quot;
+
+x |||= &quot;b&quot;
+
+
+#@@PLEAC@@_1.3
+(a, b) = (b, a)
+
+#@@PLEAC@@_1.4
+# Char::ord !! int
+# Int::chr !! char
+
+&quot;HAL&quot;.map(next)                         # &quot;IBM&quot;
+
+#@@PLEAC@@_1.5
+
+# a string is a list, no pb
+println(  &quot;unique chars are: {&quot;an apple a day&quot;.uniq.sort}&quot;)
+println(qq(unique chars are: {&quot;an apple a day&quot;.uniq.sort}))
+
+#@@PLEAC@@_1.6
+println(s.rev)                          # reverse letters
+println(s.words.rev.join(&quot; &quot;))          # reverse words
+
+long_palindromes = cat(&quot;/usr/dict/words&quot;).map(chomp).filter(s -&gt; s == s.rev &amp;&amp; s.size &gt; 4)
+
+#@@PLEAC@@_1.7
+s.expand_tabs = s.fixpoint(
+    break(, &quot;\t&quot;,
+          a,b -&gt; a + &quot; &quot;.times(8 - a.size modulo 8) + b
+    )
+)
+
+#@@PLEAC@@_1.8
+
+# forbidden, use one of:
+s = &quot;You owe {debt} to me&quot;
+fs(s) = &quot;You owe {s} to me&quot;
+fs':= sprintf(&quot;You owe %s to me&quot;,)
+
+&quot;I am 17 years old&quot;.subst(G, &quot;(\d+)&quot;, (n -&gt; &quot;{2 * n}&quot;))
+&quot;I am 17 years old&quot;.subst(G, &quot;(\d+)&quot;, *2 ~ to_string)
+
+#@@PLEAC@@_1.9
+e = &quot;bo peep&quot;.upcase
+e.downcase!
+e.capitalize!
+
+&quot;thIS is a loNG liNE&quot;.words.map(capitalize)
+
+#@@PLEAC@@_1.10
+println(&quot;I have {n + 1} guanacos.&quot;)
+
+w = &quot;work&quot;
+very := () -&gt; &quot;very&quot;
+well() = &quot;well&quot;
+&quot;this is gonna {w} {very()} {well()}&quot;
+
+#@@PLEAC@@_1.12
+s.wrap(width) =
+    ls, s' = s.words.foldl(([], &quot;&quot;), ((ls, s), word -&gt;
+        if &quot;{s} {word}&quot; &gt; width then
+            ls + [s], word
+        else
+            s' = (s &amp;&amp;&amp; &quot;{s} &quot;) + word
+            ls, s'
+    ))
+    join(ls + [s'], &quot;\n&quot;)
+    
+#@@PLEAC@@_1.14
+s.subst!(&quot;^\s+&quot;, &quot;&quot;)
+s.subst!(&quot;\s+$&quot;, &quot;&quot;)
+
+s.trim = s.subst(&quot;^\s+&quot;, &quot;&quot;).subst(&quot;\s+$&quot;, &quot;&quot;)
+
+#@@PLEAC@@_2.5
+print(&quot;Infancy is: &quot;) ; 0..2.map(e -&gt; print(&quot;{e} &quot;))
+print(&quot;Infancy is: &quot;) ; 0..2.map(to_string).join(&quot; &quot;).print
+
+#@@PLEAC@@_2.7
+rand = random(25 .. 75)                 # rand is in [25,75[
+
+chars = &quot;A&quot;..&quot;Z&quot; + &quot;a&quot;..&quot;z&quot; + &quot;0&quot;..&quot;9&quot; + q(!@$%^&amp;*)
+password = 1..8.map(_ -&gt; chars[random(chars.size)]).flatten
+
+#@@PLEAC@@_2.16
+number = hex(hexadecimal) # hexadecimal
+number = to_int(octal, 8) # octal
+
+print(&quot;Gimme a number in decimal, octal, or hex: &quot;)
+num = Sys::stdin.line.chomp
+num = num.pattern_matches(
+    &quot;^0x&quot;, hex(num),
+    &quot;^0&quot;, to_string(num, 8),
+    &quot;&quot;, num,
+)
+&quot;%d %x %o\n&quot;.printf(num, num, num)
+
+#@@PLEAC@@_2.17
+s.commify =
+    integer.fixpoint(subst(, &quot;(\d)(\d\{3})($|\.|,)&quot;, (a,b,c -&gt; &quot;{a},{b}{c}&quot;)))
+s.commify' =
+    s.pattern_matches(
+        &quot;(.*)(...)&quot;, (a,b -&gt; a.commify' + &quot;,&quot; + b)
+        &quot;&quot;, s
+    )
+    
+#@@PLEAC@@_4.1
+a = (&quot;quick&quot;, &quot;brown&quot;, &quot;fox&quot;)
+a = &quot;Why are you teasing me?&quot;.words
+big_array = &quot;mydatafile&quot;.open(Sep(crlf)).lines
+
+banner = &quot;The Mines of Moria&quot;
+banner = q(The Mines of Moria)
+
+name   = &quot;Gandalf&quot;
+banner = &quot;Speak, {name}, and enter!&quot;
+banner = qq(Speak, {name}, and welcome!)
+ships  = &quot;Nińa Pinta Santa María&quot;.words # WRONG
+ships  = (&quot;Nińa&quot;, &quot;Pinta&quot;, &quot;Santa María&quot;)
+
+#@@PLEAC@@_4.2
+commify_series =
+    [] -&gt; &quot;&quot;
+    l -&gt;
+        l', e = l.pop
+        l'.join(&quot;, &quot;) + &quot; and &quot; + e
+
+array = (&quot;red&quot;, &quot;yellow&quot;, &quot;green&quot;)
+println(&quot;I have {array.join(&quot; &quot;)} marbles.&quot;) #=&gt; I have red yellow green marbles.
+
+#@@PLEAC@@_4.3
+l.what_about_that_array =
+    println(&quot;The array now has {l.size} elements.&quot;)
+    println(&quot;The index of the last element is {l.size - 1}.&quot;)
+    println(&quot;Element #3 is `{l[3]}'.&quot;)
+
+&quot;Crosby Stills Nash Young&quot;.words.what_about_that_array
+
+#@@PLEAC@@_4.4
+bad_users.each(complain)
+bad_users.each(user -&gt; complain(user))
+
+Sys::env.keys.sort.each(var -&gt; &quot;{var}={Sys::env{var}}&quot;.println)
+Sys::env.each(var, val -&gt; &quot;{var}={val}&quot;.println) # but non-sorted
+Sys::env.sort_by(a,_ , b,_ -&gt; a &lt;=&gt; b).each(var, val -&gt; &quot;{var}={val}&quot;.println)
+
+bad_users.each(user -&gt;
+    if user.get_usage &gt; Max_quota then
+        complain(user)
+)
+
+&quot;who&quot;.popen.lines(s -&gt;
+    s.m!(&quot;tchrist&quot;, s.print)
+)
+
+df.lines(s -&gt;
+    s.words.each(s -&gt; s.rev.println)
+)
+
+array.each(item -&gt; &quot;i = {item}&quot;.println)
+array.each(--)
+
+a = ( 0.5, 3 ); b = ( 0, 1 )
+(a,b).each(l -&gt;
+    l.map(a -&gt;
+        a *= 7
+        &quot;{a} &quot;.print
+    )
+)
+
+#@@PLEAC@@_4.6
+unique = list.uniq
+
+# generate a list of users logged in, removing duplicates
+users = &quot;who&quot;.popen.lines.map(m(,&quot;(\S+)&quot;)).sort.uniq
+println(&quot;users logged in: {users}&quot;)
+
+#@@PLEAC@@_4.7
+difference(a, b)
+
+#@@PLEAC@@_4.8
+union(a, b)
+intersection(a, b)
+difference(union(a,b), intersection(a,b))
+
+#@@PLEAC@@_4.9
+members = (&quot;Time&quot;, &quot;Flies&quot;)
+initiates = (&quot;An&quot;, &quot;Arrow&quot;)
+members += initiates
+# members is now (&quot;Time&quot;, &quot;Flies&quot;, &quot;An&quot;, &quot;Arrow&quot;)
+
+members = (&quot;Time&quot;, &quot;Flies&quot;)
+initiates = (&quot;An&quot;, &quot;Arrow&quot;)
+members.insert!(2, &quot;Like&quot; + initiates)
+# members is now (&quot;Time&quot;, &quot;Flies&quot;, &quot;Like&quot;, &quot;An&quot;, &quot;Arrow&quot;)
+members[0] = &quot;Fruit&quot;
+members[2,3] = &quot;A&quot;, &quot;Banana&quot;
+# members is now (&quot;Fruit&quot;, &quot;Flies&quot;, &quot;Like&quot;, &quot;A&quot;, &quot;Banana&quot;)
+
+#@@PLEAC@@_4.10
+reversed = array.rev
+
+array.rev.each(e -&gt;
+    # do something with e
+    ()
+)
+
+#@@PLEAC@@_4.11
+a.shift2 = a.shift!, a.shift!
+a.pop2 = swap(a.pop!, a.pop!)
+
+friends = &quot;Peter Paul Mary Jim Tim&quot;.words
+(this, that) = friends.shift2
+# this contains Peter, that has Paul, and
+# friends has Mary, Jim, and Tim
+
+beverages = &quot;Dew Jolt Cola Sprite Fresca&quot;.words
+pair = beverages.pop2
+# pair[0] contains Sprite, pair[1] has Fresca,
+# and beverages has (Dew, Jolt, Cola)
+
+#@@PLEAC@@_4.12
+highest_engineer = employees.find(employee -&gt; employee.category == &quot;engineer&quot;)
+println(&quot;Highest paid engineer is: {highest_engineer.name}&quot;)
+
+#@@PLEAC@@_4.13
+bigs = nums.filter(n -&gt; n &gt; 1_000_000)
+pigs = users.filter(_, n -&gt; n &gt; 1e7).keys
+
+matching = popen(&quot;who&quot;).lines.filter(m(, &quot;^gnat &quot;))
+engineers = employees.filter(employee -&gt; employee.category == &quot;engineer&quot;)
+
+secondary_assistance = applicants.filter(e -&gt; e{Income} &gt;= 26_000 &amp;&amp; e{Income} &lt; 30_000)
+
+#@@PLEAC@@_4.14
+sorted = sort(non_sorted)               # if non_sorted !&gt; Vector(Int)
+
+# pids is an unsorted array of process IDs
+pids.sort.each(println)
+
+println(&quot;Select a process ID to kill:&quot;)
+try
+    pid = Sys::stdin.line.chomp.to_int
+    pid.kill(TERM)
+    sleep(2)
+    pid.kill(KILL)
+with Failed(To_int) -&gt; die(&quot;Exiting ... \n&quot;)
+
+descending = non_sorted.sort_by(a,b -&gt; b &lt;=&gt; a)
+
+#@@PLEAC@@_4.15
+ordered = unordered.sort_by(compare)
+
+precomputed = unordered.map(e -&gt; e.compute, e)
+ordered_precomputed = precomputed.sort_by(a,b -&gt; a[0] &lt;=&gt; b[0])
+ordered = ordered_precomputed.map(a -&gt; a[0])
+
+ordered = unordered.map(e -&gt; e.compute, e)
+                   .sort_by(a,b -&gt; a[0] &lt;=&gt; b[0])
+                   .map(a -&gt; a[0])
+
+sorted = employees.sort_by(a,b -&gt; a.name &lt;=&gt; b.name || b.age &lt;=&gt; a.age)
+
+# getpwent is an iterator
+users = getpwent().to_list
+users.sort_by!(a,b -&gt; a{Name} &lt;=&gt; b{Name})
+users.each(user -&gt; user{Name}.println)
+
+sorted = names.sort_by(a,b -&gt; a[1] &lt;=&gt; b[1])
+sorted = string.sort_by(a,b -&gt; a.size &lt;=&gt; b.size)
+
+sorted_fields = fields.map(e -&gt; e.m(&quot;(\d+)&quot;), e)
+                      .sort_by(a,b -&gt; a[0] &lt;=&gt; b[0])
+                      .map(a -&gt; a[0])
+
+&quot;/etc/passwd&quot;.open
+    .lmap(e -&gt; e.split(&quot;:&quot;)[3,2,0], e)
+    .sort_by(a,b -&gt;
+        a[1] &lt;=&gt; b[1] ||| # gid
+        a[2] &lt;=&gt; b[2] ||| # uid
+        a[3] &lt;=&gt; b[3]     # login
+    )
+    .map(a -&gt; a[0])
+
+#@@PLEAC@@_4.16
+circular.unshift!(circular.pop!)        # the last shall be first
+circular.push!(circular.shift!)         # and vice versa
+
+l.grab_and_rotate =
+    e = l.shift!
+    l.push!(e)
+    e
+
+processes = (1, 2, 3, 4, 5)
+loop
+    process = grab_and_rotate(processes)
+    println(&quot;Handling process {process}&quot;)
+    sleep(1)
+
+
+#@@PLEAC@@_4.17
+l.randomize!
+
+l.fisher_yates_shuffle =
+    (l.size - 1 .. 0).each(i -&gt;
+        j = random(i+1)
+        l[i,j] = l[j,i] if i != j
+    )
+
+l.naive_shuffle =
+    l.each_with_index(_, i -&gt;
+        j = random(l.size)
+        l[i,j] = l[j,i] if i != j
+    )
+
+#@@PLEAC@@_5.0
+
+age = {
+    &quot;Nat&quot;  , 24,
+    &quot;Jules&quot;, 25,
+    &quot;Josh&quot; , 17,
+}
+age{&quot;Nat&quot;}   = 24
+age{&quot;Jules&quot;} = 25
+age{&quot;Josh&quot;}  = 17
+
+
+#@@PLEAC@@_5.1
+food_color = {
+    &quot;Apple&quot; , &quot;red&quot;,
+    &quot;Banana&quot;, &quot;yellow&quot;,
+    &quot;Lemon&quot; , &quot;yellow&quot;,
+    &quot;Carrot&quot;, &quot;orange&quot;,
+}
+food_color{&quot;Raspberry&quot;} = &quot;pink&quot;
+println(&quot;Known foods:&quot;)
+food_color.keys.each(println)
+
+#@@PLEAC@@_5.2
+(&quot;Banana&quot;, &quot;Martini&quot;).each(name -&gt;
+    println(&quot;{name} is a {if food_color.key?(name) then &quot;food&quot; else &quot;drink&quot;}&quot;)
+)
+# Banana is a food.
+# Martini is a drink.
+
+#@@PLEAC@@_5.3
+food_color.remove_key!(&quot;Banana&quot;)
+
+#@@PLEAC@@_5.4
+food_color.each(food, color -&gt; &quot;{food} is {color}.&quot;.println)
+food_color.keys.sort.each(food -&gt; &quot;{food} is {food_color{food}}.&quot;.println)
+
+#@@PLEAC@@_5.5
+hash.each(k,v -&gt; &quot;{k} =&gt; {v}&quot;.println)
+
+#@@PLEAC@@_5.6
+# the default should be to keep the order, so no pb here.
+
+#@@PLEAC@@_5.7
+ttys = {}
+popen(&quot;who&quot;).each(s -&gt;
+    user, tty = s.words[0,1]
+    #ttys{user} = [] if not ttys.key?(user)    &lt;- not needed, auto created with ***
+    ttys{user}.push!(tty)
+)
+ttys.keys.sort.each(user -&gt; &quot;{user}: {ttys{user}.join(&quot;, &quot;)}&quot;.println)
+
+# or the more functional:
+popen(&quot;who&quot;).foldl({}, (ttys, s -&gt;
+    user, tty = s.words[0,1]
+    #ttys{user} = [] if not ttys.key?(user)    &lt;- not needed, auto created with ***
+    ttys{user}.push(tty)
+)).keys.sort.each(user -&gt; &quot;{user}: {ttys{user}.join(&quot;, &quot;)}&quot;.println)
+
+#@@PLEAC@@_5.8
+surname = { &quot;Mickey&quot;,&quot;Mantle&quot; , &quot;Babe&quot;,&quot;Ruth&quot; }
+println(surname.value2key(&quot;Mantle&quot;))    # =&gt; Mickey
+
+#@@PLEAC@@_5.9
+food_color.keys.sort.each(food -&gt; &quot;{food} is {food_color{food}}.&quot;.println)
+
+#@@PLEAC@@_5.10
+merged = a + b
+
+drink_color = { &quot;Galliano&quot;,&quot;yellow&quot; , &quot;Mai Tai&quot;,&quot;blue&quot; }
+ingested_colors = drink_color + food_color
+
+substance_color = drink_color + food_color
+intersection(drink_color, food_color).each(k,_ -&gt;
+    println(&quot;Warning: {k} seen twice. Using the last definition.&quot;)
+)
+
+#@@PLEAC@@_5.11
+all_colors += new_colors
+
+common = intersection(hash1, hash2).keys
+common = intersection(hash1.keys, hash2.keys)
+
+citrus_color = {
+    &quot;Lemon&quot;, &quot;yellow&quot;,
+    &quot;Orange&quot;, &quot;orange&quot;,
+    &quot;Lime&quot;, &quot;green&quot;,
+}
+non_citrus = difference(food_color, citrus_color).keys
+non_citrus = difference(food_color.keys, citrus_color.keys)
+
+#@@PLEAC@@_5.12
+# no pb, merd's dicts handle any kind of objects which have Eq
+
+#@@PLEAC@@_5.13
+# TODO
+
+#@@PLEAC@@_5.14
+count = {}
+array.each(e -&gt; count{e}++)
+
+#@@PLEAC@@_5.15
+father = {
+    &quot;Cain&quot;      , &quot;Adam&quot;,
+    &quot;Abel&quot;      , &quot;Adam&quot;,
+    &quot;Seth&quot;      , &quot;Adam&quot;,
+    &quot;Enoch&quot;     , &quot;Cain&quot;,
+    &quot;Irad&quot;      , &quot;Enoch&quot;,
+    &quot;Mehujael&quot;  , &quot;Irad&quot;,
+    &quot;Methusael&quot; , &quot;Mehujael&quot;,
+    &quot;Lamech&quot;    , &quot;Methusael&quot;,
+    &quot;Jabal&quot;     , &quot;Lamech&quot;,
+    &quot;Jubal&quot;     , &quot;Lamech&quot;,
+    &quot;Tubalcain&quot; , &quot;Lamech&quot;,
+    &quot;Enos&quot;      , &quot;Seth&quot;,
+}
+Sys::stdall.each(e -&gt;
+    e.chomp!
+    
+    #fathers = e : e.unfoldr1(e -&gt; Some(father{e}) or None)
+    #println(fathers.join(&quot; &quot;))
+
+    print(&quot;{e}&quot;)
+    try loop
+        e = fathers{e}
+        print(&quot;{e} &quot;)
+    with _ -&gt; println(&quot;&quot;)
+)
+
+Sys::stdall.each(e -&gt;
+    e.chomp!
+    children = father.key2values(e) ||| [ &quot;nobody&quot; ]
+    println(&quot;{e} begat {children.join(&quot;, &quot;)}.&quot;)
+)
+
+includes = {}
+files.each(file -&gt;
+    try
+        file.open.each(s -&gt;
+            s.pattern_matches(
+                &quot;^\s*#\s+include\s+&lt;(.*?)&gt;&quot;,
+                f -&gt; includes.push!(f)
+            )
+        )
+    with File_error(err) -&gt; warn(&quot;Couldn't read {file}: {err}; skipping.\n&quot;)
+)
+include_free =
+    # list of files that don't include others
+    difference(includes.values.flatten.uniq, includes.keys)
+
+#@@PLEAC@@_6.0
+meadow.m!(I, &quot;\bovines?\b&quot;, println(&quot;Here be sheep!&quot;))
+
+string = &quot;good food&quot;
+string.subst!(&quot;o*&quot;, &quot;e&quot;)
+
+&quot;ababacaca&quot;.m!(
+    &quot;((a|ba|b)+(a|ac)+)&quot;,
+    s,_,_ -&gt; s.println
+)                                       # =&gt; ababa
+
+s.m!(G, &quot;(\d+)&quot;, e-&gt;println(&quot;Found number {e}&quot;))
+numbers = s.m(G, &quot;(\d+)&quot;)
+
+#@@PLEAC@@_6.1
+dst = src.subst(&quot;this&quot;, &quot;that&quot;)
+
+# Make All Words Title-Cased
+capword = word.subst(G, &quot;(\w+)&quot;, capitalize)
+
+# /usr/man/man3/foo.1 changes to /usr/man/cat3/foo.1
+catpage = manpage.subst(&quot;man(?=\d)&quot;, &quot;cat&quot;)
+
+bindirs = &quot; /usr/bin /bin /usr/local/bin &quot;.words
+libdirs = bindirs.map(subst(, &quot;bin&quot;, &quot;lib&quot;))
+println(libdirs.join(&quot; &quot;))              # /usr/lib /lib /usr/local/lib
+
+#@@PLEAC@@_6.5
+s = &quot;One fish two fish red fish blue fish&quot;
+want = 3
+count = 0
+s.m!(
+    G|I,
+    &quot;(\w+)\s+fish\b&quot;,
+    s -&gt;
+        count++
+        if count == want then
+            println(&quot;The third fish is a {s} one.&quot;) # =&gt; red
+)
+s.m!(
+    I, &quot;(?:\w+\s+fish\s+)\{2}(\w+)\s+fish&quot;,
+    s -&gt; println(&quot;The third fish is a {s} one.&quot;) # =&gt; red
+)
+colors = s.m(G|I, &quot;(\w+)\s+fish\b&quot;)
+println(&quot;The third fish is a {colors[2]} one.&quot;) # =&gt; red
+
+pond = &quot;One fish two fish red fish blue fish swim here.&quot;
+color = pond.m(G|I, &quot;\b(\w+)\s+fish\b&quot;).last
+println(&quot;Last fish is {color}.&quot;)        #=&gt; Last fish is blue.
+
+#@@PLEAC@@_6.8
+file.open.to_list.each_with_index(s,i -&gt; println(s) if i.member?(15 .. 17))
+
+r = Regexp::new_range(m?(, I, &quot;&lt;XMP&gt;&quot;), m?(, I, &quot;&lt;/XMP&gt;&quot;))
+l.each(s -&gt; if s.member?(r) then print(s))
+
+header = Regexp::new_range(_ -&gt; True, == &quot;&quot;)
+body = Regexp::new_range(== &quot;&quot;, _ -&gt; True)
+l.each(s -&gt;
+    in_header = s.member?(header)
+    in_body = s.member?(body)
+)
+
+header = Regexp::new_range(m?(, I, &quot;^From:?\s&quot;), == &quot;&quot;)
+Sys::stdall.collect(s -&gt;
+    if s.member?(header) then
+        c = &quot;[^&lt;&gt;(),;\s]&quot;
+        s.m(G, &quot;({c}+\@{c}+)&quot;)
+    else []
+).flatten.uniq.each(println)
+
+#@@PLEAC@@_6.9
+s.glob2pat =
+    patmap = {
+        &quot;*&quot;, &quot;.*&quot;,
+        &quot;?&quot;, &quot;.&quot;,
+        &quot;[&quot;, &quot;[&quot;,
+        &quot;]&quot;, &quot;]&quot;,
+    }
+    s.subst!(G, &quot;(.)&quot;, (c -&gt; patmap{c} or c.quotemeta))
+    &quot;^{s}$&quot;
+
+#@@PLEAC@@_6.10
+# no need
+
+#@@PLEAC@@_6.11
+# not possible? do not allow runtime constructed regexps?
+
+#@@PLEAC@@_7.0
+&quot;/usr/local/widgets/data&quot;.open.each(
+    s -&gt; s.m!(&quot;bleu&quot;, s.println)
+)
+
+Sys::stdall.lines(s -&gt;
+    #s.m!(&quot;\d&quot;, warn(&quot;No digit found.\n&quot;))
+    warn(&quot;No digit found.\n&quot;) if not s.m?(&quot;\d&quot;)
+    print(&quot;Read: {s}&quot;)
+)
+
+#@@PLEAC@@_7.1
+
+fd = open(filename, W)
+fd.print(s)
+
+filename.output(s)
+
+#@@PLEAC@@_7.2
+# ;pp
+
+#@@PLEAC@@_7.3
+&quot;~&quot;.expand_path                         # a la ruby
+
+#@@PLEAC@@_7.4
+# default is exception on error =&gt; good error messages
+# with open(f, Safe), no exception on file access
+
+#@@PLEAC@@_7.5
+f = tmpfile(&quot;foo&quot;) or tmpfile(&quot;/tmp/fooXXXXXX&quot;) # &quot;foo&quot; gives file $TMPDIR/fooXXXXXX
+f.output(&quot;bar&quot;)                 # output &quot;bar&quot; to a temporary file named f
+
+#@@PLEAC@@_7.6
+# use a string:
+DATA = q(
+# your data goes here
+)
+
+#@@PLEAC@@_7.7
+
+#@@PLEAC@@_7.10
+l = file.open.lines.map(subst(, &quot;DATE&quot;, localtime()))
+file.output(l)
+
+#@@PLEAC@@_7.11
+f = &quot;numfile&quot;.open(R | W | Lock)
+# Now we have acquired the lock, it's safe for I/O
+num = f.whole.m(&quot;(\d+)&quot;) or 0
+f.truncate!(0)            # truncate! ensure the current seek is &lt;= current size
+f.print(&quot;{num}\n&quot;)
+
+#@@PLEAC@@_7.12
+output_handle.autoflush!(True)
+
+#@@PLEAC@@_7.13
+l = [ fh1, fh2, fh3 ].select
+if fh1.mem?(l) then
+    # do something with fh1
+if fh2.mem?(l) then
+    # do something with fh2
+
+#@@PLEAC@@_7.14
+modem = &quot;/dev/cua0&quot;.open(Non_block | W)
+
+#@@PLEAC@@_7.15
+# don't do it, use &quot;whole&quot; with Non_block
+
+#@@PLEAC@@_7.16
+# ;pp
+
+#@@PLEAC@@_7.18
+# maybe introduce Out_files !&lt; Out_file
+
+#@@PLEAC@@_7.19
+fh = fdopen(fdnum, R) # open file descriptor 3 for reading
+
+#@@PLEAC@@_7.20
+alias = original
+outcopy = Sys::stdout.clone
+incopy = Sys::stdin.clone
+
+#@@PLEAC@@_8.0
+datafile.each(s -&gt;
+    s.chomp!
+    s.size.println                      # output size of line
+)
+
+lines = datafile.lines
+whole_file = file.whole
+
+[&quot;One&quot;, &quot;two&quot;, &quot;three&quot; ].each(print(handle,))  # &quot;Onetwothree&quot;
+println(&quot;Baa baa black sheep.&quot;)         # Sent to default output handle
+
+buffer = handle.read(4096)
+
+handle.truncate(length)
+&quot;tmp/{Sys::pid}.pid&quot;.truncate(length)
+
+pos = datafile.tell_seek
+println(&quot;I'm {pos} bytes from the start of DATAFILE.&quot;)
+
+logfile.seek!(End)
+datafile.seek!(0)
+out.seek!(out.tell_seek - 20)
+
+datafile = datafile.print(mystring)
+block = infile.read(256)                # can't do offset writing of 5
+
+#@@PLEAC@@_8.1
+
+while not fh.empty? do
+    lines = fh.take_while(substr!?(, &quot;\\$&quot;, &quot;&quot;))
+    line = lines.join(&quot;&quot;)
+    # process full record in {line} here
+
+#@@PLEAC@@_8.2
+
+file.open.lines.size
+
+f = file.open(Sep_keep(&quot;\n+&quot;))         # enable paragraph mode for &quot;line&quot;, &quot;lines&quot;, &quot;each&quot;...
+f.lines.size
+
+#@@PLEAC@@_8.3
+Sys::stdall.each(s -&gt;
+    s.words.each(word -&gt;
+        # do something with {word}
+    )
+)
+
+Sys::stdall.reopen(Sep(&quot;\s+&quot;)).each(s -&gt;
+    # do something with {word}
+)
+
+# Make a word frequency count
+seen = {}
+Sys::stdall.reopen(Sep(&quot;\s+&quot;)).each(s -&gt; seen{s.downcase}++)
+# output hash in a descending numeric sort of its values
+seen.keys.sort_by(a,b -&gt; seen{b} &lt;=&gt; seen{a})
+    .iter(word -&gt; &quot;%5d %s\n&quot;.printf(seen{word}, word))
+
+# Line frequency count
+seen = {}
+Sys::stdall.each(s -&gt; seen{s.downcase}++)
+# output hash in a descending numeric sort of its values
+seen.keys.sort_by(a,b -&gt; seen{b} &lt;=&gt; seen{a})
+    .iter(line -&gt; &quot;%5d %s&quot;.printf(seen{line}, line))
+
+#@@PLEAC@@_8.4
+file.lines.reverse.each(line -&gt;
+    # do something with {line}
+)
+
+file.open(Sep_keep(&quot;\n+&quot;)).lines.reverse.each(paragraph -&gt;
+    # do something with paragraph    
+)
+
+#@@PLEAC@@_8.5
+loop
+    fh.each(line -&gt;
+        # ...
+    )
+    sleep(sometime)
+    # clearerr?
+
+#@@PLEAC@@_8.6
+i = 0
+line = stdall.find(_ -&gt; i++ ; random(i) == 0)
+# {line} is the random line
+
+i = 0
+adage = &quot;/usr/share/games/fortunes&quot;
+    .open(Sep(&quot;%\n&quot;))
+    .find(_ -&gt; i++ ; random(i) == 0)
+adage.print 
+
+#@@PLEAC@@_8.7
+input.lines.randomize.each(s -&gt; output.print(s))
+
+#@@PLEAC@@_8.8
+i = 0
+line = handle.find(_ -&gt; i++ ; i == desired_line_number)
+
+line = handle.to_list[desired_line_number]
+
+
+build_index(data_file, index_file) =
+    offset = 0
+    in.each(_ -&gt;
+        out.print(offset.pack(&quot;N&quot;))
+        offset = in.tell_seek
+    )
+    
+line_with_index(data_file, index_file, line_number) =
+    i_offset = line_number-1 * pack_size(&quot;N&quot;)
+    index_file.seek!(i_offset) or return
+    
+    entry = index_file.read(pack_size(&quot;N&quot;))
+    d_offset = entry.unpack(&quot;N&quot;)
+    data_file.seek!(d_offset)
+    data_file.line
+
+# usage:
+in = file.open
+index = &quot;{file}.idx&quot;.open(R | W)
+build_index(in, index)
+line = line_with_index(in, index, seeking)
+
+#@@PLEAC@@_8.9
+&quot;3+5-2&quot;.split(&quot;([+-])&quot;)                 #=&gt; [ &quot;3&quot;, &quot;+&quot;, &quot;5&quot;, &quot;-&quot;, &quot;2&quot; ]
+fields = record.split(&quot;:&quot;)
+fields = record.split(&quot;\s+&quot;)
+fields = record.words
+
+#@@PLEAC@@_8.10
+fh = file.open(R | W)
+addr = 0
+fh.each(_ -&gt; addr = fh.tell_seek if not file.empty?)
+fh.truncate!(addr)
+
+#@@PLEAC@@_8.11
+# don't care about non-UNIX ;pp
+
+#@@PLEAC@@_8.12
+address = recsize * recno
+fh.seek!(address)
+buffer = fh.read(recsize)
+
+#@@PLEAC@@_8.13
+address = recno * pack_size(format)
+fh.seek!(address)
+fields = fh.read_unpack(format)
+# update fields, then
+fh.seek!(address)
+fields.pack_print(format, fh)
+
+# weekearly -- set someone's login date back a week
+user    = Sys::args[0] or Sys::env{&quot;USER&quot;} or Sys::env{&quot;LOGNAME&quot;}
+
+typedef = &quot;L A12 A16&quot;                   # linux fmt; sunos is &quot;L A8 A16&quot;
+address = Sys::getpwnam(user){Uid} * pack_size(typedef)
+
+lastlog = &quot;/var/log/lastlog&quot;.open(R | W)
+    or die(&quot;can't update /usr/adm/lastlog: {Sys::errno_string}&quot;)
+lastlog.seek!(address)
+
+(time, line, host) = lastlog.read_unpack(typedef)
+time -= 24 * 7 * 60 * 60                # back-date a week
+
+lastlog.seek!(address)
+(time, line, host).pack_print(typedef, lastlog)
+
+
+#@@PLEAC@@_8.14
+file : addrs = Sys::args
+if addrs == [] then die(&quot;usage: {Sys::progname} addr ...\n&quot;)
+        
+fh = file.open(Sep(&quot;\0&quot;))
+addrs.each(s -&gt;
+    fh.seek!(s.to_int)
+    qq(%#x %#o %d &quot;%s&quot;\n).printf(addr, addr, addr, fh.line)  
+)
+
+#@@PLEAC@@_8.15
+while not file.empty? do
+    fields = file.read_unpack(template)
+    # use fields
+
+#@@PLEAC@@_8.16
+config.each(s -&gt;
+    s.chomp!                            # no newline
+    s.subst!(&quot;#.*&quot;, &quot;&quot;)                 # no comments
+    s.chop_bounding_spaces!             # no leading white, no trailing white
+    s.m!(
+        &quot;(\S*)\s*=\s*(.*)&quot;, 
+        var, value -&gt; User_Preferences{var} = value
+    )
+)
+
+#@@PLEAC@@_8.17
+info = File::stat(filename)
+println(&quot;Superuser owns filename&quot;) if info{Uid} == 0
+println(&quot;filename has been read since it was written.&quot;) if info{Atime} &gt; info{Mtime}
+
+#@@PLEAC@@_9.1
+
+(reatime, writetime) = File::stat(filename){Readtime, Writetime}
+# modify readtime, writetime
+filename.File::utime(readtime, writetime)
+
+#@@PLEAC@@_9.2
+File::delete(filename)
+
+#@@PLEAC@@_9.3
+File::copy(oldfile, newfile)
+File::rename(oldfile, newfile)
+File::move(oldfile, newfile)
+
+#@@PLEAC@@_9.4
+seen = {}
+files.each(f -&gt;
+    seen{File::stat(f){Device, Inode}}.push!(f)
+)
+seen.to_list.sort.each((dev,ino), l -&gt;
+    if l.size &gt; 1 then
+        # l is a list of filenames for the same file
+)
+
+#@@PLEAC@@_9.5
+Dir::open(dirname, Absolute).each(file -&gt;
+    # do something with &quot;{file}&quot;
+)
+
+#@@PLEAC@@_9.6
+list = Dir::glob(&quot;*.c&quot;)
+
+#@@PLEAC@@_9.7
+dirlist.each(dir -&gt;
+    Dir::open(dir, Recursive | Absolute | Depth_only).each(f -&gt;
+    )
+)
+
+#@@PLEAC@@_9.8
+Sys::args.each(dir -&gt;
+    Dir::open(dir, Recursive | Absolute | Depth_first).each(File::delete)
+)
+
+#@@PLEAC@@_9.9
+names.each(file -&gt;
+    newname = compute_newname(file)
+    File::rename(file, newname) or warn(&quot;Couldn't rename {file} to {newname}: {Sys::errno_string}\n&quot;)
+)
+
+#@@PLEAC@@_9.10
+File::basename(path)
+File::dirname(path)
+
+</PRE>
+<HR>
+<ADDRESS>Generated by <A HREF="http://www.iki.fi/~mtr/genscript/">GNU Enscript 1.6.5.90</A>.</ADDRESS>
+</BODY>
+</HTML>

@@ -1,0 +1,810 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>File Access</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Common Lisp"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Pattern Matching"
+HREF="patternmatching.html"><LINK
+REL="NEXT"
+TITLE="File Contents"
+HREF="filecontents.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Common Lisp</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="patternmatching.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="filecontents.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="FILEACCESS"
+>7. File Access</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN359"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">with-open-file</span> <span class="p">(</span><span class="nv">input</span> <span class="s">&quot;/usr/local/widgets/data&quot;</span><span class="p">)</span>
+  <span class="c1">;; No need for &quot;die&quot; like call here b/c WITH-OPEN-FILE will do it</span>
+  <span class="c1">;; automatically.</span>
+  <span class="p">(</span><span class="nv">iter</span> <span class="p">(</span><span class="nv">for</span> <span class="nv">line</span> <span class="nv">in-stream</span> <span class="nv">input</span> <span class="nv">using</span> <span class="ss">&#39;read-line</span><span class="p">)</span>
+        <span class="p">(</span><span class="nb">when</span> <span class="p">(</span><span class="nv">scan</span> <span class="s">&quot;blue&quot;</span> <span class="nv">line</span><span class="p">)</span>
+          <span class="p">(</span><span class="nb">format</span> <span class="no">t</span> <span class="s">&quot;~A~%&quot;</span> <span class="nv">line</span><span class="p">)))</span>
+  <span class="c1">;; No need for explicit CLOSE here b/c WITH-OPEN-FILE will do it</span>
+  <span class="c1">;; automatically.</span>
+  <span class="p">)</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nv">var</span> <span class="vg">*standard-input*</span><span class="p">))</span>
+  <span class="p">(</span><span class="nv">mysub</span> <span class="nv">var</span> <span class="nv">logfile</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; The Perl example here is showing the &quot;object-oriented&quot; style of</span>
+<span class="c1">;; file manipulation.  In CL it isn&#39;t any different than the above.</span>
+<span class="c1">;; However we will use this opportunity to demonstrate how to</span>
+<span class="c1">;; &quot;manually&quot; open/close a file without WITH-OPEN-FILE.</span>
+<span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nv">input</span> <span class="p">(</span><span class="nb">open</span> <span class="s">&quot;/usr/local/widgets/data&quot;</span><span class="p">)))</span>
+  <span class="p">(</span><span class="nv">iter</span> <span class="p">(</span><span class="nv">for</span> <span class="nv">line</span> <span class="nv">in-stream</span> <span class="nv">input</span> <span class="nv">using</span> <span class="ss">&#39;read-line</span><span class="p">)</span>
+        <span class="p">(</span><span class="nb">setf</span> <span class="nv">line</span> <span class="p">(</span><span class="nv">chomp</span> <span class="nv">line</span><span class="p">))</span>
+        <span class="p">(</span><span class="nb">when</span> <span class="p">(</span><span class="nv">scan</span> <span class="s">&quot;blue&quot;</span> <span class="nv">line</span><span class="p">)</span>
+          <span class="p">(</span><span class="nb">format</span> <span class="no">t</span> <span class="s">&quot;~A~%&quot;</span> <span class="nv">line</span><span class="p">)))</span>
+  <span class="c1">;; Don&#39;t do this, either use WITH-OPEN-FILE or use UNWIND-PROTECT as</span>
+  <span class="c1">;; illustrated later.</span>
+  <span class="p">(</span><span class="nb">close</span> <span class="nv">line</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="k">unwind-protect</span>
+    <span class="p">(</span><span class="k">progn</span>
+      <span class="p">(</span><span class="nv">iter</span> <span class="p">(</span><span class="nv">for</span> <span class="nv">line</span> <span class="nv">in-stream</span> <span class="vg">*standard-input*</span> <span class="nv">using</span> <span class="ss">&#39;read-line</span><span class="p">)</span>
+            <span class="p">(</span><span class="nb">unless</span> <span class="p">(</span><span class="nv">scan</span> <span class="s">&quot;\\d&quot;</span> <span class="nv">line</span><span class="p">)</span>
+              <span class="p">(</span><span class="nb">warn</span> <span class="s">&quot;No digit found.~%&quot;</span><span class="p">))</span>
+            <span class="p">(</span><span class="nb">format</span> <span class="no">t</span> <span class="s">&quot;Read: ~A~%&quot;</span> <span class="nv">line</span><span class="p">)))</span>
+  <span class="c1">;; Not normally a good idea to do the following; just matching the</span>
+  <span class="c1">;; Perl.</span>
+  <span class="p">(</span><span class="nb">close</span> <span class="vg">*standard-output*</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; No need for explicit die, OPEN will throw an exception.</span>
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*logfile*</span> <span class="p">(</span><span class="nb">open</span> <span class="s">&quot;/tmp/log&quot;</span> <span class="ss">:direction</span> <span class="ss">:output</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">close</span> <span class="vg">*fh*</span><span class="p">)</span>                            <span class="c1">; no need for die()</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="vg">*standard-output*</span> <span class="vg">*logfile*</span><span class="p">))</span>    <span class="c1">; switch to *LOGFILE* for output</span>
+  <span class="p">(</span><span class="nb">format</span> <span class="no">t</span> <span class="s">&quot;Countdown initiated ...~%&quot;</span><span class="p">))</span>
+<span class="c1">;; return to original output</span>
+<span class="p">(</span><span class="nb">format</span> <span class="no">t</span> <span class="s">&quot;You have 30 seconds to reach minimum safety distance.~%&quot;</span><span class="p">)</span>
+<span class="c1">;;;-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN362"
+>Opening a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;;;-----------------------------</span>
+<span class="c1">;; For reading is the default, no need for &quot;&lt;&quot; or equivalent.  No need</span>
+<span class="c1">;; for explicit die()-like call either.  Note also that you should use</span>
+<span class="c1">;; WITH-OPEN-FILE instead of a raw OPEN wherever possible.</span>
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*source*</span> <span class="p">(</span><span class="nb">open</span> <span class="nv">path</span><span class="p">))</span>
+
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*sink*</span> <span class="p">(</span><span class="nb">open</span> <span class="nv">path</span> <span class="ss">:direction</span> <span class="ss">:output</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="o">#+</span><span class="nv">sbcl</span>
+<span class="p">(</span><span class="k">progn</span>
+  <span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*source*</span> <span class="p">(</span><span class="nv">sb-posix:open</span> <span class="nv">path</span> <span class="nv">sb-posix:o-rdonly</span><span class="p">))</span>
+
+  <span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*sink*</span> <span class="p">(</span><span class="nv">sb-posix:open</span> <span class="nv">path</span> <span class="nv">sb-posix:o-wronly</span><span class="p">)))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; There is no equivalent of Perl&#39;s &quot;object-oriented&quot; file interface</span>
+<span class="c1">;; (arguably, the standard mechanism is already object-oriented).</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="o">#+</span><span class="nv">sbcl</span>
+<span class="p">(</span><span class="k">progn</span>
+  <span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*filehandle*</span> <span class="p">(</span><span class="nv">sb-posix:open</span> <span class="nv">name</span> <span class="nv">flags</span><span class="p">))</span>
+  <span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*filehandle*</span> <span class="p">(</span><span class="nv">sb-posix:open</span> <span class="nv">name</span> <span class="nv">flags</span> <span class="nv">perms</span><span class="p">)))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*fh*</span> <span class="p">(</span><span class="nb">open</span> <span class="nv">path</span><span class="p">))</span>
+<span class="o">#+</span><span class="nv">sbcl</span>
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*fh*</span> <span class="p">(</span><span class="nv">sb-posix:open</span> <span class="nv">path</span> <span class="nv">sb-posix:o-rdonly</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*fh*</span> <span class="p">(</span><span class="nb">open</span> <span class="nv">path</span> <span class="ss">:direction</span> <span class="ss">:output</span><span class="p">))</span>
+<span class="o">#+</span><span class="nv">sbcl</span>
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*fh*</span> <span class="p">(</span><span class="nv">sb-posix:open</span> <span class="nv">path</span> <span class="p">(</span><span class="nb">logior</span> <span class="nv">sb-posix:o-wronly</span>
+                                               <span class="nv">sb-posix:o-trunc</span>
+                                               <span class="nv">sb-posix:o-creat</span><span class="p">)</span>
+                                  <span class="mo">#o600</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="o">#+</span><span class="nv">sbcl</span>
+<span class="p">(</span><span class="k">progn</span>
+  <span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*fh*</span> <span class="p">(</span><span class="nv">sb-posix:open</span> <span class="nv">path</span> <span class="p">(</span><span class="nb">logior</span> <span class="nv">sb-posix:o-wronly</span>
+                                                 <span class="nv">sb-posix:o-excl</span>
+                                                 <span class="nv">sb-posix:o-creat</span><span class="p">)))</span>
+  <span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*fh*</span> <span class="p">(</span><span class="nv">sb-posix:open</span> <span class="nv">path</span> <span class="p">(</span><span class="nb">logior</span> <span class="nv">sb-posix:o-wronly</span>
+                                                 <span class="nv">sb-posix:o-excl</span>
+                                                 <span class="nv">sb-posix:o-creat</span><span class="p">)</span>
+                                    <span class="mo">#o600</span><span class="p">)))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*fh*</span> <span class="p">(</span><span class="nb">open</span> <span class="nv">path</span> <span class="ss">:direction</span> <span class="ss">:output</span>
+                              <span class="ss">:if-exists</span> <span class="ss">:append</span>
+                              <span class="ss">:if-does-not-exist</span> <span class="ss">:create</span><span class="p">))</span>
+<span class="o">#+</span><span class="nv">sbcl</span>
+<span class="p">(</span><span class="k">progn</span>
+  <span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*fh*</span> <span class="p">(</span><span class="nv">sb-posix:open</span> <span class="nv">path</span> <span class="p">(</span><span class="nb">logior</span> <span class="nv">sb-posix:o-wronly</span>
+                                                 <span class="nv">sb-posix:o-append</span>
+                                                 <span class="nv">sb-posix:o-creat</span><span class="p">)))</span>
+  <span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*fh*</span> <span class="p">(</span><span class="nv">sb-posix:open</span> <span class="nv">path</span> <span class="p">(</span><span class="nb">logior</span> <span class="nv">sb-posix:o-wronly</span>
+                                                 <span class="nv">sb-posix:o-append</span>
+                                                 <span class="nv">sb-posix:o-creat</span><span class="p">)</span>
+                                    <span class="mo">#o600</span><span class="p">)))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*fh*</span> <span class="p">(</span><span class="nv">sb-posix:open</span> <span class="nv">path</span> <span class="p">(</span><span class="nb">logior</span> <span class="nv">sb-posix:o-wronly</span> <span class="nv">sb-posix:o-append</span><span class="p">)))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*fh*</span> <span class="p">(</span><span class="nb">open</span> <span class="nv">path</span> <span class="ss">:direction</span> <span class="ss">:io</span> <span class="ss">:if-exists</span> <span class="ss">:overwrite</span><span class="p">))</span>
+<span class="o">#+</span><span class="nv">sbcl</span>
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*fh*</span> <span class="p">(</span><span class="nv">sb-posix:open</span> <span class="nv">path</span> <span class="nv">sb-posix:o-rdwr</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="o">#+</span><span class="nv">sbcl</span>
+<span class="p">(</span><span class="k">progn</span>
+  <span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*fh*</span> <span class="p">(</span><span class="nv">sb-posix:open</span> <span class="nv">path</span> <span class="p">(</span><span class="nb">logior</span> <span class="nv">sb-posix:o-rdwr</span>
+                                                 <span class="nv">sb-posix:o-creat</span><span class="p">)))</span>
+  <span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*fh*</span> <span class="p">(</span><span class="nv">sb-posix:open</span> <span class="nv">path</span> <span class="p">(</span><span class="nb">logior</span> <span class="nv">sb-posix:o-rdwr</span>
+                                                 <span class="nv">sb-posix:o-creat</span><span class="p">)</span>
+                                    <span class="mo">#o600</span><span class="p">)))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="o">#+</span><span class="nv">sbcl</span>
+<span class="p">(</span><span class="k">progn</span>
+  <span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*fh*</span> <span class="p">(</span><span class="nv">sb-posix:open</span> <span class="nv">path</span> <span class="p">(</span><span class="nb">logior</span> <span class="nv">sb-posix:o-rdwr</span>
+                                                 <span class="nv">sb-posix:o-excl</span>
+                                                 <span class="nv">sb-posix:o-creat</span><span class="p">)))</span>
+  <span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*fh*</span> <span class="p">(</span><span class="nv">sb-posix:open</span> <span class="nv">path</span> <span class="p">(</span><span class="nb">logior</span> <span class="nv">sb-posix:o-rdwr</span>
+                                                 <span class="nv">sb-posix:o-excl</span>
+                                                 <span class="nv">sb-posix:o-creat</span><span class="p">)</span>
+                                    <span class="mo">#o600</span><span class="p">)))</span>
+<span class="c1">;;;-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN365"
+>Opening Files with Unusual Filenames</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;;;-----------------------------</span>
+<span class="c1">;; The machinations that the Perl example is doing is dealing with the</span>
+<span class="c1">;; fact that Perl normally ignores leading whitespace in a filename.</span>
+<span class="c1">;; This shouldn&#39;t be necessary in CL (since the filename doesn&#39;t also</span>
+<span class="c1">;; contain the input mode, as it does in Perl), but the following</span>
+<span class="c1">;; example illustrates how to do the same thing anyway.</span>
+<span class="p">(</span><span class="nb">setf</span> <span class="vg">*filename*</span> <span class="p">(</span><span class="nv">regex-replace</span> <span class="s">&quot;^(\\s)&quot;</span> <span class="vg">*filename*</span> <span class="s">&quot;./$1&quot;</span><span class="p">))</span>
+<span class="c1">;; I&#39;m not sure what the \0 being appended in the Perl example is for,</span>
+<span class="c1">;; but SBCL, at least, doesn&#39;t seem to even allow NUL in a namestring</span>
+<span class="c1">;; (filename), so it&#39;s not shown here.</span>
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*handle*</span> <span class="p">(</span><span class="nb">open</span> <span class="vg">*filename*</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="o">#+</span><span class="nv">sbcl</span>
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*handle*</span> <span class="p">(</span><span class="nv">sb-posix:open</span> <span class="vg">*filename*</span> <span class="nv">sb-posix:o-rdonly</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*filename*</span> <span class="p">(</span><span class="nb">second</span> <span class="vg">*posix-argv*</span><span class="p">))</span>
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*input*</span> <span class="p">(</span><span class="nb">open</span> <span class="vg">*filename*</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*output*</span> <span class="p">(</span><span class="nb">open</span> <span class="vg">*filename*</span> <span class="ss">:direction</span> <span class="ss">:output</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="o">#+</span><span class="nv">sbcl</span>
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*output*</span> <span class="p">(</span><span class="nv">sb-posix:open</span> <span class="vg">*filename*</span> <span class="p">(</span><span class="nb">logior</span> <span class="nv">sb-posix:o-wronly</span>
+                                                         <span class="nv">sb-posix:o-trunc</span><span class="p">)))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">setf</span> <span class="vg">*file*</span> <span class="p">(</span><span class="nv">regex-replace</span> <span class="s">&quot;^(\\s)&quot;</span> <span class="vg">*file*</span> <span class="s">&quot;./$1&quot;</span><span class="p">))</span>
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*output*</span> <span class="p">(</span><span class="nb">open</span> <span class="vg">*file*</span> <span class="ss">:direction</span> <span class="ss">:output</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN368"
+>Expanding Tildes in Filenames</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;;;-----------------------------</span>
+<span class="c1">;;; @@INCOMPLETE@@</span>
+<span class="c1">;;; @@INCOMPLETE@@</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN371"
+>Making Perl Report Filenames in Errors</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;;;-----------------------------</span>
+
+<span class="c1">;; You should not normally do this in CL.  However the example below</span>
+<span class="c1">;; does roughly the same thing as the Perl and is a crude example of</span>
+<span class="c1">;; how you can handle exceptions in CL.</span>
+<span class="p">(</span><span class="nb">handler-case</span>
+    <span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nv">file</span> <span class="p">(</span><span class="nb">open</span> <span class="vg">*path*</span><span class="p">)))</span>
+      <span class="c1">;; use FILE</span>
+      <span class="p">)</span>
+  <span class="c1">;; Catch &quot;all&quot; exceptions (CONDITION is the base class of all</span>
+  <span class="c1">;; &quot;exceptions&quot; in CL).</span>
+  <span class="p">(</span><span class="kt">condition</span> <span class="p">(</span><span class="nv">msg</span><span class="p">)</span>
+    <span class="p">(</span><span class="nb">format</span> <span class="vg">*error-output*</span> <span class="s">&quot;~&amp;Couldn&#39;t open ~A for reading : ~A~%&quot;</span> <span class="vg">*path*</span> <span class="nv">msg</span><span class="p">)))</span>
+<span class="c1">;;;-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN374"
+>Creating Temporary Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN377"
+>Storing Files Inside Your Program Text</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*data*</span> <span class="s">&quot;</span>
+<span class="s">Your data goes here</span>
+<span class="s">&quot;</span><span class="p">)</span>
+
+<span class="p">(</span><span class="nb">loop</span> <span class="nv">for</span> <span class="nv">line</span> <span class="nv">in</span> <span class="p">(</span><span class="nv">split</span> <span class="sc">#\Newline</span> <span class="vg">*data*</span><span class="p">)</span>
+     <span class="nb">do</span>
+     <span class="p">(</span><span class="k">progn</span>
+       <span class="c1">;; process the line</span>
+       <span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; The Perl example here would be the same as the above.</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; There&#39;s no equivalent to how DATA is used here.  E.g., there&#39;s no</span>
+<span class="c1">;; standard way to get the currently executing &quot;script&quot; file.</span>
+<span class="c1">;;;-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN380"
+>Writing a Filter</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN383"
+>Modifying a File in Place with Temporary File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN386"
+>Modifying a File in Place with -i Switch</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN389"
+>Modifying a File in Place Without a Temporary File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN392"
+>Locking a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN395"
+>Flushing Output</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN398"
+>Reading from Many Filehandles Without Blocking</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN401"
+>Doing Non-Blocking I/O</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN404"
+>Determining the Number of Bytes to Read</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN407"
+>Storing Filehandles in Variables</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN410"
+>Caching Open Output Filehandles</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN413"
+>Printing to Many Filehandles Simultaneously</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">loop</span>
+   <span class="nv">for</span> <span class="nv">filehandle</span> <span class="nv">in</span> <span class="vg">*filehandles*</span> <span class="c1">; *FILEHANDLES* is list of STREAM objects</span>
+   <span class="nb">do</span> <span class="p">(</span><span class="nb">princ</span> <span class="nv">stuff-to-print</span> <span class="nv">filehandle</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;;; @@INCOMPLETE@@</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN416"
+>Opening and Closing File Descriptors by Number</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN419"
+>Copying Filehandles</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN422"
+>Program: netlock</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN425"
+>Program: lockarea</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="patternmatching.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="filecontents.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Pattern Matching</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>File Contents</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

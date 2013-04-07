@@ -1,0 +1,1497 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Sockets</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Perl"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Process Management and Communication"
+HREF="processmanagementetc.html"><LINK
+REL="NEXT"
+TITLE="Internet Services"
+HREF="internetservices.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Perl</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="processmanagementetc.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="internetservices.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="SOCKETS"
+>17. Sockets</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN919"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">use Socket;</span>
+
+<span class="cp">$packed_ip   = inet_aton(&quot;208.146.240.1&quot;);</span>
+<span class="cp">$socket_name = sockaddr_in($port, $packed_ip);</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">use Socket;</span>
+
+<span class="cp">$socket_name = sockaddr_un(&quot;/tmp/mysock&quot;);</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">($port, $packed_ip) = sockaddr_in($socket_name);    # for PF_INET sockets</span>
+<span class="cp">($filename)         = sockaddr_un($socket_name);    # for PF_UNIX sockets</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$ip_address = inet_ntoa($packed_ip);</span>
+<span class="cp">$packed_ip  = inet_aton(&quot;204.148.40.9&quot;);</span>
+<span class="cp">$packed_ip  = inet_aton(&quot;www.oreilly.com&quot;);</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN922"
+>Writing a TCP Client</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">use IO::Socket;</span>
+
+<span class="cp">$socket = IO::Socket::INET-&gt;new(PeerAddr =&gt; $remote_host,</span>
+<span class="cp">                                PeerPort =&gt; $remote_port,</span>
+<span class="cp">                                Proto    =&gt; &quot;tcp&quot;,</span>
+<span class="cp">                                Type     =&gt; SOCK_STREAM)</span>
+<span class="cp">    or die &quot;Couldn&#39;t connect to $remote_host:$remote_port : $@\n&quot;;</span>
+
+<span class="cp"># ... do something with the socket</span>
+<span class="cp">print $socket &quot;Why don&#39;t you call me anymore?\n&quot;;</span>
+
+<span class="cp">$answer = &lt;$socket&gt;;</span>
+
+<span class="cp"># and terminate the connection when we&#39;re done</span>
+<span class="cp">close($socket);</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">use Socket;</span>
+
+<span class="cp"># create a socket</span>
+<span class="cp">socket(TO_SERVER, PF_INET, SOCK_STREAM, getprotobyname(&#39;tcp&#39;));</span>
+
+<span class="cp"># build the address of the remote machine</span>
+<span class="cp">$internet_addr = inet_aton($remote_host)</span>
+<span class="cp">    or die &quot;Couldn&#39;t convert $remote_host into an Internet address: $!\n&quot;;</span>
+<span class="cp">$paddr = sockaddr_in($remote_port, $internet_addr);</span>
+
+<span class="cp"># connect</span>
+<span class="cp">connect(TO_SERVER, $paddr)</span>
+<span class="cp">    or die &quot;Couldn&#39;t connect to $remote_host:$remote_port : $!\n&quot;;</span>
+
+<span class="cp"># ... do something with the socket</span>
+<span class="cp">print TO_SERVER &quot;Why don&#39;t you call me anymore?\n&quot;;</span>
+
+<span class="cp"># and terminate the connection when we&#39;re done</span>
+<span class="cp">close(TO_SERVER);</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$client = IO::Socket::INET-&gt;new(&quot;www.yahoo.com:80&quot;)</span>
+<span class="cp">    or die $@;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$s = IO::Socket::INET-&gt;new(PeerAddr =&gt; &quot;Does not Exist&quot;,</span>
+<span class="cp">                           Peerport =&gt; 80,</span>
+<span class="cp">                           Type     =&gt; SOCK_STREAM )</span>
+<span class="cp">    or die $@;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$s = IO::Socket::INET-&gt;new(PeerAddr =&gt; &quot;bad.host.com&quot;,</span>
+<span class="cp">                           PeerPort =&gt; 80,</span>
+<span class="cp">                           Type     =&gt; SOCK_STREAM,</span>
+<span class="cp">                           Timeout  =&gt; 5 )</span>
+<span class="cp">    or die $@;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$inet_addr = inet_aton(&quot;208.146.240.1&quot;);</span>
+<span class="cp">$paddr     = sockaddr_in($port, $inet_addr);</span>
+<span class="cp">bind(SOCKET, $paddr)         or die &quot;bind: $!&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$inet_addr = gethostbyname(&quot;www.yahoo.com&quot;)</span>
+<span class="cp">                            or die &quot;Can&#39;t resolve www.yahoo.com: $!&quot;;</span>
+<span class="cp">$paddr     = sockaddr_in($port, $inet_addr);</span>
+<span class="cp">bind(SOCKET, $paddr)        or die &quot;bind: $!&quot;;</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN925"
+>Writing a TCP Server</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">use IO::Socket;</span>
+
+<span class="cp">$server = IO::Socket::INET-&gt;new(LocalPort =&gt; $server_port,</span>
+<span class="cp">                                Type      =&gt; SOCK_STREAM,</span>
+<span class="cp">                                Reuse     =&gt; 1,</span>
+<span class="cp">                                Listen    =&gt; 10 )   # or SOMAXCONN</span>
+<span class="cp">    or die &quot;Couldn&#39;t be a tcp server on port $server_port : $@\n&quot;;</span>
+
+<span class="cp">while ($client = $server-&gt;accept()) {</span>
+<span class="cp">    # $client is the new connection</span>
+<span class="cp">}</span>
+
+<span class="cp">close($server);</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">use Socket;</span>
+
+<span class="cp"># make the socket</span>
+<span class="cp">socket(SERVER, PF_INET, SOCK_STREAM, getprotobyname(&#39;tcp&#39;));</span>
+
+<span class="cp"># so we can restart our server quickly</span>
+<span class="cp">setsockopt(SERVER, SOL_SOCKET, SO_REUSEADDR, 1);</span>
+
+<span class="cp"># build up my socket address</span>
+<span class="cp">$my_addr = sockaddr_in($server_port, INADDR_ANY);</span>
+<span class="cp">bind(SERVER, $my_addr)</span>
+<span class="cp">    or die &quot;Couldn&#39;t bind to port $server_port : $!\n&quot;;</span>
+
+<span class="cp"># establish a queue for incoming connections</span>
+<span class="cp">listen(SERVER, SOMAXCONN)</span>
+<span class="cp">    or die &quot;Couldn&#39;t listen on port $server_port : $!\n&quot;;</span>
+
+<span class="cp"># accept and process connections</span>
+<span class="cp">while (accept(CLIENT, SERVER)) {</span>
+<span class="cp">    # do something with CLIENT</span>
+<span class="cp">}</span>
+
+<span class="cp">close(SERVER);</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">use Socket;</span>
+
+<span class="cp">while ($client_address = accept(CLIENT, SERVER)) {</span>
+<span class="cp">    ($port, $packed_ip) = sockaddr_in($client_address);</span>
+<span class="cp">    $dotted_quad = inet_ntoa($packed_ip);</span>
+<span class="cp">    # do as thou wilt</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">while ($client = $server-&gt;accept()) {</span>
+<span class="cp">    # ...</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">while (($client,$client_address) = $server-&gt;accept()) {</span>
+<span class="cp">    # ...</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">use Fcntl qw(F_GETFL F_SETFL O_NONBLOCK);</span>
+
+<span class="cp">$flags = fcntl(SERVER, F_GETFL, 0)</span>
+<span class="cp">            or die &quot;Can&#39;t get flags for the socket: $!\n&quot;;</span>
+
+<span class="cp">$flags = fcntl(SERVER, F_SETFL, $flags | O_NONBLOCK)</span>
+<span class="cp">            or die &quot;Can&#39;t set flags for the socket: $!\n&quot;;</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN928"
+>Communicating over TCP</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">print SERVER &quot;What is your name?\n&quot;;</span>
+<span class="cp">chomp ($response = &lt;SERVER&gt;);</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">defined (send(SERVER, $data_to_send, $flags))</span>
+<span class="cp">    or die &quot;Can&#39;t send : $!\n&quot;;</span>
+
+<span class="cp">recv(SERVER, $data_read, $maxlen, $flags)</span>
+<span class="cp">    or die &quot;Can&#39;t receive: $!\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">use IO::Socket;</span>
+
+<span class="cp">$server-&gt;send($data_to_send, $flags)</span>
+<span class="cp">    or die &quot;Can&#39;t send: $!\n&quot;;</span>
+
+<span class="cp">$server-&gt;recv($data_read, $flags)</span>
+<span class="cp">    or die &quot;Can&#39;t recv: $!\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">use IO::Select;</span>
+
+<span class="cp">$select = IO::Select-&gt;new();</span>
+<span class="cp">$select-&gt;add(*FROM_SERVER);</span>
+<span class="cp">$select-&gt;add($to_client);</span>
+
+<span class="cp">@read_from = $select-&gt;can_read($timeout);</span>
+<span class="cp">foreach $socket (@read_from) {</span>
+<span class="cp">    # read the pending data from $socket</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">use Socket;</span>
+<span class="cp">require &quot;sys/socket.ph&quot;;    # for &amp;TCP_NODELAY</span>
+
+<span class="cp">setsockopt(SERVER, SOL_SOCKET, &amp;TCP_NODELAY, 1)</span>
+<span class="cp">    or die &quot;Couldn&#39;t disable Nagle&#39;s algorithm: $!\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">setsockopt(SERVER, SOL_SOCKET, &amp;TCP_NODELAY, 0)</span>
+<span class="cp">    or die &quot;Couldn&#39;t enable Nagle&#39;s algorithm: $!\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$rin = &#39;&#39;;                          # initialize bitmask</span>
+<span class="cp">vec($rin, fileno(SOCKET), 1) = 1;   # mark SOCKET in $rin</span>
+<span class="cp"># repeat calls to vec() for each socket to check</span>
+
+<span class="cp">$timeout = 10;                      # wait ten seconds</span>
+
+<span class="cp">$nfound = select($rout = $rin, undef, undef, $timeout);</span>
+<span class="cp">if (vec($rout, fileno(SOCKET),1)){</span>
+<span class="cp">    # data to be read on SOCKET</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN931"
+>Setting Up a UDP Client</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">use Socket;</span>
+<span class="cp">socket(SOCKET, PF_INET, SOCK_DGRAM, getprotobyname(&quot;udp&quot;)) </span>
+<span class="cp">    or die &quot;socket: $!&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">use IO::Socket;</span>
+<span class="cp">$handle = IO::Socket::INET-&gt;new(Proto =&gt; &#39;udp&#39;) </span>
+<span class="cp">    or die &quot;socket: $@&quot;;     # yes, it uses $@ here</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$ipaddr   = inet_aton($HOSTNAME);</span>
+<span class="cp">$portaddr = sockaddr_in($PORTNO, $ipaddr);</span>
+<span class="cp">send(SOCKET, $MSG, 0, $portaddr) == length($MSG)</span>
+<span class="cp">        or die &quot;cannot send to $HOSTNAME($PORTNO): $!&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$portaddr = recv(SOCKET, $MSG, $MAXLEN, 0)      or die &quot;recv: $!&quot;;</span>
+<span class="cp">($portno, $ipaddr) = sockaddr_in($portaddr);</span>
+<span class="cp">$host = gethostbyaddr($ipaddr, AF_INET);</span>
+<span class="cp">print &quot;$host($portno) said $MSG\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">send(MYSOCKET, $msg_buffer, $flags, $remote_addr)</span>
+<span class="cp">    or die &quot;Can&#39;t send: $!\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch17/clockdrift</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl</span>
+<span class="cp"># clockdrift - compare another system&#39;s clock with this one</span>
+<span class="cp">use strict;</span>
+<span class="cp">use Socket;</span>
+
+<span class="cp">my ($host, $him, $src, $port, $ipaddr, $ptime, $delta);</span>
+<span class="cp">my $SECS_of_70_YEARS      = 2_208_988_800;</span>
+
+<span class="cp">socket(MsgBox, PF_INET, SOCK_DGRAM, getprotobyname(&quot;udp&quot;))</span>
+<span class="cp">    or die &quot;socket: $!&quot;;</span>
+<span class="cp">$him = sockaddr_in(scalar(getservbyname(&quot;time&quot;, &quot;udp&quot;)), </span>
+<span class="cp">    inet_aton(shift || &#39;127.1&#39;));</span>
+<span class="cp">defined(send(MsgBox, 0, 0, $him))</span>
+<span class="cp">    or die &quot;send: $!&quot;;</span>
+<span class="cp">defined($src = recv(MsgBox, $ptime, 4, 0))</span>
+<span class="cp">    or die &quot;recv: $!&quot;;</span>
+<span class="cp">($port, $ipaddr) = sockaddr_in($src);</span>
+<span class="cp">$host = gethostbyaddr($ipaddr, AF_INET);</span>
+<span class="cp">my $delta = (unpack(&quot;N&quot;, $ptime) - $SECS_of_70_YEARS) - time();</span>
+<span class="cp">print &quot;Clock on $host is $delta seconds ahead of this one.\n&quot;;</span>
+
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN934"
+>Setting Up a UDP Server</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">use IO::Socket;</span>
+<span class="cp">$server = IO::Socket::INET-&gt;new(LocalPort =&gt; $server_port,</span>
+<span class="cp">                                Proto     =&gt; &quot;udp&quot;)</span>
+<span class="cp">    or die &quot;Couldn&#39;t be a udp server on port $server_port : $@\n&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">while ($him = $server-&gt;recv($datagram, $MAX_TO_READ, $flags)) {</span>
+<span class="cp">    # do something</span>
+<span class="cp">} </span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch17/udpqofd</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl -w</span>
+<span class="cp"># udpqotd - UDP message server</span>
+<span class="cp">use strict;</span>
+<span class="cp">use IO::Socket;</span>
+<span class="cp">my($sock, $oldmsg, $newmsg, $hisaddr, $hishost, $MAXLEN, $PORTNO);</span>
+<span class="cp">$MAXLEN = 1024;</span>
+<span class="cp">$PORTNO = 5151;</span>
+<span class="cp">$sock = IO::Socket::INET-&gt;new(LocalPort =&gt; $PORTNO, Proto =&gt; &#39;udp&#39;)</span>
+<span class="cp">    or die &quot;socket: $@&quot;;</span>
+<span class="cp">print &quot;Awaiting UDP messages on port $PORTNO\n&quot;;</span>
+<span class="cp">$oldmsg = &quot;This is the starting message.&quot;;</span>
+<span class="cp">while ($sock-&gt;recv($newmsg, $MAXLEN)) {</span>
+<span class="cp">    my($port, $ipaddr) = sockaddr_in($sock-&gt;peername);</span>
+<span class="cp">    $hishost = gethostbyaddr($ipaddr, AF_INET);</span>
+<span class="cp">    print &quot;Client $hishost said ``$newmsg&#39;&#39;\n&quot;;</span>
+<span class="cp">    $sock-&gt;send($oldmsg);</span>
+<span class="cp">    $oldmsg = &quot;[$hishost] $newmsg&quot;;</span>
+<span class="cp">} </span>
+<span class="cp">die &quot;recv: $!&quot;;</span>
+
+<span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch17/udpmsg</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl -w</span>
+<span class="cp"># udpmsg - send a message to the udpquotd server</span>
+
+<span class="cp">use IO::Socket;</span>
+<span class="cp">use strict;</span>
+
+<span class="cp">my($sock, $server_host, $msg, $port, $ipaddr, $hishost, </span>
+<span class="cp">   $MAXLEN, $PORTNO, $TIMEOUT);</span>
+
+<span class="cp">$MAXLEN  = 1024;</span>
+<span class="cp">$PORTNO  = 5151;</span>
+<span class="cp">$TIMEOUT = 5;</span>
+
+<span class="cp">$server_host = shift;</span>
+<span class="cp">$msg         = &quot;@ARGV&quot;;</span>
+<span class="cp">$sock = IO::Socket::INET-&gt;new(Proto     =&gt; &#39;udp&#39;,</span>
+<span class="cp">                              PeerPort  =&gt; $PORTNO,</span>
+<span class="cp">                              PeerAddr  =&gt; $server_host)</span>
+<span class="cp">    or die &quot;Creating socket: $!\n&quot;;</span>
+<span class="cp">$sock-&gt;send($msg) or die &quot;send: $!&quot;;</span>
+
+<span class="cp">eval {</span>
+<span class="cp">    local $SIG{ALRM} = sub { die &quot;alarm time out&quot; };</span>
+<span class="cp">    alarm $TIMEOUT;</span>
+<span class="cp">    $sock-&gt;recv($msg, $MAXLEN)      or die &quot;recv: $!&quot;;</span>
+<span class="cp">    alarm 0;</span>
+<span class="cp">    1;  # return value from eval on normalcy</span>
+<span class="cp">} or die &quot;recv from $server_host timed out after $TIMEOUT seconds.\n&quot;;</span>
+
+<span class="cp">($port, $ipaddr) = sockaddr_in($sock-&gt;peername);</span>
+<span class="cp">$hishost = gethostbyaddr($ipaddr, AF_INET);</span>
+<span class="cp">print &quot;Server $hishost responded ``$msg&#39;&#39;\n&quot;;</span>
+
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN937"
+>Using UNIX Domain Sockets</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">use IO::Socket;</span>
+
+<span class="cp">unlink &quot;/tmp/mysock&quot;;</span>
+<span class="cp">$server = IO::Socket::UNIX-&gt;new(Local     =&gt; &quot;/tmp/mysock&quot;,</span>
+<span class="cp">                                Type      =&gt; SOCK_DGRAM,</span>
+<span class="cp">                                Listen    =&gt; 5 )</span>
+<span class="cp">    or die $@;</span>
+
+<span class="cp">$client = IO::Socket::UNIX-&gt;new(Peer       =&gt; &quot;/tmp/mysock&quot;,</span>
+<span class="cp">                                Type      =&gt; SOCK_DGRAM,</span>
+<span class="cp">                                Timeout   =&gt; 10 )</span>
+<span class="cp">    or die $@;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">use Socket;</span>
+<span class="cp">    </span>
+<span class="cp">socket(SERVER, PF_UNIX, SOCK_STREAM, 0);</span>
+<span class="cp">unlink &quot;/tmp/mysock&quot;;</span>
+<span class="cp">bind(SERVER, sockaddr_un(&quot;/tmp/mysock&quot;))</span>
+<span class="cp">    or die &quot;Can&#39;t create server: $!&quot;;</span>
+
+<span class="cp">socket(CLIENT, PF_UNIX, SOCK_STREAM, 0);</span>
+<span class="cp">connect(CLIENT, sockaddr_un(&quot;/tmp/mysock&quot;))</span>
+<span class="cp">    or die &quot;Can&#39;t connect to /tmp/mysock: $!&quot;;</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN940"
+>Identifying the Other End of a Socket</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">use Socket;</span>
+
+<span class="cp">$other_end         = getpeername(SOCKET)</span>
+<span class="cp">    or die &quot;Couldn&#39;t identify other end: $!\n&quot;;</span>
+<span class="cp">($port, $iaddr)    = unpack_sockaddr_in($other_end);</span>
+<span class="cp">$ip_address        = inet_ntoa($iaddr);</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">use Socket;</span>
+
+<span class="cp">$other_end        = getpeername(SOCKET)</span>
+<span class="cp">    or die &quot;Couldn&#39;t identify other end: $!\n&quot;;</span>
+<span class="cp">($port, $iaddr)   = unpack_sockaddr_in($other_end);</span>
+<span class="cp">$actual_ip        = inet_ntoa($iaddr);</span>
+<span class="cp">$claimed_hostname = gethostbyaddr($iaddr, AF_INET);</span>
+<span class="cp">@name_lookup      = gethostbyname($claimed_hostname)</span>
+<span class="cp">    or die &quot;Could not look up $claimed_hostname : $!\n&quot;;</span>
+<span class="cp">@resolved_ips     = map { inet_ntoa($_) }</span>
+<span class="cp">    @name_lookup[ 4 .. $#ips_for_hostname ];</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$packed_ip  = gethostbyname($name) or die &quot;Couldn&#39;t look up $name : $!\n&quot;;</span>
+<span class="cp">$ip_address = inet_ntoa($packed_ip);</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN943"
+>Finding Your Own Name and Address</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">use Sys::Hostname;</span>
+
+<span class="cp">$hostname = hostname();</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">use POSIX qw(uname);</span>
+<span class="cp">($kernel, $hostname, $release, $version, $hardware) = uname();</span>
+
+<span class="cp">$hostname = (uname)[1];             # or just one</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">use Socket;                         # for AF_INET</span>
+<span class="cp">$address  = gethostbyname($hostname)</span>
+<span class="cp">    or die &quot;Couldn&#39;t resolve $hostname : $!&quot;;</span>
+<span class="cp">$hostname = gethostbyaddr($address, AF_INET)</span>
+<span class="cp">    or die &quot;Couldn&#39;t re-resolve $hostname : $!&quot;;</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN946"
+>Closing a Socket After Forking</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">shutdown(SOCKET, 0);                # I/we have stopped reading data</span>
+<span class="cp">shutdown(SOCKET, 1);                # I/we have stopped writing data</span>
+<span class="cp">shutdown(SOCKET, 2);                # I/we have stopped using this socket</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$socket-&gt;shutdown(0);               # I/we have stopped reading data</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">print SERVER &quot;my request\n&quot;;        # send some data</span>
+<span class="cp">shutdown(SERVER, 1);                # send eof; no more writing</span>
+<span class="cp">$answer = &lt;SERVER&gt;;                 # but you can still read</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN949"
+>Writing Bidirectional Clients</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch17/biclient</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl -w</span>
+<span class="cp"># biclient - bidirectional forking client</span>
+<span class="cp">    use strict;</span>
+<span class="cp">use IO::Socket;</span>
+<span class="cp">my ($host, $port, $kidpid, $handle, $line);</span>
+
+<span class="cp">unless (@ARGV == 2) { die &quot;usage: $0 host port&quot; }</span>
+<span class="cp">($host, $port) = @ARGV;</span>
+
+<span class="cp"># create a tcp connection to the specified host and port</span>
+<span class="cp">$handle = IO::Socket::INET-&gt;new(Proto     =&gt; &quot;tcp&quot;,</span>
+<span class="cp">                                PeerAddr  =&gt; $host,</span>
+<span class="cp">                                PeerPort  =&gt; $port)</span>
+<span class="cp">       or die &quot;can&#39;t connect to port $port on $host: $!&quot;;</span>
+
+<span class="cp">$handle-&gt;autoflush(1);              # so output gets there right away</span>
+<span class="cp">print STDERR &quot;[Connected to $host:$port]\n&quot;;</span>
+
+<span class="cp"># split the program into two processes, identical twins</span>
+<span class="cp">die &quot;can&#39;t fork: $!&quot; unless defined($kidpid = fork());</span>
+
+<span class="cp">if ($kidpid) {                      </span>
+<span class="cp">    # parent copies the socket to standard output</span>
+<span class="cp">    while (defined ($line = &lt;$handle&gt;)) {</span>
+<span class="cp">        print STDOUT $line;</span>
+<span class="cp">    }</span>
+<span class="cp">    kill(&quot;TERM&quot; =&gt; $kidpid);        # send SIGTERM to child</span>
+<span class="cp">}</span>
+<span class="cp">else {                              </span>
+<span class="cp">    # child copies standard input to the socket</span>
+<span class="cp">    while (defined ($line = &lt;STDIN&gt;)) {</span>
+<span class="cp">        print $handle $line;</span>
+<span class="cp">    }</span>
+<span class="cp">}</span>
+<span class="cp">exit;</span>
+
+<span class="cp">#-----------------------------</span>
+<span class="cp">my $byte;</span>
+<span class="cp">while (sysread($handle, $byte, 1) == 1) {</span>
+<span class="cp">    print STDOUT $byte;</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN952"
+>Forking Servers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp"># set up the socket SERVER, bind and listen ...</span>
+<span class="cp">use POSIX qw(:sys_wait_h);</span>
+
+<span class="cp">sub REAPER {</span>
+<span class="cp">    1 until (-1 == waitpid(-1, WNOHANG));</span>
+<span class="cp">    $SIG{CHLD} = \&amp;REAPER;                 # unless $] &gt;= 5.002</span>
+<span class="cp">}</span>
+
+<span class="cp">$SIG{CHLD} = \&amp;REAPER;</span>
+
+<span class="cp">while ($hisaddr = accept(CLIENT, SERVER)) {</span>
+<span class="cp">    next if $pid = fork;                    # parent</span>
+<span class="cp">    die &quot;fork: $!&quot; unless defined $pid;     # failure</span>
+<span class="cp">    # otherwise child</span>
+<span class="cp">    close(SERVER);                          # no use to child</span>
+<span class="cp">    # ... do something</span>
+<span class="cp">    exit;                                   # child leaves</span>
+<span class="cp">} continue { </span>
+<span class="cp">    close(CLIENT);                          # no use to parent</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN955"
+>Pre-Forking Servers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch17/preforker</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl</span>
+<span class="cp"># preforker - server who forks first</span>
+<span class="cp">use IO::Socket;</span>
+<span class="cp">use Symbol;</span>
+<span class="cp">use POSIX;</span>
+
+<span class="cp"># establish SERVER socket, bind and listen.</span>
+<span class="cp">$server = IO::Socket::INET-&gt;new(LocalPort =&gt; 6969,</span>
+<span class="cp">                                Type      =&gt; SOCK_STREAM,</span>
+<span class="cp">                                Proto     =&gt; &#39;tcp&#39;,</span>
+<span class="cp">                                Reuse     =&gt; 1,</span>
+<span class="cp">                                Listen    =&gt; 10 )</span>
+<span class="cp">  or die &quot;making socket: $@\n&quot;;</span>
+
+<span class="cp"># global variables</span>
+<span class="cp">$PREFORK                = 5;        # number of children to maintain</span>
+<span class="cp">$MAX_CLIENTS_PER_CHILD  = 5;        # number of clients each child should process</span>
+<span class="cp">%children               = ();       # keys are current child process IDs</span>
+<span class="cp">$children               = 0;        # current number of children</span>
+
+<span class="cp">sub REAPER {                        # takes care of dead children</span>
+<span class="cp">    $SIG{CHLD} = \&amp;REAPER;</span>
+<span class="cp">    my $pid = wait;</span>
+<span class="cp">    $children --;</span>
+<span class="cp">    delete $children{$pid};</span>
+<span class="cp">}</span>
+
+<span class="cp">sub HUNTSMAN {                      # signal handler for SIGINT</span>
+<span class="cp">    local($SIG{CHLD}) = &#39;IGNORE&#39;;   # we&#39;re going to kill our children</span>
+<span class="cp">    kill &#39;INT&#39; =&gt; keys %children;</span>
+<span class="cp">    exit;                           # clean up with dignity</span>
+<span class="cp">}</span>
+
+<span class="cp">    </span>
+<span class="cp"># Fork off our children.</span>
+<span class="cp">for (1 .. $PREFORK) {</span>
+<span class="cp">    make_new_child();</span>
+<span class="cp">}</span>
+
+<span class="cp"># Install signal handlers.</span>
+<span class="cp">$SIG{CHLD} = \&amp;REAPER;</span>
+<span class="cp">$SIG{INT}  = \&amp;HUNTSMAN;</span>
+
+<span class="cp"># And maintain the population.</span>
+<span class="cp">while (1) {</span>
+<span class="cp">    sleep;                          # wait for a signal (i.e., child&#39;s death)</span>
+<span class="cp">    for ($i = $children; $i &lt; $PREFORK; $i++) {</span>
+<span class="cp">        make_new_child();           # top up the child pool</span>
+<span class="cp">    }</span>
+<span class="cp">}</span>
+
+<span class="cp">sub make_new_child {</span>
+<span class="cp">    my $pid;</span>
+<span class="cp">    my $sigset;</span>
+<span class="cp">    </span>
+<span class="cp">    # block signal for fork</span>
+<span class="cp">    $sigset = POSIX::SigSet-&gt;new(SIGINT);</span>
+<span class="cp">    sigprocmask(SIG_BLOCK, $sigset)</span>
+<span class="cp">        or die &quot;Can&#39;t block SIGINT for fork: $!\n&quot;;</span>
+<span class="cp">    </span>
+<span class="cp">    die &quot;fork: $!&quot; unless defined ($pid = fork);</span>
+<span class="cp">    </span>
+<span class="cp">    if ($pid) {</span>
+<span class="cp">        # Parent records the child&#39;s birth and returns.</span>
+<span class="cp">        sigprocmask(SIG_UNBLOCK, $sigset)</span>
+<span class="cp">            or die &quot;Can&#39;t unblock SIGINT for fork: $!\n&quot;;</span>
+<span class="cp">        $children{$pid} = 1;</span>
+<span class="cp">        $children++;</span>
+<span class="cp">        return;</span>
+<span class="cp">    } else {</span>
+<span class="cp">        # Child can *not* return from this subroutine.</span>
+<span class="cp">        $SIG{INT} = &#39;DEFAULT&#39;;      # make SIGINT kill us as it did before</span>
+<span class="cp">    </span>
+<span class="cp">        # unblock signals</span>
+<span class="cp">        sigprocmask(SIG_UNBLOCK, $sigset)</span>
+<span class="cp">            or die &quot;Can&#39;t unblock SIGINT for fork: $!\n&quot;;</span>
+<span class="cp">    </span>
+<span class="cp">        # handle connections until we&#39;ve reached $MAX_CLIENTS_PER_CHILD</span>
+<span class="cp">        for ($i=0; $i &lt; $MAX_CLIENTS_PER_CHILD; $i++) {</span>
+<span class="cp">            $client = $server-&gt;accept()     or last;</span>
+<span class="cp">            # do something with the connection</span>
+<span class="cp">        }</span>
+<span class="cp">    </span>
+<span class="cp">        # tidy up gracefully and finish</span>
+<span class="cp">    </span>
+<span class="cp">        # this exit is VERY important, otherwise the child will become</span>
+<span class="cp">        # a producer of more and more children, forking yourself into</span>
+<span class="cp">        # process death.</span>
+<span class="cp">        exit;</span>
+<span class="cp">    }</span>
+<span class="cp">}</span>
+
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN958"
+>Non-Forking Servers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch17/nonforker</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl -w</span>
+<span class="cp"># nonforker - server who multiplexes without forking</span>
+<span class="cp">use POSIX;</span>
+<span class="cp">use IO::Socket;</span>
+<span class="cp">use IO::Select;</span>
+<span class="cp">use Socket;</span>
+<span class="cp">use Fcntl;</span>
+<span class="cp">use Tie::RefHash;</span>
+
+<span class="cp">$port = 1685;               # change this at will</span>
+
+<span class="cp"># Listen to port.</span>
+<span class="cp">$server = IO::Socket::INET-&gt;new(LocalPort =&gt; $port,</span>
+<span class="cp">                                Listen    =&gt; 10 )</span>
+<span class="cp">  or die &quot;Can&#39;t make server socket: $@\n&quot;;</span>
+
+<span class="cp"># begin with empty buffers</span>
+<span class="cp">%inbuffer  = ();</span>
+<span class="cp">%outbuffer = ();</span>
+<span class="cp">%ready     = ();</span>
+
+<span class="cp">tie %ready, &#39;Tie::RefHash&#39;;</span>
+
+<span class="cp">nonblock($server);</span>
+<span class="cp">$select = IO::Select-&gt;new($server);</span>
+
+<span class="cp"># Main loop: check reads/accepts, check writes, check ready to process</span>
+<span class="cp">while (1) {</span>
+<span class="cp">    my $client;</span>
+<span class="cp">    my $rv;</span>
+<span class="cp">    my $data;</span>
+
+<span class="cp">    # check for new information on the connections we have</span>
+
+<span class="cp">    # anything to read or accept?</span>
+<span class="cp">    foreach $client ($select-&gt;can_read(1)) {</span>
+
+<span class="cp">        if ($client == $server) {</span>
+<span class="cp">            # accept a new connection</span>
+
+<span class="cp">            $client = $server-&gt;accept();</span>
+<span class="cp">            $select-&gt;add($client);</span>
+<span class="cp">            nonblock($client);</span>
+<span class="cp">        } else {</span>
+<span class="cp">            # read data</span>
+<span class="cp">            $data = &#39;&#39;;</span>
+<span class="cp">            $rv   = $client-&gt;recv($data, POSIX::BUFSIZ, 0);</span>
+
+<span class="cp">            unless (defined($rv) &amp;&amp; length $data) {</span>
+<span class="cp">                # This would be the end of file, so close the client</span>
+<span class="cp">                delete $inbuffer{$client};</span>
+<span class="cp">                delete $outbuffer{$client};</span>
+<span class="cp">                delete $ready{$client};</span>
+
+<span class="cp">                $select-&gt;remove($client);</span>
+<span class="cp">                close $client;</span>
+<span class="cp">                next;</span>
+<span class="cp">            }</span>
+
+<span class="cp">            $inbuffer{$client} .= $data;</span>
+
+<span class="cp">            # test whether the data in the buffer or the data we</span>
+<span class="cp">            # just read means there is a complete request waiting</span>
+<span class="cp">            # to be fulfilled.  If there is, set $ready{$client}</span>
+<span class="cp">            # to the requests waiting to be fulfilled.</span>
+<span class="cp">            while ($inbuffer{$client} =~ s/(.*\n)//) {</span>
+<span class="cp">                push( @{$ready{$client}}, $1 );</span>
+<span class="cp">            }</span>
+<span class="cp">        }</span>
+<span class="cp">    }</span>
+
+<span class="cp">    # Any complete requests to process?</span>
+<span class="cp">    foreach $client (keys %ready) {</span>
+<span class="cp">        handle($client);</span>
+<span class="cp">    }</span>
+
+<span class="cp">    # Buffers to flush?</span>
+<span class="cp">    foreach $client ($select-&gt;can_write(1)) {</span>
+<span class="cp">        # Skip this client if we have nothing to say</span>
+<span class="cp">        next unless exists $outbuffer{$client};</span>
+
+<span class="cp">        $rv = $client-&gt;send($outbuffer{$client}, 0);</span>
+<span class="cp">        unless (defined $rv) {</span>
+<span class="cp">            # Whine, but move on.</span>
+<span class="cp">            warn &quot;I was told I could write, but I can&#39;t.\n&quot;;</span>
+<span class="cp">            next;</span>
+<span class="cp">        }</span>
+<span class="cp">        if ($rv == length $outbuffer{$client} ||</span>
+<span class="cp">            {$! == POSIX::EWOULDBLOCK) {</span>
+<span class="cp">            substr($outbuffer{$client}, 0, $rv) = &#39;&#39;;</span>
+<span class="cp">            delete $outbuffer{$client} unless length $outbuffer{$client};</span>
+<span class="cp">        } else {</span>
+<span class="cp">            # Couldn&#39;t write all the data, and it wasn&#39;t because</span>
+<span class="cp">            # it would have blocked.  Shutdown and move on.</span>
+<span class="cp">            delete $inbuffer{$client};</span>
+<span class="cp">            delete $outbuffer{$client};</span>
+<span class="cp">            delete $ready{$client};</span>
+
+<span class="cp">            $select-&gt;remove($client);</span>
+<span class="cp">            close($client);</span>
+<span class="cp">            next;</span>
+<span class="cp">        }</span>
+<span class="cp">    }</span>
+
+<span class="cp">    # Out of band data?</span>
+<span class="cp">    foreach $client ($select-&gt;has_exception(0)) {  # arg is timeout</span>
+<span class="cp">        # Deal with out-of-band data here, if you want to.</span>
+<span class="cp">    }</span>
+<span class="cp">}</span>
+
+<span class="cp"># handle($socket) deals with all pending requests for $client</span>
+<span class="cp">sub handle {</span>
+<span class="cp">    # requests are in $ready{$client}</span>
+<span class="cp">    # send output to $outbuffer{$client}</span>
+<span class="cp">    my $client = shift;</span>
+<span class="cp">    my $request;</span>
+
+<span class="cp">    foreach $request (@{$ready{$client}}) {</span>
+<span class="cp">        # $request is the text of the request</span>
+<span class="cp">        # put text of reply into $outbuffer{$client}</span>
+<span class="cp">    }</span>
+<span class="cp">    delete $ready{$client};</span>
+<span class="cp">}</span>
+
+<span class="cp"># nonblock($socket) puts socket into nonblocking mode</span>
+<span class="cp">sub nonblock {</span>
+<span class="cp">    my $socket = shift;</span>
+<span class="cp">    my $flags;</span>
+
+<span class="cp">    </span>
+<span class="cp">    $flags = fcntl($socket, F_GETFL, 0)</span>
+<span class="cp">            or die &quot;Can&#39;t get flags for socket: $!\n&quot;;</span>
+<span class="cp">    fcntl($socket, F_SETFL, $flags | O_NONBLOCK)</span>
+<span class="cp">            or die &quot;Can&#39;t make socket nonblocking: $!\n&quot;;</span>
+<span class="cp">}</span>
+
+<span class="cp">#-----------------------------</span>
+<span class="cp">while ($inbuffer{$client} =~ s/(.*\n)//) {</span>
+<span class="cp">    push( @{$ready{$client}}, $1 );</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$outbuffer{$client} .= $request;</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN961"
+>Writing a Multi-Homed Server</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">use Socket;</span>
+
+<span class="cp">socket(SERVER, PF_INET, SOCK_STREAM, getprotobyname(&#39;tcp&#39;));</span>
+<span class="cp">setsockopt(SERVER, SOL_SOCKET, SO_REUSEADDR, 1);</span>
+<span class="cp">bind(SERVER, sockaddr_in($server_port, INADDR_ANY))</span>
+<span class="cp">    or die &quot;Binding: $!\n&quot;;</span>
+
+<span class="cp"># accept loop</span>
+<span class="cp">while (accept(CLIENT, SERVER)) {</span>
+<span class="cp">    $my_socket_address = getsockname(CLIENT);</span>
+<span class="cp">    ($port, $myaddr)   = sockaddr_in($my_socket_address);</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$server = IO::Socket::INET-&gt;new(LocalPort =&gt; $server_port,</span>
+<span class="cp">                                Type      =&gt; SOCK_STREAM,</span>
+<span class="cp">                                Proto     =&gt; &#39;tcp&#39;,</span>
+<span class="cp">                                Listen    =&gt; 10)</span>
+<span class="cp">    or die &quot;Can&#39;t create server socket: $@\n&quot;;</span>
+
+<span class="cp">while ($client = $server-&gt;accept()) {</span>
+<span class="cp">    $my_socket_address = $client-&gt;sockname();</span>
+<span class="cp">    ($port, $myaddr)   = sockaddr_in($my_socket_address);</span>
+<span class="cp">    # ...</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">use Socket;</span>
+
+<span class="cp">$port = 4269;                       # port to bind to</span>
+<span class="cp">$host = &quot;specific.host.com&quot;;        # virtual host to listen on</span>
+
+<span class="cp">socket(Server, PF_INET, SOCK_STREAM, getprotobyname(&quot;tcp&quot;))</span>
+<span class="cp">    or die &quot;socket: $!&quot;;</span>
+<span class="cp">bind(Server, sockaddr_in($port, inet_aton($host)))</span>
+<span class="cp">    or die &quot;bind: $!&quot;;</span>
+<span class="cp">while ($client_address = accept(Client, Server)) {</span>
+<span class="cp">    # ...</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN964"
+>Making a Daemon Server</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">chroot(&quot;/var/daemon&quot;)</span>
+<span class="cp">    or die &quot;Couldn&#39;t chroot to /var/daemon: $!&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$pid = fork;</span>
+<span class="cp">exit if $pid;</span>
+<span class="cp">die &quot;Couldn&#39;t fork: $!&quot; unless defined($pid);</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">use POSIX;</span>
+
+<span class="cp">POSIX::setsid()</span>
+<span class="cp">    or die &quot;Can&#39;t start a new session: $!&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$time_to_die = 0;</span>
+
+<span class="cp">sub signal_handler {</span>
+<span class="cp">    $time_to_die = 1;</span>
+<span class="cp">}</span>
+
+<span class="cp">$SIG{INT} = $SIG{TERM} = $SIG{HUP} = \&amp;signal_handler;</span>
+<span class="cp"># trap or ignore $SIG{PIPE}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">until ($time_to_die) {</span>
+<span class="cp">    # ...</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN967"
+>Restarting a Server on Demand</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">$SELF = &quot;/usr/local/libexec/myd&quot;;   # which program I am</span>
+<span class="cp">@ARGS = qw(-l /var/log/myd -d);     # program arguments</span>
+
+<span class="cp">$SIG{HUP} = \&amp;phoenix;</span>
+
+<span class="cp">sub phoenix {</span>
+<span class="cp">    # close all your connections, kill your children, and</span>
+<span class="cp">    # generally prepare to be reincarnated with dignity.</span>
+<span class="cp">    exec($SELF, @ARGS)              or die &quot;Couldn&#39;t restart: $!\n&quot;;</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$CONFIG_FILE = &quot;/usr/local/etc/myprog/server_conf.pl&quot;;</span>
+<span class="cp">$SIG{HUP} = \&amp;read_config;</span>
+<span class="cp">sub read_config {</span>
+<span class="cp">    do $CONFIG_FILE;</span>
+<span class="cp">} </span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN970"
+>Program: backsniff</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">May 25 15:50:22 coprolith sniffer: Connection from 207.46.131.141 to</span>
+
+<span class="cp">207.46.130.164:echo </span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">echo    stream  tcp nowait  nobody /usr/scripts/snfsqrd sniffer</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch17/backsniff</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl -w</span>
+<span class="cp"># backsniff - log attempts to connect to particular ports</span>
+
+<span class="cp">use Sys::Syslog;</span>
+<span class="cp">use Socket;</span>
+
+<span class="cp"># identify my port and address</span>
+<span class="cp">$sockname          = getsockname(STDIN)</span>
+<span class="cp">                     or die &quot;Couldn&#39;t identify myself: $!\n&quot;;</span>
+<span class="cp">($port, $iaddr)    = sockaddr_in($sockname);</span>
+<span class="cp">$my_address        = inet_ntoa($iaddr);</span>
+
+<span class="cp"># get a name for the service</span>
+<span class="cp">$service = (getservbyport ($port, &quot;tcp&quot;))[0] || $port;</span>
+<span class="cp"># now identify remote address</span>
+<span class="cp">$sockname          = getpeername(STDIN)</span>
+<span class="cp">                         or die &quot;Couldn&#39;t identify other end: $!\n&quot;;</span>
+<span class="cp">($port, $iaddr)    = sockaddr_in($sockname);</span>
+<span class="cp">$ex_address        = inet_ntoa($iaddr);</span>
+
+<span class="cp"># and log the information</span>
+<span class="cp">openlog(&quot;sniffer&quot;, &quot;ndelay&quot;, &quot;daemon&quot;);</span>
+<span class="cp">syslog(&quot;notice&quot;, &quot;Connection from %s to %s:%s\n&quot;, $ex_address, </span>
+
+<span class="cp">        $my_address, $service);</span>
+<span class="cp">closelog();</span>
+<span class="cp">exit;</span>
+
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN973"
+>Program: fwdport</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">#% fwdport -s nntp -l fw.oursite.com -r news.bigorg.com</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#% fwdport -l myname:9191 -r news.bigorg.com:nntp</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch17/fwdport</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl -w</span>
+<span class="cp"># fwdport -- act as proxy forwarder for dedicated services</span>
+
+<span class="cp">use strict;                 # require declarations</span>
+<span class="cp">use Getopt::Long;           # for option processing</span>
+<span class="cp">use Net::hostent;       Example 17-8    # by-name interface for host info</span>
+<span class="cp">use IO::Socket;             # for creating server and client sockets</span>
+<span class="cp">use POSIX &quot;:sys_wait_h&quot;;    # for reaping our dead children</span>
+
+<span class="cp">my (</span>
+<span class="cp">    %Children,              # hash of outstanding child processes</span>
+<span class="cp">    $REMOTE,                # whom we connect to on the outside</span>
+<span class="cp">    $LOCAL,                 # where we listen to on the inside</span>
+<span class="cp">    $SERVICE,               # our service name or port number</span>
+<span class="cp">    $proxy_server,          # the socket we accept() from</span>
+<span class="cp">    $ME,                    # basename of this program</span>
+<span class="cp">);</span>
+
+<span class="cp">($ME = $0) =~ s,.*/,,;      # retain just basename of script name</span>
+
+<span class="cp">check_args();               # processing switches</span>
+<span class="cp">start_proxy();              # launch our own server</span>
+<span class="cp">service_clients();          # wait for incoming</span>
+<span class="cp">die &quot;NOT REACHED&quot;;          # you can&#39;t get here from there</span>
+
+<span class="cp"># process command line switches using the extended</span>
+<span class="cp"># version of the getopts library.</span>
+<span class="cp">sub check_args { </span>
+<span class="cp">    GetOptions(</span>
+<span class="cp">        &quot;remote=s&quot;    =&gt; \$REMOTE,</span>
+<span class="cp">        &quot;local=s&quot;     =&gt; \$LOCAL,</span>
+<span class="cp">        &quot;service=s&quot;   =&gt; \$SERVICE,</span>
+<span class="cp">    ) or die &lt;&lt;EOUSAGE;</span>
+<span class="cp">    usage: $0 [ --remote host ] [ --local interface ] [ --service service ]   </span>
+<span class="cp">EOUSAGE</span>
+<span class="cp">    die &quot;Need remote&quot;                   unless $REMOTE;</span>
+<span class="cp">    die &quot;Need local or service&quot;         unless $LOCAL || $SERVICE;</span>
+<span class="cp">}</span>
+
+<span class="cp"># begin our server </span>
+<span class="cp">sub start_proxy {</span>
+<span class="cp">    my @proxy_server_config = (</span>
+<span class="cp">      Proto     =&gt; &#39;tcp&#39;,</span>
+<span class="cp">      Reuse     =&gt; 1,</span>
+<span class="cp">      Listen    =&gt; SOMAXCONN,</span>
+<span class="cp">    );</span>
+<span class="cp">    push @proxy_server_config, LocalPort =&gt; $SERVICE if $SERVICE;</span>
+<span class="cp">    push @proxy_server_config, LocalAddr =&gt; $LOCAL   if $LOCAL;</span>
+<span class="cp">    $proxy_server = IO::Socket::INET-&gt;new(@proxy_server_config)</span>
+<span class="cp">                    or die &quot;can&#39;t create proxy server: $@&quot;;</span>
+<span class="cp">    print &quot;[Proxy server on &quot;, ($LOCAL || $SERVICE), &quot; initialized.]\n&quot;;</span>
+<span class="cp">}</span>
+
+<span class="cp">sub service_clients { </span>
+<span class="cp">    my (</span>
+<span class="cp">        $local_client,              # someone internal wanting out</span>
+<span class="cp">        $lc_info,                   # local client&#39;s name/port information</span>
+<span class="cp">        $remote_server,             # the socket for escaping out</span>
+<span class="cp">        @rs_config,                 # temp array for remote socket options</span>
+<span class="cp">        $rs_info,                   # remote server&#39;s name/port information</span>
+<span class="cp">        $kidpid,                    # spawned child for each connection</span>
+<span class="cp">    );</span>
+
+<span class="cp">    $SIG{CHLD} = \&amp;REAPER;          # harvest the moribund</span>
+
+<span class="cp">    accepting();</span>
+
+<span class="cp">    # an accepted connection here means someone inside wants out</span>
+<span class="cp">    while ($local_client = $proxy_server-&gt;accept()) {</span>
+<span class="cp">        $lc_info = peerinfo($local_client);</span>
+<span class="cp">        set_state(&quot;servicing local $lc_info&quot;);</span>
+<span class="cp">        printf &quot;[Connect from $lc_info]\n&quot;;</span>
+
+<span class="cp">        @rs_config = (</span>
+<span class="cp">            Proto     =&gt; &#39;tcp&#39;,</span>
+<span class="cp">            PeerAddr  =&gt; $REMOTE,</span>
+<span class="cp">        );</span>
+<span class="cp">        push(@rs_config, PeerPort =&gt; $SERVICE) if $SERVICE;</span>
+
+<span class="cp">        print &quot;[Connecting to $REMOTE...&quot;;</span>
+<span class="cp">        set_state(&quot;connecting to $REMOTE&quot;);                 # see below</span>
+<span class="cp">        $remote_server = IO::Socket::INET-&gt;new(@rs_config)</span>
+<span class="cp">                         or die &quot;remote server: $@&quot;;</span>
+<span class="cp">        print &quot;done]\n&quot;;</span>
+
+<span class="cp">        $rs_info = peerinfo($remote_server);</span>
+<span class="cp">        set_state(&quot;connected to $rs_info&quot;);</span>
+
+<span class="cp">        $kidpid = fork();</span>
+<span class="cp">        die &quot;Cannot fork&quot; unless defined $kidpid;</span>
+<span class="cp">        if ($kidpid) {</span>
+<span class="cp">            $Children{$kidpid} = time();            # remember his start time</span>
+<span class="cp">            close $remote_server;                   # no use to master</span>
+<span class="cp">            close $local_client;                    # likewise</span>
+<span class="cp">            next;                                   # go get another client</span>
+<span class="cp">        } </span>
+
+<span class="cp">        # at this point, we are the forked child process dedicated</span>
+<span class="cp">        # to the incoming client.  but we want a twin to make i/o</span>
+<span class="cp">        # easier.</span>
+
+<span class="cp">        close $proxy_server;                        # no use to slave</span>
+
+<span class="cp">        $kidpid = fork(); </span>
+<span class="cp">        die &quot;Cannot fork&quot; unless defined $kidpid;</span>
+
+<span class="cp">        # now each twin sits around and ferries lines of data.</span>
+<span class="cp">        # see how simple the algorithm is when you can have</span>
+<span class="cp">        # multiple threads of control?</span>
+
+<span class="cp">        # this is the fork&#39;s parent, the master&#39;s child</span>
+<span class="cp">        if ($kidpid) {              </span>
+<span class="cp">            set_state(&quot;$rs_info --&gt; $lc_info&quot;);</span>
+<span class="cp">            select($local_client); $| = 1;</span>
+<span class="cp">            print while &lt;$remote_server&gt;;</span>
+<span class="cp">            kill(&#39;TERM&#39;, $kidpid);      # kill my twin cause we&#39;re done</span>
+<span class="cp">            } </span>
+<span class="cp">        # this is the fork&#39;s child, the master&#39;s grandchild</span>
+<span class="cp">        else {                      </span>
+<span class="cp">            set_state(&quot;$rs_info &lt;-- $lc_info&quot;);</span>
+<span class="cp">            select($remote_server); $| = 1;</span>
+<span class="cp">            print while &lt;$local_client&gt;;</span>
+<span class="cp">            kill(&#39;TERM&#39;, getppid());    # kill my twin cause we&#39;re done</span>
+<span class="cp">        } </span>
+<span class="cp">        exit;                           # whoever&#39;s still alive bites it</span>
+<span class="cp">    } continue {</span>
+<span class="cp">        accepting();</span>
+<span class="cp">    } </span>
+<span class="cp">}</span>
+
+<span class="cp"># helper function to produce a nice string in the form HOST:PORT</span>
+<span class="cp">sub peerinfo {</span>
+<span class="cp">    my $sock = shift;</span>
+<span class="cp">    my $hostinfo = gethostbyaddr($sock-&gt;peeraddr);</span>
+<span class="cp">    return sprintf(&quot;%s:%s&quot;, </span>
+<span class="cp">                    $hostinfo-&gt;name || $sock-&gt;peerhost, </span>
+<span class="cp">                    $sock-&gt;peerport);</span>
+<span class="cp">} </span>
+
+<span class="cp"># reset our $0, which on some systems make &quot;ps&quot; report</span>
+<span class="cp"># something interesting: the string we set $0 to!</span>
+<span class="cp">sub set_state { $0 = &quot;$ME [@_]&quot; } </span>
+
+<span class="cp"># helper function to call set_state</span>
+<span class="cp">sub accepting {</span>
+<span class="cp">    set_state(&quot;accepting proxy for &quot; . ($REMOTE || $SERVICE));</span>
+<span class="cp">}</span>
+
+<span class="cp"># somebody just died.  keep harvesting the dead until </span>
+<span class="cp"># we run out of them.  check how long they ran.</span>
+<span class="cp">sub REAPER { </span>
+<span class="cp">    my $child;</span>
+<span class="cp">    my $start;</span>
+<span class="cp">    while (($child = waitpid(-1,WNOHANG)) &gt; 0) {</span>
+<span class="cp">        if ($start = $Children{$child}) {</span>
+<span class="cp">            my $runtime = time() - $start;</span>
+<span class="cp">            printf &quot;Child $child ran %dm%ss\n&quot;, </span>
+<span class="cp">                $runtime / 60, $runtime % 60;</span>
+<span class="cp">            delete $Children{$child};</span>
+<span class="cp">        } else {</span>
+<span class="cp">            print &quot;Bizarre kid $child exited $?\n&quot;;</span>
+<span class="cp">        } </span>
+<span class="cp">    }</span>
+<span class="cp">    # If I had to choose between System V and 4.2, I&#39;d resign. --Peter Honeyman</span>
+<span class="cp">    $SIG{CHLD} = \&amp;REAPER; </span>
+<span class="cp">};</span>
+
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="processmanagementetc.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="internetservices.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Process Management and Communication</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Internet Services</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

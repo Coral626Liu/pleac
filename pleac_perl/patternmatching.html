@@ -1,0 +1,1994 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Pattern Matching</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Perl"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Hashes"
+HREF="hashes.html"><LINK
+REL="NEXT"
+TITLE="File Access"
+HREF="fileaccess.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Perl</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="hashes.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="fileaccess.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="PATTERNMATCHING"
+>6. Pattern Matching</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN285"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">match( $string, $pattern );</span>
+<span class="cp">subst( $string, $pattern, $replacement );</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$meadow =~ m/sheep/;   # True if $meadow contains &quot;sheep&quot;</span>
+<span class="cp">$meadow !~ m/sheep/;   # True if $meadow doesn&#39;t contain &quot;sheep&quot;</span>
+<span class="cp">$meadow =~ s/old/new/; # Replace &quot;old&quot; with &quot;new&quot; in $meadow</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># Fine bovines demand fine toreadors.</span>
+<span class="cp"># Muskoxen are a polar ovibovine species.</span>
+<span class="cp"># Grooviness went out of fashion decades ago.</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># Ovines are found typically in oviaries.</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">if ($meadow =~ /\bovines?\b/i) { print &quot;Here be sheep!&quot; }</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$string = &quot;good food&quot;;</span>
+<span class="cp">$string =~ s/o*/e/;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># good food</span>
+<span class="cp"># </span>
+<span class="cp"># geod food</span>
+<span class="cp"># </span>
+<span class="cp"># geed food</span>
+<span class="cp"># </span>
+<span class="cp"># geed feed</span>
+<span class="cp"># </span>
+<span class="cp"># ged food</span>
+<span class="cp"># </span>
+<span class="cp"># ged fed</span>
+<span class="cp"># </span>
+<span class="cp"># egood food</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#% echo ababacaca | perl -ne &#39;print &quot;$&amp;\n&quot; if /(a|ba|b)+(a|ac)+/&#39;</span>
+<span class="cp">#ababa</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#% echo ababacaca | </span>
+<span class="cp">#    awk &#39;match($0,/(a|ba|b)+(a|ac)+/) { print substr($0, RSTART, RLENGTH) }&#39;</span>
+<span class="cp">#ababacaca</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">while (m/(\d+)/g) {</span>
+<span class="cp">    print &quot;Found number $1\n&quot;;</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">@numbers = m/(\d+)/g;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$digits = &quot;123456789&quot;;</span>
+<span class="cp">@nonlap = $digits =~ /(\d\d\d)/g;</span>
+<span class="cp">@yeslap = $digits =~ /(?=(\d\d\d))/g;</span>
+<span class="cp">print &quot;Non-overlapping:  @nonlap\n&quot;;</span>
+<span class="cp">print &quot;Overlapping:      @yeslap\n&quot;;</span>
+<span class="cp"># Non-overlapping:  123 456 789</span>
+
+<span class="cp"># Overlapping:      123 234 345 456 567 678 789</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$string = &quot;And little lambs eat ivy&quot;;</span>
+<span class="cp">$string =~ /l[^s]*s/;</span>
+<span class="cp">print &quot;($`) ($&amp;) ($&#39;)\n&quot;;</span>
+<span class="cp"># (And ) (little lambs) ( eat ivy)</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN288"
+>Copying and Substituting Simultaneously</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">$dst = $src;</span>
+<span class="cp">$dst =~ s/this/that/;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">($dst = $src) =~ s/this/that/;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># strip to basename</span>
+<span class="cp">($progname = $0)        =~ s!^.*/!!;</span>
+
+<span class="cp"># Make All Words Title-Cased</span>
+<span class="cp">($capword  = $word)     =~ s/(\w+)/\u\L$1/g;</span>
+
+<span class="cp"># /usr/man/man3/foo.1 changes to /usr/man/cat3/foo.1</span>
+<span class="cp">($catpage  = $manpage)  =~ s/man(?=\d)/cat/;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">@bindirs = qw( /usr/bin /bin /usr/local/bin );</span>
+<span class="cp">for (@libdirs = @bindirs) { s/bin/lib/ }</span>
+<span class="cp">print &quot;@libdirs\n&quot;;</span>
+<span class="cp"># /usr/lib /lib /usr/local/lib</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">($a =  $b) =~ s/x/y/g;      # copy $b and then change $a</span>
+<span class="cp"> $a = ($b  =~ s/x/y/g);     # change $b, count goes in $a</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN291"
+>Matching Letters</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">if ($var =~ /^[A-Za-z]+$/) {</span>
+<span class="cp">    # it is purely alphabetic</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">use locale;</span>
+<span class="cp">if ($var =~ /^[^\W\d_]+$/) {</span>
+<span class="cp">    print &quot;var is purely alphabetic\n&quot;;</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">use locale;</span>
+<span class="cp">use POSIX &#39;locale_h&#39;;</span>
+
+<span class="cp"># the following locale string might be different on your system</span>
+<span class="cp">unless (setlocale(LC_ALL, &quot;fr_CA.ISO8859-1&quot;)) {</span>
+<span class="cp">    die &quot;couldn&#39;t set locale to French Canadian\n&quot;;</span>
+<span class="cp">}</span>
+
+<span class="cp">while (&lt;DATA&gt;) {</span>
+<span class="cp">    chomp;</span>
+<span class="cp">    if (/^[^\W\d_]+$/) {</span>
+<span class="cp">        print &quot;$_: alphabetic\n&quot;;</span>
+<span class="cp">    } else {</span>
+<span class="cp">        print &quot;$_: line noise\n&quot;;</span>
+<span class="cp">    }</span>
+<span class="cp">}</span>
+
+<span class="cp">#__END__</span>
+<span class="cp">#silly</span>
+<span class="cp">#faзade</span>
+<span class="cp">#coцperate</span>
+<span class="cp">#niсo</span>
+<span class="cp">#Renйe</span>
+<span class="cp">#Moliиre</span>
+<span class="cp">#hжmoglobin</span>
+<span class="cp">#naпve</span>
+<span class="cp">#tschья</span>
+<span class="cp">#random!stuff#here</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN294"
+>Matching Words</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">#/\S+/               # as many non-whitespace bytes as possible</span>
+<span class="cp">#/[A-Za-z&#39;-]+/       # as many letters, apostrophes, and hyphens</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#/\b([A-Za-z]+)\b/            # usually best</span>
+<span class="cp">#/\s([A-Za-z]+)\s/            # fails at ends or w/ punctuation</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN297"
+>Commenting Regular Expressions</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch06/resname</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl -p</span>
+<span class="cp"># resname - change all &quot;foo.bar.com&quot; style names in the input stream</span>
+<span class="cp"># into &quot;foo.bar.com [204.148.40.9]&quot; (or whatever) instead</span>
+
+<span class="cp">use Socket;                 # load inet_addr</span>
+<span class="cp">s{                          #</span>
+<span class="cp">    (                       # capture the hostname in $1</span>
+<span class="cp">        (?:                 # these parens for grouping only</span>
+<span class="cp">            (?! [-_]  )     # lookahead for neither underscore nor dash</span>
+<span class="cp">            [\w-] +         # hostname component</span>
+<span class="cp">            \.              # and the domain dot</span>
+<span class="cp">        ) +                 # now repeat that whole thing a bunch of times</span>
+<span class="cp">        [A-Za-z]            # next must be a letter</span>
+<span class="cp">        [\w-] +             # now trailing domain part</span>
+<span class="cp">    )                       # end of $1 capture</span>
+<span class="cp">}{                          # replace with this:</span>
+<span class="cp">    &quot;$1 &quot; .                 # the original bit, plus a space</span>
+<span class="cp">           ( ($addr = gethostbyname($1))   # if we get an addr</span>
+<span class="cp">            ? &quot;[&quot; . inet_ntoa($addr) . &quot;]&quot; #        format it</span>
+<span class="cp">            : &quot;[???]&quot;                      # else mark dubious</span>
+<span class="cp">           )</span>
+<span class="cp">}gex;               # /g for global</span>
+<span class="cp">                    # /e for execute</span>
+<span class="cp">                    # /x for nice formatting</span>
+
+<span class="cp">#-----------------------------</span>
+<span class="cp">s/                  # replace</span>
+<span class="cp">  \#                #   a pound sign</span>
+<span class="cp">  (\w+)             #   the variable name</span>
+<span class="cp">  \#                #   another pound sign</span>
+<span class="cp">/${$1}/xg;          # with the value of the global variable</span>
+<span class="cp">##-----------------------------</span>
+<span class="cp">s/                  # replace</span>
+<span class="cp">\#                  #   a pound sign</span>
+<span class="cp">(\w+)               #   the variable name</span>
+<span class="cp">\#                  #   another pound sign</span>
+<span class="cp">/&#39;$&#39; . $1/xeeg;     # &#39; with the value of *any* variable</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN300"
+>Finding the Nth Occurrence of a Match</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp"># One fish two fish red fish blue fish</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$WANT = 3;</span>
+<span class="cp">$count = 0;</span>
+<span class="cp">while (/(\w+)\s+fish\b/gi) {</span>
+<span class="cp">    if (++$count == $WANT) {</span>
+<span class="cp">        print &quot;The third fish is a $1 one.\n&quot;;</span>
+<span class="cp">        # Warning: don&#39;t `last&#39; out of this loop</span>
+<span class="cp">    }</span>
+<span class="cp">}</span>
+<span class="cp"># The third fish is a red one.</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">/(?:\w+\s+fish\s+){2}(\w+)\s+fish/i;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># simple way with while loop</span>
+<span class="cp">$count = 0;</span>
+<span class="cp">while ($string =~ /PAT/g) {</span>
+<span class="cp">    $count++;               # or whatever you&#39;d like to do here</span>
+<span class="cp">}</span>
+
+<span class="cp"># same thing with trailing while</span>
+<span class="cp">$count = 0;</span>
+<span class="cp">$count++ while $string =~ /PAT/g;</span>
+
+<span class="cp"># or with for loop</span>
+<span class="cp">for ($count = 0; $string =~ /PAT/g; $count++) { }</span>
+<span class="cp">    </span>
+<span class="cp"># Similar, but this time count overlapping matches</span>
+<span class="cp">$count++ while $string =~ /(?=PAT)/g;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$pond  = &#39;One fish two fish red fish blue fish&#39;;</span>
+
+<span class="cp"># using a temporary</span>
+<span class="cp">@colors = ($pond =~ /(\w+)\s+fish\b/gi);      # get all matches</span>
+<span class="cp">$color  = $colors[2];                         # then the one we want</span>
+
+<span class="cp"># or without a temporary array</span>
+<span class="cp">$color = ( $pond =~ /(\w+)\s+fish\b/gi )[2];  # just grab element 3</span>
+
+<span class="cp">print &quot;The third fish in the pond is $color.\n&quot;;</span>
+<span class="cp"># The third fish in the pond is red.</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$count = 0;</span>
+<span class="cp">$_ = &#39;One fish two fish red fish blue fish&#39;;</span>
+<span class="cp">@evens = grep { $count++ % 2 == 1 } /(\w+)\s+fish\b/gi;</span>
+<span class="cp">print &quot;Even numbered fish are @evens.\n&quot;;</span>
+<span class="cp"># Even numbered fish are two blue.</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$count = 0;</span>
+<span class="cp">s{</span>
+<span class="cp">   \b               # makes next \w more efficient</span>
+<span class="cp">   ( \w+ )          # this is what we&#39;ll be changing</span>
+<span class="cp">   (</span>
+<span class="cp">     \s+ fish \b</span>
+<span class="cp">   )</span>
+<span class="cp">}{</span>
+<span class="cp">    if (++$count == 4) {</span>
+<span class="cp">        &quot;sushi&quot; . $2;</span>
+<span class="cp">    } else {</span>
+<span class="cp">         $1   . $2;</span>
+<span class="cp">    }</span>
+<span class="cp">}gex;</span>
+<span class="cp"># One fish two fish red fish sushi fish</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$pond = &#39;One fish two fish red fish blue fish swim here.&#39;;</span>
+<span class="cp">$color = ( $pond =~ /\b(\w+)\s+fish\b/gi )[-1];</span>
+<span class="cp">print &quot;Last fish is $color.\n&quot;;</span>
+<span class="cp"># Last fish is blue.</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">m{</span>
+<span class="cp">    A               # find some pattern A</span>
+<span class="cp">    (?!             # mustn&#39;t be able to find</span>
+<span class="cp">        .*          # something</span>
+<span class="cp">        A           # and A</span>
+<span class="cp">    )</span>
+<span class="cp">    $               # through the end of the string</span>
+<span class="cp">}x</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$pond = &#39;One fish two fish red fish blue fish swim here.&#39;;</span>
+<span class="cp">if ($pond =~ m{</span>
+<span class="cp">                    \b  (  \w+) \s+ fish \b</span>
+<span class="cp">                (?! .* \b fish \b )</span>
+<span class="cp">            }six )</span>
+<span class="cp">{</span>
+<span class="cp">    print &quot;Last fish is $1.\n&quot;;</span>
+<span class="cp">} else {</span>
+<span class="cp">    print &quot;Failed!\n&quot;;</span>
+<span class="cp">}</span>
+<span class="cp"># Last fish is blue.</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN303"
+>Matching Multiple Lines</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch06/killtags</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl</span>
+<span class="cp"># killtags - very bad html tag killer</span>
+<span class="cp">undef $/;           # each read is whole file</span>
+<span class="cp">while (&lt;&gt;) {        # get one whole file at a time</span>
+<span class="cp">    s/&lt;.*?&gt;//gs;    # strip tags (terribly)</span>
+<span class="cp">    print;          # print file to STDOUT</span>
+<span class="cp">}</span>
+
+<span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch06/headerfy</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl</span>
+<span class="cp"># headerfy: change certain chapter headers to html</span>
+<span class="cp">$/ = &#39;&#39;;</span>
+<span class="cp">while ( &lt;&gt; ) {              # fetch a paragraph</span>
+<span class="cp">    s{</span>
+<span class="cp">        \A                  # start of record</span>
+<span class="cp">        (                   # capture in $1</span>
+<span class="cp">            Chapter         # text string</span>
+<span class="cp">            \s+             # mandatory whitespace</span>
+<span class="cp">            \d+             # decimal number</span>
+<span class="cp">            \s*             # optional whitespace</span>
+<span class="cp">            :               # a real colon</span>
+<span class="cp">            . *             # anything not a newline till end of line</span>
+<span class="cp">        )</span>
+<span class="cp">    }{&lt;H1&gt;$1&lt;/H1&gt;}gx;</span>
+<span class="cp">    print;</span>
+<span class="cp">}</span>
+
+<span class="cp">#-----------------------------</span>
+<span class="cp">#% perl -00pe &#39;s{\A(Chapter\s+\d+\s*:.*)}{&lt;H1&gt;$1&lt;/H1&gt;}gx&#39; datafile</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$/ = &#39;&#39;;            # paragraph read mode for readline access</span>
+<span class="cp">while (&lt;ARGV&gt;) {</span>
+<span class="cp">    while (m#^START(.*?)^END#sm) {  # /s makes . span line boundaries</span>
+<span class="cp">                                    # /m makes ^ match near newlines</span>
+<span class="cp">        print &quot;chunk $. in $ARGV has &lt;&lt;$1&gt;&gt;\n&quot;;</span>
+<span class="cp">    }</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN306"
+>Reading Records with a Pattern Separator</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">undef $/;</span>
+<span class="cp">@chunks = split(/pattern/, &lt;FILEHANDLE&gt;);</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># .Ch, .Se and .Ss divide chunks of STDIN</span>
+<span class="cp">{</span>
+<span class="cp">    local $/ = undef;</span>
+<span class="cp">    @chunks = split(/^\.(Ch|Se|Ss)$/m, &lt;&gt;);</span>
+<span class="cp">}</span>
+<span class="cp">print &quot;I read &quot;, scalar(@chunks), &quot; chunks.\n&quot;;</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN309"
+>Extracting a Range of Lines</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">while (&lt;&gt;) {</span>
+<span class="cp">    if (/BEGIN PATTERN/ .. /END PATTERN/) {</span>
+<span class="cp">        # line falls between BEGIN and END in the</span>
+<span class="cp">        # text, inclusive.</span>
+<span class="cp">    }</span>
+<span class="cp">}</span>
+
+<span class="cp">while (&lt;&gt;) {</span>
+<span class="cp">    if ($FIRST_LINE_NUM .. $LAST_LINE_NUM) {</span>
+<span class="cp">        # operate only between first and last line, inclusive.</span>
+<span class="cp">    }</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">while (&lt;&gt;) {</span>
+<span class="cp">    if (/BEGIN PATTERN/ ... /END PATTERN/) {</span>
+<span class="cp">        # line is between BEGIN and END on different lines</span>
+<span class="cp">    }</span>
+<span class="cp">}</span>
+
+<span class="cp">while (&lt;&gt;) {</span>
+<span class="cp">    if ($FIRST_LINE_NUM ... $LAST_LINE_NUM) {</span>
+<span class="cp">        # operate only between first and last line, but not same</span>
+<span class="cp">    }</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># command-line to print lines 15 through 17 inclusive (see below)</span>
+<span class="cp">perl -ne &#39;print if 15 .. 17&#39; datafile</span>
+
+<span class="cp"># print out all &lt;XMP&gt; .. &lt;/XMP&gt; displays from HTML doc</span>
+<span class="cp">while (&lt;&gt;) {</span>
+<span class="cp">    print if m#&lt;XMP&gt;#i .. m#&lt;/XMP&gt;#i;</span>
+<span class="cp">}</span>
+<span class="cp">    </span>
+<span class="cp"># same, but as shell command</span>
+<span class="cp"># perl -ne &#39;print if m#&lt;XMP&gt;#i .. m#&lt;/XMP&gt;#i&#39; document.html</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># perl -ne &#39;BEGIN { $top=3; $bottom=5 }  print if $top .. $bottom&#39; /etc/passwd        # previous command FAILS</span>
+<span class="cp"># perl -ne &#39;BEGIN { $top=3; $bottom=5 } \</span>
+<span class="cp">#     print if $. == $top .. $. ==     $bottom&#39; /etc/passwd    # works</span>
+<span class="cp"># perl -ne &#39;print if 3 .. 5&#39; /etc/passwd   # also works</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">print if /begin/ .. /end/;</span>
+<span class="cp">print if /begin/ ... /end/;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">while (&lt;&gt;) {</span>
+<span class="cp">    $in_header =   1  .. /^$/;</span>
+<span class="cp">    $in_body   = /^$/ .. eof();</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">%seen = ();</span>
+<span class="cp">while (&lt;&gt;) {</span>
+<span class="cp">    next unless /^From:?\s/i .. /^$/;</span>
+<span class="cp">    while (/([^&lt;&gt;(),;\s]+\@[^&lt;&gt;(),;\s]+)/g) {</span>
+<span class="cp">        print &quot;$1\n&quot; unless $seen{$1}++;</span>
+<span class="cp">    }</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN312"
+>Matching Shell Globs as Regular Expressions</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">sub glob2pat {</span>
+<span class="cp">    my $globstr = shift;</span>
+<span class="cp">    my %patmap = (</span>
+<span class="cp">	 &#39;*&#39; =&gt; &#39;.*&#39;,</span>
+<span class="cp">	 &#39;?&#39; =&gt; &#39;.&#39;,</span>
+<span class="cp">	 &#39;[&#39; =&gt; &#39;[&#39;,</span>
+<span class="cp">	 &#39;]&#39; =&gt; &#39;]&#39;,</span>
+<span class="cp">    );</span>
+<span class="cp">    $globstr =~ s{(.)} { $patmap{$1} || &quot;\Q$1&quot; }ge;</span>
+<span class="cp">    return &#39;^&#39; . $globstr . &#39;$&#39;; #&#39;</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN315"
+>Speeding Up Interpolated Matches</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">while ($line = &lt;&gt;) {</span>
+<span class="cp">    if ($line =~ /$pattern/o) {</span>
+<span class="cp">        # do something</span>
+<span class="cp">    }</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch06/popgrep1</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl</span>
+<span class="cp"># popgrep1 - grep for abbreviations of places that say &quot;pop&quot;</span>
+<span class="cp"># version 1: slow but obvious way</span>
+<span class="cp">@popstates = qw(CO ON MI WI MN);</span>
+<span class="cp">LINE: while (defined($line = &lt;&gt;)) {</span>
+<span class="cp">    for $state (@popstates) {</span>
+<span class="cp">        if ($line =~ /\b$state\b/) {</span>
+<span class="cp">            print; next LINE;</span>
+<span class="cp">       }</span>
+<span class="cp">    }</span>
+<span class="cp">}</span>
+
+<span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch06/popgrep2</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl</span>
+<span class="cp"># popgrep2 - grep for abbreviations of places that say &quot;pop&quot;</span>
+<span class="cp"># version 2: eval strings; fast but hard to quote</span>
+<span class="cp">@popstates = qw(CO ON MI WI MN);</span>
+<span class="cp">$code = &#39;while (defined($line = &lt;&gt;)) {&#39;;</span>
+<span class="cp">for $state (@popstates) {</span>
+<span class="cp">    $code .= &quot;\tif (\$line =~ /\\b$state\\b/) { print \$line; next; }\n&quot;;</span>
+<span class="cp">}</span>
+<span class="cp">$code .= &#39;}&#39;;</span>
+<span class="cp">print &quot;CODE IS\n----\n$code\n----\n&quot; if 0;  # turn on to debug</span>
+<span class="cp">eval $code;</span>
+<span class="cp">die if $@;</span>
+
+<span class="cp">#-----------------------------</span>
+<span class="cp">while (defined($line = &lt;&gt;)) {</span>
+<span class="cp">     if ($line =~ /\bCO\b/) { print $line; next; }</span>
+<span class="cp">     if ($line =~ /\bON\b/) { print $line; next; }</span>
+<span class="cp">     if ($line =~ /\bMI\b/) { print $line; next; }</span>
+<span class="cp">     if ($line =~ /\bWI\b/) { print $line; next; }</span>
+<span class="cp">     if ($line =~ /\bMN\b/) { print $line; next; }</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch06/popgrep3</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl</span>
+<span class="cp"># popgrep3 - grep for abbreviations of places that say &quot;pop&quot;</span>
+<span class="cp"># version 3: use build_match_func algorithm</span>
+<span class="cp">@popstates = qw(CO ON MI WI MN);</span>
+<span class="cp">    $expr = join(&#39;||&#39;, map { &quot;m/\\b\$popstates[$_]\\b/o&quot; } 0..$#popstates);</span>
+<span class="cp">$match_any = eval &quot;sub { $expr }&quot;;</span>
+<span class="cp">die if $@;</span>
+<span class="cp">while (&lt;&gt;) {</span>
+<span class="cp">    print if &amp;$match_any;</span>
+<span class="cp">}</span>
+
+<span class="cp">#-----------------------------</span>
+<span class="cp">sub {</span>
+<span class="cp">      m/\b$popstates[0]\b/o || m/\b$popstates[1]\b/o ||</span>
+<span class="cp">      m/\b$popstates[2]\b/o || m/\b$popstates[3]\b/o ||</span>
+<span class="cp">      m/\b$popstates[4]\b/o</span>
+<span class="cp">  }</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch06/grepauth</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl</span>
+<span class="cp"># grepauth - print lines that mention both Tom and Nat</span>
+
+<span class="cp">$multimatch = build_match_all(q/Tom/, q/Nat/);</span>
+<span class="cp">while (&lt;&gt;) {</span>
+<span class="cp">    print if &amp;$multimatch;</span>
+<span class="cp">}</span>
+<span class="cp">exit;</span>
+
+<span class="cp">sub build_match_any { build_match_func(&#39;||&#39;, @_) }</span>
+<span class="cp">sub build_match_all { build_match_func(&#39;&amp;&amp;&#39;, @_) }</span>
+<span class="cp">sub build_match_func {</span>
+<span class="cp">    my $condition = shift;</span>
+<span class="cp">    my @pattern = @_;  # must be lexical variable, not dynamic one</span>
+<span class="cp">    my $expr = join $condition =&gt; map { &quot;m/\$pattern[$_]/o&quot; } (0..$#pattern);</span>
+<span class="cp">    my $match_func = eval &quot;sub { local \$_ = shift if \@_; $expr }&quot;;</span>
+<span class="cp">    die if $@;  # propagate $@; this shouldn&#39;t happen!</span>
+<span class="cp">    return $match_func;</span>
+<span class="cp">}</span>
+
+<span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch06/popgrep4</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl</span>
+<span class="cp"># popgrep4 - grep for abbreviations of places that say &quot;pop&quot;</span>
+<span class="cp"># version 4: use Regexp module</span>
+<span class="cp">use Regexp;</span>
+<span class="cp">@popstates = qw(CO ON MI WI MN);</span>
+<span class="cp">@poppats   = map { Regexp-&gt;new( &#39;\b&#39; . $_ . &#39;\b&#39;) } @popstates;</span>
+<span class="cp">while (defined($line = &lt;&gt;)) {</span>
+<span class="cp">    for $patobj (@poppats) {</span>
+<span class="cp">        print $line if $patobj-&gt;match($line);</span>
+<span class="cp">    }</span>
+<span class="cp">}</span>
+
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN318"
+>Testing for a Valid Pattern</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">do {</span>
+<span class="cp">    print &quot;Pattern? &quot;;</span>
+<span class="cp">    chomp($pat = &lt;&gt;);</span>
+<span class="cp">    eval { &quot;&quot; =~ /$pat/ };</span>
+<span class="cp">    warn &quot;INVALID PATTERN $@&quot; if $@;</span>
+<span class="cp">} while $@;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">sub is_valid_pattern {</span>
+<span class="cp">    my $pat = shift;</span>
+<span class="cp">    return eval { &quot;&quot; =~ /$pat/; 1 } || 0;</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch06/paragrep</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl</span>
+<span class="cp"># paragrep - trivial paragraph grepper</span>
+<span class="cp">die &quot;usage: $0 pat [files]\n&quot; unless @ARGV;</span>
+<span class="cp">$/ = &#39;&#39;;</span>
+<span class="cp">$pat = shift;</span>
+<span class="cp">eval { &quot;&quot; =~ /$pat/; 1 }      or die &quot;$0: Bad pattern $pat: $@\n&quot;;</span>
+<span class="cp">while (&lt;&gt;) {</span>
+<span class="cp">    print &quot;$ARGV $.: $_&quot; if /$pat/o;</span>
+<span class="cp">}</span>
+
+<span class="cp">#-----------------------------</span>
+<span class="cp">$pat = &quot;You lose @{[ system(&#39;rm -rf *&#39;)]} big here&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$safe_pat = quotemeta($pat);</span>
+<span class="cp">something() if /$safe_pat/;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">something() if /\Q$pat/;</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN321"
+>Honoring Locale Settings in Regular Expressions</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">use locale;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch06/localeg</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl -w</span>
+<span class="cp"># localeg - demonstrate locale effects</span>
+
+<span class="cp">use locale;</span>
+<span class="cp">use POSIX &#39;locale_h&#39;;</span>
+
+<span class="cp">$name = &quot;andreas k\xF6nig&quot;;</span>
+<span class="cp">@locale{qw(German English)} = qw(de_DE.ISO_8859-1 us-ascii);</span>
+<span class="cp">setlocale(LC_CTYPE, $locale{English})</span>
+<span class="cp">  or die &quot;Invalid locale $locale{English}&quot;;</span>
+<span class="cp">@english_names = ();</span>
+<span class="cp">while ($name =~ /\b(\w+)\b/g) {</span>
+<span class="cp">        push(@english_names, ucfirst($1));</span>
+<span class="cp">}</span>
+<span class="cp">setlocale(LC_CTYPE, $locale{German})</span>
+<span class="cp">  or die &quot;Invalid locale $locale{German}&quot;;</span>
+<span class="cp">@german_names = ();</span>
+<span class="cp">while ($name =~ /\b(\w+)\b/g) {</span>
+<span class="cp">        push(@german_names, ucfirst($1));</span>
+<span class="cp">}</span>
+<span class="cp">print &quot;English names: @english_names\n&quot;;</span>
+<span class="cp">print &quot;German names:  @german_names\n&quot;;</span>
+
+<span class="cp">English names: Andreas K Nig</span>
+
+<span class="cp">German names:  Andreas Kцnig</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN324"
+>Approximate Matching</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">use String::Approx qw(amatch);</span>
+
+<span class="cp">if (amatch(&quot;PATTERN&quot;, @list)) {</span>
+<span class="cp">    # matched</span>
+<span class="cp">}</span>
+
+<span class="cp">@matches = amatch(&quot;PATTERN&quot;, @list);</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">use String::Approx qw(amatch);</span>
+<span class="cp">open(DICT, &quot;/usr/dict/words&quot;)               or die &quot;Can&#39;t open dict: $!&quot;;</span>
+<span class="cp">while(&lt;DICT&gt;) {</span>
+<span class="cp">    print if amatch(&quot;balast&quot;);</span>
+<span class="cp">}</span>
+
+<span class="cp">ballast</span>
+
+<span class="cp">balustrade</span>
+
+<span class="cp">blast</span>
+
+<span class="cp">blastula</span>
+
+<span class="cp">sandblast</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN327"
+>Matching from Where the Last Pattern Left Off</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">while (/(\d+)/g) {</span>
+<span class="cp">    print &quot;Found $1\n&quot;;</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$n = &quot;   49 here&quot;;</span>
+<span class="cp">$n =~ s/\G /0/g;</span>
+<span class="cp">print $n;</span>
+<span class="cp">00049 here</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">while (/\G,?(\d+)/g) {</span>
+<span class="cp">    print &quot;Found number $1\n&quot;;</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$_ = &quot;The year 1752 lost 10 days on the 3rd of September&quot;;</span>
+
+<span class="cp">while (/(\d+)/gc) {</span>
+<span class="cp">    print &quot;Found number $1\n&quot;;</span>
+<span class="cp">}</span>
+
+<span class="cp">if (/\G(\S+)/g) {</span>
+<span class="cp">    print &quot;Found $1 after the last number.\n&quot;;</span>
+<span class="cp">}</span>
+
+<span class="cp">#Found number 1752</span>
+<span class="cp">#</span>
+<span class="cp">#Found number 10</span>
+<span class="cp">#</span>
+<span class="cp">#Found number 3</span>
+<span class="cp">#</span>
+<span class="cp">#Found rd after the last number.</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">print &quot;The position in \$a is &quot;, pos($a);</span>
+<span class="cp">pos($a) = 30;</span>
+<span class="cp">print &quot;The position in \$_ is &quot;, pos;</span>
+<span class="cp">pos = 30;</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN330"
+>Greedy and Non-Greedy Matches</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp"># greedy pattern</span>
+<span class="cp">s/&lt;.*&gt;//gs;                     # try to remove tags, very badly</span>
+
+<span class="cp"># non-greedy pattern</span>
+<span class="cp">s/&lt;.*?&gt;//gs;                    # try to remove tags, still rather badly</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#&lt;b&gt;&lt;i&gt;this&lt;/i&gt; and &lt;i&gt;that&lt;/i&gt; are important&lt;/b&gt; Oh, &lt;b&gt;&lt;i&gt;me too!&lt;/i&gt;&lt;/b&gt;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">m{ &lt;b&gt;&lt;i&gt;(.*?)&lt;/i&gt;&lt;/b&gt; }sx</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">/BEGIN((?:(?!BEGIN).)*)END/</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">m{ &lt;b&gt;&lt;i&gt;(  (?: (?!&lt;/b&gt;|&lt;/i&gt;). )*  ) &lt;/i&gt;&lt;/b&gt; }sx</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">m{ &lt;b&gt;&lt;i&gt;(  (?: (?!&lt;/[ib]&gt;). )*  ) &lt;/i&gt;&lt;/b&gt; }sx</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">m{</span>
+<span class="cp">    &lt;b&gt;&lt;i&gt; </span>
+<span class="cp">    [^&lt;]*  # stuff not possibly bad, and not possibly the end.</span>
+<span class="cp">    (?:</span>
+<span class="cp"> # at this point, we can have &#39;&lt;&#39; if not part of something bad</span>
+<span class="cp">     (?!  &lt;/?[ib]&gt;  )   # what we can&#39;t have</span>
+<span class="cp">     &lt;                  # okay, so match the &#39;&lt;&#39;</span>
+<span class="cp">     [^&lt;]*              # and continue with more safe stuff</span>
+<span class="cp">    ) *</span>
+<span class="cp">    &lt;/i&gt;&lt;/b&gt;</span>
+<span class="cp"> }sx</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN333"
+>Detecting Duplicate Words</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">$/ = &#39;&#39;;                      # paragrep mode</span>
+<span class="cp">while (&lt;&gt;) {</span>
+<span class="cp">    while ( m{</span>
+<span class="cp">                \b            # start at a word boundary (begin letters)</span>
+<span class="cp">                (\S+)         # find chunk of non-whitespace</span>
+<span class="cp">                \b            # until another word boundary (end letters)</span>
+<span class="cp">                (</span>
+<span class="cp">                    \s+       # separated by some whitespace</span>
+<span class="cp">                    \1        # and that very same chunk again</span>
+<span class="cp">                    \b        # until another word boundary</span>
+<span class="cp">                ) +           # one or more sets of those</span>
+<span class="cp">             }xig</span>
+<span class="cp">         )</span>
+<span class="cp">    {</span>
+<span class="cp">        print &quot;dup word &#39;$1&#39; at paragraph $.\n&quot;;</span>
+<span class="cp">    }</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">This is a test</span>
+<span class="cp">test of the duplicate word finder.</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$a = &#39;nobody&#39;;</span>
+<span class="cp">$b = &#39;bodysnatcher&#39;;</span>
+<span class="cp">if (&quot;$a $b&quot; =~ /^(\w+)(\w+) \2(\w+)$/) {</span>
+<span class="cp">    print &quot;$2 overlaps in $1-$2-$3\n&quot;;</span>
+<span class="cp">}</span>
+<span class="cp">body overlaps in no-body-snatcher</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">/^(\w+?)(\w+) \2(\w+)$/, </span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch06/prime-pattern</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl</span>
+<span class="cp"># prime_pattern -- find prime factors of argument using pattern matching</span>
+<span class="cp">for ($N = (&#39;o&#39; x shift); $N =~ /^(oo+?)\1+$/; $N =~ s/$1/o/g) {</span>
+<span class="cp">    print length($1), &quot; &quot;;</span>
+<span class="cp">}</span>
+<span class="cp">print length ($N), &quot;\n&quot;;</span>
+
+<span class="cp">#-----------------------------</span>
+<span class="cp"># solve for 12x + 15y + 16z = 281, maximizing x</span>
+<span class="cp">if (($X, $Y, $Z)  =</span>
+<span class="cp">   ((&#39;o&#39; x 281)  =~ /^(o*)\1{11}(o*)\2{14}(o*)\3{15}$/))</span>
+<span class="cp">{</span>
+<span class="cp">    ($x, $y, $z) = (length($X), length($Y), length($Z));</span>
+<span class="cp">    print &quot;One solution is: x=$x; y=$y; z=$z.\n&quot;;</span>
+<span class="cp">} else {</span>
+<span class="cp">    print &quot;No solution.\n&quot;;</span>
+<span class="cp">}</span>
+<span class="cp">#One solution is: x=17; y=3; z=2.</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">(&#39;o&#39; x 281)  =~ /^(o+)\1{11}(o+)\2{14}(o+)\3{15}$/;</span>
+<span class="cp">#One solution is: x=17; y=3; z=2</span>
+
+<span class="cp">(&#39;o&#39; x 281)  =~ /^(o*?)\1{11}(o*)\2{14}(o*)\3{15}$/;</span>
+<span class="cp">#One solution is: x=0; y=7; z=11.</span>
+
+<span class="cp">(&#39;o&#39; x 281)  =~ /^(o+?)\1{11}(o*)\2{14}(o*)\3{15}$/;</span>
+<span class="cp">#One solution is: x=1; y=3; z=14.</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN336"
+>Expressing AND, OR, and NOT in a Single Pattern</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">chomp($pattern = &lt;CONFIG_FH&gt;);</span>
+<span class="cp">if ( $data =~ /$pattern/ ) { ..... }</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">/ALPHA|BETA/;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">/^(?=.*ALPHA)(?=.*BETA)/s;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">/ALPHA.*BETA|BETA.*ALPHA/s;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">/^(?:(?!PAT).)*$/s;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">/(?=^(?:(?!BAD).)*$)GOOD/s;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">if (!($string =~ /pattern/)) { something() }   # ugly</span>
+<span class="cp">if (  $string !~ /pattern/)  { something() }   # preferred</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">if ($string =~ /pat1/ &amp;&amp; $string =~ /pat2/ ) { </span>
+<span class="cp">something</span>
+<span class="cp">() }</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">if ($string =~ /pat1/ || $string =~ /pat2/ ) { </span>
+<span class="cp">something</span>
+<span class="cp">() }</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch06/minigrep</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl</span>
+<span class="cp"># minigrep - trivial grep</span>
+<span class="cp">$pat = shift;</span>
+<span class="cp">while (&lt;&gt;) {</span>
+<span class="cp">    print if /$pat/o;</span>
+<span class="cp">}</span>
+
+<span class="cp">#-----------------------------</span>
+<span class="cp"> &quot;labelled&quot; =~ /^(?=.*bell)(?=.*lab)/s</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$string =~ /bell/ &amp;&amp; $string =~ /lab/</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"> if ($murray_hill =~ m{</span>
+<span class="cp">             ^              # start of string</span>
+<span class="cp">            (?=             # zero-width lookahead</span>
+<span class="cp">                .*          # any amount of intervening stuff</span>
+<span class="cp">                bell        # the desired bell string</span>
+<span class="cp">            )               # rewind, since we were only looking</span>
+<span class="cp">            (?=             # and do the same thing</span>
+<span class="cp">                .*          # any amount of intervening stuff</span>
+<span class="cp">                lab         # and the lab part</span>
+<span class="cp">            )</span>
+<span class="cp">         }sx )              # /s means . can match newline</span>
+<span class="cp">{</span>
+<span class="cp">    print &quot;Looks like Bell Labs might be in Murray Hill!\n&quot;;</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">&quot;labelled&quot; =~ /(?:^.*bell.*lab)|(?:^.*lab.*bell)/</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$brand = &quot;labelled&quot;;</span>
+<span class="cp">if ($brand =~ m{</span>
+<span class="cp">        (?:                 # non-capturing grouper</span>
+<span class="cp">            ^ .*?           # any amount of stuff at the front</span>
+<span class="cp">              bell          # look for a bell</span>
+<span class="cp">              .*?           # followed by any amount of anything</span>
+<span class="cp">              lab           # look for a lab</span>
+<span class="cp">          )                 # end grouper</span>
+<span class="cp">    |                       # otherwise, try the other direction</span>
+<span class="cp">        (?:                 # non-capturing grouper</span>
+<span class="cp">            ^ .*?           # any amount of stuff at the front</span>
+<span class="cp">              lab           # look for a lab</span>
+<span class="cp">              .*?           # followed by any amount of anything</span>
+<span class="cp">              bell          # followed by a bell</span>
+<span class="cp">          )                 # end grouper</span>
+<span class="cp">    }sx )                   # /s means . can match newline</span>
+<span class="cp">{</span>
+<span class="cp">    print &quot;Our brand has bell and lab separate.\n&quot;;</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$map =~ /^(?:(?!waldo).)*$/s</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">if ($map =~ m{</span>
+<span class="cp">        ^                   # start of string</span>
+<span class="cp">        (?:                 # non-capturing grouper</span>
+<span class="cp">            (?!             # look ahead negation</span>
+<span class="cp">                waldo       # is he ahead of us now?</span>
+<span class="cp">            )               # is so, the negation failed</span>
+<span class="cp">            .               # any character (cuzza /s)</span>
+<span class="cp">        ) *                 # repeat that grouping 0 or more</span>
+<span class="cp">        $                   # through the end of the string</span>
+<span class="cp">    }sx )                   # /s means . can match newline</span>
+<span class="cp">{</span>
+<span class="cp">    print &quot;There&#39;s no waldo here!\n&quot;;</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"> 7:15am  up 206 days, 13:30,  4 users,  load average: 1.04, 1.07, 1.04</span>
+
+<span class="cp">USER     TTY      FROM              LOGIN@  IDLE   JCPU   PCPU  WHAT</span>
+
+<span class="cp">tchrist  tty1                       5:16pm 36days 24:43   0.03s  xinit</span>
+
+<span class="cp">tchrist  tty2                       5:19pm  6days  0.43s  0.43s  -tcsh</span>
+
+<span class="cp">tchrist  ttyp0    chthon            7:58am  3days 23.44s  0.44s  -tcsh</span>
+
+<span class="cp">gnat     ttyS4    coprolith         2:01pm 13:36m  0.30s  0.30s  -tcsh</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#% w | minigrep &#39;^(?!.*ttyp).*tchrist&#39;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">m{</span>
+<span class="cp">    ^                       # anchored to the start</span>
+<span class="cp">    (?!                     # zero-width look-ahead assertion</span>
+<span class="cp">        .*                  # any amount of anything (faster than .*?)</span>
+<span class="cp">        ttyp                # the string you don&#39;t want to find</span>
+<span class="cp">    )                       # end look-ahead negation; rewind to start</span>
+<span class="cp">    .*                      # any amount of anything (faster than .*?)</span>
+<span class="cp">    tchrist                 # now try to find Tom</span>
+<span class="cp">}x</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#% w | grep tchrist | grep -v ttyp</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#% grep -i &#39;pattern&#39; files</span>
+<span class="cp">#% minigrep &#39;(?i)pattern&#39; files</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN339"
+>Matching Multiple-Byte Characters</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">my $eucjp = q{                 # EUC-JP encoding subcomponents:</span>
+<span class="cp">    [\x00-\x7F]                # ASCII/JIS-Roman (one-byte/character)</span>
+<span class="cp">  | \x8E[\xA0-\xDF]            # half-width katakana (two bytes/char)</span>
+<span class="cp">  | \x8F[\xA1-\xFE][\xA1-\xFE] # JIS X 0212-1990 (three bytes/char)</span>
+<span class="cp">  | [\xA1-\xFE][\xA1-\xFE]     # JIS X 0208:1997 (two bytes/char)</span>
+<span class="cp">};</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">/^ (?: $eucjp )*?  \xC5\xEC\xB5\xFE/ox # Trying to find Tokyo</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">/^ (  (?:eucjp)*? ) $Tokyo/$1$Osaka/ox</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">/\G (  (?:eucjp)*? ) $Tokyo/$1$Osaka/gox</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">@chars = /$eucjp/gox; # One character per list element</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">while (&lt;&gt;) {</span>
+<span class="cp">  my @chars = /$eucjp/gox; # One character per list element</span>
+<span class="cp">  for my $char (@chars) {</span>
+<span class="cp">    if (length($char) == 1) {</span>
+<span class="cp">      # Do something interesting with this one-byte character</span>
+<span class="cp">    } else {</span>
+<span class="cp">      # Do something interesting with this multiple-byte character</span>
+<span class="cp">    }</span>
+<span class="cp">  }</span>
+<span class="cp">  my $line = join(&quot;&quot;,@chars); # Glue list back together</span>
+<span class="cp">  print $line;</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$is_eucjp = m/^(?:$eucjp)*$/xo;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$is_eucjp = m/^(?:$eucjp)*$/xo;</span>
+<span class="cp">$is_sjis  = m/^(?:$sjis)*$/xo;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">while (&lt;&gt;) {</span>
+<span class="cp">  my @chars = /$eucjp/gox; # One character per list element</span>
+<span class="cp">  for my $euc (@chars) {</span>
+<span class="cp">    my $uni = $euc2uni{$char};</span>
+<span class="cp">    if (defined $uni) {</span>
+<span class="cp">        $euc = $uni;</span>
+<span class="cp">    } else {</span>
+<span class="cp">        ## deal with unknown EUC-&gt;Unicode mapping here.</span>
+<span class="cp">    }</span>
+<span class="cp">  }</span>
+<span class="cp">  my $line = join(&quot;&quot;,@chars);</span>
+<span class="cp">  print $line;</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN342"
+>Matching a Valid Mail Address</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">1 while $addr =~ s/\([^()]*\)//g;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">Dear someuser@host.com,</span>
+
+<span class="cp">Please confirm the mail address you gave us Wed May  6 09:38:41</span>
+<span class="cp">MDT 1998 by replying to this message.  Include the string</span>
+<span class="cp">&quot;Rumpelstiltskin&quot; in that reply, but spelled in reverse; that is,</span>
+<span class="cp">start with &quot;Nik...&quot;.  Once this is done, your confirmed address will</span>
+<span class="cp">be entered into our records.</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN345"
+>Matching Abbreviations</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">chomp($answer = &lt;&gt;);</span>
+<span class="cp">if    (&quot;SEND&quot;  =~ /^\Q$answer/i) { print &quot;Action is send\n&quot;  }</span>
+<span class="cp">elsif (&quot;STOP&quot;  =~ /^\Q$answer/i) { print &quot;Action is stop\n&quot;  }</span>
+<span class="cp">elsif (&quot;ABORT&quot; =~ /^\Q$answer/i) { print &quot;Action is abort\n&quot; }</span>
+<span class="cp">elsif (&quot;LIST&quot;  =~ /^\Q$answer/i) { print &quot;Action is list\n&quot;  }</span>
+<span class="cp">elsif (&quot;EDIT&quot;  =~ /^\Q$answer/i) { print &quot;Action is edit\n&quot;  }</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">use Text::Abbrev;</span>
+<span class="cp">$href = abbrev qw(send abort list edit);</span>
+<span class="cp">for (print &quot;Action: &quot;; &lt;&gt;; print &quot;Action: &quot;) {</span>
+<span class="cp">    chomp;</span>
+<span class="cp">    my $action = $href-&gt;{ lc($_) };</span>
+<span class="cp">    print &quot;Action is $action\n&quot;;</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$name = &#39;send&#39;;</span>
+<span class="cp">&amp;$name();</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># assumes that &amp;invoke_editor, &amp;deliver_message,</span>
+<span class="cp"># $file and $PAGER are defined somewhere else.</span>
+<span class="cp">use Text::Abbrev;</span>
+<span class="cp">my($href, %actions, $errors);</span>
+<span class="cp">%actions = (</span>
+<span class="cp">    &quot;edit&quot;  =&gt; \&amp;invoke_editor,</span>
+<span class="cp">    &quot;send&quot;  =&gt; \&amp;deliver_message,</span>
+<span class="cp">    &quot;list&quot;  =&gt; sub { system($PAGER, $file) },</span>
+<span class="cp">    &quot;abort&quot; =&gt; sub {</span>
+<span class="cp">                    print &quot;See ya!\n&quot;;</span>
+<span class="cp">                    exit;</span>
+<span class="cp">               },</span>
+<span class="cp">    &quot;&quot;      =&gt; sub {</span>
+<span class="cp">                    print &quot;Unknown command: $cmd\n&quot;;</span>
+<span class="cp">                    $errors++;</span>
+<span class="cp">               },</span>
+<span class="cp">);</span>
+
+<span class="cp">$href = abbrev(keys %actions);</span>
+
+<span class="cp">local $_;</span>
+<span class="cp">for (print &quot;Action: &quot;; &lt;&gt;; print &quot;Action: &quot;) {</span>
+<span class="cp">    s/^\s+//;       # trim leading  white space</span>
+<span class="cp">    s/\s+$//;       # trim trailing white space</span>
+<span class="cp">    next unless $_;</span>
+<span class="cp">    $actions-&gt;{ $href-&gt;{ lc($_) } }-&gt;();</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$abbreviation = lc($_);</span>
+<span class="cp">$expansion    = $href-&gt;{$abbreviation};</span>
+<span class="cp">$coderef      = $actions-&gt;{$expansion};</span>
+<span class="cp">&amp;$coderef();</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN348"
+>Program: urlify</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">#% gunzip -c ~/mail/archive.gz | urlify &gt; archive.urlified</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">#% urlify ~/mail/*.inbox &gt; ~/allmail.urlified</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch06/urlify</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl</span>
+<span class="cp"># urlify - wrap HTML links around URL-like constructs</span>
+
+<span class="cp">$urls = &#39;(http|telnet|gopher|file|wais|ftp)&#39;;</span>
+<span class="cp">$ltrs = &#39;\w&#39;;</span>
+<span class="cp">$gunk = &#39;/#~:.?+=&amp;%@!\-&#39;;</span>
+<span class="cp">$punc = &#39;.:?\-&#39;;</span>
+<span class="cp">$any  = &quot;${ltrs}${gunk}${punc}&quot;;</span>
+
+<span class="cp">while (&lt;&gt;) {</span>
+<span class="cp">    s{</span>
+<span class="cp">      \b                    # start at word boundary</span>
+<span class="cp">      (                     # begin $1  {</span>
+<span class="cp">       $urls     :          # need resource and a colon</span>
+<span class="cp">       [$any] +?            # followed by on or more</span>
+<span class="cp">                            #  of any valid character, but</span>
+<span class="cp">                            #  be conservative and take only</span>
+<span class="cp">                            #  what you need to....</span>
+<span class="cp">      )                     # end   $1  }</span>
+<span class="cp">      (?=                   # look-ahead non-consumptive assertion</span>
+<span class="cp">       [$punc]*             # either 0 or more punctuation</span>
+<span class="cp">       [^$any]              #   followed by a non-url char</span>
+<span class="cp">       |                    # or else</span>
+<span class="cp">       $                    #   then end of the string</span>
+<span class="cp">      )</span>
+<span class="cp">     }{&lt;A HREF=&quot;$1&quot;&gt;$1&lt;/A&gt;}igox;</span>
+<span class="cp">    print;</span>
+<span class="cp">}</span>
+
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN351"
+>Program: tcgrep</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">#% tcgrep -ril &#39;^From: .*kate&#39; ~/mail</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp"># <font size="-1"><a href="http://pleac.sourceforge.net/include/perl/ch06/tcgrep</span>">download the following standalone program</a></font>
+<span class="cp">#!/usr/bin/perl -w</span>
+<span class="cp"># tcgrep: tom christiansen&#39;s rewrite of grep</span>
+<span class="cp"># v1.0: Thu Sep 30 16:24:43 MDT 1993</span>
+<span class="cp"># v1.1: Fri Oct  1 08:33:43 MDT 1993</span>
+<span class="cp"># v1.2: Fri Jul 26 13:37:02 CDT 1996</span>
+<span class="cp"># v1.3: Sat Aug 30 14:21:47 CDT 1997</span>
+<span class="cp"># v1.4: Mon May 18 16:17:48 EDT 1998</span>
+
+<span class="cp">use strict;</span>
+<span class="cp">                                  # globals</span>
+<span class="cp">use vars qw($Me $Errors $Grand_Total $Mult %Compress $Matches);</span>
+
+<span class="cp">my ($matcher, $opt);              # matcher - anon. sub to check for matches</span>
+<span class="cp">                                  # opt - ref to hash w/ command line options</span>
+
+<span class="cp">init();                           # initialize globals</span>
+
+<span class="cp">($opt, $matcher) = parse_args();  # get command line options and patterns</span>
+
+<span class="cp">matchfile($opt, $matcher, @ARGV); # process files</span>
+
+<span class="cp">exit(2) if $Errors;</span>
+<span class="cp">exit(0) if $Grand_Total;</span>
+<span class="cp">exit(1);</span>
+
+<span class="cp">###################################</span>
+
+<span class="cp">sub init {</span>
+<span class="cp">    ($Me = $0) =~ s!.*/!!;        # get basename of program, &quot;tcgrep&quot;</span>
+<span class="cp">    $Errors = $Grand_Total = 0;   # initialize global counters</span>
+<span class="cp">    $Mult = &quot;&quot;;                   # flag for multiple files in @ARGV</span>
+<span class="cp">    $| = 1;                       # autoflush output</span>
+
+<span class="cp">    %Compress = (                 # file extensions and program names</span>
+<span class="cp">        z  =&gt; &#39;gzcat&#39;,            # for uncompressing</span>
+<span class="cp">        gz =&gt; &#39;gzcat&#39;,</span>
+<span class="cp">        Z  =&gt; &#39;zcat&#39;,</span>
+<span class="cp">    );</span>
+<span class="cp">}</span>
+
+<span class="cp">###################################</span>
+
+<span class="cp">sub usage {</span>
+<span class="cp">        die &lt;&lt;EOF</span>
+<span class="cp">usage: $Me [flags] [files]</span>
+
+<span class="cp">Standard grep options:</span>
+<span class="cp">        i   case insensitive</span>
+<span class="cp">        n   number lines</span>
+<span class="cp">        c   give count of lines matching</span>
+<span class="cp">        C   ditto, but &gt;1 match per line possible</span>
+<span class="cp">        w   word boundaries only</span>
+<span class="cp">        s   silent mode</span>
+<span class="cp">        x   exact matches only</span>
+<span class="cp">        v   invert search sense (lines that DON&#39;T match)</span>
+<span class="cp">        h   hide filenames</span>
+<span class="cp">        e   expression (for exprs beginning with -)</span>
+<span class="cp">        f   file with expressions</span>
+<span class="cp">        l   list filenames matching</span>
+
+<span class="cp">Specials:</span>
+<span class="cp">        1   1 match per file</span>
+<span class="cp">        H   highlight matches</span>
+<span class="cp">        u   underline matches</span>
+<span class="cp">        r   recursive on directories or dot if none</span>
+<span class="cp">        t   process directories in &#39;ls -t&#39; order</span>
+<span class="cp">        p   paragraph mode (default: line mode)</span>
+<span class="cp">        P   ditto, but specify separator, e.g. -P &#39;%%\\n&#39;</span>
+<span class="cp">        a   all files, not just plain text files</span>
+<span class="cp">        q   quiet about failed file and dir opens</span>
+<span class="cp">        T   trace files as opened</span>
+
+<span class="cp">May use a TCGREP environment variable to set default options.</span>
+<span class="cp">EOF</span>
+<span class="cp">}</span>
+
+<span class="cp">###################################</span>
+
+<span class="cp">sub parse_args {</span>
+<span class="cp">    use Getopt::Std;</span>
+
+<span class="cp">    my ($optstring, $zeros, $nulls, %opt, $pattern, @patterns, $match_code);</span>
+<span class="cp">    my ($SO, $SE);</span>
+
+<span class="cp">    if ($_ = $ENV{TCGREP}) {      # get envariable TCGREP</span>
+<span class="cp">        s/^([^\-])/-$1/;          # add leading - if missing</span>
+<span class="cp">        unshift(@ARGV, $_);       # add TCGREP opt string to @ARGV</span>
+<span class="cp">    }</span>
+
+<span class="cp">    $optstring = &quot;incCwsxvhe:f:l1HurtpP:aqT&quot;;</span>
+
+<span class="cp">    $zeros = &#39;inCwxvhelut&#39;;       # options to init to 0 (prevent warnings)</span>
+<span class="cp">    $nulls = &#39;pP&#39;;                # options to init to &quot;&quot; (prevent warnings)</span>
+
+<span class="cp">    @opt{ split //, $zeros } = ( 0 )  x length($zeros);</span>
+<span class="cp">    @opt{ split //, $nulls } = ( &#39;&#39; ) x length($nulls);</span>
+
+<span class="cp">    getopts($optstring, \%opt)              or usage();</span>
+
+<span class="cp">    if ($opt{f}) {                # -f patfile</span>
+<span class="cp">        open(PATFILE, $opt{f})          or die qq($Me: Can&#39;t open &#39;$opt{f}&#39;: $!);</span>
+
+<span class="cp">                                  # make sure each pattern in file is valid</span>
+<span class="cp">        while ( defined($pattern = &lt;PATFILE&gt;) ) {</span>
+<span class="cp">            chomp $pattern;</span>
+<span class="cp">            eval { &#39;foo&#39; =~ /$pattern/, 1 } or</span>
+<span class="cp">                die &quot;$Me: $opt{f}:$.: bad pattern: $@&quot;;</span>
+<span class="cp">            push @patterns, $pattern;</span>
+<span class="cp">        }</span>
+<span class="cp">        close PATFILE;</span>
+<span class="cp">    }</span>
+<span class="cp">    else {                        # make sure pattern is valid</span>
+<span class="cp">        $pattern = $opt{e} || shift(@ARGV) || usage();</span>
+<span class="cp">        eval { &#39;foo&#39; =~ /$pattern/, 1 } or</span>
+<span class="cp">            die &quot;$Me: bad pattern: $@&quot;;</span>
+<span class="cp">        @patterns = ($pattern);</span>
+<span class="cp">    }</span>
+
+<span class="cp">    if ($opt{H} || $opt{u}) {     # highlight or underline</span>
+<span class="cp">        my $term = $ENV{TERM} || &#39;vt100&#39;;</span>
+<span class="cp">        my $terminal;</span>
+
+<span class="cp">        eval {                    # try to look up escapes for stand-out</span>
+<span class="cp">            require POSIX;        # or underline via Term::Cap</span>
+<span class="cp">            use Term::Cap;</span>
+
+<span class="cp">            my $termios = POSIX::Termios-&gt;new();</span>
+<span class="cp">            $termios-&gt;getattr;</span>
+<span class="cp">            my $ospeed = $termios-&gt;getospeed;</span>
+
+<span class="cp">            $terminal = Tgetent Term::Cap { TERM=&gt;undef, OSPEED=&gt;$ospeed }</span>
+<span class="cp">        };</span>
+
+<span class="cp">        unless ($@) {             # if successful, get escapes for either</span>
+<span class="cp">            local $^W = 0;        # stand-out (-H) or underlined (-u)</span>
+<span class="cp">            ($SO, $SE) = $opt{H}</span>
+<span class="cp">                ? ($terminal-&gt;Tputs(&#39;so&#39;), $terminal-&gt;Tputs(&#39;se&#39;))</span>
+<span class="cp">                : ($terminal-&gt;Tputs(&#39;us&#39;), $terminal-&gt;Tputs(&#39;ue&#39;));</span>
+<span class="cp">        }</span>
+<span class="cp">        else {                    # if use of Term::Cap fails,</span>
+<span class="cp">            ($SO, $SE) = $opt{H}  # use tput command to get escapes</span>
+<span class="cp">                ? (`tput -T $term smso`, `tput -T $term rmso`)</span>
+<span class="cp">                : (`tput -T $term smul`, `tput -T $term rmul`)</span>
+<span class="cp">        }</span>
+<span class="cp">    }</span>
+
+<span class="cp">    if ($opt{i}) {</span>
+<span class="cp">        @patterns = map {&quot;(?i)$_&quot;} @patterns;</span>
+<span class="cp">    }</span>
+
+<span class="cp">    if ($opt{p} || $opt{P}) {</span>
+<span class="cp">        @patterns = map {&quot;(?m)$_&quot;} @patterns;</span>
+<span class="cp">    }</span>
+
+<span class="cp">    $opt{p}   &amp;&amp; ($/ = &#39;&#39;);</span>
+<span class="cp">    $opt{P}   &amp;&amp; ($/ = eval(qq(&quot;$opt{P}&quot;)));     # for -P &#39;%%\n&#39;</span>
+<span class="cp">    $opt{w}   &amp;&amp; (@patterns = map {&#39;\b&#39; . $_ . &#39;\b&#39;} @patterns);</span>
+<span class="cp">    $opt{&#39;x&#39;} &amp;&amp; (@patterns = map {&quot;^$_\$&quot;} @patterns);</span>
+<span class="cp">    if (@ARGV) {</span>
+<span class="cp">        $Mult = 1 if ($opt{r} || (@ARGV &gt; 1) || -d $ARGV[0]) &amp;&amp; !$opt{h};</span>
+<span class="cp">    }</span>
+<span class="cp">    $opt{1}   += $opt{l};                   # that&#39;s a one and an ell</span>
+<span class="cp">    $opt{H}   += $opt{u};</span>
+<span class="cp">    $opt{c}   += $opt{C};</span>
+<span class="cp">    $opt{&#39;s&#39;} += $opt{c};</span>
+<span class="cp">    $opt{1}   += $opt{&#39;s&#39;} &amp;&amp; !$opt{c};     # that&#39;s a one</span>
+
+<span class="cp">    @ARGV = ($opt{r} ? &#39;.&#39; : &#39;-&#39;) unless @ARGV;</span>
+<span class="cp">    $opt{r} = 1 if !$opt{r} &amp;&amp; grep(-d, @ARGV) == @ARGV;</span>
+
+<span class="cp">    $match_code  = &#39;&#39;;</span>
+<span class="cp">    $match_code .= &#39;study;&#39; if @patterns &gt; 5; # might speed things up a bit</span>
+
+<span class="cp">    foreach (@patterns) { s(/)(\\/)g }</span>
+
+<span class="cp">    if ($opt{H}) {</span>
+<span class="cp">        foreach $pattern (@patterns) {</span>
+<span class="cp">            $match_code .= &quot;\$Matches += s/($pattern)/${SO}\$1${SE}/g;&quot;;</span>
+<span class="cp">        }</span>
+<span class="cp">    }</span>
+<span class="cp">    elsif ($opt{v}) {</span>
+<span class="cp">        foreach $pattern (@patterns) {</span>
+<span class="cp">            $match_code .= &quot;\$Matches += !/$pattern/;&quot;;</span>
+<span class="cp">        }</span>
+<span class="cp">    }</span>
+<span class="cp">    elsif ($opt{C}) {</span>
+<span class="cp">        foreach $pattern (@patterns) {</span>
+<span class="cp">            $match_code .= &quot;\$Matches++ while /$pattern/g;&quot;;</span>
+<span class="cp">        }</span>
+<span class="cp">    }</span>
+<span class="cp">    else {</span>
+<span class="cp">        foreach $pattern (@patterns) {</span>
+<span class="cp">            $match_code .= &quot;\$Matches++ if /$pattern/;&quot;;</span>
+<span class="cp">        }</span>
+<span class="cp">    }</span>
+
+<span class="cp">    $matcher = eval &quot;sub { $match_code }&quot;;</span>
+<span class="cp">    die if $@;</span>
+
+<span class="cp">    return (\%opt, $matcher);</span>
+<span class="cp">}</span>
+
+<span class="cp">###################################</span>
+
+<span class="cp">sub matchfile {</span>
+<span class="cp">    $opt = shift;                 # reference to option hash</span>
+<span class="cp">    $matcher = shift;             # reference to matching sub</span>
+
+<span class="cp">    my ($file, @list, $total, $name);</span>
+<span class="cp">    local($_);</span>
+<span class="cp">    $total = 0;</span>
+
+<span class="cp">FILE: while (defined ($file = shift(@_))) {</span>
+
+<span class="cp">        if (-d $file) {</span>
+<span class="cp">            if (-l $file &amp;&amp; @ARGV != 1) {</span>
+<span class="cp">                warn &quot;$Me: \&quot;$file\&quot; is a symlink to a directory\n&quot;</span>
+<span class="cp">                    if $opt-&gt;{T};</span>
+<span class="cp">                next FILE;</span>
+<span class="cp">            }</span>
+<span class="cp">            if (!$opt-&gt;{r}) {</span>
+<span class="cp">                warn &quot;$Me: \&quot;$file\&quot; is a directory, but no -r given\n&quot;</span>
+<span class="cp">                    if $opt-&gt;{T};</span>
+<span class="cp">                next FILE;</span>
+<span class="cp">            }</span>
+<span class="cp">            unless (opendir(DIR, $file)) {</span>
+<span class="cp">                unless ($opt-&gt;{&#39;q&#39;}) {</span>
+<span class="cp">                    warn &quot;$Me: can&#39;t opendir $file: $!\n&quot;;</span>
+<span class="cp">                    $Errors++;</span>
+<span class="cp">                }</span>
+<span class="cp">                next FILE;</span>
+<span class="cp">            }</span>
+<span class="cp">            @list = ();</span>
+<span class="cp">            for (readdir(DIR)) {</span>
+<span class="cp">                push(@list, &quot;$file/$_&quot;) unless /^\.{1,2}$/;</span>
+<span class="cp">            }</span>
+<span class="cp">            closedir(DIR);</span>
+<span class="cp">            if ($opt-&gt;{t}) {</span>
+<span class="cp">                my (@dates);</span>
+<span class="cp">                for (@list) { push(@dates, -M) }</span>
+<span class="cp">                @list = @list[sort { $dates[$a] &lt;=&gt; $dates[$b] } 0..$#dates];</span>
+<span class="cp">            }</span>
+<span class="cp">            else {</span>
+<span class="cp">                @list = sort @list;</span>
+<span class="cp">            }</span>
+<span class="cp">            matchfile($opt, $matcher, @list);    # process files</span>
+<span class="cp">            next FILE;</span>
+<span class="cp">        }</span>
+
+<span class="cp">        if ($file eq &#39;-&#39;) {</span>
+<span class="cp">            warn &quot;$Me: reading from stdin\n&quot; if -t STDIN &amp;&amp; !$opt-&gt;{&#39;q&#39;};</span>
+<span class="cp">            $name = &#39;&lt;STDIN&gt;&#39;;</span>
+<span class="cp">        }</span>
+<span class="cp">        else {</span>
+<span class="cp">            $name = $file;</span>
+<span class="cp">            unless (-e $file) {</span>
+<span class="cp">                warn qq($Me: file &quot;$file&quot; does not exist\n) unless $opt-&gt;{&#39;q&#39;};</span>
+<span class="cp">                $Errors++;</span>
+<span class="cp">                next FILE;</span>
+<span class="cp">            }</span>
+<span class="cp">            unless (-f $file || $opt-&gt;{a}) {</span>
+<span class="cp">                warn qq($Me: skipping non-plain file &quot;$file&quot;\n) if $opt-&gt;{T};</span>
+<span class="cp">                next FILE;</span>
+<span class="cp">            }</span>
+
+<span class="cp">            my ($ext) = $file =~ /\.([^.]+)$/;</span>
+<span class="cp">            if (defined $ext &amp;&amp; exists $Compress{$ext}) {</span>
+<span class="cp">                $file = &quot;$Compress{$ext} &lt;$file |&quot;;</span>
+<span class="cp">            }</span>
+<span class="cp">            elsif (! (-T $file  || $opt-&gt;{a})) {</span>
+<span class="cp">                warn qq($Me: skipping binary file &quot;$file&quot;\n) if $opt-&gt;{T};</span>
+<span class="cp">                next FILE;</span>
+<span class="cp">            }</span>
+<span class="cp">        }</span>
+
+<span class="cp">        warn &quot;$Me: checking $file\n&quot; if $opt-&gt;{T};</span>
+
+<span class="cp">        unless (open(FILE, $file)) {</span>
+<span class="cp">            unless ($opt-&gt;{&#39;q&#39;}) {</span>
+<span class="cp">                warn &quot;$Me: $file: $!\n&quot;;</span>
+<span class="cp">                $Errors++;</span>
+<span class="cp">            }</span>
+<span class="cp">            next FILE;</span>
+<span class="cp">        }</span>
+
+<span class="cp">        $total = 0;</span>
+
+<span class="cp">        $Matches = 0;</span>
+
+<span class="cp">LINE:  while (&lt;FILE&gt;) {</span>
+<span class="cp">            $Matches = 0;</span>
+<span class="cp">    </span>
+<span class="cp">            ##############</span>
+<span class="cp">            &amp;{$matcher}();        # do it! (check for matches)</span>
+<span class="cp">            ##############</span>
+
+<span class="cp">            next LINE unless $Matches;</span>
+
+<span class="cp">            $total += $Matches;</span>
+
+<span class="cp">            if ($opt-&gt;{p} || $opt-&gt;{P}) {</span>
+<span class="cp">                s/\n{2,}$/\n/ if $opt-&gt;{p};</span>
+<span class="cp">                chomp         if $opt-&gt;{P};</span>
+<span class="cp">            }</span>
+
+<span class="cp">            print(&quot;$name\n&quot;), next FILE if $opt-&gt;{l};</span>
+
+<span class="cp">            $opt-&gt;{&#39;s&#39;} || print $Mult &amp;&amp; &quot;$name:&quot;,</span>
+<span class="cp">                $opt-&gt;{n} ? &quot;$.:&quot; : &quot;&quot;,</span>
+<span class="cp">                $_,</span>
+<span class="cp">                ($opt-&gt;{p} || $opt-&gt;{P}) &amp;&amp; (&#39;-&#39; x 20) . &quot;\n&quot;;</span>
+
+<span class="cp">            next FILE if $opt-&gt;{1};                 # that&#39;s a one</span>
+<span class="cp">        }</span>
+<span class="cp">    }</span>
+<span class="cp">    continue {</span>
+<span class="cp">        print $Mult &amp;&amp; &quot;$name:&quot;, $total, &quot;\n&quot; if $opt-&gt;{c};</span>
+<span class="cp">    }</span>
+<span class="cp">    $Grand_Total += $total;</span>
+<span class="cp">}</span>
+
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN354"
+>Regular Expression Grabbag</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#-----------------------------</span>
+<span class="cp">m/^m*(d?c{0,3}|c[dm])(l?x{0,3}|x[lc])(v?i{0,3}|i[vx])$/i</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">s/(\S+)(\s+)(\S+)/$3$2$1/</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">m/(\w+)\s*=\s*(.*)\s*$/             # keyword is $1, value is $2</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">m/.{80,}/</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">m|(\d+)/(\d+)/(\d+) (\d+):(\d+):(\d+)|</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">s(/usr/bin)(/usr/local/bin)g</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">s/%([0-9A-Fa-f][0-9A-Fa-f])/chr hex $1/ge</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">s{</span>
+<span class="cp">    /\*                    # Match the opening delimiter</span>
+<span class="cp">    .*?                    # Match a minimal number of characters</span>
+<span class="cp">    \*/                    # Match the closing delimiter</span>
+<span class="cp">} []gsx;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">s/^\s+//;</span>
+<span class="cp">s/\s+$//;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">s/\\n/\n/g;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">s/^.*:://</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">m/^([01]?\d\d|2[0-4]\d|25[0-5])\.([01]?\d\d|2[0-4]\d|25[0-5])\.</span>
+<span class="cp">   ([01]?\d\d|2[0-4]\d|25[0-5])\.([01]?\d\d|2[0-4]\d|25[0-5])$/;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">s(^.*/)()</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">$cols = ( ($ENV{TERMCAP} || &quot; &quot;) =~ m/:co#(\d+):/ ) ? $1 : 80;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">($name = &quot; $0 @ARGV&quot;) =~ s, /\S+/, ,g;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">die &quot;This isn&#39;t Linux&quot; unless $^O =~ m/linux/i;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">s/\n\s+/ /g</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">@nums = m/(\d+\.?\d*|\.\d+)/g;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">@capwords = m/(\b[^\Wa-z0-9_]+\b)/g;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">@lowords = m/(\b[^\WA-Z0-9_]+\b)/g;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">@icwords = m/(\b[^\Wa-z0-9_][^\WA-Z0-9_]*\b)/;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">@links = m/&lt;A[^&gt;]+?HREF\s*=\s*[&quot;&#39;]?([^&#39;&quot; &gt;]+?)[ &#39;&quot;]?&gt;/sig;   #&quot;&#39;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">($initial) = m/^\S+\s+(\S)\S*\s+\S/ ? $1 : &quot;&quot;;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">s/&quot;([^&quot;]*)&quot;/``$1&#39;&#39;/g   #&quot;</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">{ local $/ = &quot;&quot;;</span>
+<span class="cp">  while (&lt;&gt;) {</span>
+<span class="cp">    s/\n/ /g;</span>
+<span class="cp">    s/ {3,}/  /g;</span>
+<span class="cp">    push @sentences, m/(\S.*?[!?.])(?=  |\Z)/g;</span>
+<span class="cp">  }</span>
+<span class="cp">}</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">m/(\d{4})-(\d\d)-(\d\d)/            # YYYY in $1, MM in $2, DD in $3</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">m/ ^</span>
+<span class="cp">      (?:</span>
+<span class="cp">       1 \s (?: \d\d\d \s)?            # 1, or 1 and area code</span>
+<span class="cp">       |                               # ... or ...</span>
+<span class="cp">       \(\d\d\d\) \s                   # area code with parens</span>
+<span class="cp">       |                               # ... or ...</span>
+<span class="cp">       (?: \+\d\d?\d? \s)?             # optional +country code</span>
+<span class="cp">       \d\d\d ([\s\-])                 # and area code</span>
+<span class="cp">      )</span>
+<span class="cp">      \d\d\d (\s|\1)                   # prefix (and area code separator)</span>
+<span class="cp">      \d\d\d\d                         # exchange</span>
+<span class="cp">        $</span>
+<span class="cp"> /x</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">m/\boh\s+my\s+gh?o(d(dess(es)?|s?)|odness|sh)\b/i</span>
+<span class="cp">#-----------------------------</span>
+<span class="cp">push(@lines, $1)</span>
+<span class="cp">    while ($input =~ s/^([^\012\015]*)(\012\015?|\015\012?)//);</span>
+<span class="cp">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="hashes.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="fileaccess.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Hashes</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>File Access</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

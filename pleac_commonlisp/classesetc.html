@@ -1,0 +1,1229 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Classes, Objects, and Ties</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Common Lisp"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Packages, Libraries, and Modules"
+HREF="packagesetc.html"><LINK
+REL="NEXT"
+TITLE="Database Access"
+HREF="dbaccess.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Common Lisp</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="packagesetc.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="dbaccess.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="CLASSESETC"
+>13. Classes, Objects, and Ties</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN704"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;;;-----------------------------</span>
+<span class="c1">;; In CL you don&#39;t &quot;bless&quot; hash tables (or other data structures), as</span>
+<span class="c1">;; classes, you just create instances which manage their own storage.</span>
+<span class="c1">;; See section 13.1 for an example of how to create a more Perl-like</span>
+<span class="c1">;; object, if you want to.</span>
+<span class="p">(</span><span class="nb">setf</span> <span class="nv">obj</span> <span class="p">(</span><span class="nb">make-instance</span> <span class="ss">&#39;data::encoder</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nv">obj</span> <span class="o">#(</span><span class="mi">3</span> <span class="mi">5</span><span class="p">)))</span>
+  <span class="p">(</span><span class="nb">format</span> <span class="no">t</span> <span class="s">&quot;~A ~A~%&quot;</span> <span class="p">(</span><span class="nb">type-of</span> <span class="nv">obj</span><span class="p">)</span> <span class="p">(</span><span class="nb">aref</span> <span class="nv">obj</span> <span class="mi">1</span><span class="p">))</span>
+  <span class="p">(</span><span class="nb">setf</span> <span class="nv">obj</span> <span class="p">(</span><span class="nb">make-instance</span> <span class="ss">&#39;human::cannibal</span><span class="p">))</span>
+  <span class="c1">;; This part isn&#39;t exactly like the Perl, there&#39;s no way to reuse</span>
+  <span class="c1">;; the array as the underlying storage for the class (as far as I</span>
+  <span class="c1">;; know).</span>
+  <span class="p">(</span><span class="nb">format</span> <span class="no">t</span> <span class="s">&quot;~A~%&quot;</span> <span class="p">(</span><span class="nb">type-of</span> <span class="nv">obj</span><span class="p">)))</span>
+<span class="c1">;; (SIMPLE-VECTOR 2) 5</span>
+<span class="c1">;; CANNIBAL</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">setf</span> <span class="p">(</span><span class="nb">slot-value</span> <span class="nv">obj</span> <span class="ss">&#39;stomach</span><span class="p">)</span> <span class="s">&quot;Empty&quot;</span> <span class="c1">; directly accessing an object&#39;s contents</span>
+      <span class="p">(</span><span class="nb">slot-value</span> <span class="nv">obj</span> <span class="ss">&#39;NAME</span><span class="p">)</span> <span class="s">&quot;Thag&quot;</span><span class="p">)</span> <span class="c1">; uppercase field name to make it stand out (optional)</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; The following won&#39;t run (due to data::encoder being fake), it just</span>
+<span class="c1">;; illustrates the syntax of calling a method.</span>
+<span class="p">(</span><span class="nb">setf</span> <span class="nv">encoded</span> <span class="p">(</span><span class="nv">encode</span> <span class="nv">obj</span> <span class="s">&quot;data&quot;</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; Not really different from the above, but more in the spirit of the</span>
+<span class="c1">;; Perl example.</span>
+<span class="p">(</span><span class="nb">setf</span> <span class="nv">encoded</span> <span class="p">(</span><span class="nv">data::encode</span> <span class="nv">obj</span> <span class="s">&quot;data&quot;</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; This is already built in to CL, MAKE-INSTANCE, no need to define it</span>
+<span class="c1">;; ourselves.</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">setf</span> <span class="nv">object</span> <span class="p">(</span><span class="nb">make-instance</span> <span class="ss">&#39;my-class</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; No difference from above</span>
+<span class="c1">;; $object = Class::new(&quot;Class&quot;);</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; Note: haven&#39;t checked whether the following is the best way to do</span>
+<span class="c1">;; the following.  It does seem to work tho.</span>
+
+<span class="c1">;; The following will only get called if the type is a class.</span>
+<span class="p">(</span><span class="nb">defmethod</span> <span class="nv">class-only-method</span> <span class="p">((</span><span class="nc">class</span> <span class="nc">standard-class</span><span class="p">))</span>
+  <span class="c1">;; more code here</span>
+  <span class="p">)</span>
+<span class="c1">;; Or you could just write a function</span>
+<span class="p">(</span><span class="nb">defun</span> <span class="nv">class-only-method</span> <span class="p">(</span><span class="nc">class</span><span class="p">)</span>
+  <span class="p">(</span><span class="nb">check-type</span> <span class="nc">class</span> <span class="nc">standard-class</span><span class="p">)</span>
+  <span class="c1">;; more code here</span>
+  <span class="p">)</span>
+
+<span class="c1">;; For more specific classes</span>
+<span class="p">(</span><span class="nb">defmethod</span> <span class="nv">my-class-only-method</span> <span class="p">((</span><span class="nc">class</span> <span class="p">(</span><span class="nb">eql</span> <span class="p">(</span><span class="nb">find-class</span> <span class="ss">&#39;my-class</span><span class="p">))))</span>
+  <span class="c1">;; more code here</span>
+  <span class="p">)</span>
+<span class="c1">;; Or you could just write a function</span>
+<span class="p">(</span><span class="nb">defun</span> <span class="nv">my-class-only-method</span> <span class="p">(</span><span class="nc">class</span><span class="p">)</span>
+  <span class="p">(</span><span class="nb">check-type</span> <span class="nc">class</span> <span class="o">#.</span><span class="p">(</span><span class="nb">find-class</span> <span class="ss">&#39;my-class</span><span class="p">))</span>
+  <span class="c1">;; more code here</span>
+  <span class="p">)</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*lector*</span> <span class="p">(</span><span class="nb">make-instance</span> <span class="ss">&#39;human::cannibal</span><span class="p">))</span>
+<span class="p">(</span><span class="nv">feed</span> <span class="vg">*lector*</span> <span class="s">&quot;Zak&quot;</span><span class="p">)</span>
+<span class="p">(</span><span class="nv">move</span> <span class="vg">*lector*</span> <span class="s">&quot;New York&quot;</span><span class="p">)</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; No difference from previous subsection.</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">format</span> <span class="vg">*error-output*</span> <span class="s">&quot;stuff here~%&quot;</span><span class="p">)</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; Not sure what the Perl was trying to show here</span>
+<span class="p">(</span><span class="nv">move</span> <span class="p">(</span><span class="nb">slot-value</span> <span class="nv">obj</span> <span class="ss">&#39;field</span><span class="p">))</span>
+<span class="p">(</span><span class="nv">move</span> <span class="p">(</span><span class="nb">aref</span> <span class="nv">ary</span> <span class="nv">i</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">slot-value</span> <span class="p">(</span><span class="nv">move</span> <span class="nv">obj</span><span class="p">)</span> <span class="ss">&#39;field</span><span class="p">)</span>
+<span class="p">(</span><span class="nb">aref</span> <span class="p">(</span><span class="nv">move</span> <span class="nv">ary</span><span class="p">)</span> <span class="nv">i</span><span class="p">)</span>           <span class="c1">; won&#39;t work if ARY is actually an array</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; Not sure what the Perl code was trying to show</span>
+<span class="c1">;;;-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN707"
+>Constructing an Object</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;;;-----------------------------</span>
+<span class="c1">;; This entire subsection is specific to Perl&#39;s object system (or lack</span>
+<span class="c1">;; thereof), so it&#39;s difficult to write analogous CL code for it.</span>
+<span class="c1">;; Most of the examples would be done in CL using MAKE-INSTANCE (or a</span>
+<span class="c1">;; custom function wrapping MAKE-INSTANCE).</span>
+
+<span class="c1">;; For the example of an initialization routine, here is one standard</span>
+<span class="c1">;; way to do it.</span>
+<span class="p">(</span><span class="nb">defmethod</span> <span class="nb">initialize-instance</span> <span class="ss">:after</span> <span class="p">((</span><span class="nv">obj</span> <span class="nv">my-class</span><span class="p">)</span> <span class="k">&amp;rest</span> <span class="nv">init-args</span><span class="p">)</span>
+  <span class="s">&quot;Initialize an object of MY-CLASS&quot;</span>
+  <span class="p">(</span><span class="nb">setf</span> <span class="p">(</span><span class="nb">slot-value</span> <span class="nv">obj</span> <span class="ss">&#39;SOMETHING</span><span class="p">)</span> <span class="ss">&#39;mumble</span>
+        <span class="p">(</span><span class="nb">slot-value</span> <span class="nv">obj</span> <span class="ss">&#39;SOMETHING-ELSE</span><span class="p">)</span> <span class="ss">&#39;bumble</span><span class="p">)</span>
+  <span class="c1">;; ... etc</span>
+  <span class="p">)</span>
+
+<span class="c1">;; On the other hand, it wouldn&#39;t be sporting not to at least try to</span>
+<span class="c1">;; mimic the Perl examples, so here goes.</span>
+
+<span class="c1">;; The following will be used in subsequent examples that attempt to</span>
+<span class="c1">;; be like Perl.</span>
+<span class="p">(</span><span class="nb">defclass</span> <span class="nv">perl-object</span> <span class="p">()</span>
+  <span class="p">((</span><span class="nv">_hash</span> <span class="ss">:initform</span> <span class="p">(</span><span class="nb">make-hash-table</span><span class="p">)</span>
+          <span class="ss">:type</span> <span class="nc">hash-table</span><span class="p">))</span>
+  <span class="p">(</span><span class="ss">:documentation</span> <span class="s">&quot;Can be used as a mixin class to make your class</span>
+<span class="s">  more Perl-like, or can be used directly.&quot;</span><span class="p">))</span>
+
+<span class="p">(</span><span class="nb">defmethod</span> <span class="nb">slot-missing</span> <span class="p">(</span><span class="nc">class</span> <span class="p">(</span><span class="nv">instance</span> <span class="nv">perl-object</span><span class="p">)</span> <span class="nv">slot-name</span> <span class="nv">operation</span>
+                         <span class="k">&amp;optional</span> <span class="p">(</span><span class="nv">new-value</span> <span class="no">nil</span> <span class="nv">new-value-supplied-p</span><span class="p">))</span>
+  <span class="p">(</span><span class="k">symbol-macrolet</span> <span class="p">((</span><span class="nv">hash-place</span> <span class="p">(</span><span class="nb">gethash</span> <span class="nv">slot-name</span> <span class="p">(</span><span class="nb">slot-value</span> <span class="nv">instance</span> <span class="ss">&#39;_hash</span><span class="p">))))</span>
+    <span class="p">(</span><span class="k">if</span> <span class="nv">new-value-supplied-p</span>
+        <span class="p">(</span><span class="nb">setf</span> <span class="nv">hash-place</span> <span class="nv">new-value</span><span class="p">)</span>
+        <span class="nv">hash-place</span><span class="p">)))</span>
+
+<span class="c1">;; Here&#39;s an example of how to use PERL-OBJECT as a &quot;mixin&quot; class to</span>
+<span class="c1">;; make your class Perl-like (i.e., able to store arbitrary slots in</span>
+<span class="c1">;; an underlying hash).</span>
+<span class="p">(</span><span class="nb">defclass</span> <span class="nv">my-perlish-class</span> <span class="p">(</span><span class="nv">perl-object</span><span class="p">)</span>
+  <span class="p">(</span><span class="nv">a</span> <span class="nv">b</span> <span class="nv">c</span><span class="p">))</span>
+
+<span class="c1">;; Simliar to the new() function in the Perl.</span>
+<span class="p">(</span><span class="nb">defun</span> <span class="nv">perl-new</span> <span class="p">(</span><span class="nc">class</span><span class="p">)</span>
+  <span class="p">(</span><span class="nb">assert</span> <span class="p">(</span><span class="nb">subtypep</span> <span class="nc">class</span> <span class="ss">&#39;perl-object</span><span class="p">))</span>
+  <span class="p">(</span><span class="nb">make-instance</span> <span class="nc">class</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; No difference</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; No difference</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">defun</span> <span class="nv">new</span> <span class="p">()</span>
+  <span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nv">self</span> <span class="p">(</span><span class="nb">make-instance</span> <span class="ss">&#39;perl-object</span><span class="p">)))</span> <span class="c1">; allocate perl-object w/ anonymous hash</span>
+    <span class="c1">;; init two sample attributes/data members/fields</span>
+    <span class="p">(</span><span class="nb">setf</span> <span class="p">(</span><span class="nb">slot-value</span> <span class="nv">self</span> <span class="ss">&#39;START</span><span class="p">)</span> <span class="p">(</span><span class="nb">get-universal-time</span><span class="p">)</span>
+          <span class="p">(</span><span class="nb">slot-value</span> <span class="nv">self</span> <span class="ss">&#39;AGE</span><span class="p">)</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="nv">self</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">defun</span> <span class="nv">new</span> <span class="p">(</span><span class="nv">classname</span><span class="p">)</span>
+  <span class="p">(</span><span class="nb">assert</span> <span class="p">(</span><span class="nb">subtypep</span> <span class="nv">classname</span> <span class="ss">&#39;perl-object</span><span class="p">))</span> <span class="c1">; Make sure it is of the right type</span>
+  <span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nv">self</span> <span class="p">(</span><span class="nb">make-instance</span> <span class="nv">classname</span><span class="p">)))</span> <span class="c1">; Allocate new memory</span>
+    <span class="c1">;; init data fields</span>
+    <span class="p">(</span><span class="nb">setf</span> <span class="p">(</span><span class="nb">slot-value</span> <span class="nv">self</span> <span class="ss">&#39;START</span><span class="p">)</span> <span class="p">(</span><span class="nb">get-universal-time</span><span class="p">)</span>
+          <span class="p">(</span><span class="nb">slot-value</span> <span class="nv">self</span> <span class="ss">&#39;AGE</span><span class="p">)</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="nv">self</span><span class="p">))</span>                              <span class="c1">; And give it back</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">defun</span> <span class="nv">new</span> <span class="p">(</span><span class="nv">classname</span> <span class="k">&amp;rest</span> <span class="nv">initargs</span><span class="p">)</span>
+  <span class="p">(</span><span class="nb">assert</span> <span class="p">(</span><span class="nb">subtypep</span> <span class="nv">classname</span> <span class="ss">&#39;perl-object</span><span class="p">))</span> <span class="c1">; Make sure it is of the right type</span>
+  <span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nv">self</span> <span class="p">(</span><span class="nb">make-instance</span> <span class="nv">classname</span><span class="p">)))</span> <span class="c1">; Allocate new memory</span>
+    <span class="c1">;; init data fields</span>
+    <span class="p">(</span><span class="nb">apply</span> <span class="ss">&#39;_init</span> <span class="nv">self</span> <span class="nv">initargs</span><span class="p">)</span>
+    <span class="nv">self</span><span class="p">))</span>                              <span class="c1">; And give it back</span>
+
+<span class="c1">;; &quot;private&quot; method to initialize fields.  It always sets START to the</span>
+<span class="c1">;; current time, and AGE to 0.  If called with arguments, _init</span>
+<span class="c1">;; interprets them as key+value pairs to initialize the object with.</span>
+<span class="c1">;; Note that you have to define this for each individual class you</span>
+<span class="c1">;; want to have it called upon.  In the example below I used</span>
+<span class="c1">;; MY-PERLISH-CLASS, you&#39;d obviously have to change that to whatever</span>
+<span class="c1">;; your class was called.</span>
+<span class="p">(</span><span class="nb">defmethod</span> <span class="nv">_init</span> <span class="p">((</span><span class="nv">self</span> <span class="nv">my-perlish-class</span><span class="p">)</span> <span class="k">&amp;rest</span> <span class="nv">args</span><span class="p">)</span>
+  <span class="p">(</span><span class="nb">setf</span> <span class="p">(</span><span class="nb">slot-value</span> <span class="nv">self</span> <span class="ss">&#39;start</span><span class="p">)</span> <span class="p">(</span><span class="nb">get-universal-time</span><span class="p">)</span>
+        <span class="p">(</span><span class="nb">slot-value</span> <span class="nv">self</span> <span class="ss">&#39;age</span><span class="p">)</span> <span class="mi">0</span><span class="p">)</span>
+  <span class="p">(</span><span class="nb">loop</span>
+     <span class="nv">for</span> <span class="nv">key</span> <span class="nv">in</span> <span class="nv">args</span> <span class="nv">by</span> <span class="nf">#&#39;</span><span class="nb">cddr</span>
+     <span class="nv">for</span> <span class="nv">value</span> <span class="nv">in</span> <span class="p">(</span><span class="nb">cdr</span> <span class="nv">args</span><span class="p">)</span> <span class="nv">by</span> <span class="nf">#&#39;</span><span class="nb">cddr</span>
+     <span class="nb">do</span>
+       <span class="p">(</span><span class="nb">setf</span> <span class="p">(</span><span class="nb">slot-value</span> <span class="nv">self</span> <span class="nv">key</span><span class="p">)</span> <span class="nv">value</span><span class="p">)))</span>
+<span class="c1">;;;-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN710"
+>Destroying an Object</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;;;-----------------------------</span>
+
+<span class="c1">;; CL has no equivalent to Perl&#39;s DESTROY.  Classes that need similar</span>
+<span class="c1">;; functionality should provide a WITH- macro to handle automatically</span>
+<span class="c1">;; freeing up the resources in exceptional circumstances.  Here&#39;s a</span>
+<span class="c1">;; skeleton implementation of a macro that one might provide with</span>
+<span class="c1">;; one&#39;s class.</span>
+<span class="p">(</span><span class="nb">defmacro</span> <span class="nv">with-my-class</span> <span class="p">((</span><span class="nv">my-obj</span> <span class="k">&amp;rest</span> <span class="nv">initargs</span><span class="p">)</span> <span class="k">&amp;body</span> <span class="nv">body</span><span class="p">)</span>
+  <span class="o">`</span><span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="o">,</span><span class="nv">my-obj</span> <span class="p">(</span><span class="nb">make-instance</span> <span class="ss">&#39;my-class</span> <span class="o">,@</span><span class="nv">initargs</span><span class="p">)))</span>
+     <span class="p">(</span><span class="k">unwind-protect</span>
+          <span class="p">(</span><span class="k">progn</span> <span class="o">,@</span><span class="nv">body</span><span class="p">)</span>
+       <span class="p">(</span><span class="nb">close</span> <span class="o">,</span><span class="nv">my-obj</span><span class="p">))))</span> <span class="c1">; CLOSE is just an example, should be</span>
+                          <span class="c1">; whatever is necessary</span>
+
+<span class="c1">;; Even if a condition is signaled, the cleanup code will be called, as in:</span>
+<span class="c1">;;</span>
+<span class="c1">;; (with-my-class (obj foo bar)</span>
+<span class="c1">;;    (/ 3 0))</span>
+
+<span class="c1">;; If you&#39;re willing to use a non-standard extension, you can use,</span>
+<span class="c1">;; e.g., SBCL&#39;s SB-EXT:FINALIZE</span>
+<span class="c1">;;; @@INCOMPLETE@@</span>
+<span class="c1">;;;-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN713"
+>Managing Instance Data</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;;;-----------------------------</span>
+<span class="c1">;; Don&#39;t do the following, it&#39;s just here to match the Perl snippet.</span>
+<span class="p">(</span><span class="nb">defun</span> <span class="nv">get-name</span> <span class="p">(</span><span class="nv">self</span><span class="p">)</span>
+  <span class="p">(</span><span class="nb">slot-value</span> <span class="nv">self</span> <span class="ss">&#39;name</span><span class="p">))</span>
+
+<span class="p">(</span><span class="nb">defun</span> <span class="nv">set-name</span> <span class="p">(</span><span class="nv">self</span> <span class="nv">value</span><span class="p">)</span>
+  <span class="p">(</span><span class="nb">setf</span> <span class="p">(</span><span class="nb">slot-value</span> <span class="nv">self</span> <span class="ss">&#39;name</span><span class="p">)</span> <span class="nv">value</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; The following is the recommended way to do what the Perl example is</span>
+<span class="c1">;; doing and is normally preferred to the previous example.  It</span>
+<span class="c1">;; creates a method called NAME which does, essentially, the same</span>
+<span class="c1">;; thing as the name() function in the example.</span>
+<span class="p">(</span><span class="nb">defclass</span> <span class="nv">my-class</span> <span class="p">()</span>
+  <span class="p">((</span><span class="nv">name</span> <span class="ss">:accessor</span> <span class="nv">name</span><span class="p">)))</span>
+<span class="p">(</span><span class="nb">setf</span> <span class="p">(</span><span class="nv">name</span> <span class="nv">my-obj</span><span class="p">)</span> <span class="ss">&#39;foo</span>                <span class="c1">; just an example</span>
+      <span class="nv">val</span> <span class="p">(</span><span class="nv">name</span> <span class="nv">my-obj</span><span class="p">))</span>                <span class="c1">; just an example</span>
+
+<span class="c1">;; Just for the record, you could also do this (don&#39;t actually do it,</span>
+<span class="c1">;; this is just to illustrate :READER and :WRITER).</span>
+<span class="p">(</span><span class="nb">defclass</span> <span class="nv">my-class</span> <span class="p">()</span>
+  <span class="p">((</span><span class="nv">name</span> <span class="ss">:reader</span> <span class="nv">get-name</span> <span class="ss">:writer</span> <span class="nv">set-name</span><span class="p">)))</span>
+<span class="p">(</span><span class="nv">set-name</span> <span class="ss">&#39;foo</span> <span class="nv">my-obj</span><span class="p">)</span>                      <span class="c1">; just an example</span>
+<span class="p">(</span><span class="nv">get-name</span> <span class="nv">my-obj</span><span class="p">)</span>                           <span class="c1">; just an example</span>
+
+<span class="c1">;; You could also do the same thing as the previous example manually.</span>
+<span class="p">(</span><span class="nb">defclass</span> <span class="nv">my-class</span> <span class="p">()</span>
+  <span class="p">(</span><span class="nv">name</span><span class="p">))</span>
+
+<span class="p">(</span><span class="nb">defmethod</span> <span class="nv">get-name</span> <span class="p">((</span><span class="nv">my-obj</span> <span class="nv">my-class</span><span class="p">))</span>
+  <span class="p">(</span><span class="nb">slot-value</span> <span class="nv">my-obj</span> <span class="ss">&#39;name</span><span class="p">))</span>
+
+<span class="p">(</span><span class="nb">defmethod</span> <span class="nv">set-name</span> <span class="p">((</span><span class="nv">my-obj</span> <span class="nv">my-class</span><span class="p">)</span> <span class="nv">value</span><span class="p">)</span>
+  <span class="p">(</span><span class="nb">setf</span> <span class="p">(</span><span class="nb">slot-value</span> <span class="nv">my-obj</span> <span class="ss">&#39;name</span><span class="p">)</span> <span class="nv">value</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">defun</span> <span class="nv">age</span> <span class="p">(</span><span class="nv">obj</span> <span class="k">&amp;optional</span> <span class="p">(</span><span class="nv">value</span> <span class="no">nil</span> <span class="nv">value-supplied-p</span><span class="p">))</span>
+  <span class="p">(</span><span class="nb">prog1</span> <span class="p">(</span><span class="nb">slot-value</span> <span class="nv">obj</span> <span class="ss">&#39;age</span><span class="p">)</span>
+    <span class="p">(</span><span class="nb">when</span> <span class="nv">value-supplied-p</span>
+      <span class="p">(</span><span class="nb">setf</span> <span class="p">(</span><span class="nb">slot-value</span> <span class="nv">obj</span> <span class="ss">&#39;age</span><span class="p">)</span> <span class="nv">value</span><span class="p">))))</span>
+<span class="c1">;; sample call of get and set: happy birthday!</span>
+<span class="p">(</span><span class="nv">age</span> <span class="nv">obj</span> <span class="p">(</span><span class="nb">1+</span> <span class="p">(</span><span class="nv">age</span> <span class="nv">obj</span><span class="p">)))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">defclass</span> <span class="nv">person</span> <span class="p">()</span>
+  <span class="p">((</span><span class="nv">name</span> <span class="ss">:accessor</span> <span class="nv">name</span><span class="p">)</span>
+   <span class="p">(</span><span class="nv">age</span> <span class="ss">:accessor</span> <span class="nv">age</span><span class="p">)</span>
+   <span class="p">(</span><span class="nv">peers</span> <span class="ss">:accessor</span> <span class="nv">peers</span><span class="p">)))</span>
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*him*</span> <span class="p">(</span><span class="nb">make-instance</span> <span class="ss">&#39;person</span><span class="p">))</span>
+<span class="p">(</span><span class="nb">setf</span> <span class="p">(</span><span class="nb">slot-value</span> <span class="vg">*him*</span> <span class="ss">&#39;name</span><span class="p">)</span> <span class="s">&quot;Sylvester&quot;</span>
+      <span class="p">(</span><span class="nb">slot-value</span> <span class="vg">*him*</span> <span class="ss">&#39;age</span><span class="p">)</span> <span class="mi">23</span><span class="p">)</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; Naming this different from Perl snippet, to avoid clashing with</span>
+<span class="c1">;; NAME accessor above.</span>
+<span class="p">(</span><span class="nb">defun</span> <span class="nv">person-name</span> <span class="p">(</span><span class="nv">self</span> <span class="k">&amp;optional</span> <span class="p">(</span><span class="nv">value</span> <span class="no">nil</span> <span class="nv">value-supplied-p</span><span class="p">))</span>
+  <span class="p">(</span><span class="k">if</span> <span class="nv">value-supplied-p</span>
+      <span class="p">(</span><span class="k">progn</span>
+        <span class="c1">;; CL doesn&#39;t have an equivalent of -w (which turns on $^W,</span>
+        <span class="c1">;; AFAICT), so we always warn.</span>
+        <span class="p">(</span><span class="nb">and</span> <span class="p">(</span><span class="nv">scan</span> <span class="s">&quot;[^\\s\\w&#39;-]&quot;</span> <span class="nv">value</span><span class="p">)</span> <span class="p">(</span><span class="nb">warn</span> <span class="s">&quot;funny characters in name&quot;</span><span class="p">))</span>
+        <span class="p">(</span><span class="nb">and</span> <span class="p">(</span><span class="nv">scan</span> <span class="s">&quot;\\d&quot;</span> <span class="nv">value</span><span class="p">)</span> <span class="p">(</span><span class="nb">warn</span> <span class="s">&quot;numbers in name&quot;</span><span class="p">))</span>
+        <span class="p">(</span><span class="nb">or</span> <span class="p">(</span><span class="nv">scan</span> <span class="s">&quot;\\S+(\\s+\\S+)+&quot;</span> <span class="nv">value</span><span class="p">)</span> <span class="p">(</span><span class="nb">warn</span> <span class="s">&quot;prefer multiword name&quot;</span><span class="p">))</span>
+        <span class="p">(</span><span class="nb">or</span> <span class="p">(</span><span class="nv">scan</span> <span class="s">&quot;\\S&quot;</span> <span class="nv">value</span><span class="p">)</span> <span class="p">(</span><span class="nb">warn</span> <span class="s">&quot;name is blank&quot;</span><span class="p">))</span>
+        <span class="p">(</span><span class="nb">setf</span> <span class="p">(</span><span class="nv">name</span> <span class="nv">self</span><span class="p">)</span> <span class="p">(</span><span class="nb">string-upcase</span> <span class="nv">value</span><span class="p">)))</span>
+      <span class="p">(</span><span class="nv">name</span> <span class="nv">self</span><span class="p">)))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; Most of this subsection (NAME, AGE, PEERS) is already implemented</span>
+<span class="c1">;; by the DEFCLASS above.</span>
+<span class="p">(</span><span class="nb">defmethod</span> <span class="nv">exclaim</span> <span class="p">((</span><span class="nv">self</span> <span class="nv">person</span><span class="p">))</span>
+  <span class="p">(</span><span class="nb">with-accessors</span> <span class="p">((</span><span class="nv">name</span> <span class="nv">name</span><span class="p">)</span> <span class="p">(</span><span class="nv">age</span> <span class="nv">age</span><span class="p">)</span> <span class="p">(</span><span class="nv">peers</span> <span class="nv">peers</span><span class="p">))</span> <span class="nv">self</span>
+    <span class="p">(</span><span class="nb">format</span> <span class="no">nil</span>
+            <span class="s">&quot;Hi, I&#39;m ~A, age ~D, working with ~{~A~^, ~}&quot;</span>
+            <span class="nv">name</span> <span class="nv">age</span> <span class="nv">peers</span><span class="p">)))</span>
+
+<span class="p">(</span><span class="nb">defmethod</span> <span class="nv">happy-birthday</span> <span class="p">((</span><span class="nv">self</span> <span class="nv">person</span><span class="p">))</span>
+  <span class="p">(</span><span class="nb">incf</span> <span class="p">(</span><span class="nv">age</span> <span class="nv">self</span><span class="p">)))</span>
+<span class="c1">;;;-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN716"
+>Managing Class Data</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">defclass</span> <span class="nv">person</span> <span class="p">()</span>
+  <span class="p">((</span><span class="nv">gender</span> <span class="ss">:accessor</span> <span class="nv">gender</span> <span class="ss">:initarg</span> <span class="ss">:gender</span><span class="p">)))</span>
+
+<span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nv">body-count</span> <span class="mi">0</span><span class="p">))</span>
+  <span class="p">(</span><span class="nb">defun</span> <span class="nv">population</span> <span class="p">()</span>
+    <span class="nv">body-count</span><span class="p">)</span>
+
+  <span class="p">(</span><span class="nb">defmethod</span> <span class="nb">initialize-instance</span> <span class="ss">:after</span> <span class="p">((</span><span class="nv">self</span> <span class="nv">person</span><span class="p">)</span> <span class="k">&amp;rest</span> <span class="nv">initargs</span><span class="p">)</span>
+    <span class="p">(</span><span class="k">declare</span> <span class="p">(</span><span class="k">ignore</span> <span class="nv">initargs</span><span class="p">))</span>
+    <span class="p">(</span><span class="nb">incf</span> <span class="nv">body-count</span><span class="p">))</span>
+
+  <span class="c1">;; Note that using standard CL you would have to arrange for this to</span>
+  <span class="c1">;; be called somehow.  It won&#39;t be called automatically by the</span>
+  <span class="c1">;; garbage collector, as it would in Perl.</span>
+  <span class="p">(</span><span class="nb">defmethod</span> <span class="nv">destroy</span> <span class="p">((</span><span class="nv">self</span> <span class="nv">person</span><span class="p">))</span>
+    <span class="p">(</span><span class="k">declare</span> <span class="p">(</span><span class="k">ignore</span> <span class="nv">self</span><span class="p">))</span>
+    <span class="p">(</span><span class="nb">decf</span> <span class="nv">body-count</span><span class="p">))</span>
+  <span class="p">)</span>
+
+<span class="p">(</span><span class="nb">defvar</span> <span class="vg">*people*</span> <span class="no">nil</span><span class="p">)</span>
+<span class="p">(</span><span class="nb">loop</span> <span class="nv">repeat</span> <span class="mi">10</span> <span class="nb">do</span> <span class="p">(</span><span class="nb">push</span> <span class="p">(</span><span class="nb">make-instance</span> <span class="ss">&#39;person</span><span class="p">)</span> <span class="vg">*people*</span><span class="p">))</span>
+<span class="p">(</span><span class="nb">format</span> <span class="no">t</span> <span class="s">&quot;There are ~D people alive.~%&quot;</span> <span class="p">(</span><span class="nv">population</span><span class="p">))</span>
+<span class="c1">;; There are 10 people alive.</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*him*</span> <span class="p">(</span><span class="nb">make-instance</span> <span class="ss">&#39;person</span> <span class="ss">:gender</span> <span class="ss">:male</span><span class="p">))</span>
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*her*</span> <span class="p">(</span><span class="nb">make-instance</span> <span class="ss">&#39;person</span> <span class="ss">:gender</span> <span class="ss">:female</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nv">fixed-array-max-bounds</span> <span class="mi">100</span><span class="p">)</span>            <span class="c1">; set for whole class</span>
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*alpha*</span> <span class="p">(</span><span class="nb">make-instance</span> <span class="ss">&#39;fixed-array</span><span class="p">))</span>
+<span class="p">(</span><span class="nb">format</span> <span class="no">t</span> <span class="s">&quot;Bound on *alpha* is ~D~%&quot;</span> <span class="p">(</span><span class="nv">max-bounds</span> <span class="vg">*alpha*</span><span class="p">))</span>
+<span class="c1">;; Bound on *alpha* is 100</span>
+
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*beta*</span> <span class="p">(</span><span class="nb">make-instance</span> <span class="ss">&#39;fixed-array</span><span class="p">))</span>
+<span class="p">(</span><span class="nv">max-bounds</span> <span class="vg">*beta*</span> <span class="mi">50</span><span class="p">)</span>                  <span class="c1">; still sets for whole class</span>
+<span class="p">(</span><span class="nb">format</span> <span class="no">t</span> <span class="s">&quot;Bound on *alpha* is ~D~%&quot;</span> <span class="p">(</span><span class="nv">max-bounds</span> <span class="vg">*alpha*</span><span class="p">))</span>
+<span class="c1">;; Bound on *alpha* is 50</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">defclass</span> <span class="nv">fixed-array</span> <span class="p">()</span> <span class="p">())</span>
+
+<span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nv">bounds</span> <span class="mi">7</span><span class="p">))</span>
+  <span class="p">(</span><span class="k">macrolet</span> <span class="p">((</span><span class="nv">bounds-body</span> <span class="p">()</span>
+               <span class="o">`</span><span class="p">(</span><span class="k">if</span> <span class="nv">value-supplied-p</span>
+                    <span class="p">(</span><span class="nb">setf</span> <span class="nv">bounds</span> <span class="nv">value</span><span class="p">)</span>
+                    <span class="nv">bounds</span><span class="p">)))</span>
+
+    <span class="p">(</span><span class="nb">defmethod</span> <span class="nv">max-bounds</span> <span class="p">((</span><span class="nv">fixed-array</span> <span class="nv">fixed-array</span><span class="p">)</span> <span class="k">&amp;optional</span> <span class="p">(</span><span class="nv">value</span> <span class="no">nil</span> <span class="nv">value-supplied-p</span><span class="p">))</span>
+      <span class="p">(</span><span class="nv">bounds-body</span><span class="p">))</span>
+
+    <span class="c1">;; Don&#39;t need this, except to be a little more like the Perl code</span>
+    <span class="p">(</span><span class="nb">defun</span> <span class="nv">fixed-array-max-bounds</span> <span class="p">(</span><span class="k">&amp;optional</span> <span class="p">(</span><span class="nv">value</span> <span class="no">nil</span> <span class="nv">value-supplied-p</span><span class="p">))</span>
+      <span class="p">(</span><span class="nv">bounds-body</span><span class="p">))</span>
+    <span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; Already implemented in previous snippet</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; Don&#39;t do this.  To match the Perl code we have to redefine the</span>
+<span class="c1">;; above so that FIXED-ARRAY takes a reference to BOUNDS.  The easiest</span>
+<span class="c1">;; way to do that is to make BOUNDS a symbol, there&#39;s no direct way to</span>
+<span class="c1">;; store a reference to a number in CL since a number can be passed</span>
+<span class="c1">;; around by value.</span>
+<span class="p">(</span><span class="nb">defclass</span> <span class="nv">fixed-array</span> <span class="p">()</span> <span class="p">(</span><span class="nv">max-bounds-ref</span><span class="p">))</span>
+
+<span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nv">bounds-sym</span> <span class="p">(</span><span class="nb">gensym</span> <span class="s">&quot;BOUNDS-&quot;</span><span class="p">)))</span> <span class="c1">; a symbol, so we can store a ref to int</span>
+  <span class="p">(</span><span class="k">eval-when</span> <span class="p">(</span><span class="ss">:compile-toplevel</span> <span class="ss">:load-toplevel</span> <span class="ss">:execute</span><span class="p">)</span>
+    <span class="p">(</span><span class="nb">setf</span> <span class="p">(</span><span class="nb">symbol-value</span> <span class="nv">bounds-sym</span><span class="p">)</span> <span class="mi">7</span><span class="p">))</span>
+  <span class="p">(</span><span class="nb">defmethod</span> <span class="nb">initialize-instance</span> <span class="ss">:after</span> <span class="p">((</span><span class="nv">self</span> <span class="nv">fixed-array</span><span class="p">)</span> <span class="k">&amp;rest</span> <span class="nv">initargs</span><span class="p">)</span>
+    <span class="p">(</span><span class="k">declare</span> <span class="p">(</span><span class="k">ignore</span> <span class="nv">initargs</span><span class="p">))</span>
+    <span class="p">(</span><span class="nb">setf</span> <span class="p">(</span><span class="nb">slot-value</span> <span class="nv">self</span> <span class="ss">&#39;max-bounds-ref</span><span class="p">)</span> <span class="nv">bounds-sym</span><span class="p">))</span>
+
+  <span class="p">(</span><span class="nb">defmethod</span> <span class="nv">max-bounds</span> <span class="p">((</span><span class="nv">fixed-array</span> <span class="nv">fixed-array</span><span class="p">)</span> <span class="k">&amp;optional</span> <span class="p">(</span><span class="nv">value</span> <span class="no">nil</span> <span class="nv">value-supplied-p</span><span class="p">))</span>
+    <span class="p">(</span><span class="k">if</span> <span class="nv">value-supplied-p</span>
+        <span class="p">(</span><span class="nb">setf</span> <span class="p">(</span><span class="nb">symbol-value</span> <span class="p">(</span><span class="nb">slot-value</span> <span class="nv">fixed-array</span> <span class="ss">&#39;max-bounds-ref</span><span class="p">))</span> <span class="nv">value</span><span class="p">)</span>
+        <span class="p">(</span><span class="nb">symbol-value</span> <span class="p">(</span><span class="nb">slot-value</span> <span class="nv">fixed-array</span> <span class="ss">&#39;max-bounds-ref</span><span class="p">))))</span>
+
+  <span class="p">(</span><span class="nb">defun</span> <span class="nv">fixed-array-max-bounds</span> <span class="p">(</span><span class="k">&amp;optional</span> <span class="p">(</span><span class="nv">value</span> <span class="no">nil</span> <span class="nv">value-supplied-p</span><span class="p">))</span>
+    <span class="p">(</span><span class="k">if</span> <span class="nv">value-supplied-p</span>
+        <span class="p">(</span><span class="nb">setf</span> <span class="p">(</span><span class="nb">symbol-value</span> <span class="nv">bounds-sym</span><span class="p">)</span> <span class="nv">value</span><span class="p">)</span>
+        <span class="p">(</span><span class="nb">symbol-value</span> <span class="nv">bounds-sym</span><span class="p">))))</span>
+<span class="c1">;;;-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN719"
+>Using Classes as Structs</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;;;-----------------------------</span>
+<span class="c1">;; The closest thing to this example would be CL&#39;s built-in</span>
+<span class="c1">;; structures, which are simpler than CLOS objects and which by</span>
+<span class="c1">;; default store their slots in vectors.</span>
+
+<span class="p">(</span><span class="nb">defstruct</span> <span class="nv">person</span>
+  <span class="nv">name</span>
+  <span class="nv">age</span>
+  <span class="p">(</span><span class="nv">peers</span> <span class="no">nil</span> <span class="ss">:type</span> <span class="nb">list</span><span class="p">))</span>
+
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*p*</span> <span class="p">(</span><span class="nv">make-person</span><span class="p">))</span>     <span class="c1">; allocate an empty Person struct</span>
+
+<span class="p">(</span><span class="nb">setf</span> <span class="p">(</span><span class="nv">person-name</span> <span class="vg">*p*</span><span class="p">)</span> <span class="s">&quot;Jason Smythe&quot;</span><span class="p">)</span> <span class="c1">; set its name field</span>
+<span class="p">(</span><span class="nb">setf</span> <span class="p">(</span><span class="nv">person-age</span> <span class="vg">*p*</span><span class="p">)</span> <span class="mi">13</span><span class="p">)</span>              <span class="c1">; set its age field</span>
+<span class="p">(</span><span class="nb">setf</span> <span class="p">(</span><span class="nv">person-peers</span> <span class="vg">*p*</span><span class="p">)</span> <span class="o">&#39;</span><span class="p">(</span><span class="s">&quot;Wilbur&quot;</span> <span class="s">&quot;Ralph&quot;</span> <span class="s">&quot;Fred&quot;</span><span class="p">))</span> <span class="c1">; set its peers field</span>
+
+<span class="c1">;; fetch various values, including the zeroth friend</span>
+<span class="p">(</span><span class="nb">format</span> <span class="no">t</span> <span class="s">&quot;At age ~D, ~A&#39;s first friend is ~A.~%&quot;</span>
+        <span class="p">(</span><span class="nv">person-age</span> <span class="vg">*p*</span><span class="p">)</span>
+        <span class="p">(</span><span class="nv">person-name</span> <span class="vg">*p*</span><span class="p">)</span>
+        <span class="p">(</span><span class="nb">car</span> <span class="p">(</span><span class="nv">person-peers</span> <span class="vg">*p*</span><span class="p">)))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">defstruct</span> <span class="nv">person</span> <span class="nv">name</span> <span class="nv">age</span><span class="p">)</span>
+<span class="p">(</span><span class="nb">defstruct</span> <span class="nv">family</span>
+  <span class="p">(</span><span class="nv">head</span> <span class="p">(</span><span class="nv">make-person</span><span class="p">)</span> <span class="ss">:type</span> <span class="nv">person</span><span class="p">)</span>
+  <span class="nv">address</span>
+  <span class="p">(</span><span class="nv">members</span> <span class="no">nil</span> <span class="ss">:type</span> <span class="nb">list</span><span class="p">))</span>
+
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*folks*</span> <span class="p">(</span><span class="nv">make-family</span><span class="p">))</span>
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*dad*</span> <span class="p">(</span><span class="nv">family-head</span> <span class="vg">*folks*</span><span class="p">))</span>
+<span class="p">(</span><span class="nb">setf</span> <span class="p">(</span><span class="nv">person-name</span> <span class="vg">*dad*</span><span class="p">)</span> <span class="s">&quot;John&quot;</span><span class="p">)</span>
+<span class="p">(</span><span class="nb">setf</span> <span class="p">(</span><span class="nv">person-age</span> <span class="vg">*dad*</span><span class="p">)</span> <span class="mi">34</span><span class="p">)</span>
+
+<span class="p">(</span><span class="nb">format</span> <span class="no">t</span> <span class="s">&quot;~A&#39;s age is ~D~%&quot;</span>
+        <span class="p">(</span><span class="nv">person-name</span> <span class="p">(</span><span class="nv">family-head</span> <span class="vg">*folks*</span><span class="p">))</span>
+        <span class="p">(</span><span class="nv">person-age</span> <span class="p">(</span><span class="nv">family-head</span> <span class="vg">*folks*</span><span class="p">)))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; You can use DEFMETHOD on any type, not just CLOS objects.</span>
+<span class="p">(</span><span class="nb">defmethod</span> <span class="nv">age</span> <span class="p">((</span><span class="nv">person</span> <span class="nv">person</span><span class="p">)</span> <span class="k">&amp;optional</span> <span class="p">(</span><span class="nv">value</span> <span class="no">nil</span> <span class="nv">value-supplied-p</span><span class="p">))</span>
+  <span class="p">(</span><span class="k">if</span> <span class="nv">value-supplied-p</span>
+      <span class="p">(</span><span class="k">progn</span>
+        <span class="p">(</span><span class="nb">setf</span> <span class="p">(</span><span class="nv">person-age</span> <span class="nv">person</span><span class="p">)</span>
+              <span class="p">(</span><span class="k">if</span> <span class="p">(</span><span class="nb">stringp</span> <span class="nv">value</span><span class="p">)</span>
+                  <span class="p">(</span><span class="k">progn</span>
+                    <span class="p">(</span><span class="nb">when</span> <span class="p">(</span><span class="nb">not</span> <span class="p">(</span><span class="nv">scan</span> <span class="s">&quot;^\\d+&quot;</span> <span class="nv">value</span><span class="p">))</span>
+                      <span class="p">(</span><span class="nb">warn</span> <span class="s">&quot;age `~A&#39; isn&#39;t numeric&quot;</span> <span class="nv">value</span><span class="p">))</span>
+                    <span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nv">age</span> <span class="p">(</span><span class="nb">parse-integer</span> <span class="nv">value</span> <span class="ss">:junk-allowed</span> <span class="no">t</span><span class="p">)))</span>
+                      <span class="p">(</span><span class="nb">when</span> <span class="p">(</span><span class="nb">&gt;</span> <span class="nv">age</span> <span class="mi">150</span><span class="p">)</span>
+                        <span class="p">(</span><span class="nb">warn</span> <span class="s">&quot;age `~D&#39; is unreasonable&quot;</span> <span class="nv">age</span><span class="p">))</span>
+                      <span class="nv">age</span><span class="p">))</span>
+                  <span class="nv">value</span><span class="p">)))</span>
+      <span class="p">(</span><span class="nv">person-age</span> <span class="nv">person</span><span class="p">)))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; No equivalent to $^W</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; There&#39;s still no equivalent to $^W, but the following illustrates</span>
+<span class="c1">;; how you could do the rest of what the Perl does.</span>
+<span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nv">gripe</span> <span class="p">(</span><span class="k">if</span> <span class="vg">*should-warn*</span> <span class="nf">#&#39;</span><span class="nb">warn</span> <span class="nf">#&#39;</span><span class="nb">error</span><span class="p">)))</span>
+  <span class="p">(</span><span class="nb">when</span> <span class="p">(</span><span class="nb">not</span> <span class="p">(</span><span class="nv">scan</span> <span class="s">&quot;^\\d+&quot;</span> <span class="nv">value</span><span class="p">))</span>
+    <span class="p">(</span><span class="nb">funcall</span> <span class="nv">gripe</span> <span class="s">&quot;age `~A&#39; isn&#39;t numeric&quot;</span> <span class="nv">value</span><span class="p">))</span>
+  <span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nv">age</span> <span class="p">(</span><span class="nb">parse-integer</span> <span class="nv">value</span> <span class="ss">:junk-allowed</span> <span class="no">t</span><span class="p">)))</span>
+                      <span class="p">(</span><span class="nb">when</span> <span class="p">(</span><span class="nb">&gt;</span> <span class="nv">age</span> <span class="mi">150</span><span class="p">)</span>
+                        <span class="p">(</span><span class="nb">funcall</span> <span class="nv">gripe</span> <span class="s">&quot;age `~D&#39; is unreasonable&quot;</span> <span class="nv">age</span><span class="p">))</span>
+                      <span class="nv">age</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; Just use DEFSTRUCT as you did above.</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">defstruct</span> <span class="nv">card</span> <span class="nv">name</span> <span class="nv">color</span> <span class="nv">cost</span> <span class="k">type</span> <span class="nv">release</span> <span class="nv">text</span><span class="p">)</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; Don&#39;t do this.  Very little point, just defining this macro so that</span>
+<span class="c1">;; the Perl example can be matched.</span>
+<span class="p">(</span><span class="nb">defmacro</span> <span class="nv">defstruct*</span> <span class="p">(</span><span class="nv">name</span> <span class="nv">slots</span><span class="p">)</span>
+  <span class="o">`</span><span class="p">(</span><span class="nb">defstruct</span> <span class="o">,</span><span class="nv">name</span> <span class="o">,@</span><span class="nv">slots</span><span class="p">))</span>
+
+<span class="p">(</span><span class="nv">defstruct*</span> <span class="nv">card</span> <span class="o">#.</span><span class="p">(</span><span class="nb">mapcar</span> <span class="nf">#&#39;</span><span class="nb">identity</span> <span class="o">&#39;</span><span class="p">(</span><span class="nv">name</span> <span class="nv">color</span> <span class="nv">cost</span> <span class="k">type</span> <span class="nv">release</span> <span class="nv">text</span><span class="p">)))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nv">defstruct*</span> <span class="nv">hostent</span> <span class="o">#.</span><span class="p">(</span><span class="nb">mapcar</span> <span class="nf">#&#39;</span><span class="nb">identity</span> <span class="o">&#39;</span><span class="p">(</span><span class="nv">name</span>
+                                           <span class="p">(</span><span class="nv">aliases</span> <span class="no">nil</span> <span class="ss">:type</span> <span class="nb">list</span><span class="p">)</span>
+                                           <span class="nv">addrtype</span>
+                                           <span class="nb">length</span>
+                                           <span class="p">(</span><span class="nv">addr-list</span> <span class="no">nil</span> <span class="ss">:type</span> <span class="nb">list</span><span class="p">))))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; What is this supposed to mean?</span>
+<span class="c1">;;#define h_type h_addrtype</span>
+<span class="c1">;;#define h_addr h_addr_list[0]</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; make (hostent-addr hostent-object) same as (hostent-addr-list hostent-object)</span>
+
+<span class="c1">;; The following has to be a macro so that all the SETF-related stuff</span>
+<span class="c1">;; will work correctly.</span>
+<span class="p">(</span><span class="nb">defmacro</span> <span class="nv">hostent-addr</span> <span class="p">(</span><span class="nv">hostent-object</span><span class="p">)</span>
+  <span class="o">`</span><span class="p">(</span><span class="nv">hostent-addr-list</span> <span class="o">,</span><span class="nv">hostent-object</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; Not sure what the corresponding Perl snippet was trying to show.</span>
+<span class="c1">;;;-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN722"
+>Cloning Objects</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;;;-----------------------------</span>
+<span class="c1">;; Skipping this snippet due to Perl-specificity</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">setf</span> <span class="nv">ob1</span> <span class="p">(</span><span class="nb">make-instance</span> <span class="ss">&#39;some-class</span><span class="p">))</span>
+<span class="c1">;; later on</span>
+<span class="p">(</span><span class="nb">setf</span> <span class="nv">ob2</span> <span class="p">(</span><span class="nb">make-instance</span> <span class="p">(</span><span class="nb">class-of</span> <span class="nv">ob1</span><span class="p">)))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; It&#39;s a little unclear what the original Perl is doing.  E.g., I</span>
+<span class="c1">;; have no idea what PARENT is supposed to be.</span>
+<span class="p">(</span><span class="nb">defun</span> <span class="nv">new-from-proto</span> <span class="p">(</span><span class="nv">proto</span><span class="p">)</span>
+  <span class="c1">;; We don&#39;t need to do all the fancy stuff the Perl code does to get</span>
+  <span class="c1">;; the superclass&#39; initializers (equivalent of &#39;new&#39;) to run,</span>
+  <span class="c1">;; they&#39;ll be run automatically by MAKE-INSTANCE.</span>
+  <span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nv">self</span> <span class="p">(</span><span class="nb">make-instance</span> <span class="p">(</span><span class="nb">class-of</span> <span class="nv">proto</span><span class="p">))))</span>
+    <span class="c1">;; The following two lines presume that the class being</span>
+    <span class="c1">;; instantiated either has START and AGE accessors defined, or</span>
+    <span class="c1">;; else inherits the PERL-OBJECT mixin defined earlier in this</span>
+    <span class="c1">;; chapter, so that any accessor will work.</span>
+    <span class="p">(</span><span class="nb">setf</span> <span class="p">(</span><span class="nb">slot-value</span> <span class="nv">self</span> <span class="ss">&#39;start</span><span class="p">)</span> <span class="p">(</span><span class="nb">get-universal-time</span><span class="p">)</span> <span class="c1">; init data fields</span>
+          <span class="p">(</span><span class="nb">slot-value</span> <span class="nv">self</span> <span class="ss">&#39;age</span><span class="p">)</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="nv">self</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN725"
+>Calling Methods Indirectly</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nv">methname</span> <span class="ss">&#39;flicker</span><span class="p">)</span>
+  <span class="p">(</span><span class="nb">funcall</span> <span class="nv">methname</span> <span class="nv">obj</span> <span class="mi">10</span><span class="p">))</span>            <span class="c1">; calls (flicker obj 10)</span>
+
+<span class="c1">;; call three methods on the object, by name</span>
+<span class="p">(</span><span class="nb">loop</span> <span class="nv">for</span> <span class="nv">m</span> <span class="nv">in</span> <span class="o">&#39;</span><span class="p">(</span><span class="nv">start</span> <span class="nv">run</span> <span class="nv">stop</span><span class="p">)</span>
+     <span class="nb">do</span> <span class="p">(</span><span class="nb">funcall</span> <span class="nv">m</span> <span class="nv">obj</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; There is no need to do this in CL, in fact in general it won&#39;t work</span>
+<span class="c1">;; because CLOS supports multi-methods, so the method does not</span>
+<span class="c1">;; &quot;belong&quot; to any one object or class.</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*fn-ref*</span> <span class="nf">#&#39;</span><span class="p">(</span><span class="k">lambda</span> <span class="p">(</span><span class="k">&amp;rest</span> <span class="nv">args</span><span class="p">)</span> <span class="p">(</span><span class="nb">apply</span> <span class="ss">&#39;my-method</span> <span class="nv">args</span><span class="p">)))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">funcall</span> <span class="vg">*fn-ref*</span> <span class="nv">obj</span> <span class="mi">10</span> <span class="s">&quot;fred&quot;</span><span class="p">)</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nv">my-method</span> <span class="nv">obj</span> <span class="mi">10</span> <span class="s">&quot;fred&quot;</span><span class="p">)</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; There is no equivalent of the Perl snippet because methods don&#39;t</span>
+<span class="c1">;; &quot;belong&quot; to a single class.  The following is about as close as you</span>
+<span class="c1">;; can get but it only works if there is a specific method defined for</span>
+<span class="c1">;; that class and you know which argument(s) are specialized.</span>
+<span class="p">(</span><span class="nb">when</span> <span class="p">(</span><span class="nb">typep</span> <span class="p">(</span><span class="nb">type-of</span> <span class="nv">obj</span><span class="p">)</span> <span class="nv">obj-target</span><span class="p">)</span>
+  <span class="c1">;; Find a 3-arg method with the first one specialized to the type of</span>
+  <span class="c1">;; OBJ.</span>
+  <span class="p">(</span><span class="nb">when</span> <span class="p">(</span><span class="nb">find-method</span> <span class="nf">#&#39;</span><span class="nv">my-method</span> <span class="o">&#39;</span><span class="p">()</span> <span class="p">(</span><span class="nb">list</span> <span class="p">(</span><span class="nb">type-of</span> <span class="nv">obj</span><span class="p">)</span> <span class="no">t</span> <span class="no">t</span><span class="p">))</span>
+    <span class="p">(</span><span class="nb">apply</span> <span class="nf">#&#39;</span><span class="nv">my-method</span> <span class="nv">obj-target</span> <span class="nv">arguments</span><span class="p">)))</span>
+<span class="c1">;;;-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN728"
+>Determining Subclass Membership</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">typep</span> <span class="nv">obj</span> <span class="ss">&#39;http:message</span><span class="p">)</span>
+<span class="c1">;; There is no equivalent to Per&#39;s can() method, as described earlier</span>
+<span class="c1">;; methods don&#39;t belong to a single class.  You could use FIND-METHOD</span>
+<span class="c1">;; as the final example in section 13.7 above shows, althouth that&#39;s</span>
+<span class="c1">;; not recommended.</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">setf</span> <span class="nv">has-io</span> <span class="p">(</span><span class="nb">typep</span> <span class="nv">fd</span> <span class="ss">&#39;io:handle</span><span class="p">))</span>
+<span class="p">(</span><span class="nb">setf</span> <span class="nv">itza-handle</span> <span class="p">(</span><span class="nb">typep</span> <span class="nv">fd</span> <span class="ss">&#39;io:handle</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; No equivalent.  You could use the following after verifying that</span>
+<span class="c1">;; OBJ was of the right type.</span>
+<span class="p">(</span><span class="nb">setf</span> <span class="nv">his-print-method</span> <span class="nf">#&#39;</span><span class="nv">as-string</span><span class="p">)</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; There&#39;s no standardized support for versions in CL.</span>
+<span class="c1">;;;-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN731"
+>Writing an Inheritable Class</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">defclass</span> <span class="nv">person</span> <span class="p">()</span>
+  <span class="p">((</span><span class="nv">name</span> <span class="ss">:accessor</span> <span class="nv">name</span> <span class="ss">:initarg</span> <span class="ss">:name</span><span class="p">)</span>
+   <span class="p">(</span><span class="nv">age</span> <span class="ss">:accessor</span> <span class="nv">age</span> <span class="ss">:initarg</span> <span class="ss">:age</span><span class="p">)))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nv">dude</span> <span class="p">(</span><span class="nb">make-instance</span> <span class="ss">&#39;person</span> <span class="ss">:name</span> <span class="s">&quot;Jason&quot;</span> <span class="ss">:age</span> <span class="mi">23</span><span class="p">)))</span>
+  <span class="p">(</span><span class="nb">format</span> <span class="no">t</span> <span class="s">&quot;~A is age ~D.~%&quot;</span> <span class="p">(</span><span class="nv">name</span> <span class="nv">dude</span><span class="p">)</span> <span class="p">(</span><span class="nv">age</span> <span class="nv">dude</span><span class="p">)))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">defclass</span> <span class="nv">employee</span> <span class="p">(</span><span class="nv">person</span><span class="p">)</span>
+  <span class="p">())</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nv">empl</span> <span class="p">(</span><span class="nb">make-instance</span> <span class="ss">&#39;employee</span> <span class="ss">:name</span> <span class="s">&quot;Jason&quot;</span> <span class="ss">:age</span> <span class="mi">23</span><span class="p">)))</span>
+  <span class="p">(</span><span class="nb">format</span> <span class="no">t</span> <span class="s">&quot;~A is age ~D.~%&quot;</span> <span class="p">(</span><span class="nv">name</span> <span class="nv">empl</span><span class="p">)</span> <span class="p">(</span><span class="nv">age</span> <span class="nv">empl</span><span class="p">)))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; No equivalent to this &quot;wrong&quot; Perl snippet.</span>
+<span class="c1">;;;-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN734"
+>Accessing Overridden Methods</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">defmethod</span> <span class="nv">meth</span> <span class="p">((</span><span class="nv">self</span> <span class="nv">my-class</span><span class="p">))</span>
+  <span class="c1">;; Normally this will result in calling the &quot;superclass&quot; as you</span>
+  <span class="c1">;; might think of it in, say, Java.  Note though that CLOS supports</span>
+  <span class="c1">;; multiple inheritance, aspect-oriented programming, and various</span>
+  <span class="c1">;; other extensions, so CALL-NEXT-METHOD won&#39;t *always* do that.</span>
+  <span class="p">(</span><span class="nb">call-next-method</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nv">meth</span> <span class="nv">self</span><span class="p">)</span>                        <span class="c1">; call wherever first METH is found</span>
+
+<span class="c1">;; I can&#39;t find any obvious way to do the other examples, you can find</span>
+<span class="c1">;; a method with FIND-METHOD but there isn&#39;t an obviuos way to call it</span>
+<span class="c1">;; directly on an object.</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; Don&#39;t need to define new(), use MAKE-INSTANCE.</span>
+
+<span class="c1">;; Don&#39;t need to define _init(), just add an INITIALIZE-INSTANCE</span>
+<span class="c1">;; method, which will be called automatically and which won&#39;t prevent</span>
+<span class="c1">;; other stuff from running.</span>
+<span class="p">(</span><span class="nb">defmethod</span> <span class="nb">initialize-instance</span> <span class="ss">:after</span> <span class="p">((</span><span class="nv">self</span> <span class="nv">my-class</span><span class="p">)</span> <span class="k">&amp;rest</span> <span class="nv">initargs</span><span class="p">)</span>
+  <span class="p">(</span><span class="nb">with-slots</span> <span class="p">(</span><span class="nv">start</span> <span class="nv">age</span> <span class="nv">extra</span><span class="p">)</span>
+      <span class="p">(</span><span class="nb">setf</span> <span class="p">(</span><span class="nv">start</span> <span class="nv">self</span><span class="p">)</span> <span class="p">(</span><span class="nb">get-decoded-time</span><span class="p">)</span> <span class="c1">; init data fields</span>
+            <span class="p">(</span><span class="nv">age</span> <span class="nv">self</span><span class="p">)</span>   <span class="mi">0</span>
+            <span class="p">(</span><span class="nv">extra</span> <span class="nv">self</span><span class="p">)</span> <span class="nv">initargs</span>       <span class="c1">; anything extra</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">defparameter</span> <span class="vg">*obj*</span> <span class="p">(</span><span class="nb">make-instance</span> <span class="ss">&#39;widget</span> <span class="ss">:haircolor</span> <span class="ss">:red</span> <span class="ss">:freckles</span> <span class="mi">121</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; The perl snippet is doing something that&#39;s done automatically by</span>
+<span class="c1">;; CLOS (i.e., all inherited INITIALIZE-INSTANCE methods will be</span>
+<span class="c1">;; called automatically).</span>
+<span class="c1">;;;-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN737"
+>Generating Attribute Methods Using AUTOLOAD</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;;;-----------------------------</span>
+
+<span class="c1">;; The equivalent of AUTOLOAD is CLOS&#39;s SLOT-MISSING functionality,</span>
+<span class="c1">;; used to define PERL-OBJECT, above.  In order to add the ok_field</span>
+<span class="c1">;; behavior, we&#39;ll subclass it here.</span>
+<span class="p">(</span><span class="nb">defclass</span> <span class="nv">person</span> <span class="p">(</span><span class="nv">perl-object</span><span class="p">)</span>
+  <span class="p">((</span><span class="nv">ok-field</span> <span class="ss">:initform</span> <span class="p">(</span><span class="nv">mkhash</span> <span class="ss">&#39;name</span> <span class="no">t</span> <span class="ss">&#39;age</span> <span class="no">t</span> <span class="ss">&#39;peers</span> <span class="no">t</span> <span class="ss">&#39;parent</span> <span class="no">t</span><span class="p">)</span>
+             <span class="ss">:type</span> <span class="nc">hash-table</span>
+             <span class="ss">:allocation</span> <span class="ss">:class</span><span class="p">)))</span>
+
+<span class="c1">;; This isn&#39;t *exactly* like the Perl snippet, e.g., it doesn&#39;t do the</span>
+<span class="c1">;; uppercase checking or checking for DESTROY.  However, since CL</span>
+<span class="c1">;; isn&#39;t case-sensitive and methods are kept separate from slots,</span>
+<span class="c1">;; there&#39;s no need to do either of those things.</span>
+<span class="c1">;;</span>
+<span class="c1">;; This method &quot;intercepts&quot; SLOT-MISSING, which is normally handled by</span>
+<span class="c1">;; PERL-OBJECT and lets the call through if the slot name is valid.</span>
+<span class="p">(</span><span class="nb">defmethod</span> <span class="nb">slot-missing</span> <span class="p">(</span><span class="nc">class</span> <span class="p">(</span><span class="nv">instance</span> <span class="nv">person</span><span class="p">)</span> <span class="nv">slot-name</span> <span class="nv">operation</span>
+                         <span class="k">&amp;optional</span> <span class="nv">new-value</span><span class="p">)</span>
+  <span class="p">(</span><span class="k">declare</span> <span class="p">(</span><span class="k">ignore</span> <span class="nv">new-value</span> <span class="nv">operation</span><span class="p">))</span>
+  <span class="p">(</span><span class="k">if</span> <span class="p">(</span><span class="nb">gethash</span> <span class="nv">slot-name</span> <span class="p">(</span><span class="nb">slot-value</span> <span class="nv">instance</span> <span class="ss">&#39;ok-field</span><span class="p">))</span>
+      <span class="p">(</span><span class="nb">call-next-method</span><span class="p">)</span>                <span class="c1">; ok, pass control to PERL-OBJECT</span>
+      <span class="p">(</span><span class="nb">error</span> <span class="s">&quot;invalid attribute method ~A&quot;</span> <span class="nv">slot-name</span><span class="p">)))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nv">dad</span> <span class="p">(</span><span class="nb">make-instance</span> <span class="ss">&#39;person</span><span class="p">))</span>
+      <span class="p">(</span><span class="nv">kid</span> <span class="p">(</span><span class="nb">make-instance</span> <span class="ss">&#39;person</span><span class="p">)))</span>
+  <span class="p">(</span><span class="nb">setf</span> <span class="p">(</span><span class="nb">slot-value</span> <span class="nv">dad</span> <span class="ss">&#39;name</span><span class="p">)</span> <span class="s">&quot;Jason&quot;</span>
+        <span class="p">(</span><span class="nb">slot-value</span> <span class="nv">dad</span> <span class="ss">&#39;age</span><span class="p">)</span> <span class="mi">23</span>
+        <span class="p">(</span><span class="nb">slot-value</span> <span class="nv">kid</span> <span class="ss">&#39;name</span><span class="p">)</span> <span class="s">&quot;Rachel&quot;</span>
+        <span class="p">(</span><span class="nb">slot-value</span> <span class="nv">kid</span> <span class="ss">&#39;age</span><span class="p">)</span> <span class="mi">2</span>
+        <span class="p">(</span><span class="nb">slot-value</span> <span class="nv">kid</span> <span class="ss">&#39;parent</span><span class="p">)</span> <span class="nv">dad</span>
+        <span class="p">)</span>
+  <span class="p">(</span><span class="nb">format</span> <span class="no">t</span> <span class="s">&quot;Kid&#39;s parent is ~A~%&quot;</span> <span class="p">(</span><span class="nb">slot-value</span> <span class="p">(</span><span class="nb">slot-value</span> <span class="nv">kid</span> <span class="ss">&#39;parent</span><span class="p">)</span> <span class="ss">&#39;name</span><span class="p">)))</span>
+<span class="c1">;; Kid&#39;s parent is Jason</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; The above SLOT-MISSING definition already works the same way as</span>
+<span class="c1">;; this Perl snippet.</span>
+<span class="c1">;;;-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN740"
+>Solving the Data Inheritance Problem</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;;;-----------------------------</span>
+<span class="c1">;; With respect to this particular Perl snippet, there&#39;s no need to</span>
+<span class="c1">;; define Employee::age as its equivalent is automatically defined by</span>
+<span class="c1">;; the DEFCLASS below.</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">defpackage</span> <span class="ss">:person</span> <span class="p">(</span><span class="ss">:use</span> <span class="nv">cl</span><span class="p">))</span>
+<span class="p">(</span><span class="nb">in-package</span> <span class="nv">person</span><span class="p">)</span>
+<span class="p">(</span><span class="nb">defclass</span> <span class="nv">person</span> <span class="p">()</span>
+  <span class="p">((</span><span class="nv">name</span> <span class="ss">:accessor</span> <span class="nv">name</span><span class="p">)</span>
+   <span class="p">(</span><span class="nv">age</span> <span class="ss">:accessor</span> <span class="nv">age</span><span class="p">)</span>
+   <span class="p">(</span><span class="nv">peers</span> <span class="ss">:accessor</span> <span class="nv">peers</span><span class="p">)</span>
+   <span class="p">(</span><span class="nv">parent</span> <span class="ss">:accessor</span> <span class="nv">parent</span><span class="p">)))</span>
+
+<span class="p">(</span><span class="nb">export</span> <span class="o">&#39;</span><span class="p">(</span><span class="nv">person</span> <span class="nv">name</span> <span class="nv">age</span> <span class="nv">peers</span> <span class="nv">parent</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">defpackage</span> <span class="ss">:employee</span> <span class="p">(</span><span class="ss">:use</span> <span class="nv">cl</span><span class="p">))</span>
+<span class="p">(</span><span class="nb">in-package</span> <span class="nv">employee</span><span class="p">)</span>
+<span class="p">(</span><span class="nb">defclass</span> <span class="nv">employee</span> <span class="p">(</span><span class="nv">person:person</span><span class="p">)</span>
+  <span class="p">((</span><span class="nv">salary</span> <span class="ss">:accessor</span> <span class="nv">salary</span><span class="p">)</span>
+   <span class="p">(</span><span class="nv">age</span> <span class="ss">:accessor</span> <span class="nv">age</span><span class="p">)</span>
+   <span class="p">(</span><span class="nv">boss</span> <span class="ss">:accessor</span> <span class="nv">boss</span><span class="p">)))</span>
+
+<span class="p">(</span><span class="nb">export</span> <span class="o">&#39;</span><span class="p">(</span><span class="nv">employee</span> <span class="nv">salary</span> <span class="nv">age</span> <span class="nv">boss</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; The &quot;data inheritance problem&quot;, as far as I can tell, is</span>
+<span class="c1">;; automatically solved by CL in a similar manner to what the Perl is</span>
+<span class="c1">;; doing.  Being automatic, there is no need to define a custom class</span>
+<span class="c1">;; like Class::Attributes.  By putting the different classes into</span>
+<span class="c1">;; different packages, CL automatically distinguishes the slots by the</span>
+<span class="c1">;; package name.</span>
+<span class="c1">;;</span>
+<span class="c1">;; E.g., the above definitions allow you to write (employee:age obj) or</span>
+<span class="c1">;; (person:age obj) and they access distinct slots.</span>
+<span class="c1">;;</span>
+<span class="c1">;; If you *do* want the AGE slot to be shared by the superclasses, you</span>
+<span class="c1">;; should put the DEFCLASS forms in the same package.</span>
+<span class="c1">;;;-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN743"
+>Coping with Circular Data Structures</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">setf</span> <span class="p">(</span><span class="nv">next</span> <span class="nv">node</span><span class="p">)</span> <span class="nv">node</span><span class="p">)</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">defclass</span> <span class="nv">node</span> <span class="p">()</span>
+  <span class="p">((</span><span class="nv">next</span> <span class="ss">:accessor</span> <span class="nv">next</span> <span class="ss">:type</span> <span class="nv">node</span><span class="p">)</span>
+   <span class="p">(</span><span class="nv">prev</span> <span class="ss">:accessor</span> <span class="nv">prev</span> <span class="ss">:type</span> <span class="nv">node</span><span class="p">)</span>
+   <span class="p">(</span><span class="nv">value</span> <span class="ss">:accessor</span> <span class="nv">value</span><span class="p">)))</span>
+
+<span class="p">(</span><span class="nb">defclass</span> <span class="nv">ring</span> <span class="p">()</span>
+  <span class="p">((</span><span class="nv">dummy</span> <span class="ss">:accessor</span> <span class="nv">dummy</span> <span class="ss">:type</span> <span class="nv">node</span><span class="p">)</span>
+   <span class="p">(</span><span class="nv">ring-count</span> <span class="ss">:accessor</span> <span class="nv">ring-count</span> <span class="ss">:type</span> <span class="nc">number</span> <span class="ss">:initform</span> <span class="mi">0</span><span class="p">)))</span>
+
+<span class="p">(</span><span class="nb">defmethod</span> <span class="nb">initialize-instance</span> <span class="ss">:after</span> <span class="p">((</span><span class="nv">self</span> <span class="nv">ring</span><span class="p">)</span> <span class="k">&amp;rest</span> <span class="nv">init-args</span><span class="p">)</span>
+  <span class="p">(</span><span class="k">declare</span> <span class="p">(</span><span class="k">ignore</span> <span class="nv">init-args</span><span class="p">))</span>
+  <span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nv">dummy</span> <span class="p">(</span><span class="nb">make-instance</span> <span class="ss">&#39;node</span><span class="p">)))</span>
+    <span class="p">(</span><span class="nb">setf</span> <span class="p">(</span><span class="nv">next</span> <span class="nv">dummy</span><span class="p">)</span> <span class="nv">dummy</span>
+          <span class="p">(</span><span class="nv">prev</span> <span class="nv">dummy</span><span class="p">)</span> <span class="nv">dummy</span>
+          <span class="p">(</span><span class="nv">value</span> <span class="nv">dummy</span><span class="p">)</span> <span class="ss">&#39;dummy</span><span class="p">)</span>         <span class="c1">; so PRINT-OBJECT works</span>
+    <span class="p">(</span><span class="nb">setf</span> <span class="p">(</span><span class="nv">dummy</span> <span class="nv">self</span><span class="p">)</span> <span class="nv">dummy</span><span class="p">)))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">loop</span> <span class="nv">for</span> <span class="nv">i</span> <span class="nv">below</span> <span class="mi">20</span>
+   <span class="nb">do</span> <span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nv">r</span> <span class="p">(</span><span class="nb">make-instance</span> <span class="ss">&#39;ring</span><span class="p">)))</span>
+        <span class="p">(</span><span class="nb">loop</span> <span class="nv">repeat</span> <span class="mi">1000</span>
+           <span class="nb">do</span> <span class="p">(</span><span class="nv">insert</span> <span class="nv">r</span> <span class="nv">i</span><span class="p">))))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; Note unlike Perl this isn&#39;t called automatically by CL when the</span>
+<span class="c1">;; object is collected, however some CL implementations provide an</span>
+<span class="c1">;; extension that could be used to &quot;register&quot; this function as such.</span>
+<span class="c1">;; Also, depending on the sophistication of your implementation&#39;s</span>
+<span class="c1">;; garbage collector, it might not be necessary to even have this</span>
+<span class="c1">;; method (since the object doesn&#39;t hang on to any external</span>
+<span class="c1">;; resources).</span>
+<span class="p">(</span><span class="nb">defmethod</span> <span class="nv">destroy</span> <span class="p">((</span><span class="nv">ring</span> <span class="nv">ring</span><span class="p">))</span>
+  <span class="p">(</span><span class="nb">loop</span> <span class="nv">for</span> <span class="nv">node</span> <span class="nb">=</span> <span class="p">(</span><span class="nv">next</span> <span class="p">(</span><span class="nv">dummy</span> <span class="nv">ring</span><span class="p">))</span> <span class="nv">then</span> <span class="p">(</span><span class="nv">next</span> <span class="nv">node</span><span class="p">)</span>
+       <span class="nv">until</span> <span class="p">(</span><span class="nb">eq</span> <span class="nv">node</span> <span class="p">(</span><span class="nv">dummy</span> <span class="nv">ring</span><span class="p">))</span>
+       <span class="nb">do</span> <span class="p">(</span><span class="nv">delete-node</span> <span class="nv">ring</span> <span class="nv">node</span><span class="p">))</span>
+  <span class="p">(</span><span class="nb">setf</span> <span class="p">(</span><span class="nv">prev</span> <span class="p">(</span><span class="nv">dummy</span> <span class="nv">ring</span><span class="p">))</span> <span class="no">nil</span>
+        <span class="p">(</span><span class="nv">next</span> <span class="p">(</span><span class="nv">dummy</span> <span class="nv">ring</span><span class="p">))</span> <span class="no">nil</span><span class="p">))</span>
+
+<span class="p">(</span><span class="nb">defmethod</span> <span class="nv">delete-node</span> <span class="p">((</span><span class="nv">ring</span> <span class="nv">ring</span><span class="p">)</span> <span class="p">(</span><span class="nv">node</span> <span class="nv">node</span><span class="p">))</span>
+  <span class="p">(</span><span class="nb">setf</span> <span class="p">(</span><span class="nv">next</span> <span class="p">(</span><span class="nv">prev</span> <span class="nv">node</span><span class="p">))</span> <span class="p">(</span><span class="nv">next</span> <span class="nv">node</span><span class="p">)</span>
+        <span class="p">(</span><span class="nv">prev</span> <span class="p">(</span><span class="nv">next</span> <span class="nv">node</span><span class="p">))</span> <span class="p">(</span><span class="nv">prev</span> <span class="nv">node</span><span class="p">))</span>
+  <span class="p">(</span><span class="nb">decf</span> <span class="p">(</span><span class="nv">ring-count</span> <span class="nv">ring</span><span class="p">)))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">defmethod</span> <span class="nv">ring-search</span> <span class="p">((</span><span class="nv">ring</span> <span class="nv">ring</span><span class="p">)</span> <span class="nv">value</span> <span class="k">&amp;key</span> <span class="p">(</span><span class="nv">test</span> <span class="ss">&#39;eql</span><span class="p">))</span>
+  <span class="s">&quot;Find VALUE in the RING structure, returning a NODE.&quot;</span>
+  <span class="p">(</span><span class="nb">loop</span>
+     <span class="nv">for</span> <span class="nv">node</span> <span class="nb">=</span> <span class="p">(</span><span class="nv">next</span> <span class="p">(</span><span class="nv">dummy</span> <span class="nv">ring</span><span class="p">))</span> <span class="nv">then</span> <span class="p">(</span><span class="nv">next</span> <span class="nv">node</span><span class="p">)</span>
+     <span class="nv">until</span> <span class="p">(</span><span class="nb">eq</span> <span class="nv">node</span> <span class="p">(</span><span class="nv">dummy</span> <span class="nv">ring</span><span class="p">))</span>
+     <span class="nb">do</span> <span class="p">(</span><span class="nb">when</span> <span class="p">(</span><span class="nb">funcall</span> <span class="nv">test</span> <span class="p">(</span><span class="nv">value</span> <span class="nv">node</span><span class="p">)</span> <span class="nv">value</span><span class="p">)</span>
+          <span class="p">(</span><span class="k">return-from</span> <span class="nv">ring-search</span> <span class="nv">node</span><span class="p">)))</span>
+  <span class="p">(</span><span class="nv">dummy</span> <span class="nv">ring</span><span class="p">))</span>
+
+<span class="p">(</span><span class="nb">defmethod</span> <span class="nv">insert</span> <span class="p">((</span><span class="nv">ring</span> <span class="nv">ring</span><span class="p">)</span> <span class="nv">value</span><span class="p">)</span>
+  <span class="s">&quot;Insert VALUE into the RING structure.&quot;</span>
+  <span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nv">node</span> <span class="p">(</span><span class="nb">make-instance</span> <span class="ss">&#39;node</span><span class="p">)))</span>
+    <span class="p">(</span><span class="nb">setf</span> <span class="p">(</span><span class="nv">value</span> <span class="nv">node</span><span class="p">)</span> <span class="nv">value</span>
+          <span class="p">(</span><span class="nv">next</span> <span class="nv">node</span><span class="p">)</span> <span class="p">(</span><span class="nv">next</span> <span class="p">(</span><span class="nv">dummy</span> <span class="nv">ring</span><span class="p">))</span>
+          <span class="p">(</span><span class="nv">prev</span> <span class="p">(</span><span class="nv">next</span> <span class="p">(</span><span class="nv">dummy</span> <span class="nv">ring</span><span class="p">)))</span> <span class="nv">node</span>
+          <span class="p">(</span><span class="nv">next</span> <span class="p">(</span><span class="nv">dummy</span> <span class="nv">ring</span><span class="p">))</span> <span class="nv">node</span>
+          <span class="p">(</span><span class="nv">prev</span> <span class="nv">node</span><span class="p">)</span> <span class="p">(</span><span class="nv">dummy</span> <span class="nv">ring</span><span class="p">))</span>
+    <span class="p">(</span><span class="nb">incf</span> <span class="p">(</span><span class="nv">ring-count</span> <span class="nv">ring</span><span class="p">))))</span>
+
+<span class="p">(</span><span class="nb">defmethod</span> <span class="nv">delete-value</span> <span class="p">((</span><span class="nv">ring</span> <span class="nv">ring</span><span class="p">)</span> <span class="nv">value</span> <span class="k">&amp;key</span> <span class="p">(</span><span class="nv">test</span> <span class="ss">&#39;eql</span><span class="p">))</span>
+  <span class="s">&quot;Delete a node from the RING structure by VALUE.&quot;</span>
+  <span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nv">node</span> <span class="p">(</span><span class="nv">ring-search</span> <span class="nv">ring</span> <span class="nv">value</span> <span class="ss">:test</span> <span class="nv">test</span><span class="p">)))</span>
+    <span class="p">(</span><span class="nb">unless</span> <span class="p">(</span><span class="nb">eq</span> <span class="nv">node</span> <span class="p">(</span><span class="nv">dummy</span> <span class="nv">ring</span><span class="p">))</span>
+      <span class="p">(</span><span class="nv">delete-node</span> <span class="nv">ring</span> <span class="nv">node</span><span class="p">))))</span>
+
+<span class="c1">;; just for debugging</span>
+<span class="p">(</span><span class="nb">defmethod</span> <span class="nb">print-object</span> <span class="p">((</span><span class="nv">node</span> <span class="nv">node</span><span class="p">)</span> <span class="nc">stream</span><span class="p">)</span>
+  <span class="p">(</span><span class="nb">format</span> <span class="nc">stream</span> <span class="s">&quot;#&lt;NODE ~A&gt;&quot;</span> <span class="p">(</span><span class="nv">value</span> <span class="nv">node</span><span class="p">)))</span>
+
+<span class="p">(</span><span class="nb">defmethod</span> <span class="nb">print-object</span> <span class="p">((</span><span class="nv">ring</span> <span class="nv">ring</span><span class="p">)</span> <span class="nc">stream</span><span class="p">)</span>
+  <span class="p">(</span><span class="nb">format</span> <span class="nc">stream</span> <span class="s">&quot;#&lt;RING&quot;</span><span class="p">)</span>
+  <span class="p">(</span><span class="nb">do</span> <span class="p">((</span><span class="nv">node</span> <span class="p">(</span><span class="nv">next</span> <span class="p">(</span><span class="nv">dummy</span> <span class="nv">ring</span><span class="p">))</span> <span class="p">(</span><span class="nv">next</span> <span class="nv">node</span><span class="p">)))</span>
+      <span class="p">((</span><span class="nb">eq</span> <span class="nv">node</span> <span class="p">(</span><span class="nv">dummy</span> <span class="nv">ring</span><span class="p">)))</span>
+    <span class="p">(</span><span class="nb">format</span> <span class="nc">stream</span> <span class="s">&quot; ~A&quot;</span> <span class="nv">node</span><span class="p">))</span>
+  <span class="p">(</span><span class="nb">format</span> <span class="nc">stream</span> <span class="s">&quot;&gt;&quot;</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN746"
+>Overloading Operators</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;;;-----------------------------</span>
+<span class="c1">;; In CL there is no distinction between operators and functions.</span>
+<span class="c1">;; However, functions can be &quot;overloaded&quot; by using DEFMETHOD.</span>
+
+<span class="p">(</span><span class="nb">defmethod</span> <span class="nv">&lt;=&gt;</span> <span class="p">((</span><span class="nv">s1</span> <span class="nc">hash-table</span><span class="p">)</span> <span class="p">(</span><span class="nv">s2</span> <span class="nc">hash-table</span><span class="p">))</span>
+  <span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nv">s1</span> <span class="p">(</span><span class="nb">gethash</span> <span class="ss">&#39;name</span> <span class="nv">s1</span><span class="p">))</span>
+        <span class="p">(</span><span class="nv">s2</span> <span class="p">(</span><span class="nb">gethash</span> <span class="ss">&#39;name</span> <span class="nv">s2</span><span class="p">)))</span>
+    <span class="p">(</span><span class="nb">case</span> <span class="p">(</span><span class="nb">string-lessp</span> <span class="nv">s1</span> <span class="nv">s2</span><span class="p">)</span>
+      <span class="p">(</span><span class="no">nil</span> <span class="p">(</span><span class="k">if</span> <span class="p">(</span><span class="nb">string=</span> <span class="nv">s1</span> <span class="nv">s2</span><span class="p">)</span>
+               <span class="mi">0</span>
+               <span class="mi">1</span><span class="p">))</span>
+      <span class="p">(</span><span class="no">t</span> <span class="mi">-1</span><span class="p">))))</span>
+
+<span class="c1">;; TODO: write a reader macro for &quot;-like stuff.</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;; The following allows us to implement MY-PLUS without having to</span>
+<span class="c1">;; prefix most of the function calls, etc, with CL:, which gets</span>
+<span class="c1">;; old fast.</span>
+<span class="p">(</span><span class="nb">defpackage</span> <span class="ss">:time-number-internal</span> <span class="p">(</span><span class="ss">:use</span> <span class="nv">cl</span><span class="p">))</span>
+
+<span class="c1">;; The following package is where we define the method.  It doesn&#39;t</span>
+<span class="c1">;; use the CL package, so that + can be redefined (redefining anything</span>
+<span class="c1">;; in the CL package is disallowed by the standard).</span>
+<span class="p">(</span><span class="nb">defpackage</span> <span class="ss">:time-number</span><span class="p">)</span>
+
+<span class="p">(</span><span class="nb">in-package</span> <span class="nv">time-number</span><span class="p">)</span>
+
+<span class="p">(</span><span class="nv">cl:defclass</span> <span class="nv">time-number</span> <span class="p">()</span>
+  <span class="p">((</span><span class="nv">seconds</span> <span class="ss">:accessor</span> <span class="nv">seconds</span> <span class="ss">:initform</span> <span class="mi">0</span> <span class="ss">:initarg</span> <span class="ss">:seconds</span><span class="p">)</span>
+   <span class="p">(</span><span class="nv">minutes</span> <span class="ss">:accessor</span> <span class="nv">minutes</span> <span class="ss">:initform</span> <span class="mi">0</span> <span class="ss">:initarg</span> <span class="ss">:minutes</span><span class="p">)</span>
+   <span class="p">(</span><span class="nv">hours</span> <span class="ss">:accessor</span> <span class="nv">hours</span> <span class="ss">:initform</span> <span class="mi">0</span> <span class="ss">:initarg</span> <span class="ss">:hours</span><span class="p">)</span>
+   <span class="p">))</span>
+
+<span class="p">(</span><span class="nv">cl:defmethod</span> <span class="nb">+</span> <span class="p">((</span><span class="nv">left</span> <span class="nv">time-number</span><span class="p">)</span> <span class="p">(</span><span class="nv">right</span> <span class="nv">time-number</span><span class="p">))</span>
+  <span class="p">(</span><span class="nv">time-number-internal::my-plus</span> <span class="nv">left</span> <span class="nv">right</span><span class="p">))</span>
+
+<span class="p">(</span><span class="nv">cl:export</span> <span class="ss">&#39;time-number</span><span class="p">)</span>
+
+<span class="c1">;; There&#39;s no need to do anything like &quot;use overload&quot;, you can just</span>
+<span class="c1">;; use DEFMETHOD directly, as shown below.</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="p">(</span><span class="nb">in-package</span> <span class="nv">time-number-internal</span><span class="p">)</span>
+
+<span class="c1">;; The following can safely assume that LEFT and RIGHT are TIME-NUMBER</span>
+<span class="c1">;; objects, since this is only called by the TIME-NUMBER:+ method</span>
+<span class="c1">;; specialized on TIME-NUMBER.</span>
+<span class="p">(</span><span class="nb">defun</span> <span class="nv">my-plus</span> <span class="p">(</span><span class="nv">left</span> <span class="nv">right</span><span class="p">)</span>
+  <span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nv">answer</span> <span class="p">(</span><span class="nb">make-instance</span> <span class="ss">&#39;time-number:time-number</span><span class="p">)))</span>
+    <span class="p">(</span><span class="nb">with-accessors</span> <span class="p">((</span><span class="nv">answer-seconds</span> <span class="nv">seconds</span><span class="p">)</span> <span class="p">(</span><span class="nv">answer-minutes</span> <span class="nv">minutes</span><span class="p">)</span> <span class="p">(</span><span class="nv">answer-hours</span> <span class="nv">hours</span><span class="p">))</span> <span class="nv">answer</span>
+      <span class="p">(</span><span class="nb">setf</span> <span class="nv">answer-seconds</span> <span class="p">(</span><span class="nb">+</span> <span class="p">(</span><span class="nv">seconds</span> <span class="nv">left</span><span class="p">)</span>
+                              <span class="p">(</span><span class="nv">seconds</span> <span class="nv">right</span><span class="p">))</span>
+            <span class="nv">answer-minutes</span> <span class="p">(</span><span class="nb">+</span> <span class="p">(</span><span class="nv">minutes</span> <span class="nv">left</span><span class="p">)</span>
+                              <span class="p">(</span><span class="nv">minutes</span> <span class="nv">right</span><span class="p">))</span>
+            <span class="nv">answer-hours</span> <span class="p">(</span><span class="nb">+</span> <span class="p">(</span><span class="nv">hours</span> <span class="nv">left</span><span class="p">)</span>
+                            <span class="p">(</span><span class="nv">hours</span> <span class="nv">right</span><span class="p">)))</span>
+      <span class="p">(</span><span class="nb">when</span> <span class="p">(</span><span class="nb">&gt;=</span> <span class="nv">answer-seconds</span> <span class="mi">60</span><span class="p">)</span>
+        <span class="p">(</span><span class="nb">setf</span> <span class="nv">answer-seconds</span> <span class="p">(</span><span class="nb">mod</span> <span class="nv">answer-seconds</span> <span class="mi">60</span><span class="p">))</span>
+        <span class="p">(</span><span class="nb">incf</span> <span class="nv">answer-minutes</span><span class="p">))</span>
+      <span class="p">(</span><span class="nb">when</span> <span class="p">(</span><span class="nb">&gt;=</span> <span class="nv">answer-minutes</span> <span class="mi">60</span><span class="p">)</span>
+        <span class="p">(</span><span class="nb">setf</span> <span class="nv">answer-minutes</span> <span class="p">(</span><span class="nb">mod</span> <span class="nv">answer-minutes</span> <span class="mi">60</span><span class="p">))</span>
+        <span class="p">(</span><span class="nb">incf</span> <span class="nv">answer-hours</span><span class="p">)))</span>
+    <span class="nv">answer</span><span class="p">))</span>
+<span class="c1">;;;-----------------------------</span>
+<span class="c1">;;; @@INCOMPLETE@@</span>
+<span class="c1">;;;-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN749"
+>Creating Magic Variables with tie</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="packagesetc.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="dbaccess.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Packages, Libraries, and Modules</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Database Access</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

@@ -1,0 +1,612 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Strings</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Nasm
+"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="PLEAC-Nasm
+"
+HREF="index.html"><LINK
+REL="NEXT"
+TITLE="Numbers"
+HREF="numbers.html"></HEAD
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Nasm
+</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="index.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="numbers.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="STRINGS"
+>1. Strings</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN14"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><I><FONT COLOR="#B22222">; strlen (C calling convention)
+</FONT></I><I><FONT COLOR="#B22222">;   input:
+;     s  : pointer to const ASCIIZ string (address at esp+4).
+</FONT></I><I><FONT COLOR="#B22222">;   algo:
+;     use formulae &quot;(x-1) &amp; ~x = 2^first_bit(x) - 1&quot; found in glibc code
+</FONT></I><I><FONT COLOR="#B22222">;     but used differently. 0xfefefeff allow decrementing all byte of
+;     a dword, the first null byte disable carry so the string must be
+</FONT></I><I><FONT COLOR="#B22222">;     checked in little endian only.
+strlen:
+</FONT></I>	<B><FONT COLOR="#A020F0">mov</FONT></B> eax,[esp+4]		<I><FONT COLOR="#B22222">; get s value
+.align:	cmp byte [eax],0	; realign pointer on dword boundaries
+</FONT></I>	<B><FONT COLOR="#A020F0">jz</FONT></B> .end
+	<B><FONT COLOR="#A020F0">inc</FONT></B> eax
+	<B><FONT COLOR="#A020F0">test</FONT></B> al,3
+	<B><FONT COLOR="#A020F0">jnz</FONT></B> .align
+<B><FONT COLOR="#0000FF">.loop:</FONT></B>	mov edx,[eax]		<I><FONT COLOR="#B22222">; test 4 bytes at one time
+	lea ecx,[edx+0xfefefeff]
+</FONT></I>	<B><FONT COLOR="#A020F0">not</FONT></B> edx
+	<B><FONT COLOR="#A020F0">and</FONT></B> edx,ecx
+	<B><FONT COLOR="#A020F0">add</FONT></B> eax,byte 4
+	<B><FONT COLOR="#A020F0">test</FONT></B> edx,0x80808080	<I><FONT COLOR="#B22222">; if one of the byte is null
+	jz .loop
+</FONT></I><B><FONT COLOR="#0000FF">.final:</FONT></B>	shr edx,8		<I><FONT COLOR="#B22222">; check first lo byte
+	inc eax
+</FONT></I>	<B><FONT COLOR="#A020F0">jnc</FONT></B> .final
+	<B><FONT COLOR="#A020F0">sub</FONT></B> eax, byte 5		<I><FONT COLOR="#B22222">; realign pointer to null char
+.end:	sub eax,[esp+4]
+</FONT></I>	<B><FONT COLOR="#A020F0">ret
+</FONT></B>
+
+<I><FONT COLOR="#B22222">; strcpy (C calling convention)
+;   input:
+</FONT></I><I><FONT COLOR="#B22222">;     dest : pointer to destination ASCIIZ string (address at esp+4).
+;     src  : pointer to source ASCIIZ string (address at esp+8).
+</FONT></I><I><FONT COLOR="#B22222">;   algo:
+;     see strlen above for algorithm.
+</FONT></I><B><FONT COLOR="#0000FF">strcpy:</FONT></B>
+	<B><FONT COLOR="#A020F0">mov</FONT></B> ecx,[esp+8]			<I><FONT COLOR="#B22222">; get src
+	mov edx,[esp+4]			; get dest
+</FONT></I><B><FONT COLOR="#0000FF">.align:</FONT></B>	mov al,[ecx]
+	<B><FONT COLOR="#A020F0">inc</FONT></B> ecx
+	<B><FONT COLOR="#A020F0">mov</FONT></B> [edx],al			<I><FONT COLOR="#B22222">; copy one byte to align source ptr
+	inc edx
+</FONT></I>	<B><FONT COLOR="#A020F0">test</FONT></B> al,al
+	<B><FONT COLOR="#A020F0">jz</FONT></B> .ret
+	<B><FONT COLOR="#A020F0">test</FONT></B> cl,3
+	<B><FONT COLOR="#A020F0">jnz</FONT></B> .align
+	<B><FONT COLOR="#A020F0">mov</FONT></B> [esp+8],ebx			<I><FONT COLOR="#B22222">; ok save ebx as it may be used by gcc
+	jmp short .start		; start is inside the loop.
+</FONT></I><B><FONT COLOR="#0000FF">.loop:</FONT></B>	mov [edx],ebx
+	<B><FONT COLOR="#A020F0">add</FONT></B> edx,byte 4
+<B><FONT COLOR="#0000FF">.start:</FONT></B>	mov eax,[ecx]			<I><FONT COLOR="#B22222">; get dword and search for a null byte
+	lea ebx,[eax+0xfefefeff]
+</FONT></I>	<B><FONT COLOR="#A020F0">not</FONT></B> eax
+	<B><FONT COLOR="#A020F0">and</FONT></B> eax,ebx
+	<B><FONT COLOR="#A020F0">sub</FONT></B> ebx,0xfefefeff		<I><FONT COLOR="#B22222">; restore ebx to dword read
+	add ecx,byte 4
+</FONT></I>	<B><FONT COLOR="#A020F0">test</FONT></B> eax,0x80808080		<I><FONT COLOR="#B22222">; one of the byte is null?
+	jz .loop
+</FONT></I><B><FONT COLOR="#0000FF">.final:</FONT></B>	mov [edx],bl			<I><FONT COLOR="#B22222">; search thorugh ebx itself
+	ror ebx,8			; slow but compact
+</FONT></I>	<B><FONT COLOR="#A020F0">inc</FONT></B> edx
+	<B><FONT COLOR="#A020F0">test</FONT></B> ebx,0xff000000
+	<B><FONT COLOR="#A020F0">jnz</FONT></B> .final
+	<B><FONT COLOR="#A020F0">mov</FONT></B> ebx,[esp+8]			<I><FONT COLOR="#B22222">; restore ebx value
+.ret:	mov eax,[esp+4]			; strcpy should return dest
+</FONT></I>	<B><FONT COLOR="#A020F0">ret
+</FONT></B>
+</PRE>
+<HR>
+<ADDRESS>Generated by <A HREF="http://www.iki.fi/~mtr/genscript/">GNU Enscript 1.6.5.90</A>.</ADDRESS>
+</BODY>
+</HTML></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN17"
+>Accessing Substrings</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN20"
+>Establishing a Default Value</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN23"
+>Exchanging Values Without Using Temporary Variables</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN26"
+>Converting Between ASCII Characters and Values</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN29"
+>Processing a String One Character at a Time</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN32"
+>Reversing a String by Word or Character</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN35"
+>Expanding and Compressing Tabs</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN38"
+>Expanding Variables in User Input</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN41"
+>Controlling Case</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN44"
+>Interpolating Functions and Expressions Within Strings</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN47"
+>Indenting Here Documents</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN50"
+>Reformatting Paragraphs</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN53"
+>Escaping Characters</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN56"
+>Trimming Blanks from the Ends of a String</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN59"
+>Parsing Comma-Separated Data</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN62"
+>Soundex Matching</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN65"
+>Program: fixstyle</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN68"
+>Program: psgrep</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="numbers.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>PLEAC-Nasm
+</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Numbers</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

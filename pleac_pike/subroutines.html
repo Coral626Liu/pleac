@@ -1,0 +1,1493 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Subroutines</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Pike"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Directories"
+HREF="directories.html"><LINK
+REL="NEXT"
+TITLE="References and Records"
+HREF="referencesandrecords.html"></HEAD
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Pike</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="directories.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="referencesandrecords.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="SUBROUTINES"
+>10. Subroutines</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN536"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// Here, in this simple example, 'greeted', is used as a 'global'
+// variable. In a more complex program, however, this would not be
+// the case [subsequent sections exlain why]
+int greeted;
+
+// ----
+
+void hello()
+{
+  write(&quot;hi there!, this procedure has been called %d times\n&quot;, ++greeted);
+}
+
+int how_many_greetings()
+{
+  return greeted;
+}
+
+// ------------
+
+int main()
+{
+  hello();
+  int greetings = how_many_greetings();
+  write(&quot;bye there!, there have been %d greetings so far\n&quot;, greetings);
+}
+
+// ----------------------------
+
+// Alternate means of defining functions [could, optionally, have also
+// included type information in 'function' declaration]; could also
+// have been done within scope of 'main'
+
+int greeted;
+
+// ----
+
+function hello = lambda()
+  {
+    write(&quot;hi there!, this procedure has been called %d times\n&quot;, ++greeted);
+  };
+
+function how_many_greetings = lambda() { return greeted; };
+
+// ------------
+
+int main()
+{
+  hello();
+  int greetings = how_many_greetings();
+  write(&quot;bye there!, there have been %d greetings so far\n&quot;, greetings);
+}</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN539"
+>Accessing Subroutine Arguments</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// Subroutine parameters are named, that is, access to these items from
+// within a function is reliant on their being named in the parameter
+// list [together with mandatory type information], something which is
+// in line with many other commonly-used languages
+
+float hypotenuse(float side1, float side2)
+{
+  // Arguments passed to this function are accessable as, 'side1',
+  // and 'side2', respectively, and each is expected to be a 'float'
+  // type
+  return side1 * side1 + side2 * side2;
+}
+
+// ----
+
+// 'side1' -&gt; 3.0
+// 'side2' -&gt; 4.0
+float diag = hypotenuse(3.0, 4.0);
+
+// ------------
+
+// However, Pike also allows parameters [and return types where applicable]:
+// * To have one of a set of types [see (1)]
+// * To have a generic type [see (2)]
+// * To be optional, in which case any arguments are packaged as an
+//   array, and array notation needed to access each item [see (3)]
+
+// (1). Here the function will accept either 'int' or 'float'
+// arguments, and perform runtime type checking to identify what is
+// supplied
+float hypotenuse(int|float side1, int|float side2)
+{
+  // If 'int' arguments passed. convert to 'float'
+  float s1 = intp(side1) ? (float) side1 : side1;
+  float s2 = intp(side2) ? (float) side2 : side2;
+
+  return s1 * s1 + s2 * s2;
+}
+
+// ----
+
+// Both are legal calls
+float diag = hypotenuse(3.0, 4.0);
+float diag = hypotenuse(3, 4);
+
+// ------------
+
+// (2). Here the function still expects to be called with two arguments 
+// but each may be of *any* type [admittedly a very contrived example
+// of little utility except for illustrative value]. Such a function
+// is almost entirely reliant on careful runtime type checking if it
+// is to behave reliably
+float hypotenuse(mixed side1, mixed side2)
+{
+  if (stringp(side1)) { ... }
+  if (arrayp(side1)) { ... }
+  if (objectp(side1)) { ... }
+  ...  
+}
+
+// ----
+
+// All are legal calls
+float diag = hypotenuse(3.0, 4.0);
+float diag = hypotenuse(3, 4);
+float diag = hypotenuse(&quot;3&quot;, &quot;4&quot;);
+float diag = hypotenuse(({3}), ({4}));
+
+// ------------
+
+// (3). Here, the function is defined to accept two, mandatory
+// parameters [still accessable via name], then a set of zero or more
+// optional parameters, which are accessable within the function body
+// via an array [the placeholder, 'args', represents an array of zero
+// or more elements each corresponding to one of the passed arguments
+float hypotenuse(float side1, mixed side2, mixed ... args)
+{
+  // Mandatory parameters still accessable as usual
+  ... side1 ... side2 ...
+
+  // Total number of arguments passed to function determinable via:
+  int total_passed_args = query_num_arg();
+  
+  // 'args' contains all optional arguments: 0 - N
+  int optional_args = sizeof(args);
+
+  // Process variable arguments ...
+  foreach(args, mixed arg)
+  {
+    ... if (strinp(arg)) { ... }
+  }
+
+  ...
+}
+
+// ----
+
+// All are legal calls
+float diag = hypotenuse(3.0, 4.0);
+float diag = hypotenuse(3.0, 4.0, &quot;a&quot;);
+float diag = hypotenuse(3.0, 4.0, lambda(){ return 5; }, &quot;fff&quot;);
+float diag = hypotenuse(3.0, 4.0, 1, &quot;x&quot;, ({ 6, 7, 9 }));
+
+// ----------------------------
+
+// Modifies copy
+array(int|float) int_all(array(int|float) arr)
+{
+  array(int|float) retarr = copy_value(arr);
+  int i; for(int i; i &lt; sizeof(retarr); ++i) { retarr[i] = (int) arr[i]; }
+  return retarr;
+}
+
+// Modifies original
+array(int|float) trunc_all(array(int|float) arr)
+{
+  int i; for(int i; i &lt; sizeof(arr); ++i) { arr[i] = (int) arr[i]; }
+  return arr;
+}
+
+// ----
+
+array(int|float) nums = ({1.4, 3.5, 6.7});
+
+// Copy modified - 'ints' and 'nums' separate arrays
+array(int|float) ints = int_all(nums);
+write(&quot;%O\n&quot;, nums);
+write(&quot;%O\n&quot;, ints);
+
+// Original modified - 'ints' acts as alias for 'nums'
+ints = trunc_all(nums);
+write(&quot;%O\n&quot;, nums);
+write(&quot;%O\n&quot;, ints);</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN542"
+>Making Variables Private to a Function</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">void some_func()
+{
+  // Variables declared within a function are local to that function
+  mixed variable = something;
+}
+
+// ----------------------------
+
+// Assuming these are defined at file level, that is, outside of 'main'
+// or any other function they are accessable by every other member of
+// the same file [and if this file (read: class or program) is the
+// only one comprising the 'system', they are effectively 'global']
+string name = argv[1]; int age = (int) argv[2];
+
+int c = fetch_time();
+
+int condition;
+
+// ------------
+
+int run_check()
+{
+  ...
+  condition = 1;
+}
+
+int check_x(int x)
+{
+  string y = &quot;whatever&quot;;
+
+  // Whilst 'run_check' has access to 'name', 'age', and 'c' [because
+  // these are declared at a higher scope], it does not have access to
+  // 'y' or any other locally defined variable
+  run_check();
+
+  // 'run_check' will have updated 'condition'
+  if (condition) write(&quot;got x: %d\n&quot;, x);
+}</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN545"
+>Creating Persistent Private Variables</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// Pike does not implement C style 'static' variables [i.e. persisent
+// local variables], nor does it implement C++ style 'class variables'
+// [oddly enough, also implemented in C++ via use of the 'static'
+// keyword], both of which could be used to implement solutions to the
+// problems presented in this section. Also, there is no direct
+// equivalent to Perl's 'BEGIN' block [closest equivalent is the
+// class 'create' method]. So, to solve a problem like implementing a
+// 'counter':
+//
+// * Use Pike's OOP facilities [simple, natural]
+// * Use closures [somewhat unwieldly, but possible]
+
+// OOP Approach
+class Counter
+{
+  private int counter;
+
+  static void create(int start) { counter = start; }
+  public int next() { return ++counter; }
+  public int prev() { return --counter; }
+}
+
+// ----
+
+int main()
+{
+  Counter counter = Counter(42);
+
+  write(&quot;%d\n&quot;, counter-&gt;next());
+  write(&quot;%d\n&quot;, counter-&gt;prev());
+}
+
+// ----------------------------
+
+// A refinement of the previous implementation that mimics 'static'
+// variables
+
+class Static
+{
+  // 'static' variable that is shared by all instance of 'Counter'
+  int counter;
+
+  class Counter
+  {
+    public int next() { return ++counter; }
+    public int prev() { return --counter; }
+  }
+
+  Counter make() { return Counter(); }
+
+  public void create(int counter_) { counter = counter_; }
+}
+
+// ----
+
+int main()
+{
+  Static mkst = Static(42);
+
+  Static.Counter counter_1 = mkst-&gt;make();
+  Static.Counter counter_2 = mkst-&gt;make();
+
+  // Same value of, 'counter', is accessed by each object
+  write(&quot;%d\n&quot;, counter_1-&gt;next());
+  write(&quot;%d\n&quot;, counter_1-&gt;next());
+
+  write(&quot;%d\n&quot;, counter_2-&gt;next());
+  write(&quot;%d\n&quot;, counter_2-&gt;prev());
+}
+
+// ----------------------------
+
+// Closure Approach [Admittedly somewhat contrived: a Scheme overdose ;) !]
+
+function(string : function(void : int)) make_counter(int start)
+{
+  int counter = start;
+  int next_counter() { return ++counter; };
+  int prev_counter() { return --counter; };
+  
+  return
+    lambda(string op)
+    {
+      if (op == &quot;next&quot;) return next_counter;
+      if (op == &quot;prev&quot;) return prev_counter;
+      return 0;
+    };
+}
+
+int next_counter(function(string : function(void : int)) counter)
+{
+  return counter(&quot;next&quot;)();
+}
+
+int prev_counter(function(string : function(void : int)) counter)
+{
+  return counter(&quot;prev&quot;)();
+}
+
+// ----
+
+int main()
+{
+  function(string : function(void : int)) counter = make_counter(42);
+
+  write(&quot;%d\n&quot;, next_counter(counter));
+  write(&quot;%d\n&quot;, prev_counter(counter));
+}</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN548"
+>Determining Current Function Name</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// It's possible to obtain a great deal of program metadata through the
+// following sets of library functions:
+//
+// * 'this_object', and the sets of 'object_...' and 'program_...'
+//   functions
+// * 'Program' module [provides object inheritance metadata]
+//
+// The use of, 'this_object', in particular, allows the current object
+// instance to be interrogated like a hash table i.e. all variables and
+// methods are accessable as hash table entries.
+//
+// Unfortunately, however, it doesn't appear possible to obtain the
+// current method / function name, at least, not without resorting
+// to tricks like embedding a string in each method explicitly naming
+// it.
+//
+// An example of program metadata use appears in chapter 'Objects and
+// Ties'. Since the function name cannot, AFAICT, be obtained, the
+// current section is not implemented.
+//</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN551"
+>Passing Arrays and Hashes by Reference</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// Procedure parameters are passed by reference [read: the handle or
+// address (or whatever) of an object is passed and is used to uniquely
+// identify that object], so there is no special treatment required.
+// If an argument represents a mutable object then care should be taken
+// to not mutate the object within the function, either by making a copy
+// of the object [e.g. use 'copy_value' to clone it], or by using a
+// 'read-only' control structure like 'foreach' [if applicable] to
+// access it
+
+int|array(int) array_diff(array(int) a, array(int) b)
+{
+  // Ensure an array copy is made ...
+  int|array(int) ret = sizeof(a) != sizeof(b) ? 0 : copy_value(a);
+  if (!ret) ret;
+
+  // ... transformed, and returned
+  for (int i; i &lt; sizeof(ret); ++i) { ret[i] -= b[i]; }; return ret;
+}
+
+// ----------------------------
+
+int|array(int) add_vec_pair(array(int) a, array(int) b)
+{
+  int vecsize = sizeof(a);
+
+  // Ensure an array copy is made ...
+  int|array(int) ret = vecsize != sizeof(b) ? 0 : allocate(vecsize);
+  if (!ret) ret;
+
+  // ... transformed, and returned
+  for (int i; i &lt; vecsize; ++i) { ret[i] = a[i] + b[i]; }; return ret;
+}
+
+// ----
+
+array(int) a = ({1, 2}), b = ({5, 8});
+array(int) c = add_vec_pair(a, b);
+write(&quot;%O\n&quot;, c);</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN554"
+>Detecting Return Context</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// Just as for subroutine parameters, Pike allows variation in return
+// types, where it may be of a specific type, one of a set of types, or
+// a generic return type. Whilst the Perl examples require that the
+// user to nominate a return type when the function is called, in Pike
+// it is handled in one of two ways:
+//
+// * Ensure function and receiving variable type match [see (1)]
+// * Use generic receiving variable, and type check [see (2)]
+
+// (1). Subroutine has set of return types. Whilst type checking
+// does occur [thus user code only need handle these known types
+// because other types won't be allowed], caller/ receiver needs to
+// type check so as correctly handle known cases
+int|array(int)|string mysub()
+{
+  ...
+  return 5;
+  ...
+  return ({5});
+  ...
+  return &quot;5&quot;;
+}
+
+// ----
+
+int|array(int)|string receiver = mysub();
+
+if (intp(receiver)) { ... }
+if (arrayp(receiver)) { ... }
+if (stringp(receiver)) { ... }
+...
+
+// ----------------------------
+
+// (2). Subroutine has generic return type, so no type checking occurs.
+// It is up to the caller / receiver to thoroughly type check lest
+// some unforseen type be returned and possibly mishandled
+mixed mysub()
+{
+  ...
+  return 5;
+  ...
+  return ({5});
+  ...
+  return &quot;5&quot;;
+}
+
+// ----
+
+mixed receiver = mysub();
+
+if (intp(receiver)) { ... }
+if (arrayp(receiver)) { ... }
+if (stringp(receiver)) { ... }
+...</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN557"
+>Passing by Named Parameter</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// Pike doesn't directly support named / keyword parameters, but these
+// can be easily mimiced using an array of mappings as function arguments
+// The mappings, themselves, could be implemented via a custom class
+// [see (1)], or via the 'mapping'type [see (2) - Perl examples]
+
+// (1)
+class KeyedValue
+{
+  string key; mixed value;
+
+  static void create(string key_, mixed value_)
+  {
+    key = key_; value = value_;
+  }
+}
+
+void the_func(array(KeyedValue) keyargs)
+{
+  foreach(keyargs, KeyedValue kv)
+  {
+    write(&quot;Key: %10s|Value: %10O\n&quot;, kv-&gt;key, kv-&gt;value);
+  }
+}
+
+// ----
+
+int main()
+{
+  array(KeyedValue) keyargs =
+    aggregate(KeyedValue(&quot;name&quot;, &quot;Bob&quot;),
+              KeyedValue(&quot;age&quot;, 36),
+              KeyedValue(&quot;income&quot;, 51000));
+
+  the_func(keyargs);
+}
+
+// ----------------------------
+
+// (2)
+class RaceTime
+{
+  int time; string dim;
+
+  static void create(int time_, string dim_)
+  {
+    time = time_; dim = dim_;
+  }
+}
+
+void the_func(mapping(string : RaceTime) ... args)
+{
+  int start_time, finish_time, increment_time;
+  string start_dim, finish_dim, increment_dim;
+
+  foreach(args, mapping(string : RaceTime) arg)
+  {
+    arg[&quot;start&quot;] &amp;&amp; (start_time = arg[&quot;start&quot;]-&gt;time, start_dim = arg[&quot;start&quot;]-&gt;dim);
+    arg[&quot;finish&quot;] &amp;&amp; (finish_time = arg[&quot;finish&quot;]-&gt;time, finish_dim = arg[&quot;finish&quot;]-&gt;dim);
+    arg[&quot;increment&quot;] &amp;&amp; (increment_time = arg[&quot;increment&quot;]-&gt;time, increment_dim = arg[&quot;increment&quot;]-&gt;dim);
+  }
+
+  write(&quot;times: start %d, finish %d, increment %d\n&quot;,
+        start_time, finish_time, increment_time);
+}
+
+// ----
+
+int main()
+{
+  array(mapping(string : RaceTime)) named_args =
+    ({
+      ([&quot;increment&quot; : RaceTime(20, &quot;s&quot;)]),
+      ([&quot;start&quot; : RaceTime(5, &quot;m&quot;)]),
+      ([&quot;finish&quot; : RaceTime(3, &quot;m&quot;)]) });
+
+  // Package arguments as array for passing to function
+  the_func(@named_args);
+
+  named_args =
+    ({
+      ([&quot;start&quot; : RaceTime(5, &quot;m&quot;)]),
+      ([&quot;finish&quot; : RaceTime(30, &quot;m&quot;)]) });
+
+  // Ditto
+  the_func(@named_args);
+
+  // Pass argument(s) directly in argument list
+  the_func(([&quot;finish&quot; : RaceTime(30, &quot;m&quot;)]));
+}</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN560"
+>Skipping Selected Return Values</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// It is languages that support pattern matching, such as Prolog, Oz and
+// SML, that tend to offer such facilities. These languages all offer
+// a 'match all and throw away' operator that can be used in place of 
+// an identifier name(s), and have the resultant value(s) be discarded.
+// Such a facility helps keep code uncluttered because only values
+// that are required need to be named.
+//
+// Pike does not implement pattern matching, so does not sport such an
+// operator, nor any equivalent facility. Thus, none of the examples in
+// this section are directly implementable.
+//</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN563"
+>Returning More Than One Array or Hash</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// Pike supports the return of a single value from a function. Where
+// multiple values need to be returned, they can be packaged as an
+// aggregate such as an array or mapping, and *that* item returned.
+// The caller / receiver would, of course, be responsible for
+// appropriately extracting required elements from that returned item
+// (this process could be hardcoded, or generalised using extensive
+// runtime type checking). Alternatively, a custom class encapsulating
+// the return values can be used and an instance of that item returned
+// and processed
+//
+
+array(mixed) somefunc()
+{
+  array(int) arr = ({1, 2, 3});
+  mapping(string : int) hash = ([&quot;x&quot; : 1, &quot;y&quot; : 2, &quot;z&quot; : 3]);
+
+  // Return an array containing an array and a hash
+  return aggregate(arr, hash);
+}
+
+// ----
+
+// Get return array
+array(mixed) arr = somefunc();
+
+// Extract and process elements
+foreach(arr, mixed item)
+{
+  write(&quot;Return item has type: %t, value: %O\n&quot;, item, item);
+}
+
+// ----------------------------
+
+class RetValues
+{
+  array(int) arr; mapping(string : int) hash;
+
+  static void create()
+  {
+    arr = aggregate(1, 2, 3);
+    hash = aggregate_mapping(&quot;x&quot;, 1, &quot;y&quot;, 2, &quot;z&quot;, 3);
+  }
+}
+  
+RetValues somefunc() { return RetValues(); }
+
+// ----
+
+RetValues rv = RetValues();
+
+write(&quot;Return item has type: %t, value: %O\n&quot;, rv-&gt;arr, rv-&gt;arr);
+write(&quot;Return item has type: %t, value: %O\n&quot;, rv-&gt;hash, rv-&gt;hash);</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN566"
+>Returning Failure</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// Pike offers a very simple, consistent means of 'returning failure':
+// return 0 [representing 'false'] when a task does not succeed, otherwise
+// return whatever was the expected value. This design is extensively
+// used in the Pike library, and is well supported by the language in
+// that:
+// * Alternate return types may be specified
+// * A 'mixed' return type, indicating possible return of any type
+//   value, may be used
+
+void die(string msg, void|int(1..256) rc) { werror(msg + NEWLINE); exit(rc ? rc : PROBLEM); }
+
+// ----
+
+int|array(string) afunc()
+{
+  ...
+
+  if (ok)
+    // ... return an array ...
+  else
+    // failure, so return 0
+    return 0;
+}
+
+// ----
+
+int main()
+{
+  int|array(string) arr = afunc();
+
+  if (!arr) die(&quot;Error with 'afunc' ...&quot;);
+
+  // ok, so use 'arr' ...
+}</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN569"
+>Prototyping Functions</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// Whether Pike is seen to support prototyping depends on the definition
+// of this term used:
+//
+// * Prototyping along the lines used in Ada, Modula X, and even C / C++,
+//   in which a procedure's interface is declared separately from its
+//   implementation, is *not* supported
+//
+// * Prototyping in which, as part of the procedure definition, parameter
+//   information must be supplied. This is a requirement in Pike in that
+//   parameter number, names and type, must be given. Return types must
+//   also be specified, but there is an exeption when using lambdas
+
+void func_with_no_arg() { ... }
+
+void func_with_one_arg(int arg1) { ... }
+
+void func_with_two_arg(int arg1, string arg2) { ... }
+
+void func_with_three_arg(int arg1, string arg2, float arg3) { ...}
+
+// ----
+
+// Return type, 'void', specified 
+function f = lambda(int arg1 : void) { ... }
+
+// Return type not specified, defaults to 'mixed'
+function g = lambda(int arg1) { ... }</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN572"
+>Handling Exceptions</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// Like so many modern languages, Pike implements exception handling
+// using the 'catch' and 'throw' keywords 
+
+// ----
+
+// Not exactly like the Perl example, but a way of immediately exiting
+// from an application [note: using, 'exit', prevents any of the 'atexit'
+// call backs from executing, so application cleanup may be compromised]
+
+void die(string msg, void|int(1..256) rc) { werror(msg + NEWLINE); exit(rc ? rc : PROBLEM); }
+
+// ----
+
+die(&quot;some message&quot;);
+
+// ----------------------------
+
+int(0..1) rmAll(array(string) filelist)
+{
+  // 'result' will be 0 if the 'catch' block succeeds
+  mixed result = catch
+  {
+    foreach(filelist, string filename) { rm(filename) || throw(PROBLEM); }
+  };
+
+  // Return value of 'catch' block can be tested, and appropriate
+  // action taken; here, a non-zero return code will be returned
+  // [like many library functions] to indicate failure
+  return result == OK;
+}
+
+// ----
+
+// Attempt to remove the following files ...
+
+array(string) files = ({&quot;...&quot;, &quot;...&quot;, &quot;...&quot;});
+
+rmAll(files) || die(&quot;Could not remove all files - exiting&quot;);</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN575"
+>Saving Global Values</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">
+// Global variable
+int age = 18;
+
+// ----
+
+void print_age()
+{
+  // Global value, 'age', is accessed
+  write(&quot;Age is %d\n&quot;, age);
+}
+
+// ------------
+
+int main()
+{
+  // A local variable named, 'age' will act to 'shadow' the globally
+  // defined version, thus any changes to, 'age', will not affect
+  // the global version
+  int age = 5;
+
+  // Prints 18, the current value of the global version
+  print_age();
+
+  // Local version is altered, *not* global version
+  age = 23;
+
+  // Prints 18, the current value of the global version
+  print_age();
+}
+
+// ----------------------------
+
+// Global variable
+int age = 18;
+
+// ----
+
+void print_age()
+{
+  // Global value, 'age', is accessed
+  write(&quot;Age is %d\n&quot;, age);
+}
+
+// ------------
+
+int main()
+{
+  // Here no local version declared: any changes affect global version
+  age = 5;
+
+  // Prints 5, the new value of the global version
+  print_age();
+
+  // Global version again altered
+  age = 23;
+
+  // Prints 23, the new value of the global version
+  print_age();
+}
+
+// ----------------------------
+
+// Global variable
+int age = 18;
+
+// ----
+
+void print_age()
+{
+  // Global value, 'age', is accessed
+  write(&quot;Age is %d\n&quot;, age);
+}
+
+// ------------
+
+int main()
+{
+  // Global version value saved into local version
+  int age = global::age;
+
+  // Prints 18, the new value of the global version
+  print_age();
+
+  // Global version this time altered
+  global::age = 23;
+
+  // Prints 23, the new value of the global version
+  print_age();
+
+  // Global version value restored from saved local version
+  global::age = age;
+
+  // Prints 18, the restored value of the global version
+  print_age();
+}</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN578"
+>Redefining a Function</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// Define functions - will be considered constant / unchangeable
+void grow() { write(&quot;grow\n&quot;); }
+void shrink() { write(&quot;shrink\n&quot;); }
+
+// ----
+
+// Execute functions: 'grow', 'shrink' output respectively
+grow(); shrink();
+
+// Attempt to redefine, 'grow' fails because it is considered a
+// constant value:
+//
+//   grow = shrink;
+//
+
+// However, it is possible to bind 'shrink' to a new local variable
+// called, 'grow'
+function grow = shrink;
+
+// Execute functions: 'shrink', 'shrink' output respectively because
+// local 'grow' shadows global version, and it is referencing the
+// code for 'shrink'
+grow(); shrink();
+
+// ------------
+
+// Define functions by assigning lambdas to global variables
+function(void : void) grow = lambda() { write(&quot;grow\n&quot;); }
+function(void : void) shrink = lambda() { write(&quot;shrink\n&quot;); }
+
+// ----
+
+// Execute functions: 'grow', 'shrink' output respectively
+grow(); shrink();
+
+// Attempt to redefine, 'grow' successful since a simple variable
+// assignment is being performed
+grow = shrink;
+
+// Execute functions: 'shrink', 'shrink' output respectively - 'grow'
+// has, effectively, been 'redefined' [note: reference to original
+// 'grow' code has been lost (but it could have been saved, then
+// restored)]
+grow(); shrink();
+
+// ----------------------------
+
+function barney = lambda() { ... };
+
+// ...
+
+// 'fred' is now an alias for the code attached to 'barney'
+function fred = barney;
+
+// ----------------------------
+
+function red = lambda(string text)
+  {
+    return &quot;&lt;FONT COLOR='red'&gt;&quot; + text + &quot;&lt;/FONT&gt;&quot;;
+  };
+
+// ----
+
+write(&quot;%s\n&quot;, red(&quot;careful here&quot;));
+
+// ------------
+
+function colour_font = lambda(string colour, string text)
+  {
+    return &quot;&lt;FONT COLOR='&quot; + colour + &quot;'&gt;&quot; + text + &quot;&lt;/FONT&gt;&quot;;
+  };
+
+function red = lambda(string text) { return colour_font(&quot;red&quot;, text); };
+function green = lambda(string text) { return colour_font(&quot;green&quot;, text); };
+
+// ... more 'colour' functions ...
+
+// ----
+
+write(&quot;%s\n&quot;, red(&quot;careful here&quot;));
+write(&quot;%s\n&quot;, green(&quot;careful there&quot;));
+// ... 
+
+// ------------
+
+// Pike offers the 'compile' family of functions that allow for the
+// runtime compilation and [in combinaton with other Pike functions]
+// the subsequent execution, of Pike code, obtained either as a
+// dynamically-generated string, or loaded from file / URL. This,
+// AFAICT, is the Pike feature closest to that of the 'eval' function
+// found in languages like Scheme. The example here is rather
+// contrived and unwieldly, but it does show how code is generated,
+// compiled, and executed, and it *does* closely follow the Perl code
+//
+
+// Assemble text needed to build function
+string build_colour_func(string colour)
+{
+  // Could also use library function, 'sprintf', to build string
+  string bodytext = &quot;\&quot;&lt;FONT COLOR='&quot; + colour + &quot;'&gt;\&quot; + text + \&quot;&lt;/FONT&gt;\&quot;&quot;;
+  return &quot;string &quot; + colour + &quot;(string text) { return &quot; + bodytext + &quot;; };&quot;;
+}
+
+int main(int argc, array(string) argv)
+{
+  // 1. Generate source code. A function is built for each colour by
+  //    calling, 'build_colour_func', and all the text collected into
+  //    'cf_text'
+  array(string) colours =
+    ({&quot;red&quot;, &quot;blue&quot;, &quot;green&quot;, &quot;yellow&quot;, &quot;orange&quot;, &quot;purple&quot;, &quot;violet&quot;});
+
+  string cf_text = &quot;&quot;;
+
+  foreach(colours, string colour)
+  {
+    cf_text += build_colour_func(colour);
+  }
+
+  // 2. Compile generated source code, and make it accessable to the
+  //    current program. These two steps are, here, combined for brevity,
+  //    but consist of the following:
+  //
+  //        program prog = compile_string(cf_text);
+  //        object cf_code = prog();
+  //
+  //    The latter step sees the code's 'create' method called for
+  //    initialisation, and also makes items accessable via:
+  //
+  //        cf_code[ITEMNAME]
+  //  
+  //    For example, the function, 'red', may be:
+  //        referenced -&gt; cf_code[&quot;red&quot;]
+  //        applied    -&gt; cf_code[&quot;red&quot;](&quot; ... &quot;)
+  //  
+  object cf_code = compile_string(cf_text)();
+
+  // 3. Apply the generated functions
+  mapping(string:string) colours_and_text = 
+    ([&quot;red&quot;:&quot;baron&quot;, &quot;blue&quot;:&quot;zephyr&quot;, &quot;green&quot;:&quot;beret&quot;,
+      &quot;yellow&quot;:&quot;ribbon&quot;, &quot;orange&quot;:&quot;county&quot;, &quot;purple&quot;:&quot;haze&quot;,
+      &quot;violet&quot;:&quot;temper&quot;]);
+
+  foreach(indices(colours_and_text), string colour)
+  {
+    // Get relevant function
+    function colour_func = cf_code[colour];
+
+    // Apply function with relevant argument(s)
+    write(&quot;%s\n&quot;, colour_func(colours_and_text[colour]));
+
+    // Or, above lines can be replaced with:
+    //     write(&quot;%s\n&quot;, cf_code[colour](colours_and_text[colour]));
+  }
+}    </PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN581"
+>Trapping Undefined Function Calls with AUTOLOAD</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// @@INCOMPLETE@@
+
+// in your class
+
+  mapping functions = ([]);
+  function `-&gt;(string fun) 
+  {
+    if(!functions-&gt;fun)
+      functions[fun]=lambda(mixed|void ... args)
+                     { 
+                       return sprintf(&quot;&lt;FONT COLOR=%s&gt;%{%s %}&lt;/FONT&gt;&quot;, fun, args); 
+                     };
+    return functions[fun];
+  }
+
+// then outside
+write(object_of_your_class-&gt;chartreuse(&quot;stuff&quot;));</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN584"
+>Nesting Subroutines</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// Alternate, though identically-behaving, nested subroutine definitions
+
+int outer(int arg)
+{
+  int x = arg + 35;
+  int inner() { return x * 19; };
+  return x + inner();
+}
+
+// ------------
+
+int outer(int arg)
+{
+  int x = arg + 35;
+  function(void : int) inner = lambda() { return x * 19; };
+  return x + inner();
+}
+
+// ------------
+
+function outer = lambda(int arg)
+  {
+    int x = arg + 35;
+    return (lambda() { return x * 19; })() + x;
+  };
+
+// ------------
+
+function(int : int) outer = lambda(int arg)
+  {
+    int x = arg + 35;
+    return (lambda() { return x * 19; })() + x;
+  };</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN587"
+>Program: Sorting Your Mail</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">@@INCOMPLETE@@
+@@INCOMPLETE@@</PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="directories.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="referencesandrecords.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Directories</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>References and Records</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

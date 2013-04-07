@@ -1,0 +1,1092 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>File Access</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Groovy"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Pattern Matching"
+HREF="patternmatching.html"><LINK
+REL="NEXT"
+TITLE="File Contents"
+HREF="filecontents.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Groovy</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="patternmatching.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="filecontents.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="FILEACCESS"
+>7. File Access</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN359"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">//testfile = new File(&#39;/usr/local/widgets/data&#39;)  // unix</span>
+<span class="s">testfile = new File(&#39;Pleac/data/blue.txt&#39;)      // windows</span>
+<span class="s">testfile.eachLine{ if (it =~ /blue/) println it }</span>
+
+<span class="s">// Groovy (like Java) uses the File class as an abstraction for</span>
+<span class="s">// the path representing a potential file system resource.</span>
+<span class="s">// Channels and Streams (along with Reader adn Writer helper</span>
+<span class="s">// classes) are used to read and write to files (and other</span>
+<span class="s">// things). Files, channels, streams etc are all &quot;normal&quot;</span>
+<span class="s">// objects; they can be passed around in your programs just</span>
+<span class="s">// like other objects (though there are some restrictions</span>
+<span class="s">// covered elsewhere - e.g. you can&#39;t expect to pass a File</span>
+<span class="s">// object between JVMs on different machines running different</span>
+<span class="s">// operating systems and expect them to maintain a meaningful</span>
+<span class="s">// value across the different JVMs). In addition to Streams,</span>
+<span class="s">// there is also support for random access to files.</span>
+
+<span class="s">// Many operations are available on streams and channels. Some</span>
+<span class="s">// return values to indicate success or failure, some can throw</span>
+<span class="s">// exceptions, other times both styles of error reporting may be</span>
+<span class="s">// available.</span>
+
+<span class="s">// Streams at the lowest level are just a sequence of bytes though</span>
+<span class="s">// there are various abstractions at higher levels to allow</span>
+<span class="s">// interacting with streams at encoded character, data type or</span>
+<span class="s">// object levels if desired. Standard streams include System.in,</span>
+<span class="s">// System.out and System.err. Java and Groovy on top of that</span>
+<span class="s">// provide facilities for buffering, filtering and processing</span>
+<span class="s">// streams in various ways.</span>
+
+<span class="s">// File channels provide more powerful operations than streams</span>
+<span class="s">// for reading and writing files such as locks, buffering,</span>
+<span class="s">// positioning, concurrent reading and writing, mapping to memory</span>
+<span class="s">// etc. In the examples which follow, streams will be used for</span>
+<span class="s">// simple cases, channels when more advanced features are</span>
+<span class="s">// required. Groovy currently focusses on providing extra support</span>
+<span class="s">// at the file and stream level rather than channel level.</span>
+<span class="s">// This makes the simple things easy but lets you do more complex</span>
+<span class="s">// things by just using the appropriate Java classes. All Java</span>
+<span class="s">// classes are available within Groovy by default.</span>
+
+<span class="s">// Groovy provides syntactic sugar over the top of Java&#39;s file</span>
+<span class="s">// processing capabilities by providing meaning to shorthand</span>
+<span class="s">// operators and by automatically handling scaffolding type</span>
+<span class="s">// code such as opening, closing and handling exceptions behind</span>
+<span class="s">// the scenes. It also provides many powerful closure operators,</span>
+<span class="s">// e.g. file.eachLineMatch(pattern){ some_operation } will open</span>
+<span class="s">// the file, process it line-by-line, finding all lines which</span>
+<span class="s">// match the specified pattern and then invoke some operation</span>
+<span class="s">// for the matching line(s) if any, before closing the file.</span>
+
+
+<span class="s">// this example shows how to access the standard input stream</span>
+<span class="s">// numericCheckingScript:</span>
+<span class="s">prompt = &#39;\n&gt; &#39;</span>
+<span class="s">print &#39;Enter text including a digit:&#39; + prompt</span>
+<span class="s">new BufferedReader(new InputStreamReader(System.in)).eachLine{ line -&gt;</span>
+<span class="s">                                               // line is read from System.in</span>
+<span class="s">    if (line =~ &#39;\\d&#39;) println &quot;Read: $line&quot;   // normal output to System.out</span>
+<span class="s">    else System.err.println &#39;No digit found.&#39;  // this message to System.err</span>
+<span class="s">}</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN362"
+>Opening a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// test values (change for your os and directories)</span>
+<span class="s">inputPath=&#39;Pleac/src/pleac7.groovy&#39;; outPath=&#39;Pleac/temp/junk.txt&#39;</span>
+
+<span class="s">// For input Java uses InputStreams (for byte-oriented processing) or Readers</span>
+<span class="s">// (for character-oriented processing). These can throw FileNotFoundException.</span>
+<span class="s">// There are also other stream variants: buffered, data, filters, objects, ...</span>
+<span class="s">inputFile = new File(inputPath)</span>
+<span class="s">inputStream = new FileInputStream(inputFile)</span>
+<span class="s">reader = new FileReader(inputFile)</span>
+<span class="s">inputChannel = inputStream.channel</span>
+
+<span class="s">// Examples for random access to a file</span>
+<span class="s">file = new RandomAccessFile(inputFile, &quot;rw&quot;) // for read and write</span>
+<span class="s">channel = file.channel</span>
+
+<span class="s">// Groovy provides some sugar coating on top of Java</span>
+<span class="s">println inputFile.text.size()</span>
+<span class="s">// =&gt; 13496</span>
+
+<span class="s">// For output Java use OutputStreams or Writers. Can throw FileNotFound</span>
+<span class="s">// or IO exceptions. There are also other flavours of stream: buffered,</span>
+<span class="s">// data, filters, objects, ...</span>
+<span class="s">outFile = new File(outPath)</span>
+<span class="s">appendFlag = false</span>
+<span class="s">outStream = new FileOutputStream(outFile, appendFlag)</span>
+<span class="s">writer = new FileWriter(outFile, appendFlag)</span>
+<span class="s">outChannel = outStream.channel</span>
+
+<span class="s">// Also some Groovy sugar coating</span>
+<span class="s">outFile &lt;&lt; &#39;A Chinese sailing vessel&#39;</span>
+<span class="s">println outFile.text.size() // =&gt; 24</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN365"
+>Opening Files with Unusual Filenames</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// No problem with Groovy since the filename doesn&#39;t contain characters with</span>
+<span class="s">// special meaning; like Perl&#39;s sysopen. Options are either additional parameters</span>
+<span class="s">// or captured in different classes, e.g. Input vs Output, Buffered vs non etc.</span>
+<span class="s">new FileReader(inputPath)</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN368"
+>Expanding Tildes in Filenames</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// &#39;~&#39; is a shell expansion feature rather than file system feature per se.</span>
+<span class="s">// Because &#39;~&#39; is a valid filename character in some operating systems, and Java</span>
+<span class="s">// attempts to be cross-platform, it doesn&#39;t automatically expand Tilde&#39;s.</span>
+<span class="s">// Given that &#39;~&#39; expansion is commonly used however, Java puts the $HOME</span>
+<span class="s">// environment variable (used by shells to do typical expansion) into the</span>
+<span class="s">// &quot;user.home&quot; system property. This works across operating systems - though</span>
+<span class="s">// the value inside differs from system to system so you shouldn&#39;t rely on its</span>
+<span class="s">// content to be of a particular format. In most cases though you should be</span>
+<span class="s">// able to write a regex that will work as expected. Also, Apple&#39;s</span>
+<span class="s">// NSPathUtilities can expand and introduce Tildes on platforms it supports.</span>
+<span class="s">path = &#39;~paulk/.cvspass&#39;</span>
+<span class="s">name = System.getProperty(&#39;user.name&#39;)</span>
+<span class="s">home = System.getProperty(&#39;user.home&#39;)</span>
+<span class="s">println home + path.replaceAll(&quot;~$name(.*)&quot;, &#39;$1&#39;)</span>
+<span class="s">// =&gt; C:\Documents and Settings\Paul/.cvspass</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN371"
+>Making Perl Report Filenames in Errors</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// The exception raised in Groovy reports the filename</span>
+<span class="s">try {</span>
+<span class="s">    new File(&#39;unknown_path/bad_file.ext&#39;).text</span>
+<span class="s">} catch (Exception ex) {</span>
+<span class="s">    System.err.println(ex.message)</span>
+<span class="s">}</span>
+<span class="s">// =&gt;</span>
+<span class="s">// unknown_path\bad_file.ext (The system cannot find the path specified)</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN374"
+>Creating Temporary Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">try {</span>
+<span class="s">    temp = File.createTempFile(&quot;prefix&quot;, &quot;.suffix&quot;)</span>
+<span class="s">    temp.deleteOnExit()</span>
+<span class="s">} catch (IOException ex) {</span>
+<span class="s">    System.err.println(&quot;Temp file could not be created&quot;)</span>
+<span class="s">}</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN377"
+>Storing Files Inside Your Program Text</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// no special features are provided, here is a way to do it manually</span>
+<span class="s">// DO NOT REMOVE THE FOLLOWING STRING DEFINITION.</span>
+<span class="s">pleac_7_6_embeddedFileInfo = &#39;&#39;&#39;</span>
+<span class="s">Script size is 13731</span>
+<span class="s">Last script update: Wed Jan 10 19:05:58 EST 2007</span>
+<span class="s">&#39;&#39;&#39;</span>
+<span class="s">ls = System.getProperty(&#39;line.separator&#39;)</span>
+<span class="s">file = new File(&#39;Pleac/src/pleac7.groovy&#39;)</span>
+<span class="s">regex = /(?ms)(?&lt;=^pleac_7_6_embeddedFileInfo = &#39;&#39;&#39;)(.*)(?=^&#39;&#39;&#39;)/</span>
+<span class="s">def readEmbeddedInfo() {</span>
+<span class="s">    m = file.text =~ regex</span>
+<span class="s">    println &#39;Found:\n&#39; + m[0][1]</span>
+<span class="s">}</span>
+<span class="s">def writeEmbeddedInfo() {</span>
+<span class="s">    lastMod = new Date(file.lastModified())</span>
+<span class="s">    newInfo = &quot;${ls}Script size is ${file.size()}${ls}Last script update: ${lastMod}${ls}&quot;</span>
+<span class="s">    file.write(file.text.replaceAll(regex, newInfo))</span>
+<span class="s">}</span>
+<span class="s">readEmbeddedInfo()</span>
+<span class="s">// writeEmbeddedInfo()  // uncomment to make script update itself</span>
+<span class="s">// readEmbeddedInfo()   // uncomment to redisplay the embedded info after the update</span>
+
+<span class="s">// =&gt; (output when above two method call lines are uncommented)</span>
+<span class="s">// Found:</span>
+<span class="s">//</span>
+<span class="s">// Script size is 13550</span>
+<span class="s">// Last script update: Wed Jan 10 18:56:03 EST 2007</span>
+<span class="s">//</span>
+<span class="s">// Found:</span>
+<span class="s">//</span>
+<span class="s">// Script size is 13731</span>
+<span class="s">// Last script update: Wed Jan 10 19:05:58 EST 2007</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN380"
+>Writing a Filter</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// general pattern for reading from System.in is:</span>
+<span class="s">// System.in.readLines().each{ processLine(it) }</span>
+
+<span class="s">// general pattern for a filter which can either process file args or read from System.in is:</span>
+<span class="s">// if (args.size() != 0) args.each{</span>
+<span class="s">//     file -&gt; new File(file).eachLine{ processLine(it) }</span>
+<span class="s">// } else System.in.readLines().each{ processLine(it) }</span>
+
+<span class="s">// note: the following examples are file-related per se. They show</span>
+<span class="s">// how to do option processing in scenarios which typically also</span>
+<span class="s">// involve file arguments. The reader should also consider using a</span>
+<span class="s">// pre-packaged options parser package (there are several popular</span>
+<span class="s">// ones) rather than the hard-coded processing examples shown here.</span>
+
+<span class="s">chopFirst = false</span>
+<span class="s">columns = 0</span>
+<span class="s">args = [&#39;-c&#39;, &#39;-30&#39;, &#39;somefile&#39;]</span>
+
+<span class="s">// demo1: optional c</span>
+<span class="s">if (args[0] == &#39;-c&#39;) {</span>
+<span class="s">    chopFirst = true</span>
+<span class="s">    args = args[1..-1]</span>
+<span class="s">}</span>
+
+<span class="s">assert args == [&quot;-30&quot;, &quot;somefile&quot;]</span>
+<span class="s">assert chopFirst</span>
+
+<span class="s">// demo2: processing numerical options</span>
+<span class="s">if (args[0] =~ /^-(\d+)$/) {</span>
+<span class="s">    columns = args[0][1..-1].toInteger()</span>
+<span class="s">    args = args[1..-1]</span>
+<span class="s">}</span>
+
+<span class="s">assert args == [&quot;somefile&quot;]</span>
+<span class="s">assert columns == 30</span>
+
+<span class="s">// demo3: multiple args (again consider option parsing package)</span>
+<span class="s">args = [&#39;-n&#39;,&#39;-a&#39;,&#39;file1&#39;,&#39;file2&#39;]</span>
+<span class="s">nostdout = false</span>
+<span class="s">append = false</span>
+<span class="s">unbuffer = false</span>
+<span class="s">ignore_ints = false</span>
+<span class="s">files = []</span>
+<span class="s">args.each{ arg -&gt;</span>
+<span class="s">    switch(arg) {</span>
+<span class="s">        case &#39;-n&#39;: nostdout    = true; break</span>
+<span class="s">        case &#39;-a&#39;: append      = true; break</span>
+<span class="s">        case &#39;-u&#39;: unbuffer    = true; break</span>
+<span class="s">        case &#39;-i&#39;: ignore_ints = true; break</span>
+<span class="s">        default: files += arg</span>
+<span class="s">    }</span>
+<span class="s">}</span>
+<span class="s">if (files.any{ it.startsWith(&#39;-&#39;)}) {</span>
+<span class="s">    System.err.println(&quot;usage: demo3 [-ainu] [filenames]&quot;)</span>
+<span class="s">}</span>
+<span class="s">// process files ...</span>
+<span class="s">assert nostdout &amp;&amp; append &amp;&amp; !unbuffer &amp;&amp; !ignore_ints</span>
+<span class="s">assert files == [&#39;file1&#39;,&#39;file2&#39;]</span>
+
+<span class="s">// find login: print all lines containing the string &quot;login&quot; (command-line version)</span>
+<span class="s">//% groovy -ne &quot;if (line =~ &#39;login&#39;) println line&quot; filename</span>
+
+<span class="s">// find login variation: lines containing &quot;login&quot; with line number (command-line version)</span>
+<span class="s">//% groovy -ne &quot;if (line =~ &#39;login&#39;) println count + &#39;:&#39; + line&quot; filename</span>
+
+<span class="s">// lowercase file (command-line version)</span>
+<span class="s">//% groovy -pe &quot;line.toLowerCase()&quot;</span>
+
+
+<span class="s">// count chunks but skip comments and stop when reaching &quot;__DATA__&quot; or &quot;__END__&quot;</span>
+<span class="s">chunks = 0; done = false</span>
+<span class="s">testfile = new File(&#39;Pleac/data/chunks.txt&#39;) // change on your system</span>
+<span class="s">lines = testfile.readLines()</span>
+<span class="s">for (line in lines) {</span>
+<span class="s">    if (!line.trim()) continue</span>
+<span class="s">    words = line.split(/[^\w#]+/).toList()</span>
+<span class="s">    for (word in words) {</span>
+<span class="s">        if (word =~ /^#/) break</span>
+<span class="s">        if (word in [&quot;__DATA__&quot;, &quot;__END__&quot;]) { done = true; break }</span>
+<span class="s">        chunks += 1</span>
+<span class="s">    }</span>
+<span class="s">    if (done) break</span>
+<span class="s">}</span>
+<span class="s">println &quot;Found $chunks chunks&quot;</span>
+
+
+<span class="s">// groovy &quot;one-liner&quot; (cough cough) for turning .history file into pretty version:</span>
+<span class="s">//% groovy -e &quot;m=new File(args[0]).text=~/(?ms)^#\+(\d+)\r?\n(.*?)$/;(0..&lt;m.count).each{println &#39;&#39;+new Date(m[it][1].toInteger())+&#39;  &#39;+m[it][2]}&quot; .history</span>
+<span class="s">// =&gt;</span>
+<span class="s">// Sun Jan 11 18:26:22 EST 1970  less /etc/motd</span>
+<span class="s">// Sun Jan 11 18:26:22 EST 1970  vi ~/.exrc</span>
+<span class="s">// Sun Jan 11 18:26:22 EST 1970  date</span>
+<span class="s">// Sun Jan 11 18:26:22 EST 1970  who</span>
+<span class="s">// Sun Jan 11 18:26:22 EST 1970  telnet home</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN383"
+>Modifying a File in Place with Temporary File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// test data for below</span>
+<span class="s">testPath = &#39;Pleac/data/process.txt&#39;</span>
+
+<span class="s">// general pattern</span>
+<span class="s">def processWithBackup(inputPath, Closure processLine) {</span>
+<span class="s">    def input = new File(inputPath)</span>
+<span class="s">    def out = File.createTempFile(&quot;prefix&quot;, &quot;.suffix&quot;)</span>
+<span class="s">    out.write(&#39;&#39;) // create empty file</span>
+<span class="s">    count = 0</span>
+<span class="s">    input.eachLine{ line -&gt;</span>
+<span class="s">        count++</span>
+<span class="s">        processLine(out, line, count)</span>
+<span class="s">    }</span>
+<span class="s">    def dest = new File(inputPath + &quot;.orig&quot;)</span>
+<span class="s">    dest.delete() // clobber previous backup</span>
+<span class="s">    input.renameTo(dest)</span>
+<span class="s">    out.renameTo(input)</span>
+<span class="s">}</span>
+
+<span class="s">// use withPrintWriter if you don&#39;t want the &#39;\n&#39;&#39;s appearing</span>
+<span class="s">processWithBackup(testPath) { out, line, count -&gt;</span>
+<span class="s">    if (count == 20) {   // we are at the 20th line</span>
+<span class="s">        out &lt;&lt; &quot;Extra line 1\n&quot;</span>
+<span class="s">        out &lt;&lt; &quot;Extra line 2\n&quot;</span>
+<span class="s">    }</span>
+<span class="s">    out &lt;&lt; line + &#39;\n&#39;</span>
+<span class="s">}</span>
+
+<span class="s">processWithBackup(testPath) { out, line, count -&gt;</span>
+<span class="s">    if (!(count in 20..30)) // skip the 20th line to the 30th</span>
+<span class="s">        out &lt;&lt; line + &#39;\n&#39;</span>
+<span class="s">}</span>
+<span class="s">// equivalent to &quot;one-liner&quot;:</span>
+<span class="s">//% groovy -i.orig -pe &quot;if (!(count in 20..30)) out &lt;&lt; line&quot; testPath</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN386"
+>Modifying a File in Place with -i Switch</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">//% groovy -i.orig -pe &#39;FILTER COMMAND&#39; file1 file2 file3 ...</span>
+
+<span class="s">// the following may also be possible on unix systems (unchecked)</span>
+<span class="s">//#!/usr/bin/groovy -i.orig -p</span>
+<span class="s">// filter commands go here</span>
+
+<span class="s">// &quot;one-liner&quot; templating scenario: change DATE -&gt; current time</span>
+<span class="s">//% groovy -pi.orig -e &#39;line.replaceAll(/DATE/){new Date()}&#39;</span>
+
+<span class="s">//% groovy -i.old -pe &#39;line.replaceAll(/\bhisvar\b/, &#39;hervar&#39;)&#39; *.[Cchy] (globbing platform specific)</span>
+
+<span class="s">// one-liner for correcting spelling typos</span>
+<span class="s">//% groovy -i.orig -pe &#39;line.replaceAll(/\b(p)earl\b/i, &#39;\1erl&#39;)&#39; *.[Cchy] (globbing platform specific)</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN389"
+>Modifying a File in Place Without a Temporary File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// general pattern</span>
+<span class="s">def processFileInplace(file, Closure processText) {</span>
+<span class="s">    def text = file.text</span>
+<span class="s">    file.write(processText(text))</span>
+<span class="s">}</span>
+
+<span class="s">// templating scenario: change DATE -&gt; current time</span>
+<span class="s">testfile = new File(&#39;Pleac/data/pleac7_10.txt&#39;) // replace on your system</span>
+<span class="s">processFileInplace(testfile) { text -&gt;</span>
+<span class="s">    text.replaceAll(/(?m)DATE/, new Date().toString())</span>
+<span class="s">}</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN392"
+>Locking a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// You need to use Java&#39;s Channel class to acquire locks. The exact</span>
+<span class="s">// nature of the lock is somewhat dependent on the operating system.</span>
+<span class="s">def processFileWithLock(file, processStream) {</span>
+<span class="s">    def random = new RandomAccessFile(file, &quot;rw&quot;)</span>
+<span class="s">    def lock = random.channel.lock() // acquire exclusive lock</span>
+<span class="s">    processStream(random)</span>
+<span class="s">    lock.release()</span>
+<span class="s">    random.close()</span>
+<span class="s">}</span>
+
+<span class="s">// Instead of an exclusive lock you can acquire a shared lock.</span>
+
+<span class="s">// Also, you can acquire a lock for a region of a file by specifying</span>
+<span class="s">// start and end positions of the region when acquiring the lock.</span>
+
+<span class="s">// For non-blocking functionality, use tryLock() instead of lock().</span>
+<span class="s">def processFileWithTryLock(file, processStream) {</span>
+<span class="s">    random = new RandomAccessFile(file, &quot;rw&quot;)</span>
+<span class="s">    channel = random.channel</span>
+<span class="s">    def MAX_ATTEMPTS = 30</span>
+<span class="s">    for (i in 0..&lt;MAX_ATTEMPTS) {</span>
+<span class="s">        lock = channel.tryLock()</span>
+<span class="s">        if (lock != null) break</span>
+<span class="s">        println &#39;Could not get lock, pausing ...&#39;</span>
+<span class="s">        Thread.sleep(500) // 500 millis = 0.5 secs</span>
+<span class="s">    }</span>
+<span class="s">    if (lock == null) {</span>
+<span class="s">        println &#39;Unable to acquire lock, aborting ...&#39;</span>
+<span class="s">    } else {</span>
+<span class="s">        processStream(random)</span>
+<span class="s">        lock.release()</span>
+<span class="s">    }</span>
+<span class="s">    random.close()</span>
+<span class="s">}</span>
+
+
+<span class="s">// non-blocking multithreaded example: print first line while holding lock</span>
+<span class="s">Thread.start{</span>
+<span class="s">    processFileWithLock(testfile) { source -&gt;</span>
+<span class="s">        println &#39;First reader: &#39; + source.readLine().toUpperCase()</span>
+<span class="s">        Thread.sleep(2000) // 2000 millis = 2 secs</span>
+<span class="s">    }</span>
+<span class="s">}</span>
+<span class="s">processFileWithTryLock(testfile) { source -&gt;</span>
+<span class="s">    println &#39;Second reader: &#39; + source.readLine().toUpperCase()</span>
+<span class="s">}</span>
+<span class="s">// =&gt;</span>
+<span class="s">// Could not get lock, pausing ...</span>
+<span class="s">// First reader: WAS LOWERCASE</span>
+<span class="s">// Could not get lock, pausing ...</span>
+<span class="s">// Could not get lock, pausing ...</span>
+<span class="s">// Could not get lock, pausing ...</span>
+<span class="s">// Could not get lock, pausing ...</span>
+<span class="s">// Second reader: WAS LOWERCASE</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN395"
+>Flushing Output</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// In Java, input and output streams have a flush() method and file channels</span>
+<span class="s">// have a force() method (applicable also to memory-mapped files). When creating</span>
+<span class="s">// PrintWriters and // PrintStreams, an autoFlush option can be provided.</span>
+<span class="s">// From a FileInput or Output Stream you can ask for the FileDescriptor</span>
+<span class="s">// which has a sync() method - but you wouldn&#39;t you&#39;d just use flush().</span>
+
+<span class="s">inputStream = testfile.newInputStream()    // returns a buffered input stream</span>
+<span class="s">autoFlush = true</span>
+<span class="s">printStream = new PrintStream(outStream, autoFlush)</span>
+<span class="s">printWriter = new PrintWriter(outStream, autoFlush)</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN398"
+>Reading from Many Filehandles Without Blocking</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// See the comments in 7.14 about scenarios where non-blocking can be</span>
+<span class="s">// avoided. Also see 7.14 regarding basic information about channels.</span>
+<span class="s">// An advanced feature of the java.nio.channels package is supported</span>
+<span class="s">// by the Selector and SelectableChannel classes. These allow efficient</span>
+<span class="s">// server multiplexing amongst responses from a number of potential sources.</span>
+<span class="s">// Under the covers, it allows mapping to native operating system features</span>
+<span class="s">// supporting such multiplexing or using a pool of worker processing threads</span>
+<span class="s">// much smaller in size than the total available connections.</span>
+<span class="s">//</span>
+<span class="s">// The general pattern for using selectors is:</span>
+<span class="s">//</span>
+<span class="s">//      while (true) {</span>
+<span class="s">//         selector.select()</span>
+<span class="s">//         def it = selector.selectedKeys().iterator()</span>
+<span class="s">//         while (it.hasNext()) {</span>
+<span class="s">//            handleKey(it++)</span>
+<span class="s">//            it.remove()</span>
+<span class="s">//         }</span>
+<span class="s">//      }</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN401"
+>Doing Non-Blocking I/O</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// Groovy has no special support for this apart from making it easier to</span>
+<span class="s">// create threads (see note at end); it relies on Java&#39;s features here.</span>
+
+<span class="s">// InputStreams in Java/Groovy block if input is not yet available.</span>
+<span class="s">// This is not normally an issue, because if you have a potential blocking</span>
+<span class="s">// operation, e.g. save a large file, you normally just create a thread</span>
+<span class="s"> // and save it in the background.</span>
+
+<span class="s">// Channels are one way to do non-blocking stream-based IO.</span>
+<span class="s">// Classes which implement the AbstractSelectableChannel interface provide</span>
+<span class="s">// a configureBlocking(boolean) method as well as an isBlocking() method.</span>
+<span class="s">// When processing a non-blocking stream, you need to process incoming</span>
+<span class="s">// information based on the number of bytes read returned by the various</span>
+<span class="s">// read methods. For non-blocking, this can be 0 bytes even if you pass</span>
+<span class="s">// a fixed size byte[] buffer to the read method. Non-blocking IO is typically</span>
+<span class="s">// not used with Files but more normally with network streams though they</span>
+<span class="s">// can when Pipes (couple sink and source channels) are involved where</span>
+<span class="s">// one side of the pipe is a file.</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN404"
+>Determining the Number of Bytes to Read</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// Groovy uses Java&#39;s features here.</span>
+<span class="s">// For both blocking and non-blocking reads, the read operation returns the number</span>
+<span class="s">// of bytes read. In blocking operations, this normally corresponds to the number</span>
+<span class="s">// of bytes requested (typically the size of some buffer) but can have a smaller</span>
+<span class="s">// value at the end of a stream. Java also makes no guarantees about whether</span>
+<span class="s">// other streams in general will return bytes as they become available under</span>
+<span class="s">// certain circumstances (rather than blocking until the entire buffer is filled.</span>
+<span class="s">// In non-blocking operations, the number of bytes returned will typically be</span>
+<span class="s">// the number of bytes available (up to some maximum buffer or requested size).</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN407"
+>Storing Filehandles in Variables</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// This just works in Java and Groovy as per the previous examples.</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN410"
+>Caching Open Output Filehandles</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// Groovy uses Java&#39;s features here.</span>
+<span class="s">// More work has been done in the Java on object caching than file caching</span>
+<span class="s">// with several open source and commercial offerings in that area. File caches</span>
+<span class="s">// are also available, for one, see:</span>
+<span class="s">// http://portals.apache.org/jetspeed-1/apidocs/org/apache/jetspeed/cache/FileCache.html</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN413"
+>Printing to Many Filehandles Simultaneously</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// The general pattern is: streams.each{ stream -&gt; stream.println &#39;item to print&#39; }</span>
+<span class="s">// See the MultiStream example in 13.5 for a coded example.</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN416"
+>Opening and Closing File Descriptors by Number</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// You wouldn&#39;t normally be dealing with FileDescriptors. In case were you have</span>
+<span class="s">// one you would normally walk through all known FileStreams asking each for</span>
+<span class="s">// it&#39;s FileDescriptor until you found one that matched. You would then close</span>
+<span class="s">// that stream.</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN419"
+>Copying Filehandles</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// There are several concepts here. At the object level, any two object references</span>
+<span class="s">// can point to the same object. Any changes made by one of these will be visible</span>
+<span class="s">// in the &#39;alias&#39;. You can also have multiple stream, reader, writer or channel objects</span>
+<span class="s">// referencing the same resource. Depending on the kind of resource, any potential</span>
+<span class="s">// locks, the operations being requested and the behaviour of third-party programs,</span>
+<span class="s">// the result of trying to perform such concurrent operations may not always be</span>
+<span class="s">// deterministic. There are strategies for coping with such scenarious but the</span>
+<span class="s">// best bet is to avoid the issue.</span>
+
+<span class="s">// For the scenario given, copying file handles, that corresponds most closely</span>
+<span class="s">// with cloning streams. The best bet is to just use individual stream objects</span>
+<span class="s">// both created from the same file. If you are attempting to do write operations,</span>
+<span class="s">// then you should consider using locks.</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN422"
+>Program: netlock</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// locking is built in to Java (since 1.4), so should not be missing</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN425"
+>Program: lockarea</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// Java locking supports locking just regions of files.</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="patternmatching.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="filecontents.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Pattern Matching</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>File Contents</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

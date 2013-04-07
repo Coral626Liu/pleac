@@ -1,0 +1,974 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>File Access</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Guile 1.8"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Pattern Matching"
+HREF="patternmatching.html"><LINK
+REL="NEXT"
+TITLE="File Contents"
+HREF="filecontents.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Guile 1.8</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="patternmatching.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="filecontents.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="FILEACCESS"
+>7. File Access</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN359"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;; use (open-input-file filename) or (open filename O_RDONLY)</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">input</span> <span class="p">(</span><span class="nb">open-input-file </span><span class="s">&quot;/usr/local/widgets/data&quot;</span><span class="p">))</span>
+<span class="p">(</span><span class="k">let </span><span class="nv">loop</span> <span class="p">((</span><span class="nf">line</span> <span class="p">(</span><span class="nf">read-line</span> <span class="nv">input</span> <span class="ss">&#39;concat</span><span class="p">)))</span>
+  <span class="p">(</span><span class="k">cond </span><span class="p">((</span><span class="nb">not </span><span class="p">(</span><span class="nb">eof-object? </span><span class="nv">line</span><span class="p">))</span>
+         <span class="p">(</span><span class="k">if </span><span class="p">(</span><span class="nf">string-match</span> <span class="s">&quot;blue&quot;</span> <span class="nv">line</span><span class="p">)</span>
+           <span class="p">(</span><span class="nb">display </span><span class="nv">line</span><span class="p">))</span>
+         <span class="p">(</span><span class="nf">loop</span> <span class="p">(</span><span class="nf">read-line</span> <span class="nv">input</span> <span class="ss">&#39;concat</span><span class="p">)))))</span>
+<span class="p">(</span><span class="nf">close</span> <span class="nv">input</span><span class="p">)</span>
+
+<span class="c1">;; Many I/O functions default to the logical STDIN/OUT</span>
+
+<span class="c1">;; You can also explicitly get the standard ports with</span>
+<span class="c1">;; [set-]current-{input,output,error}-port.</span>
+
+<span class="c1">;; format takes a port as the first argument.  If #t is given, format</span>
+<span class="c1">;; writes to stdout, if #f is given, format returns a string.</span>
+
+<span class="p">(</span><span class="k">let </span><span class="nv">loop</span> <span class="p">((</span><span class="nf">line</span> <span class="p">(</span><span class="nf">read-line</span><span class="p">)))</span>     <span class="c1">; reads from stdin</span>
+  <span class="p">(</span><span class="k">cond </span><span class="p">((</span><span class="nb">not </span><span class="p">(</span><span class="nb">eof-object? </span><span class="nv">line</span><span class="p">))</span>
+         <span class="p">(</span><span class="k">if </span><span class="p">(</span><span class="nb">not </span><span class="p">(</span><span class="nf">string-match</span> <span class="s">&quot;[0-9]&quot;</span> <span class="nv">line</span><span class="p">))</span>
+           <span class="c1">;; writes to stderr</span>
+           <span class="p">(</span><span class="nb">display </span><span class="s">&quot;No digit found.\n&quot;</span> <span class="p">(</span><span class="nf">current-error-port</span><span class="p">))</span>
+           <span class="c1">;; writes to stdout</span>
+           <span class="p">(</span><span class="nf">format</span> <span class="no">#t</span> <span class="s">&quot;Read: ~A\n&quot;</span> <span class="nv">line</span><span class="p">))</span>
+         <span class="p">(</span><span class="nf">loop</span> <span class="p">(</span><span class="nf">read-line</span><span class="p">)))))</span>
+
+<span class="c1">;; use open-output-file</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">logfile</span> <span class="p">(</span><span class="nb">open-output-file </span><span class="s">&quot;/tmp/log&quot;</span><span class="p">))</span>
+
+<span class="c1">;; increasingly specific ways of closing ports (it&#39;s safe to close a</span>
+<span class="c1">;; closed port)</span>
+
+<span class="p">(</span><span class="nf">close</span> <span class="nv">logfile</span><span class="p">)</span>                <span class="c1">; #t</span>
+<span class="p">(</span><span class="nf">close-port</span> <span class="nv">logfile</span><span class="p">)</span>           <span class="c1">; #f (already closed)</span>
+<span class="p">(</span><span class="nb">close-output-port </span><span class="nv">logfile</span><span class="p">)</span>    <span class="c1">; unspecified</span>
+
+<span class="c1">;; you can rebind standard ports with set-current-&lt;foo&gt;-port:</span>
+
+<span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">old-out</span> <span class="p">(</span><span class="nf">current-output-port</span><span class="p">)))</span>
+  <span class="p">(</span><span class="nf">set-current-output-port</span> <span class="nv">logfile</span><span class="p">)</span>
+  <span class="p">(</span><span class="nb">display </span><span class="s">&quot;Countdown initiated ...\n&quot;</span><span class="p">)</span>
+  <span class="p">(</span><span class="nf">set-current-output-port</span> <span class="nv">old-out</span><span class="p">)</span>
+  <span class="p">(</span><span class="nb">display </span><span class="s">&quot;You have 30 seconds to reach minimum safety distance.\n&quot;</span><span class="p">))</span>
+
+<span class="c1">;; or</span>
+
+<span class="p">(</span><span class="nb">with-output-to-file </span><span class="nv">logfile</span>
+  <span class="p">(</span><span class="k">lambda </span><span class="p">()</span> <span class="p">(</span><span class="nb">display </span><span class="s">&quot;Countdown initiated ...\n&quot;</span><span class="p">)))</span>
+<span class="p">(</span><span class="nb">display </span><span class="s">&quot;You have 30 seconds to reach minimum safety distance.\n&quot;</span><span class="p">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN362"
+>Opening a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="p">(</span><span class="k">define </span><span class="nv">source</span> <span class="p">(</span><span class="nb">open-input-file </span><span class="nv">path</span><span class="p">))</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">sink</span> <span class="p">(</span><span class="nb">open-output-file </span><span class="nv">path</span><span class="p">))</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">source</span> <span class="p">(</span><span class="nf">open</span> <span class="nv">path</span> <span class="nv">O_RDONLY</span><span class="p">))</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">sink</span> <span class="p">(</span><span class="nf">open</span> <span class="nv">path</span> <span class="nv">O_WRONLY</span><span class="p">))</span>
+
+<span class="c1">;;-----------------------------</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">port</span> <span class="p">(</span><span class="nb">open-input-file </span><span class="nv">path</span><span class="p">))</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">port</span> <span class="p">(</span><span class="nf">open-file</span> <span class="nv">path</span> <span class="s">&quot;r&quot;</span><span class="p">))</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">port</span> <span class="p">(</span><span class="nf">open</span> <span class="nv">path</span> <span class="nv">O_RDONLY</span><span class="p">))</span>
+<span class="c1">;;-----------------------------</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">port</span> <span class="p">(</span><span class="nb">open-output-file </span><span class="nv">path</span><span class="p">))</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">port</span> <span class="p">(</span><span class="nf">open-file</span> <span class="nv">path</span> <span class="s">&quot;w&quot;</span><span class="p">))</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">port</span> <span class="p">(</span><span class="nf">open</span> <span class="nv">path</span> <span class="p">(</span><span class="nf">logior</span> <span class="nv">O_WRONLY</span> <span class="nv">O_TRUNC</span> <span class="nv">O_CREAT</span><span class="p">)))</span>
+<span class="c1">;;-----------------------------</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">port</span> <span class="p">(</span><span class="nf">open</span> <span class="nv">path</span> <span class="p">(</span><span class="nf">logior</span> <span class="nv">O_WRONLY</span> <span class="nv">O_EXCL</span> <span class="nv">O_CREAT</span><span class="p">)))</span>
+<span class="c1">;;-----------------------------</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">port</span> <span class="p">(</span><span class="nf">open-file</span> <span class="nv">path</span> <span class="s">&quot;a&quot;</span><span class="p">))</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">port</span> <span class="p">(</span><span class="nf">open</span> <span class="nv">path</span> <span class="p">(</span><span class="nf">logior</span> <span class="nv">O_WRONLY</span> <span class="nv">O_APPEND</span> <span class="nv">O_CREAT</span><span class="p">)))</span>
+<span class="c1">;;-----------------------------</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">port</span> <span class="p">(</span><span class="nf">open</span> <span class="nv">path</span> <span class="p">(</span><span class="nf">logior</span> <span class="nv">O_WRONLY</span> <span class="nv">O_APPEND</span><span class="p">)))</span>
+<span class="c1">;;-----------------------------</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">port</span> <span class="p">(</span><span class="nf">open</span> <span class="nv">path</span> <span class="nv">O_RDWR</span><span class="p">))</span>
+<span class="c1">;;-----------------------------</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">port</span> <span class="p">(</span><span class="nf">open-file</span> <span class="nv">path</span> <span class="s">&quot;r+&quot;</span><span class="p">))</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">port</span> <span class="p">(</span><span class="nf">open</span> <span class="nv">path</span> <span class="p">(</span><span class="nf">logior</span> <span class="nv">O_RDWR</span> <span class="nv">O_CREAT</span><span class="p">)))</span>
+<span class="c1">;;-----------------------------</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">port</span> <span class="p">(</span><span class="nf">open</span> <span class="nv">path</span> <span class="p">(</span><span class="nf">logior</span> <span class="nv">O_RDWR</span> <span class="nv">O_EXCL</span> <span class="nv">O_CREAT</span><span class="p">)))</span>
+<span class="c1">;;-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN365"
+>Opening Files with Unusual Filenames</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;; Nothing different needs to be done with Guile</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN368"
+>Expanding Tildes in Filenames</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="p">(</span><span class="k">define </span><span class="nv">expand-user</span>
+  <span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">rx</span> <span class="p">(</span><span class="nf">make-regexp</span> <span class="s">&quot;^\\~([^/]+)?&quot;</span><span class="p">)))</span>
+    <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">filename</span><span class="p">)</span>
+      <span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">m</span> <span class="p">(</span><span class="nf">regexp-exec</span> <span class="nv">rx</span> <span class="nv">filename</span><span class="p">)))</span>
+        <span class="p">(</span><span class="k">if </span><span class="nv">m</span>
+          <span class="p">(</span><span class="nf">string-append</span>
+           <span class="p">(</span><span class="k">if </span><span class="p">(</span><span class="nf">match:substring</span> <span class="nv">m</span> <span class="mi">1</span><span class="p">)</span>
+             <span class="p">(</span><span class="nf">passwd:dir</span> <span class="p">(</span><span class="nf">getpwnam</span> <span class="p">(</span><span class="nf">match:substring</span> <span class="nv">m</span> <span class="mi">1</span><span class="p">)))</span>
+             <span class="p">(</span><span class="k">or </span><span class="p">(</span><span class="nf">getenv</span> <span class="s">&quot;HOME&quot;</span><span class="p">)</span> <span class="p">(</span><span class="nf">getenv</span> <span class="s">&quot;LOGDIR&quot;</span><span class="p">)</span>
+                 <span class="p">(</span><span class="nf">passwd:dir</span> <span class="p">(</span><span class="nf">getpwuid</span> <span class="p">(</span><span class="nf">cuserid</span><span class="p">)))</span> <span class="s">&quot;&quot;</span><span class="p">))</span>
+           <span class="p">(</span><span class="nb">substring </span><span class="nv">filename</span> <span class="p">(</span><span class="nf">match:end</span> <span class="nv">m</span><span class="p">)))</span>
+          <span class="nv">filename</span><span class="p">)))))</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN371"
+>Making Perl Report Filenames in Errors</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="p">(</span><span class="k">define </span><span class="nv">port</span> <span class="p">(</span><span class="nf">open-file</span> <span class="nv">filename</span> <span class="nv">mode</span><span class="p">))</span>  <span class="c1">; raise an exception on error</span>
+
+<span class="c1">;; use catch to trap errors</span>
+<span class="p">(</span><span class="nf">catch</span> <span class="ss">&#39;system-error</span> <span class="c1">; the type of error thrown</span>
+  <span class="p">(</span><span class="k">lambda </span><span class="p">()</span> <span class="p">(</span><span class="k">set! </span><span class="nv">port</span> <span class="p">(</span><span class="nf">open-file</span> <span class="nv">filename</span> <span class="nv">mode</span><span class="p">)))</span> <span class="c1">; thunk to try</span>
+  <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">key</span> <span class="o">.</span> <span class="nv">args</span><span class="p">)</span>  <span class="c1">; exception handler</span>
+    <span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">fmt</span> <span class="p">(</span><span class="nb">cadr </span><span class="nv">args</span><span class="p">))</span>
+          <span class="p">(</span><span class="nf">msg&amp;path</span> <span class="p">(</span><span class="nb">caddr </span><span class="nv">args</span><span class="p">)))</span>
+      <span class="p">(</span><span class="nf">format</span> <span class="p">(</span><span class="nf">current-error-port</span><span class="p">)</span> <span class="nv">fmt</span> <span class="p">(</span><span class="nb">car </span><span class="nv">msg&amp;path</span><span class="p">)</span> <span class="p">(</span><span class="nb">cadr </span><span class="nv">msg&amp;path</span><span class="p">))</span>
+      <span class="p">(</span><span class="nf">newline</span><span class="p">))))</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN374"
+>Creating Temporary Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;; use the POSIX tmpnam</span>
+<span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">name</span> <span class="p">(</span><span class="nf">tmpnam</span><span class="p">)))</span>
+  <span class="p">(</span><span class="nb">call-with-output-file </span><span class="nv">name</span>
+    <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">port</span><span class="p">)</span>
+      <span class="c1">;; ... output to port</span>
+      <span class="o">&#39;</span><span class="p">())))</span>
+
+<span class="c1">;; better to test and be sure you have exclusive access to the file</span>
+<span class="c1">;; (temp file name will be available as (port-filename port))</span>
+<span class="p">(</span><span class="k">define </span><span class="p">(</span><span class="nf">open-temp-file</span><span class="p">)</span>
+  <span class="p">(</span><span class="k">let </span><span class="nv">loop</span> <span class="p">((</span><span class="nf">name</span> <span class="p">(</span><span class="nf">tmpnam</span><span class="p">)))</span>
+    <span class="p">(</span><span class="nf">catch</span> <span class="ss">&#39;system-error</span>
+      <span class="p">(</span><span class="k">lambda </span><span class="p">()</span> <span class="p">(</span><span class="nf">open</span> <span class="nv">name</span> <span class="p">(</span><span class="nf">logior</span> <span class="nv">O_RDWR</span> <span class="nv">O_CREAT</span> <span class="nv">O_EXCL</span><span class="p">)))</span>
+      <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">key</span> <span class="o">.</span> <span class="nv">args</span><span class="p">)</span> <span class="p">(</span><span class="nf">loop</span> <span class="p">(</span><span class="nf">tmpnam</span><span class="p">))))))</span>
+
+<span class="c1">;; or let mkstemp! do the work for you:</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">port</span> <span class="p">(</span><span class="nf">mkstemp!</span> <span class="nv">template-string-ending-in-XXXXXX</span><span class="p">))</span>
+
+<span class="p">(</span><span class="k">let* </span><span class="p">((</span><span class="nf">tmpl</span> <span class="s">&quot;/tmp/programXXXXXX&quot;</span><span class="p">)</span>
+       <span class="p">(</span><span class="nf">port</span> <span class="p">(</span><span class="nf">mkstemp!</span> <span class="nv">tmpl</span><span class="p">)))</span>
+  <span class="c1">;; tmpl now contains the name of the temp file,</span>
+  <span class="c1">;; e.g. &quot;/tmp/programhVoEzw&quot;</span>
+  <span class="p">(</span><span class="k">do </span><span class="p">((</span><span class="nf">i</span> <span class="mi">0</span> <span class="p">(</span><span class="mi">1</span><span class="nv">+</span> <span class="nv">i</span><span class="p">)))</span>
+      <span class="p">((</span><span class="nb">= </span><span class="nv">i</span> <span class="mi">10</span><span class="p">))</span>
+    <span class="p">(</span><span class="nf">format</span> <span class="nv">port</span> <span class="s">&quot;~A\n&quot;</span> <span class="nv">i</span><span class="p">))</span>
+  <span class="p">(</span><span class="nf">seek</span> <span class="nv">port</span> <span class="mi">0</span> <span class="nv">SEEK_SET</span><span class="p">)</span>
+  <span class="p">(</span><span class="nb">display </span><span class="s">&quot;Tmp file has:\n&quot;</span><span class="p">)</span>
+  <span class="p">(</span><span class="k">do </span><span class="p">((</span><span class="nf">line</span> <span class="p">(</span><span class="nf">read-line</span> <span class="nv">port</span> <span class="ss">&#39;concat</span><span class="p">)</span> <span class="p">(</span><span class="nf">read-line</span> <span class="nv">port</span> <span class="ss">&#39;concat</span><span class="p">)))</span>
+      <span class="p">((</span><span class="nb">eof-object? </span><span class="nv">line</span><span class="p">))</span>
+    <span class="p">(</span><span class="nb">display </span><span class="nv">line</span><span class="p">))</span>
+  <span class="p">(</span><span class="nf">close</span> <span class="nv">port</span><span class="p">))</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN377"
+>Storing Files Inside Your Program Text</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;; string ports are ideal for this</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">DATA</span> <span class="s">&quot;</span>
+<span class="s">your data goes here</span>
+<span class="s">&quot;</span><span class="p">)</span>
+
+<span class="p">(</span><span class="nf">call-with-input-string</span>
+ <span class="nv">DATA</span>
+ <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">port</span><span class="p">)</span>
+   <span class="c1">;; ... process input from port</span>
+   <span class="o">&#39;</span><span class="p">()))</span>
+
+<span class="c1">;; or</span>
+
+<span class="p">(</span><span class="nf">with-input-from-string</span> <span class="nv">DATA</span>
+  <span class="p">(</span><span class="k">lambda </span><span class="p">()</span>
+    <span class="c1">;; ... stdin now comes from DATA</span>
+    <span class="o">&#39;</span><span class="p">()))</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN380"
+>Writing a Filter</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;; to process lines of current-input-port:</span>
+<span class="p">(</span><span class="k">do </span><span class="p">((</span><span class="nf">line</span> <span class="p">(</span><span class="nf">read-line</span><span class="p">)</span> <span class="p">(</span><span class="nf">read-line</span><span class="p">)))</span>
+    <span class="p">((</span><span class="nb">eof-object? </span><span class="nv">line</span><span class="p">))</span>
+  <span class="c1">;; ... do something with line</span>
+  <span class="o">&#39;</span><span class="p">())</span>
+
+<span class="c1">;; a general filter template:</span>
+
+<span class="p">(</span><span class="k">define </span><span class="p">(</span><span class="nf">body</span><span class="p">)</span>
+  <span class="p">(</span><span class="k">do </span><span class="p">((</span><span class="nf">line</span> <span class="p">(</span><span class="nf">read-line</span><span class="p">)</span> <span class="p">(</span><span class="nf">read-line</span><span class="p">)))</span>
+      <span class="p">((</span><span class="nb">eof-object? </span><span class="nv">line</span><span class="p">))</span>
+    <span class="p">(</span><span class="nb">display </span><span class="nv">line</span><span class="p">)</span>
+    <span class="p">(</span><span class="nf">newline</span><span class="p">)))</span>
+
+<span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">args</span> <span class="p">(</span><span class="nb">cdr </span><span class="p">(</span><span class="nf">command-line</span><span class="p">))))</span>
+  <span class="c1">;; ... handle options here</span>
+  <span class="p">(</span><span class="k">if </span><span class="p">(</span><span class="nb">null? </span><span class="nv">args</span><span class="p">)</span>
+    <span class="p">(</span><span class="nf">body</span><span class="p">)</span>     <span class="c1">; no args, just call body on stdin</span>
+    <span class="p">(</span><span class="nb">for-each </span> <span class="c1">; otherwise, call body with stdin set to each arg in turn</span>
+     <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">file</span><span class="p">)</span>
+       <span class="p">(</span><span class="nf">catch</span> <span class="ss">&#39;system-error</span>
+         <span class="p">(</span><span class="k">lambda </span><span class="p">()</span>
+           <span class="p">(</span><span class="nb">with-input-from-file </span><span class="nv">file</span>
+             <span class="nv">body</span><span class="p">))</span>
+         <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">key</span> <span class="o">.</span> <span class="nv">args</span><span class="p">)</span>
+           <span class="p">(</span><span class="nf">format</span> <span class="p">(</span><span class="nf">current-error-port</span><span class="p">)</span> <span class="p">(</span><span class="nb">cadr </span><span class="nv">args</span><span class="p">)</span> <span class="p">(</span><span class="nb">caaddr </span><span class="nv">args</span><span class="p">)</span>
+                   <span class="p">(</span><span class="nb">car </span><span class="p">(</span><span class="nb">cdaddr </span><span class="nv">args</span><span class="p">)))</span>
+           <span class="p">(</span><span class="nb">newline </span><span class="p">(</span><span class="nf">current-error-port</span><span class="p">)))))</span>
+     <span class="nv">args</span><span class="p">)))</span>
+
+<span class="c1">;; example: count-chunks:</span>
+<span class="p">(</span><span class="nf">use-modules</span> <span class="p">(</span><span class="nf">srfi</span> <span class="nv">srfi-1</span><span class="p">)</span> <span class="p">(</span><span class="nf">srfi</span> <span class="nv">srfi-13</span><span class="p">)</span> <span class="p">(</span><span class="nf">ice-9</span> <span class="nv">format</span><span class="p">)</span> <span class="p">(</span><span class="nf">ice-9</span> <span class="nv">regex</span><span class="p">))</span>
+
+<span class="c1">;; also use directory-files from 9.5 and globbing functions from 9.6</span>
+
+<span class="c1">;; can use (ice-9 getopt-long) described in chapter 15, or process</span>
+<span class="c1">;; options by hand</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">opt-append</span> <span class="mi">0</span><span class="p">)</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">opt-ignore-ints</span> <span class="mi">0</span><span class="p">)</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">opt-nostdout</span> <span class="mi">0</span><span class="p">)</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">opt-unbuffer</span> <span class="mi">0</span><span class="p">)</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">args</span> <span class="p">(</span><span class="nb">cdr </span><span class="p">(</span><span class="nf">command-line</span><span class="p">)))</span>
+
+<span class="p">(</span><span class="k">do </span><span class="p">((</span><span class="nf">opts</span> <span class="nv">args</span> <span class="p">(</span><span class="nb">cdr </span><span class="nv">opts</span><span class="p">)))</span>
+    <span class="p">((</span><span class="k">or </span><span class="p">(</span><span class="nb">null? </span><span class="nv">opts</span><span class="p">)</span> <span class="p">(</span><span class="nb">not </span><span class="p">(</span><span class="nb">eq? </span><span class="p">(</span><span class="nb">string-ref </span><span class="p">(</span><span class="nb">car </span><span class="nv">opts</span><span class="p">)</span> <span class="mi">0</span><span class="p">)</span> <span class="sc">#\-</span><span class="p">)))</span>
+     <span class="p">(</span><span class="k">set! </span><span class="nv">args</span> <span class="nv">opts</span><span class="p">))</span>
+  <span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">opt</span> <span class="p">(</span><span class="nb">car </span><span class="nv">opts</span><span class="p">)))</span>
+    <span class="p">(</span><span class="k">cond </span><span class="p">((</span><span class="nb">string=? </span><span class="nv">opt</span> <span class="s">&quot;-a&quot;</span><span class="p">)</span> <span class="p">(</span><span class="k">set! </span><span class="nv">opt-append</span> <span class="p">(</span><span class="mi">1</span><span class="nv">+</span> <span class="nv">opt-append</span><span class="p">)))</span>
+          <span class="p">((</span><span class="nb">string=? </span><span class="nv">opt</span> <span class="s">&quot;-i&quot;</span><span class="p">)</span> <span class="p">(</span><span class="k">set! </span><span class="nv">opt-ignore-ints</span> <span class="p">(</span><span class="mi">1</span><span class="nv">+</span> <span class="nv">opt-ignore-ints</span><span class="p">)))</span>
+          <span class="p">((</span><span class="nb">string=? </span><span class="nv">opt</span> <span class="s">&quot;-n&quot;</span><span class="p">)</span> <span class="p">(</span><span class="k">set! </span><span class="nv">opt-nostdout</span> <span class="p">(</span><span class="mi">1</span><span class="nv">+</span> <span class="nv">opt-nostdout</span><span class="p">)))</span>
+          <span class="p">((</span><span class="nb">string=? </span><span class="nv">opt</span> <span class="s">&quot;-u&quot;</span><span class="p">)</span> <span class="p">(</span><span class="k">set! </span><span class="nv">opt-unbuffer</span> <span class="p">(</span><span class="mi">1</span><span class="nv">+</span> <span class="nv">opt-unbuffer</span><span class="p">)))</span>
+          <span class="p">(</span><span class="k">else </span><span class="p">(</span><span class="nf">throw</span> <span class="ss">&#39;usage-error</span> <span class="s">&quot;Unexpected argument: ~A&quot;</span> <span class="nv">opt</span><span class="p">)))))</span>
+
+<span class="c1">;; default to all C source files</span>
+<span class="p">(</span><span class="k">if </span><span class="p">(</span><span class="nb">null? </span><span class="nv">args</span><span class="p">)</span> <span class="p">(</span><span class="k">set! </span><span class="nv">args</span> <span class="p">(</span><span class="nf">glob</span> <span class="s">&quot;*.[Cch]&quot;</span> <span class="s">&quot;.&quot;</span><span class="p">)))</span>
+
+<span class="p">(</span><span class="k">define </span><span class="p">(</span><span class="nf">find-login</span><span class="p">)</span>
+  <span class="p">(</span><span class="k">do </span><span class="p">((</span><span class="nf">line</span> <span class="p">(</span><span class="nf">read-line</span><span class="p">)</span> <span class="p">(</span><span class="nf">read-line</span><span class="p">)))</span>
+      <span class="p">((</span><span class="nb">eof-object? </span><span class="nv">line</span><span class="p">))</span>
+    <span class="p">(</span><span class="k">cond </span><span class="p">((</span><span class="nf">string-match</span> <span class="s">&quot;login&quot;</span> <span class="nv">line</span><span class="p">)</span>
+           <span class="p">(</span><span class="nb">display </span><span class="nv">line</span><span class="p">)</span>
+           <span class="p">(</span><span class="nf">newline</span><span class="p">)))))</span>
+
+<span class="p">(</span><span class="k">define </span><span class="p">(</span><span class="nf">lowercase</span><span class="p">)</span>
+  <span class="p">(</span><span class="k">do </span><span class="p">((</span><span class="nf">line</span> <span class="p">(</span><span class="nf">read-line</span><span class="p">)</span> <span class="p">(</span><span class="nf">read-line</span><span class="p">)))</span>
+      <span class="p">((</span><span class="nb">eof-object? </span><span class="nv">line</span><span class="p">))</span>
+    <span class="p">(</span><span class="nb">display </span><span class="p">(</span><span class="nf">string-downcase</span> <span class="nv">line</span><span class="p">))</span>
+    <span class="p">(</span><span class="nf">newline</span><span class="p">)))</span>
+
+<span class="p">(</span><span class="k">define </span><span class="p">(</span><span class="nf">count-chunks</span><span class="p">)</span>
+  <span class="p">(</span><span class="k">do </span><span class="p">((</span><span class="nf">line</span> <span class="p">(</span><span class="nf">read-line</span><span class="p">)</span> <span class="p">(</span><span class="nf">read-line</span><span class="p">))</span>
+       <span class="p">(</span><span class="nf">chunks</span> <span class="mi">0</span><span class="p">))</span>
+      <span class="p">((</span><span class="k">or </span><span class="p">(</span><span class="nb">eof-object? </span><span class="nv">line</span><span class="p">)</span>
+           <span class="p">(</span><span class="nb">string=? </span><span class="nv">line</span> <span class="s">&quot;__DATA__&quot;</span><span class="p">)</span> <span class="p">(</span><span class="nb">string=? </span><span class="nv">line</span> <span class="s">&quot;__END__&quot;</span><span class="p">))</span>
+       <span class="p">(</span><span class="nf">format</span> <span class="no">#t</span> <span class="s">&quot;Found ~A chunks\n&quot;</span> <span class="nv">chunks</span><span class="p">))</span>
+    <span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">tokens</span>
+           <span class="p">(</span><span class="nf">string-tokenize</span> <span class="p">(</span><span class="nf">string-take</span> <span class="nv">line</span> <span class="p">(</span><span class="k">or </span><span class="p">(</span><span class="nf">string-index</span> <span class="nv">line</span> <span class="o">#</span><span class="err">\</span><span class="o">#</span><span class="p">)</span>
+                                                  <span class="p">(</span><span class="nb">string-length </span><span class="nv">line</span><span class="p">))))))</span>
+      <span class="p">(</span><span class="k">set! </span><span class="nv">chunks</span> <span class="p">(</span><span class="nb">+ </span><span class="nv">chunks</span> <span class="p">(</span><span class="nb">length </span><span class="nv">tokens</span><span class="p">))))))</span>
+
+<span class="p">(</span><span class="k">if </span><span class="p">(</span><span class="nb">null? </span><span class="nv">args</span><span class="p">)</span>
+  <span class="p">(</span><span class="nf">count-chunks</span><span class="p">)</span>     <span class="c1">; or find-login, lowercase, etc.</span>
+  <span class="p">(</span><span class="nf">for-each</span>
+   <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">file</span><span class="p">)</span>
+     <span class="p">(</span><span class="nf">catch</span> <span class="ss">&#39;system-error</span>
+       <span class="p">(</span><span class="k">lambda </span><span class="p">()</span>
+         <span class="p">(</span><span class="nb">with-input-from-file </span><span class="nv">file</span>
+           <span class="nv">count-chunks</span><span class="p">))</span>
+       <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">key</span> <span class="o">.</span> <span class="nv">args</span><span class="p">)</span>
+         <span class="p">(</span><span class="nf">format</span> <span class="p">(</span><span class="nf">current-error-port</span><span class="p">)</span> <span class="p">(</span><span class="nb">cadr </span><span class="nv">args</span><span class="p">)</span> <span class="p">(</span><span class="nb">caaddr </span><span class="nv">args</span><span class="p">)</span>
+                 <span class="p">(</span><span class="nb">car </span><span class="p">(</span><span class="nb">cdaddr </span><span class="nv">args</span><span class="p">)))</span>
+         <span class="p">(</span><span class="nb">newline </span><span class="p">(</span><span class="nf">current-error-port</span><span class="p">)))))</span>
+   <span class="nv">args</span><span class="p">))</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN383"
+>Modifying a File in Place with Temporary File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;; write changes to a temporary file then rename it</span>
+<span class="p">(</span><span class="nb">with-input-from-file </span><span class="nv">old</span>
+  <span class="p">(</span><span class="k">lambda </span><span class="p">()</span>
+    <span class="p">(</span><span class="nb">with-output-to-file </span><span class="nv">new</span>
+      <span class="p">(</span><span class="k">lambda </span><span class="p">()</span>
+        <span class="p">(</span><span class="k">do </span><span class="p">((</span><span class="nf">line</span> <span class="p">(</span><span class="nf">read-line</span><span class="p">)</span> <span class="p">(</span><span class="nf">read-line</span><span class="p">)))</span>
+            <span class="p">((</span><span class="nb">eof-object? </span><span class="nv">line</span><span class="p">))</span>
+          <span class="c1">;; change line, then...</span>
+          <span class="p">(</span><span class="nf">write-line</span> <span class="nv">line</span><span class="p">))))))</span>
+<span class="p">(</span><span class="nf">rename-file</span> <span class="nv">old</span> <span class="p">(</span><span class="nb">string-append </span><span class="nv">old</span> <span class="s">&quot;.orig&quot;</span><span class="p">))</span>
+<span class="p">(</span><span class="nf">rename-file</span> <span class="nv">new</span> <span class="nv">old</span><span class="p">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN386"
+>Modifying a File in Place with -i Switch</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;; no -i switch</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN389"
+>Modifying a File in Place Without a Temporary File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;; open the file in read/write mode, slurp up the contents, modify it,</span>
+<span class="c1">;; then write it back out:</span>
+<span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">p</span> <span class="p">(</span><span class="nf">open-file</span> <span class="nv">file</span> <span class="s">&quot;r+&quot;</span><span class="p">))</span>
+      <span class="p">(</span><span class="nf">lines</span> <span class="o">&#39;</span><span class="p">()))</span>
+  <span class="c1">;; read in lines</span>
+  <span class="p">(</span><span class="k">do </span><span class="p">((</span><span class="nf">line</span> <span class="p">(</span><span class="nf">read-line</span> <span class="nv">p</span><span class="p">)</span> <span class="p">(</span><span class="nf">read-line</span> <span class="nv">p</span><span class="p">)))</span>
+      <span class="p">((</span><span class="nb">eof-object? </span><span class="nv">line</span><span class="p">))</span>
+    <span class="p">(</span><span class="k">set! </span><span class="nv">lines</span> <span class="p">(</span><span class="nb">cons </span><span class="nv">line</span> <span class="nv">lines</span><span class="p">)))</span>
+  <span class="c1">;; modify (reverse lines)</span>
+  <span class="p">(</span><span class="nf">seek</span> <span class="nv">p</span> <span class="mi">0</span> <span class="nv">SEEK_SET</span><span class="p">)</span>
+  <span class="c1">;; write out lines</span>
+  <span class="p">(</span><span class="nb">for-each </span><span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">x</span><span class="p">)</span> <span class="p">(</span><span class="nf">write-line</span> <span class="nv">x</span> <span class="nv">p</span><span class="p">))</span> <span class="nv">lines</span><span class="p">)</span>
+  <span class="c1">;; truncate the file</span>
+  <span class="p">(</span><span class="nf">truncate-file</span> <span class="nv">p</span><span class="p">)</span>
+  <span class="p">(</span><span class="nf">close</span> <span class="nv">p</span><span class="p">))</span>
+
+<span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">p</span> <span class="p">(</span><span class="nf">open-file</span> <span class="s">&quot;foo&quot;</span> <span class="s">&quot;r+&quot;</span><span class="p">))</span>
+      <span class="p">(</span><span class="nf">lines</span> <span class="o">&#39;</span><span class="p">())</span>
+      <span class="p">(</span><span class="nf">date</span> <span class="p">(</span><span class="nf">date-&gt;string</span> <span class="p">(</span><span class="nf">current-date</span><span class="p">))))</span>
+  <span class="p">(</span><span class="k">do </span><span class="p">((</span><span class="nf">line</span> <span class="p">(</span><span class="nf">read-line</span> <span class="nv">p</span> <span class="ss">&#39;concat</span><span class="p">)</span> <span class="p">(</span><span class="nf">read-line</span> <span class="nv">p</span> <span class="ss">&#39;concat</span><span class="p">)))</span>
+      <span class="p">((</span><span class="nb">eof-object? </span><span class="nv">line</span><span class="p">))</span>
+    <span class="p">(</span><span class="k">set! </span><span class="nv">lines</span> <span class="p">(</span><span class="nb">cons </span><span class="nv">line</span> <span class="nv">lines</span><span class="p">)))</span>
+  <span class="p">(</span><span class="nf">seek</span> <span class="nv">p</span> <span class="mi">0</span> <span class="nv">SEEK_SET</span><span class="p">)</span>
+  <span class="p">(</span><span class="nf">for-each</span>
+   <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">x</span><span class="p">)</span>
+     <span class="p">(</span><span class="nf">regexp-substitute/global</span> <span class="nv">p</span> <span class="s">&quot;DATE&quot;</span> <span class="nv">x</span> <span class="ss">&#39;pre</span> <span class="nv">date</span> <span class="ss">&#39;post</span><span class="p">))</span>
+   <span class="p">(</span><span class="nb">reverse </span><span class="nv">lines</span><span class="p">))</span>
+  <span class="p">(</span><span class="nf">truncate-file</span> <span class="nv">p</span><span class="p">)</span>
+  <span class="p">(</span><span class="nf">close</span> <span class="nv">p</span><span class="p">))</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN392"
+>Locking a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="p">(</span><span class="k">define </span><span class="nv">p</span> <span class="p">(</span><span class="nf">open-file</span> <span class="nv">path</span> <span class="s">&quot;r+&quot;</span><span class="p">))</span>
+<span class="p">(</span><span class="nf">flock</span> <span class="nv">p</span> <span class="nv">LOCK_EX</span><span class="p">)</span>
+<span class="c1">;; update the file, then...</span>
+<span class="p">(</span><span class="nf">close</span> <span class="nv">p</span><span class="p">)</span>
+
+<span class="c1">;; to increment a number in a file</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">p</span> <span class="p">(</span><span class="nf">open</span> <span class="s">&quot;numfile&quot;</span> <span class="p">(</span><span class="nf">logior</span> <span class="nv">O_RDWR</span> <span class="nv">O_CREAT</span><span class="p">)))</span>
+<span class="p">(</span><span class="nf">flock</span> <span class="nv">p</span> <span class="nv">LOCK_EX</span><span class="p">)</span>
+<span class="c1">;; Now we have acquired the lock, it&#39;s safe for I/O</span>
+<span class="p">(</span><span class="k">let* </span><span class="p">((</span><span class="nf">obj</span> <span class="p">(</span><span class="nb">read </span><span class="nv">p</span><span class="p">))</span>
+       <span class="p">(</span><span class="nf">num</span> <span class="p">(</span><span class="k">if </span><span class="p">(</span><span class="nb">eof-object? </span><span class="nv">obj</span><span class="p">)</span> <span class="mi">0</span> <span class="nv">obj</span><span class="p">)))</span>
+  <span class="p">(</span><span class="nf">seek</span> <span class="nv">p</span> <span class="mi">0</span> <span class="nv">SEEK_SET</span><span class="p">)</span>
+  <span class="p">(</span><span class="nf">truncate-file</span> <span class="nv">p</span><span class="p">)</span>
+  <span class="p">(</span><span class="nb">write </span><span class="p">(</span><span class="mi">1</span><span class="nv">+</span> <span class="nv">num</span><span class="p">)</span> <span class="nv">p</span><span class="p">)</span>
+  <span class="p">(</span><span class="nb">newline </span><span class="nv">p</span><span class="p">))</span>
+<span class="p">(</span><span class="nf">close</span> <span class="nv">p</span><span class="p">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN395"
+>Flushing Output</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;; use force-output</span>
+<span class="p">(</span><span class="nf">force-output</span> <span class="nv">p</span><span class="p">)</span>
+
+<span class="c1">;; flush all open ports</span>
+<span class="p">(</span><span class="nf">flush-all-ports</span><span class="p">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN398"
+>Reading from Many Filehandles Without Blocking</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;; use select</span>
+<span class="p">(</span><span class="nf">select</span> <span class="nv">inputs</span> <span class="nv">outputs</span> <span class="nv">exceptions</span> <span class="nv">seconds</span><span class="p">)</span>
+<span class="p">(</span><span class="nf">select</span> <span class="p">(</span><span class="nb">list </span><span class="nv">p1</span> <span class="nv">p2</span> <span class="nv">p3</span><span class="p">)</span> <span class="o">&#39;</span><span class="p">()</span> <span class="o">&#39;</span><span class="p">())</span>
+
+<span class="p">(</span><span class="k">let* </span><span class="p">((</span><span class="nf">nfound</span> <span class="p">(</span><span class="nf">select</span> <span class="p">(</span><span class="nb">list </span><span class="nv">inport</span><span class="p">)</span> <span class="o">&#39;</span><span class="p">()</span> <span class="o">&#39;</span><span class="p">()))</span>
+       <span class="p">(</span><span class="nf">inputs</span> <span class="p">(</span><span class="nb">car </span><span class="nv">nfound</span><span class="p">)))</span>
+  <span class="p">(</span><span class="k">if </span><span class="p">(</span><span class="nb">not </span><span class="p">(</span><span class="nb">null? </span><span class="nv">inputs</span><span class="p">))</span>
+      <span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">line</span> <span class="p">(</span><span class="nf">read-line</span> <span class="nv">inport</span><span class="p">)))</span>
+        <span class="p">(</span><span class="nf">format</span> <span class="no">#t</span> <span class="s">&quot;I read ~A\n&quot;</span> <span class="nv">line</span><span class="p">))))</span>
+
+<span class="c1">;; or use char-ready? if you only need a single character</span>
+<span class="p">(</span><span class="k">if </span><span class="p">(</span><span class="nb">char-ready? </span><span class="nv">p</span><span class="p">)</span>
+  <span class="p">(</span><span class="nf">format</span> <span class="no">#t</span> <span class="s">&quot;I read ~A\n&quot;</span> <span class="p">(</span><span class="nb">read-char </span><span class="nv">p</span><span class="p">)))</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN401"
+>Doing Non-Blocking I/O</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;; use the O_NONBLOCK option with open</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">modem</span> <span class="p">(</span><span class="nf">open</span> <span class="s">&quot;/dev/cua0&quot;</span> <span class="p">(</span><span class="nf">logior</span> <span class="nv">O_RDWR</span> <span class="nv">O_NONBLOCK</span><span class="p">)))</span>
+
+<span class="c1">;; or use fcntl if you already have a port</span>
+<span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">flags</span> <span class="p">(</span><span class="nf">fcntl</span> <span class="nv">p</span> <span class="nv">F_GETFD</span><span class="p">)))</span>
+  <span class="p">(</span><span class="nf">fcntl</span> <span class="nv">p</span> <span class="nv">F_SETFD</span> <span class="p">(</span><span class="nf">logior</span> <span class="nv">flags</span> <span class="nv">O_NONBLOCK</span><span class="p">)))</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN404"
+>Determining the Number of Bytes to Read</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;; use stat</span>
+<span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">buf</span> <span class="p">(</span><span class="nb">make-string </span><span class="p">(</span><span class="nf">stat:size</span> <span class="p">(</span><span class="nf">stat</span> <span class="nv">p</span><span class="p">)))))</span>
+  <span class="p">(</span><span class="nf">read-string!/partial</span> <span class="nv">buf</span> <span class="nv">input</span><span class="p">))</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN407"
+>Storing Filehandles in Variables</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;; not needed - ports are first class objects</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN410"
+>Caching Open Output Filehandles</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN413"
+>Printing to Many Filehandles Simultaneously</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;; use for-each on the list of ports:</span>
+<span class="p">(</span><span class="nb">for-each </span><span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">p</span><span class="p">)</span> <span class="p">(</span><span class="nb">display </span><span class="nv">stuff-to-print</span> <span class="nv">p</span><span class="p">))</span> <span class="nv">port-list</span><span class="p">)</span>
+
+<span class="c1">;; or, if you don&#39;t want to keep track of the port list and know you</span>
+<span class="c1">;; want to print to all open output ports, you can use port-for-each:</span>
+<span class="p">(</span><span class="nf">port-for-each</span> <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">p</span><span class="p">)</span> <span class="p">(</span><span class="k">if </span><span class="p">(</span><span class="nb">output-port? </span><span class="nv">p</span><span class="p">)</span> <span class="p">(</span><span class="nb">display </span><span class="nv">stuff</span> <span class="nv">p</span><span class="p">))))</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN416"
+>Opening and Closing File Descriptors by Number</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;; use fdopen:</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">p</span> <span class="p">(</span><span class="nf">fdopen</span> <span class="nv">num</span> <span class="nv">mode</span><span class="p">))</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">p</span> <span class="p">(</span><span class="nf">fdopen</span> <span class="mi">3</span> <span class="s">&quot;r&quot;</span><span class="p">))</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">p</span> <span class="p">(</span><span class="nf">fdopen</span> <span class="p">(</span><span class="nb">string-&gt;number </span><span class="p">(</span><span class="nf">getenv</span> <span class="s">&quot;MHCONTEXTFD&quot;</span><span class="p">))</span> <span class="s">&quot;r&quot;</span><span class="p">))</span>
+<span class="c1">;; after processing</span>
+<span class="p">(</span><span class="nf">close</span> <span class="nv">p</span><span class="p">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN419"
+>Copying Filehandles</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">;; ports are first class objects and can be aliased and passed around</span>
+<span class="c1">;; like any other non-immediate variables:</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">alias</span> <span class="nv">original</span><span class="p">)</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">old-in</span> <span class="p">(</span><span class="nf">current-input-port</span><span class="p">))</span>
+
+<span class="c1">;; or you can open two separate ports on the same file:</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">p1</span> <span class="p">(</span><span class="nb">open-input-file </span><span class="nv">path</span><span class="p">))</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">p2</span> <span class="p">(</span><span class="nb">open-input-file </span><span class="nv">path</span><span class="p">))</span>
+
+<span class="c1">;; or use fdopen:</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">copy-of-p</span> <span class="p">(</span><span class="nf">fdopen</span> <span class="p">(</span><span class="nf">fileno</span> <span class="nv">p</span><span class="p">)</span> <span class="nv">mode</span><span class="p">))</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">old-out</span> <span class="p">(</span><span class="nf">current-output-port</span><span class="p">))</span>
+<span class="p">(</span><span class="k">define </span><span class="nv">old-err</span> <span class="p">(</span><span class="nf">current-error-port</span><span class="p">))</span>
+
+<span class="p">(</span><span class="k">define </span><span class="nv">new-out</span> <span class="p">(</span><span class="nb">open-output-file </span><span class="s">&quot;/tmp/program.out&quot;</span><span class="p">))</span>
+
+<span class="p">(</span><span class="nf">set-current-output-port</span> <span class="nv">new-out</span><span class="p">)</span>
+<span class="p">(</span><span class="nf">set-current-error-port</span> <span class="nv">new-out</span><span class="p">)</span>
+
+<span class="p">(</span><span class="nf">system</span> <span class="nv">joe-random-program</span><span class="p">)</span>
+
+<span class="p">(</span><span class="nf">close</span> <span class="nv">new-out</span><span class="p">)</span>
+
+<span class="p">(</span><span class="nf">set-current-output-port</span> <span class="nv">old-out</span><span class="p">)</span>
+<span class="p">(</span><span class="nf">set-current-error-port</span> <span class="nv">old-out</span><span class="p">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN422"
+>Program: netlock</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN425"
+>Program: lockarea</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="patternmatching.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="filecontents.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Pattern Matching</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>File Contents</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

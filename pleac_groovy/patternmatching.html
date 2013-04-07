@@ -1,0 +1,1911 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Pattern Matching</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Groovy"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Hashes"
+HREF="hashes.html"><LINK
+REL="NEXT"
+TITLE="File Access"
+HREF="fileaccess.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Groovy</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="hashes.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="fileaccess.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="PATTERNMATCHING"
+>6. Pattern Matching</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN285"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// Groovy has built-in language support for Regular Expressions:</span>
+<span class="s">// *  Strings quoted with &#39;/&#39; characters have special escaping</span>
+<span class="s">//    rules for backslashes and the like.</span>
+<span class="s">// *  ~string (regex pattern operator)</span>
+<span class="s">// *  m =~ /pattern/ (regex find operator)</span>
+<span class="s">// *  m ==~/pattern/ (regex match operator)</span>
+<span class="s">// *  patterns can be used in case expressions in a switch statement</span>
+<span class="s">// *  string.replaceAll can take a closure expression as the second argument</span>
+<span class="s">// In addition, Groovy can make use of Java&#39;s Pattern, Matcher and Scanner classes</span>
+<span class="s">// directly. (The sugar coating metnioed above sits on top of these anyway).</span>
+<span class="s">// There are also additional open source Java regex libraries which can be used.</span>
+
+<span class="s">meadow1 = &#39;cow grass butterflies Ovine&#39;</span>
+<span class="s">meadow2 = &#39;goat sheep flowers dog&#39;</span>
+<span class="s">// pattern strings can benefit from &#39;slashy&#39; quotes</span>
+<span class="s">partial = /sheep/</span>
+<span class="s">full = /.*sheep.*/</span>
+
+<span class="s">// find operator</span>
+<span class="s">assert !(meadow1 =~ partial)</span>
+<span class="s">assert meadow2 =~ partial</span>
+<span class="s">finder = (meadow2 =~ partial)</span>
+<span class="s">// underneath Groovy sugar coating is Java implementation</span>
+<span class="s">assert finder instanceof java.util.regex.Matcher</span>
+
+<span class="s">// match operator</span>
+<span class="s">assert !(meadow1 ==~ full)</span>
+<span class="s">assert meadow2 ==~ full</span>
+<span class="s">matcher = (meadow2 ==~ full)</span>
+<span class="s">// under the covers is just a boolean</span>
+<span class="s">assert matcher instanceof Boolean</span>
+
+<span class="s">assert meadow1 =~ /(?i)\bovines?\b/ // (?i) == case flag</span>
+
+<span class="s">string = &#39;good food&#39;</span>
+<span class="s">println string.replaceFirst(/o*/, &#39;e&#39;)</span>
+<span class="s">// =&gt; egood food</span>
+<span class="s">println string.replaceAll(/o*/, &#39;e&#39;)</span>
+<span class="s">// =&gt; egeede efeede (global)</span>
+<span class="s">// beware this one is just textual replacement</span>
+<span class="s">println string.replace(/o*/, &#39;e&#39;)</span>
+<span class="s">// =&gt; good food</span>
+<span class="s">println &#39;o*o*&#39;.replace(/o*/, &#39;e&#39;)</span>
+<span class="s">// =&gt; ee</span>
+
+<span class="s">// groovy -e &quot;m = args[0] =~ /(a|ba|b)+(a|ac)+/; if (m.matches()) println m[0][0]&quot; ababacaca</span>
+<span class="s">// =&gt; ababa</span>
+
+<span class="s">digits = &quot;123456789&quot;</span>
+<span class="s">nonlap = digits =~ /\d\d\d/</span>
+<span class="s">assert nonlap.count == 3</span>
+<span class="s">print &#39;Non-overlapping:  &#39;</span>
+<span class="s">(0..&lt;nonlap.count).each{ print nonlap[it] + &#39; &#39; }; print &#39;\n&#39;</span>
+<span class="s">print &#39;Overlapping:      &#39;</span>
+<span class="s">yeslap = (digits =~ /(?=(\d\d\d))/)</span>
+<span class="s">assert yeslap.count == 7</span>
+<span class="s">(0..&lt;yeslap.count).each{ print yeslap[it][1] + &#39; &#39; }; print &#39;\n&#39;</span>
+<span class="s">// Non-overlapping:  123 456 789</span>
+<span class="s">// Overlapping:      123 234 345 456 567 678 789</span>
+
+<span class="s">string = &#39;And little lambs eat ivy&#39;</span>
+<span class="s">// Greedy version</span>
+<span class="s">parts = string =~ /(.*)(l[^s]*s)(.*)/</span>
+<span class="s">(1..parts.groupCount()).each{ print &quot;(${parts[0][it]}) &quot; }; print &#39;\n&#39;</span>
+<span class="s">// (And little ) (lambs) ( eat ivy)</span>
+
+<span class="s">// Reluctant version</span>
+<span class="s">parts = string =~ /(.*?)(l[^s]*s)(.*)/</span>
+<span class="s">(1..parts.groupCount()).each{ print &quot;(${parts[0][it]}) &quot; }; print &#39;\n&#39;</span>
+<span class="s">// (And ) (little lambs) ( eat ivy)</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN288"
+>Copying and Substituting Simultaneously</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// Groovy splits src and dest to avoid this problem</span>
+<span class="s">src = &#39;Go this way&#39;</span>
+<span class="s">dst = src.replaceFirst(&#39;this&#39;, &#39;that&#39;)</span>
+<span class="s">assert dst == &#39;Go that way&#39;</span>
+
+<span class="s">// extract basename</span>
+<span class="s">src = &#39;c:/some/path/file.ext&#39;</span>
+<span class="s">dst = src.replaceFirst(&#39;^.*/&#39;, &#39;&#39;)</span>
+<span class="s">assert dst == &#39;file.ext&#39;</span>
+
+<span class="s">// Make All Words Title-Cased (not that you would do it this way)</span>
+<span class="s">//  The preprocessing operations \X where X is one of l, u, L, and U are not supported</span>
+<span class="s">// in the sun regex library but other Java regex libraries may support this. Instead:</span>
+<span class="s">src = &#39;make all words title-cased&#39;</span>
+<span class="s">dst = src</span>
+<span class="s">(&#39;a&#39;..&#39;z&#39;).each{ dst = dst.replaceAll(/([^a-zA-Z])/+it+/|\A/+it, /$</span><span class="mi">1</span><span class="s">/+it.toUpperCase()) }</span>
+<span class="s">assert dst == &#39;Make All Words Title-Cased&#39;</span>
+
+<span class="s">// rename list of dirs</span>
+<span class="s">bindirs = &#39;/</span><span class="n">usr</span><span class="s">/bin /</span><span class="n">bin</span> <span class="s">/usr/</span><span class="n">local</span><span class="s">/bin&#39;.split(&#39; &#39;).toList()</span>
+<span class="s">expected = &#39;/</span><span class="n">usr</span><span class="s">/lib /</span><span class="n">lib</span> <span class="s">/usr/</span><span class="n">local</span><span class="s">/lib&#39;.split(&#39; &#39;).toList()</span>
+<span class="s">libdirs = bindirs.collect { dir -&gt; dir.replaceFirst(&#39;bin&#39;, &#39;lib&#39;) }</span>
+<span class="s">assert libdirs == expected</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN291"
+>Matching Letters</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// Groovy uses Java regex (other Java regex packages would also be possible)</span>
+<span class="s">// It doesn&#39;t support Locale-based settings but you can roll your own to some</span>
+<span class="s">// extent, you can use any Unicode characters as per below and you can use</span>
+<span class="s">// \p{Punct}    Punctuation: One of !&quot;#$%&amp;&#39;()*+,-./</span><span class="o">:;&lt;=&gt;?</span><span class="err">@</span><span class="o">[</span><span class="err">\</span><span class="o">]^</span><span class="n">_</span><span class="err">`</span><span class="o">{|}~</span>
+<span class="c1">// or the other special character classes</span>
+<span class="n">words</span> <span class="o">=</span> <span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">silly</span>
+<span class="s1">façade</span>
+<span class="s1">coöperate</span>
+<span class="s1">nińo</span>
+<span class="s1">Renée</span>
+<span class="s1">Moliçre</span>
+<span class="s1">hćmoglobin</span>
+<span class="s1">naďve</span>
+<span class="s1">tschüß</span>
+<span class="s1">random!stuff#here\u0948</span>
+<span class="s1">&#39;&#39;&#39;</span>
+<span class="n">results</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+<span class="n">greekAlpha</span> <span class="o">=</span> <span class="s1">&#39;\u0391&#39;</span>
+<span class="n">special</span> <span class="o">=</span> <span class="s1">&#39;çéüßöńŕćď?&#39;</span> <span class="o">+</span> <span class="n">greekAlpha</span>
+<span class="c1">// flag as either Y (alphabetic) or N (not)</span>
+<span class="n">words</span><span class="o">.</span><span class="na">split</span><span class="o">(</span><span class="s1">&#39;\n&#39;</span><span class="o">).</span><span class="na">findAll</span><span class="o">{</span><span class="n">it</span><span class="o">.</span><span class="na">trim</span><span class="o">()}.</span><span class="na">each</span><span class="o">{</span> <span class="n">results</span> <span class="o">+=</span> <span class="n">it</span> <span class="o">==~</span> <span class="s">/^[\w/</span><span class="o">+</span><span class="n">special</span><span class="o">+</span><span class="s">/]+$/</span> <span class="o">?</span><span class="s1">&#39;Y&#39;</span><span class="o">:</span><span class="s1">&#39;N&#39;</span> <span class="o">}</span>
+<span class="k">assert</span> <span class="n">results</span> <span class="o">==</span> <span class="s1">&#39;YYYYYYYYYN&#39;</span>
+<span class="n">results</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+<span class="n">words</span><span class="o">.</span><span class="na">split</span><span class="o">(</span><span class="s1">&#39;\n&#39;</span><span class="o">).</span><span class="na">findAll</span><span class="o">{</span><span class="n">it</span><span class="o">.</span><span class="na">trim</span><span class="o">()}.</span><span class="na">each</span><span class="o">{</span> <span class="n">results</span> <span class="o">+=</span> <span class="n">it</span> <span class="o">==~</span> <span class="s">/^[^\p{Punct}]+$/</span> <span class="o">?</span><span class="s1">&#39;Y&#39;</span><span class="o">:</span><span class="s1">&#39;N&#39;</span> <span class="o">}</span>
+<span class="k">assert</span> <span class="n">results</span> <span class="o">==</span> <span class="s1">&#39;YYYYYYYYYN&#39;</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN294"
+>Matching Words</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="c1">// as many non-whitespace bytes as possible</span>
+<span class="n">finder</span> <span class="o">=</span> <span class="s1">&#39;abczqz z&#39;</span> <span class="o">=~</span> <span class="s">/a\S+z/</span>
+<span class="k">assert</span> <span class="n">finder</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span> <span class="o">==</span> <span class="s1">&#39;abczqz&#39;</span>
+
+<span class="c1">// as many letters, apostrophes, and hyphens</span>
+<span class="n">finder</span> <span class="o">=</span> <span class="s2">&quot;aAzZ&#39;z-z0z&quot;</span> <span class="o">=~</span> <span class="s">/a[A-Za-z&#39;-]+z/</span>          <span class="c1">//&#39;</span>
+<span class="k">assert</span> <span class="n">finder</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span> <span class="o">==</span> <span class="s2">&quot;aAzZ&#39;z-z&quot;</span>
+
+<span class="c1">// selecting words</span>
+<span class="n">finder</span> <span class="o">=</span> <span class="s1">&#39;23rd Psalm&#39;</span> <span class="o">=~</span> <span class="s">/\b([A-Za-z]+)\b/</span>   <span class="c1">// usually best</span>
+<span class="n">println</span> <span class="n">finder</span><span class="o">[</span><span class="mi">0</span><span class="o">][</span><span class="mi">0</span><span class="o">]</span>
+<span class="c1">// =&gt; Psalm (23rd is not matched)</span>
+<span class="n">finder</span> <span class="o">=</span> <span class="s1">&#39;23rd Psalm&#39;</span> <span class="o">=~</span> <span class="s">/\s([A-Za-z]+)\s/</span>   <span class="c1">// fails at ends or w/ punctuation</span>
+<span class="n">println</span> <span class="n">finder</span><span class="o">.</span><span class="na">matches</span><span class="o">()</span>
+<span class="c1">// =&gt; false (no whitespaces at ends)</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN297"
+>Commenting Regular Expressions</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="n">str</span> <span class="o">=</span> <span class="s1">&#39;groovy.codehaus.org and www.aboutgroovy.com&#39;</span>
+<span class="n">re</span> <span class="o">=</span> <span class="s1">&#39;&#39;&#39;(?x)          # to enable whitespace and comments</span>
+<span class="s1">      (               # capture the hostname in $1</span>
+<span class="s1">        (?:           # these parens for grouping only</span>
+<span class="s1">          (?! [-_] )  # lookahead for neither underscore nor dash</span>
+<span class="s1">          [\\w-] +    # hostname component</span>
+<span class="s1">          \\.         # and the domain dot</span>
+<span class="s1">        ) +           # now repeat that whole thing a bunch of times</span>
+<span class="s1">        [A-Za-z]      # next must be a letter</span>
+<span class="s1">        [\\w-] +      # now trailing domain part</span>
+<span class="s1">      )               # end of $1 capture</span>
+<span class="s1">     &#39;&#39;&#39;</span>
+
+<span class="n">finder</span> <span class="o">=</span> <span class="n">str</span> <span class="o">=~</span> <span class="n">re</span>
+<span class="n">out</span> <span class="o">=</span> <span class="n">str</span>
+<span class="o">(</span><span class="mi">0</span><span class="o">..&lt;</span><span class="n">finder</span><span class="o">.</span><span class="na">count</span><span class="o">).</span><span class="na">each</span><span class="o">{</span>
+    <span class="n">adr</span> <span class="o">=</span> <span class="n">finder</span><span class="o">[</span><span class="n">it</span><span class="o">][</span><span class="mi">0</span><span class="o">]</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="na">replaceAll</span><span class="o">(</span><span class="n">adr</span><span class="o">,</span> <span class="s2">&quot;$adr [${InetAddress.getByName(adr).hostAddress}]&quot;</span><span class="o">)</span>
+<span class="o">}</span>
+<span class="n">println</span> <span class="n">out</span>
+<span class="c1">// =&gt; groovy.codehaus.org [63.246.7.187] and www.aboutgroovy.com [63.246.7.76]</span>
+
+<span class="c1">// to match whitespace or #-characters in an extended re you need to escape them.</span>
+<span class="n">foo</span> <span class="o">=</span> <span class="mi">42</span>
+<span class="n">str</span> <span class="o">=</span> <span class="s1">&#39;blah #foo# blah&#39;</span>
+<span class="n">re</span> <span class="o">=</span> <span class="s1">&#39;&#39;&#39;(?x)         # to enable whitespace and comments</span>
+<span class="s1">              \\#    # a pound sign</span>
+<span class="s1">              (\\w+) # the variable name</span>
+<span class="s1">              \\#    # another pound sign</span>
+<span class="s1">     &#39;&#39;&#39;</span>
+<span class="n">finder</span> <span class="o">=</span> <span class="n">str</span> <span class="o">=~</span> <span class="n">re</span>
+<span class="n">found</span> <span class="o">=</span> <span class="n">finder</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span>
+<span class="n">out</span> <span class="o">=</span> <span class="n">str</span><span class="o">.</span><span class="na">replaceAll</span><span class="o">(</span><span class="n">found</span><span class="o">[</span><span class="mi">0</span><span class="o">],</span> <span class="n">evaluate</span><span class="o">(</span><span class="n">found</span><span class="o">[</span><span class="mi">1</span><span class="o">]).</span><span class="na">toString</span><span class="o">())</span>
+<span class="k">assert</span> <span class="n">out</span> <span class="o">==</span> <span class="s1">&#39;blah 42 blah&#39;</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN300"
+>Finding the Nth Occurrence of a Match</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="n">fish</span> <span class="o">=</span> <span class="s1">&#39;One fish two fish red fish blue fish&#39;</span>
+<span class="n">expected</span> <span class="o">=</span> <span class="s1">&#39;The third fish is a red one.&#39;</span>
+<span class="n">thirdFish</span> <span class="o">=</span> <span class="s">/(?:\w+\s+fish\s+){2}(\w+)\s+fish.*/</span>
+<span class="k">assert</span> <span class="n">expected</span> <span class="o">==</span> <span class="o">(</span><span class="n">fish</span><span class="o">.</span><span class="na">replaceAll</span><span class="o">(</span><span class="n">thirdFish</span><span class="o">,</span> <span class="s1">&#39;The third fish is a $1 one.&#39;</span><span class="o">))</span>
+
+<span class="n">anyFish</span> <span class="o">=</span> <span class="s">/(\w+)\s+fish\b/</span>
+<span class="n">finder</span> <span class="o">=</span> <span class="n">fish</span> <span class="o">=~</span> <span class="n">anyFish</span>
+<span class="c1">// finder contains an array of matched groups</span>
+<span class="c1">// 2 = third one (index start at 0), 1 = matched word in group</span>
+<span class="n">out</span> <span class="o">=</span> <span class="s2">&quot;The third fish is a ${finder[2][1]} one.&quot;</span>
+<span class="k">assert</span> <span class="n">out</span> <span class="o">==</span> <span class="n">expected</span>
+
+<span class="n">evens</span> <span class="o">=</span> <span class="o">[]</span>
+<span class="o">(</span><span class="mi">0</span><span class="o">..&lt;</span><span class="n">finder</span><span class="o">.</span><span class="na">count</span><span class="o">).</span><span class="na">findAll</span><span class="o">{</span><span class="n">it</span><span class="o">%</span><span class="mi">2</span><span class="o">!=</span><span class="mi">0</span><span class="o">}.</span><span class="na">each</span><span class="o">{</span> <span class="n">evens</span> <span class="o">+=</span> <span class="n">finder</span><span class="o">[</span><span class="n">it</span><span class="o">][</span><span class="mi">1</span><span class="o">]</span> <span class="o">}</span>
+<span class="n">println</span> <span class="s2">&quot;Even numbered fish are ${evens.join(&#39; &#39;)}.&quot;</span>
+<span class="c1">// =&gt; Even numbered fish are two blue.</span>
+
+<span class="c1">// one of several ways to do this</span>
+<span class="n">pond</span> <span class="o">=</span> <span class="n">fish</span> <span class="o">+</span> <span class="s1">&#39; in the pond&#39;</span>
+<span class="n">fishInPond</span> <span class="o">=</span> <span class="o">(</span><span class="s">/(\w+)(\s+fish\b\s*)/</span><span class="o">)</span> <span class="o">*</span> <span class="mi">4</span> <span class="o">+</span> <span class="s">/(.*)/</span>
+<span class="n">found</span> <span class="o">=</span> <span class="o">(</span><span class="n">pond</span> <span class="o">=~</span> <span class="n">fishInPond</span><span class="o">)[</span><span class="mi">0</span><span class="o">]</span>
+<span class="n">println</span> <span class="o">((</span><span class="n">found</span><span class="o">[</span><span class="mi">1</span><span class="o">..</span><span class="mi">6</span><span class="o">]</span> <span class="o">+</span> <span class="s1">&#39;sushi&#39;</span> <span class="o">+</span> <span class="n">found</span><span class="o">[</span><span class="mi">8</span><span class="o">..</span><span class="mi">9</span><span class="o">]).</span><span class="na">join</span><span class="o">())</span>
+<span class="c1">// =&gt; One fish two fish red fish sushi fish in the pond</span>
+
+<span class="c1">// find last fish</span>
+<span class="n">expected</span> <span class="o">=</span> <span class="s1">&#39;Last fish is blue&#39;</span>
+<span class="n">pond</span> <span class="o">=</span> <span class="s1">&#39;One fish two fish red fish blue fish swim here.&#39;</span>
+<span class="n">finder</span> <span class="o">=</span> <span class="o">(</span><span class="n">pond</span> <span class="o">=~</span> <span class="n">anyFish</span><span class="o">)</span>
+<span class="k">assert</span> <span class="n">expected</span> <span class="o">==</span> <span class="s2">&quot;Last fish is ${finder[finder.count-1][1]}&quot;</span>
+<span class="c1">// =&gt; Last fish is blue</span>
+
+<span class="c1">// greedy match version of above</span>
+<span class="n">finder</span> <span class="o">=</span> <span class="o">(</span><span class="n">pond</span> <span class="o">=~</span> <span class="s">/.*\b/</span> <span class="o">+</span> <span class="n">anyFish</span><span class="o">)</span>
+<span class="k">assert</span> <span class="n">expected</span> <span class="o">==</span> <span class="s2">&quot;Last fish is ${finder[0][1]}&quot;</span>
+
+<span class="c1">// last fish match version of above</span>
+<span class="n">finder</span> <span class="o">=</span> <span class="o">(</span><span class="n">pond</span> <span class="o">=~</span> <span class="s">/\b(\w+)\s+fish\b(?!.*\bfish\b)/</span><span class="o">)</span>
+<span class="k">assert</span> <span class="n">expected</span> <span class="o">==</span> <span class="s2">&quot;Last fish is ${finder[0][1]}&quot;</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN303"
+>Matching Multiple Lines</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="c1">// Html Stripper</span>
+<span class="c1">// get this using: fakedfile = new File(&#39;path_to_file.htm&#39;).text</span>
+<span class="n">fakedFile</span> <span class="o">=</span> <span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">&lt;html&gt;</span>
+<span class="s1">&lt;head&gt;&lt;title&gt;Chapter 1 Title&lt;/title&gt;&lt;/head&gt;</span>
+<span class="s1">&lt;body&gt;</span>
+<span class="s1">&lt;h1&gt;Chapter 1: Some Heading&lt;/h1&gt;</span>
+<span class="s1">A paragraph.</span>
+<span class="s1">&lt;/body&gt;</span>
+<span class="s1">&lt;/html&gt;</span>
+<span class="s1">&#39;&#39;&#39;</span>
+
+<span class="n">stripExpectations</span> <span class="o">=</span> <span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">Chapter 1 Title</span>
+
+<span class="s1">Chapter 1: Some Heading</span>
+<span class="s1">A paragraph.</span>
+<span class="s1">&#39;&#39;&#39;</span><span class="o">.</span><span class="na">trim</span><span class="o">()</span>
+
+<span class="n">stripped</span> <span class="o">=</span> <span class="n">fakedFile</span><span class="o">.</span><span class="na">replaceAll</span><span class="o">(</span><span class="s">/(?m)&lt;.*?&gt;/</span><span class="o">,</span><span class="s1">&#39;&#39;</span><span class="o">).</span><span class="na">trim</span><span class="o">()</span>
+<span class="k">assert</span> <span class="n">stripExpectations</span> <span class="o">==</span> <span class="n">stripped</span>
+
+<span class="n">pattern</span> <span class="o">=</span> <span class="s1">&#39;&#39;&#39;(?x)</span>
+<span class="s1">      (                    # capture in $1</span>
+<span class="s1">          Chapter          # text string</span>
+<span class="s1">          \\s+             # mandatory whitespace</span>
+<span class="s1">          \\d+             # decimal number</span>
+<span class="s1">          \\s*             # optional whitespace</span>
+<span class="s1">          :                # a real colon</span>
+<span class="s1">          . *              # anything not a newline till end of line</span>
+<span class="s1">      )</span>
+<span class="s1">&#39;&#39;&#39;</span>
+
+<span class="n">headerfyExpectations</span> <span class="o">=</span> <span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">Chapter 1 Title</span>
+
+<span class="s1">&lt;H1&gt;Chapter 1: Some Heading&lt;/H1&gt;</span>
+<span class="s1">A paragraph.</span>
+<span class="s1">&#39;&#39;&#39;</span><span class="o">.</span><span class="na">trim</span><span class="o">()</span>
+
+<span class="n">headerfied</span> <span class="o">=</span> <span class="n">stripped</span><span class="o">.</span><span class="na">replaceAll</span><span class="o">(</span><span class="n">pattern</span><span class="o">,</span> <span class="s1">&#39;&lt;H1&gt;$1&lt;/H1&gt;&#39;</span><span class="o">)</span>
+<span class="k">assert</span> <span class="n">headerfyExpectations</span> <span class="o">==</span> <span class="n">headerfied</span>
+
+<span class="c1">// one liner equivalent which prints to stdout</span>
+<span class="c1">//% groovy -p -e &quot;line.replaceAll(/^(Chapter\s+\d+\s*:.*)/,&#39;&lt;H1&gt;$1&lt;/H1&gt;&#39;)&quot;</span>
+
+<span class="c1">// one liner equivalent which modifies file in place and creates *.bak original file</span>
+<span class="c1">//% groovy -pi .bak -e &quot;line.replaceAll(/^(Chapter\s+\d+\s*:.*)/,&#39;&lt;H1&gt;$1&lt;/H1&gt;&#39;)&quot;</span>
+
+<span class="c1">// use: realFileInput = new File(path_to_file).text</span>
+<span class="n">fakeFileInput</span> <span class="o">=</span> <span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">0</span>
+<span class="s1">START</span>
+<span class="s1">1</span>
+<span class="s1">2</span>
+<span class="s1">END</span>
+<span class="s1">3</span>
+<span class="s1">4</span>
+<span class="s1">5</span>
+<span class="s1">START</span>
+<span class="s1">6</span>
+<span class="s1">END</span>
+<span class="s1">&#39;&#39;&#39;</span>
+
+<span class="n">chunkyPattern</span> <span class="o">=</span> <span class="s">/(?ms)^START(.*?)^END/</span>
+<span class="n">finder</span> <span class="o">=</span> <span class="n">fakeFileInput</span> <span class="o">=~</span> <span class="n">chunkyPattern</span>
+<span class="o">(</span><span class="mi">0</span><span class="o">..&lt;</span><span class="n">finder</span><span class="o">.</span><span class="na">count</span><span class="o">).</span><span class="na">each</span> <span class="o">{</span>
+    <span class="n">println</span> <span class="s2">&quot;Chunk #$it contains ${new StringTokenizer(finder[it][1],&#39;\n&#39;).countTokens()} lines.&quot;</span>
+<span class="o">}</span>
+<span class="c1">// =&gt;</span>
+<span class="c1">// Chunk #0 contains 2 lines.</span>
+<span class="c1">// Chunk #1 contains 1 lines.</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN306"
+>Reading Records with a Pattern Separator</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="c1">// general pattern is:</span>
+<span class="c1">//file = new File(&quot;datafile&quot;).text.split(/pattern/)</span>
+<span class="c1">// .Ch, .Se and .Ss divide chunks of input text</span>
+<span class="n">fakedFiletext</span> <span class="o">=</span> <span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">.Ch</span>
+<span class="s1">abc</span>
+<span class="s1">.Se</span>
+<span class="s1">def</span>
+<span class="s1">.Ss</span>
+<span class="s1">ghi</span>
+<span class="s1">.Se</span>
+<span class="s1">jkl</span>
+<span class="s1">.Se</span>
+<span class="s1">mno</span>
+<span class="s1">.Ss</span>
+<span class="s1">pqr</span>
+<span class="s1">.Ch</span>
+<span class="s1">stu</span>
+<span class="s1">.Ch</span>
+<span class="s1">vwx</span>
+<span class="s1">.Se</span>
+<span class="s1">yz!</span>
+<span class="s1">&#39;&#39;&#39;</span>
+<span class="n">chunks</span> <span class="o">=</span> <span class="n">fakedFiletext</span><span class="o">.</span><span class="na">split</span><span class="o">(</span><span class="s">/(?m)^\.(Ch|Se|Ss)$/</span><span class="o">)</span>
+<span class="n">println</span> <span class="s2">&quot;I read ${chunks.size()} chunks.&quot;</span>
+<span class="c1">// =&gt; I read 10 chunks.</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN309"
+>Extracting a Range of Lines</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="c1">// Groovy doesn&#39;t support the ~/BEGIN/ .. ~/END/ notation</span>
+<span class="c1">// you have to emulate it as shown in the example below</span>
+<span class="c1">// The from line number to line number processing is supported</span>
+<span class="c1">// from the command line but not within a script, e.g.</span>
+<span class="c1">// command-line to print lines 15 through 17 inclusive (see below)</span>
+<span class="c1">// &gt; groovy -p -e &quot;if (count in 15..17) return line&quot; datafile</span>
+<span class="c1">// Within a script itself, you emulate the count by keeping state</span>
+
+<span class="n">htmlContent</span> <span class="o">=</span> <span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">&lt;h1&gt;A Heading&lt;/h1&gt;</span>
+<span class="s1">Here is &lt;XMP&gt;inline AAA&lt;/XMP&gt;.</span>
+<span class="s1">And the bigger Example 2:</span>
+<span class="s1">&lt;XMP&gt;</span>
+<span class="s1">line BBB</span>
+<span class="s1">line CCC</span>
+<span class="s1">&lt;/XMP&gt;</span>
+<span class="s1">Done.</span>
+<span class="s1">&#39;&#39;&#39;</span><span class="o">.</span><span class="na">trim</span><span class="o">()</span>
+
+<span class="n">examplePattern</span> <span class="o">=</span> <span class="s">/(?ms)&lt;XMP&gt;(.*?)&lt;\/</span><span class="n">XMP</span><span class="o">&gt;</span><span class="s">/</span>
+<span class="s">finder = htmlContent =~ examplePattern</span>
+<span class="s">(0..&lt;finder.count).each {</span>
+<span class="s">    println &quot;Example ${it+1}:&quot;</span>
+<span class="s">    println finder[it][1]</span>
+<span class="s">}</span>
+<span class="s">// =&gt;</span>
+<span class="s">// Example 1:</span>
+<span class="s">// inline AAA</span>
+<span class="s">// Example 2:</span>
+<span class="s">//</span>
+<span class="s">// line BBB</span>
+<span class="s">// line CCC</span>
+<span class="s">//</span>
+
+<span class="s">htmlContent.split(&#39;\n&#39;).eachWithIndex{ line, count -&gt;</span>
+<span class="s">    if (count in 4..5) println line</span>
+<span class="s">}</span>
+<span class="s">// =&gt;</span>
+<span class="s">// line BBB</span>
+<span class="s">// line CCC</span>
+
+<span class="s">// You would probably use a mail Api for this in Groovy</span>
+<span class="s">fakedMailInput = &#39;&#39;&#39;</span>
+<span class="s">From: A Person &lt;someone@somewhere.com&gt;</span>
+<span class="s">To: &lt;pleac-discuss@lists.sourceforge.net&gt;</span>
+<span class="s">Date: Sun, 31 Dec 2006 02:14:57 +1100</span>
+
+<span class="s">From: noone@nowhere.com</span>
+<span class="s">To: &lt;pleac-discuss@lists.sourceforge.net&gt;</span>
+<span class="s">Date: Sun, 31 Dec 2006 02:14:58 +1100</span>
+
+<span class="s">From: someone@somewhere.com</span>
+<span class="s">To: &lt;pleac-discuss@lists.sourceforge.net&gt;</span>
+<span class="s">Date: Sun, 31 Dec 2006 02:14:59 +1100</span>
+<span class="s">&#39;&#39;&#39;.trim()+&#39;\n&#39;</span>
+
+<span class="s">seen = [:]</span>
+<span class="s">fakedMailInput.split(&#39;\n&#39;).each{ line -&gt;</span>
+<span class="s">    m = (line =~ /</span><span class="o">^</span><span class="nl">From:</span><span class="o">?</span><span class="err">\</span><span class="n">s</span><span class="o">(.*)</span><span class="s">/)</span>
+<span class="s">    if (m) {</span>
+<span class="s">        addr = m[0][1] =~ /</span><span class="o">([^&lt;&gt;(),;</span><span class="err">\</span><span class="n">s</span><span class="o">]+</span><span class="err">\@</span><span class="o">[^&lt;&gt;(),;</span><span class="err">\</span><span class="n">s</span><span class="o">]+)</span><span class="s">/</span>
+<span class="s">        x = addr[0][1]</span>
+<span class="s">        if (seen.containsKey(x)) seen[x] += 1 else seen[x] = 1</span>
+<span class="s">    }</span>
+<span class="s">}</span>
+<span class="s">seen.each{ k,v -&gt; println &quot;Address $k seen $v time${v==1?&#39;&#39;:&#39;s&#39;}.&quot; }</span>
+<span class="s">// =&gt;</span>
+<span class="s">// Address noone@nowhere.com seen 1 time.</span>
+<span class="s">// Address someone@somewhere.com seen 2 times.</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN312"
+>Matching Shell Globs as Regular Expressions</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">import java.util.regex.Pattern</span>
+
+<span class="s">names = &#39;&#39;&#39;</span>
+<span class="s">myFile.txt</span>
+<span class="s">oldFile.tex</span>
+<span class="s">myPicture.jpg</span>
+<span class="s">&#39;&#39;&#39;</span>
+
+<span class="s">def glob2pat(globstr) {</span>
+<span class="s">    def patmap = [ &#39;*&#39;:&#39;.*&#39;, &#39;?&#39;:&#39;.&#39;, &#39;[&#39;:&#39;[&#39;, &#39;]&#39;:&#39;]&#39; ]</span>
+<span class="s">    def result = &#39;(?m)^&#39;</span>
+<span class="s">    &#39;^&#39; + globstr.replaceAll(/</span><span class="o">(.)</span><span class="s">/) { all, c -&gt;</span>
+<span class="s">        result += (patmap.containsKey(c) ? patmap[c] : Pattern.quote(c))</span>
+<span class="s">    }</span>
+<span class="s">     result + &#39;$&#39;</span>
+<span class="s">}</span>
+
+<span class="s">def checkNumMatches(pat, count) {</span>
+<span class="s">    assert (names =~ glob2pat(pat)).count == count</span>
+<span class="s">}</span>
+
+<span class="s">checkNumMatches(&#39;*.*&#39;, 3)</span>
+<span class="s">checkNumMatches(&#39;my*.*&#39;, 2)</span>
+<span class="s">checkNumMatches(&#39;*.t*&#39;, 2)</span>
+<span class="s">checkNumMatches(&#39;*File.*&#39;, 2)</span>
+<span class="s">checkNumMatches(&#39;*Rabbit*.*&#39;, 0)</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN315"
+>Speeding Up Interpolated Matches</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// version 1: simple obvious way</span>
+<span class="s">states = &#39;CO ON MI WI MN&#39;.split(&#39; &#39;).toList()</span>
+
+<span class="s">def popgrep1(file) {</span>
+<span class="s">    file.eachLine{ line -&gt;</span>
+<span class="s">        if (states.any{ line =~ /</span><span class="err">\</span><span class="n">b$it</span><span class="err">\</span><span class="n">b</span><span class="s">/ }) println line</span>
+<span class="s">    }</span>
+<span class="s">}</span>
+<span class="s">// popgrep1(new File(&#39;path_to_file&#39;))</span>
+
+<span class="s">// version 2: eval strings; fast but hard to quote (SLOW)</span>
+<span class="s">def popgrep2(file) {</span>
+<span class="s">    def code = &#39;def found = false\n&#39;</span>
+<span class="s">    states.each{</span>
+<span class="s">        code += &quot;if (!found &amp;&amp; line =~ /</span><span class="err">\\</span><span class="n">b$it</span><span class="err">\\</span><span class="n">b</span><span class="s">/) found = true\n&quot;</span>
+<span class="s">    }</span>
+<span class="s">    code += &quot;if (found) println line\n&quot;</span>
+<span class="s">    file.eachLine{ line = it; evaluate(code) }</span>
+<span class="s">}</span>
+<span class="s">// popgrep2(new File(&#39;path_to_file&#39;))</span>
+
+<span class="s">// version 2b: eval using switch/</span><span class="k">case</span> <span class="o">(</span><span class="n">not</span> <span class="k">in</span> <span class="n">Perl</span> <span class="n">cookbook</span><span class="o">)</span> <span class="o">(</span><span class="n">SLOW</span><span class="o">)</span>
+<span class="kt">def</span> <span class="nf">popgrep2b</span><span class="o">(</span><span class="n">file</span><span class="o">)</span> <span class="o">{</span>
+    <span class="kt">def</span> <span class="n">code</span> <span class="o">=</span> <span class="s1">&#39;switch(line) {\n&#39;</span>
+    <span class="n">states</span><span class="o">.</span><span class="na">each</span><span class="o">{</span>
+        <span class="n">code</span> <span class="o">+=</span> <span class="s2">&quot;case ~/.*\\b$it\\b.*/:\nprintln line;break\n&quot;</span>
+    <span class="o">}</span>
+    <span class="n">code</span> <span class="o">+=</span> <span class="s2">&quot;default:break\n}\n&quot;</span>
+    <span class="n">file</span><span class="o">.</span><span class="na">eachLine</span><span class="o">{</span> <span class="n">line</span> <span class="o">=</span> <span class="n">it</span><span class="o">;</span> <span class="n">evaluate</span><span class="o">(</span><span class="n">code</span><span class="o">)</span> <span class="o">}</span>
+<span class="o">}</span>
+<span class="c1">// popgrep2b(new File(&#39;path_to_file&#39;))</span>
+
+<span class="c1">// version3: build a match_any function as a GString</span>
+<span class="kt">def</span> <span class="nf">popgrep3</span><span class="o">(</span><span class="n">file</span><span class="o">)</span> <span class="o">{</span>
+    <span class="kt">def</span> <span class="n">code</span> <span class="o">=</span> <span class="n">states</span><span class="o">.</span><span class="na">collect</span><span class="o">{</span> <span class="s2">&quot;line =~ /\\b$it\\b/&quot;</span> <span class="o">}.</span><span class="na">join</span><span class="o">(</span><span class="s1">&#39;||&#39;</span><span class="o">)</span>
+    <span class="n">file</span><span class="o">.</span><span class="na">eachLine</span><span class="o">{</span> <span class="n">line</span> <span class="o">=</span> <span class="n">it</span><span class="o">;</span> <span class="k">if</span> <span class="o">(</span><span class="n">evaluate</span><span class="o">(</span><span class="n">code</span><span class="o">))</span> <span class="n">println</span> <span class="n">line</span> <span class="o">}</span>
+<span class="o">}</span>
+<span class="c1">// popgrep3(new File(&#39;path_to_file&#39;))</span>
+
+<span class="c1">// version4: pretty fast, but simple: compile all re&#39;s first:</span>
+<span class="n">patterns</span> <span class="o">=</span> <span class="n">states</span><span class="o">.</span><span class="na">collect</span><span class="o">{</span> <span class="o">~</span><span class="s">/\b$it\b/</span> <span class="o">}</span>
+<span class="kt">def</span> <span class="nf">popgrep4</span><span class="o">(</span><span class="n">file</span><span class="o">)</span> <span class="o">{</span>
+    <span class="n">file</span><span class="o">.</span><span class="na">eachLine</span><span class="o">{</span> <span class="n">line</span> <span class="o">-&gt;</span>
+        <span class="k">if</span> <span class="o">(</span><span class="n">patterns</span><span class="o">.</span><span class="na">any</span><span class="o">{</span> <span class="n">it</span><span class="o">.</span><span class="na">matcher</span><span class="o">(</span><span class="n">line</span><span class="o">)})</span> <span class="n">println</span> <span class="n">line</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+<span class="c1">// popgrep4(new File(&#39;path_to_file&#39;))</span>
+
+<span class="c1">// version5: faster</span>
+<span class="n">str</span> <span class="o">=</span> <span class="n">states</span><span class="o">.</span><span class="na">collect</span><span class="o">{</span> <span class="s">/\b$it\b/</span> <span class="o">}.</span><span class="na">join</span><span class="o">(</span><span class="s1">&#39;|&#39;</span><span class="o">)</span>
+<span class="kt">def</span> <span class="nf">popgrep5</span><span class="o">(</span><span class="n">file</span><span class="o">)</span> <span class="o">{</span>
+    <span class="n">file</span><span class="o">.</span><span class="na">eachLine</span><span class="o">{</span> <span class="n">line</span> <span class="o">-&gt;</span>
+        <span class="k">if</span> <span class="o">(</span><span class="n">line</span> <span class="o">=~</span> <span class="n">str</span><span class="o">)</span> <span class="n">println</span> <span class="n">line</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+<span class="c1">// popgrep5(new File(&#39;path_to_file&#39;))</span>
+
+<span class="c1">// version5b: faster (like 5 but compiled outside loop)</span>
+<span class="n">pattern</span> <span class="o">=</span> <span class="o">~</span><span class="n">states</span><span class="o">.</span><span class="na">collect</span><span class="o">{</span> <span class="s">/\b$it\b/</span> <span class="o">}.</span><span class="na">join</span><span class="o">(</span><span class="s1">&#39;|&#39;</span><span class="o">)</span>
+<span class="kt">def</span> <span class="nf">popgrep5b</span><span class="o">(</span><span class="n">file</span><span class="o">)</span> <span class="o">{</span>
+    <span class="n">file</span><span class="o">.</span><span class="na">eachLine</span><span class="o">{</span> <span class="n">line</span> <span class="o">-&gt;</span>
+        <span class="k">if</span> <span class="o">(</span><span class="n">pattern</span><span class="o">.</span><span class="na">matcher</span><span class="o">(</span><span class="n">line</span><span class="o">))</span> <span class="n">println</span> <span class="n">line</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+<span class="c1">// popgrep5b(new File(&#39;path_to_file&#39;))</span>
+
+<span class="c1">// speeds trials ON the current source file (~1200 lines)</span>
+<span class="c1">// popgrep1   =&gt;  0.39s</span>
+<span class="c1">// popgrep2   =&gt; 25.08s</span>
+<span class="c1">// popgrep2b  =&gt; 23.86s</span>
+<span class="c1">// popgrep3   =&gt; 22.42s</span>
+<span class="c1">// popgrep4   =&gt;  0.12s</span>
+<span class="c1">// popgrep5   =&gt;  0.05s</span>
+<span class="c1">// popgrep5b  =&gt;  0.05s</span>
+<span class="c1">// Groovy&#39;s built-in support is the way to go in terms of</span>
+<span class="c1">// both speed and simplicity of understanding. Avoid using</span>
+<span class="c1">// evaluate() unless you absolutely need it</span>
+
+<span class="c1">// generic matching functions</span>
+<span class="n">input</span> <span class="o">=</span> <span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">both cat and dog</span>
+<span class="s1">neither</span>
+<span class="s1">just a cat</span>
+<span class="s1">just a dog</span>
+<span class="s1">&#39;&#39;&#39;</span><span class="o">.</span><span class="na">split</span><span class="o">(</span><span class="s1">&#39;\n&#39;</span><span class="o">).</span><span class="na">findAll</span><span class="o">{</span><span class="n">it</span><span class="o">.</span><span class="na">trim</span><span class="o">()}</span>
+
+<span class="kt">def</span> <span class="nf">matchAny</span><span class="o">(</span><span class="n">line</span><span class="o">,</span> <span class="n">patterns</span><span class="o">)</span> <span class="o">{</span> <span class="n">patterns</span><span class="o">.</span><span class="na">any</span><span class="o">{</span> <span class="n">line</span> <span class="o">=~</span> <span class="n">it</span> <span class="o">}</span> <span class="o">}</span>
+<span class="kt">def</span> <span class="nf">matchAll</span><span class="o">(</span><span class="n">line</span><span class="o">,</span> <span class="n">patterns</span><span class="o">)</span> <span class="o">{</span> <span class="n">patterns</span><span class="o">.</span><span class="na">every</span><span class="o">{</span> <span class="n">line</span> <span class="o">=~</span> <span class="n">it</span> <span class="o">}</span> <span class="o">}</span>
+
+<span class="k">assert</span> <span class="n">input</span><span class="o">.</span><span class="na">findAll</span><span class="o">{</span> <span class="n">matchAny</span><span class="o">(</span><span class="n">it</span><span class="o">,</span> <span class="o">[</span><span class="s1">&#39;cat&#39;</span><span class="o">,</span><span class="s1">&#39;dog&#39;</span><span class="o">])</span> <span class="o">}.</span><span class="na">size</span><span class="o">()</span> <span class="o">==</span> <span class="mi">3</span>
+<span class="k">assert</span> <span class="n">input</span><span class="o">.</span><span class="na">findAll</span><span class="o">{</span> <span class="n">matchAny</span><span class="o">(</span><span class="n">it</span><span class="o">,</span> <span class="o">[</span><span class="s1">&#39;cat$&#39;</span><span class="o">,</span><span class="s1">&#39;^n.*&#39;</span><span class="o">])</span> <span class="o">}.</span><span class="na">size</span><span class="o">()</span> <span class="o">==</span> <span class="mi">2</span>
+<span class="k">assert</span> <span class="n">input</span><span class="o">.</span><span class="na">findAll</span><span class="o">{</span> <span class="n">matchAll</span><span class="o">(</span><span class="n">it</span><span class="o">,</span> <span class="o">[</span><span class="s1">&#39;cat&#39;</span><span class="o">,</span><span class="s1">&#39;dog&#39;</span><span class="o">])</span> <span class="o">}.</span><span class="na">size</span><span class="o">()</span> <span class="o">==</span> <span class="mi">1</span>
+<span class="k">assert</span> <span class="n">input</span><span class="o">.</span><span class="na">findAll</span><span class="o">{</span> <span class="n">matchAll</span><span class="o">(</span><span class="n">it</span><span class="o">,</span> <span class="o">[</span><span class="s1">&#39;cat$&#39;</span><span class="o">,</span><span class="s1">&#39;^n.*&#39;</span><span class="o">])</span> <span class="o">}.</span><span class="na">size</span><span class="o">()</span> <span class="o">==</span> <span class="mi">0</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN318"
+>Testing for a Valid Pattern</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="c1">// patternCheckingScript:</span>
+<span class="n">prompt</span> <span class="o">=</span> <span class="s1">&#39;\n&gt; &#39;</span>
+<span class="n">print</span> <span class="s1">&#39;Enter patterns to check:&#39;</span> <span class="o">+</span> <span class="n">prompt</span>
+<span class="k">new</span> <span class="nf">BufferedReader</span><span class="o">(</span><span class="k">new</span> <span class="n">InputStreamReader</span><span class="o">(</span><span class="n">System</span><span class="o">.</span><span class="na">in</span><span class="o">)).</span><span class="na">eachLine</span><span class="o">{</span> <span class="n">line</span> <span class="o">-&gt;</span>
+    <span class="k">try</span> <span class="o">{</span>
+        <span class="n">Pattern</span><span class="o">.</span><span class="na">compile</span><span class="o">(</span><span class="n">line</span><span class="o">)</span>
+        <span class="n">print</span> <span class="s1">&#39;Valid&#39;</span> <span class="o">+</span> <span class="n">prompt</span>
+    <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">java</span><span class="o">.</span><span class="na">util</span><span class="o">.</span><span class="na">regex</span><span class="o">.</span><span class="na">PatternSyntaxException</span> <span class="n">ex</span><span class="o">)</span> <span class="o">{</span>
+        <span class="n">print</span> <span class="s1">&#39;Invalid pattern: &#39;</span> <span class="o">+</span> <span class="n">ex</span><span class="o">.</span><span class="na">message</span> <span class="o">+</span> <span class="n">prompt</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+<span class="c1">// =&gt;</span>
+<span class="c1">// Enter patterns to check:</span>
+<span class="c1">// &gt; ab*.c</span>
+<span class="c1">// Valid</span>
+<span class="c1">// &gt; ^\s+[^a-z]*$</span>
+<span class="c1">// Valid</span>
+<span class="c1">// &gt; **</span>
+<span class="c1">// Invalid pattern: Dangling meta character &#39;*&#39; near index 0</span>
+<span class="c1">// **</span>
+<span class="c1">// ^</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN321"
+>Honoring Locale Settings in Regular Expressions</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="n">src</span> <span class="o">=</span> <span class="s1">&#39;dierk könig&#39;</span>
+<span class="c1">// simplistic with locale issue</span>
+<span class="n">dst</span> <span class="o">=</span> <span class="n">src</span>
+<span class="o">(</span><span class="s1">&#39;a&#39;</span><span class="o">..</span><span class="s1">&#39;z&#39;</span><span class="o">).</span><span class="na">each</span><span class="o">{</span> <span class="n">dst</span> <span class="o">=</span> <span class="n">dst</span><span class="o">.</span><span class="na">replaceAll</span><span class="o">(</span><span class="s">/(?&lt;=[^a-zA-Z])/</span><span class="o">+</span><span class="n">it</span><span class="o">+</span><span class="s">/|\A/</span><span class="o">+</span><span class="n">it</span><span class="o">,</span> <span class="n">it</span><span class="o">.</span><span class="na">toUpperCase</span><span class="o">())</span> <span class="o">}</span>
+<span class="n">println</span> <span class="n">dst</span>
+<span class="c1">// =&gt; Dierk KöNig</span>
+<span class="c1">// locale avoidance</span>
+<span class="n">dst</span> <span class="o">=</span> <span class="n">src</span>
+<span class="o">(</span><span class="s1">&#39;a&#39;</span><span class="o">..</span><span class="s1">&#39;z&#39;</span><span class="o">).</span><span class="na">each</span><span class="o">{</span> <span class="n">dst</span> <span class="o">=</span> <span class="n">dst</span><span class="o">.</span><span class="na">replaceAll</span><span class="o">(</span><span class="s">/(?&lt;=\A|\b)/</span><span class="o">+</span><span class="n">it</span><span class="o">,</span> <span class="n">it</span><span class="o">.</span><span class="na">toUpperCase</span><span class="o">())</span> <span class="o">}</span>
+<span class="n">println</span> <span class="n">dst</span>
+<span class="c1">// =&gt; Dierk König</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN324"
+>Approximate Matching</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="c1">// Several libraries exist, e.g.</span>
+<span class="c1">// http://secondstring.sourceforge.net/</span>
+<span class="c1">// http://sourceforge.net/projects/simmetrics/</span>
+<span class="c1">// both support numerous algorithms. Using the second as an example:</span>
+<span class="kn">import</span> <span class="nn">uk.ac.shef.wit.simmetrics.similaritymetrics.*</span>
+<span class="n">target</span> <span class="o">=</span> <span class="s1">&#39;balast&#39;</span>
+<span class="n">candidates</span> <span class="o">=</span> <span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">quick</span>
+<span class="s1">brown</span>
+<span class="s1">fox</span>
+<span class="s1">jumped</span>
+<span class="s1">over</span>
+<span class="s1">the</span>
+<span class="s1">lazy</span>
+<span class="s1">dog</span>
+<span class="s1">ballast</span>
+<span class="s1">ballasts</span>
+<span class="s1">balustrade</span>
+<span class="s1">balustrades</span>
+<span class="s1">blast</span>
+<span class="s1">blasted</span>
+<span class="s1">blaster</span>
+<span class="s1">blasters</span>
+<span class="s1">blasting</span>
+<span class="s1">blasts</span>
+<span class="s1">&#39;&#39;&#39;</span><span class="o">.</span><span class="na">split</span><span class="o">(</span><span class="s1">&#39;\n&#39;</span><span class="o">).</span><span class="na">findAll</span><span class="o">{</span><span class="n">it</span><span class="o">.</span><span class="na">trim</span><span class="o">()}</span>
+<span class="n">metrics</span> <span class="o">=</span> <span class="o">[</span><span class="k">new</span> <span class="n">Levenshtein</span><span class="o">(),</span> <span class="k">new</span> <span class="n">MongeElkan</span><span class="o">(),</span> <span class="k">new</span> <span class="n">JaroWinkler</span><span class="o">(),</span> <span class="k">new</span> <span class="n">Soundex</span><span class="o">()]</span>
+<span class="kt">def</span> <span class="nf">out</span><span class="o">(</span><span class="n">name</span><span class="o">,</span> <span class="n">results</span><span class="o">)</span> <span class="o">{</span>
+    <span class="n">print</span> <span class="n">name</span><span class="o">.</span><span class="na">padLeft</span><span class="o">(</span><span class="mi">14</span><span class="o">)</span> <span class="o">+</span> <span class="s1">&#39;  &#39;</span><span class="o">;</span> <span class="n">results</span><span class="o">.</span><span class="na">each</span><span class="o">{</span><span class="n">print</span><span class="o">(</span><span class="n">it</span><span class="o">.</span><span class="na">padRight</span><span class="o">(</span><span class="mi">16</span><span class="o">))};</span> <span class="n">println</span><span class="o">()</span>
+<span class="o">}</span>
+<span class="kt">def</span> <span class="nf">outr</span><span class="o">(</span><span class="n">name</span><span class="o">,</span> <span class="n">results</span><span class="o">){</span><span class="n">out</span><span class="o">(</span><span class="n">name</span><span class="o">,</span> <span class="n">results</span><span class="o">.</span><span class="na">collect</span><span class="o">{</span><span class="s1">&#39;&#39;</span><span class="o">+((</span><span class="kt">int</span><span class="o">)(</span><span class="n">it</span><span class="o">*</span><span class="mi">100</span><span class="o">))</span><span class="s">/100})}</span>
+<span class="s">out (&#39;Word/</span><span class="n">Metric</span><span class="s1">&#39;, metrics.collect{it.shortDescriptionString} )</span>
+<span class="s1">candidates.each{ w -&gt; outr(w, metrics.collect{ m -&gt; m.getSimilarity(target, w)} )}</span>
+<span class="s1">// =&gt;</span>
+<span class="s1">//   Word/Metric  Levenshtein     MongeElkan      JaroWinkler     Soundex</span>
+<span class="s1">//         quick  0               0.11            0               0.66</span>
+<span class="s1">//         brown  0.16            0.23            0.5             0.73</span>
+<span class="s1">//           fox  0               0.2             0               0.66</span>
+<span class="s1">//        jumped  0               0.2             0               0.66</span>
+<span class="s1">//          over  0               0.44            0               0.55</span>
+<span class="s1">//           the  0               0.33            0               0.55</span>
+<span class="s1">//          lazy  0.33            0.5             0.44            0.66</span>
+<span class="s1">//           dog  0               0.2             0               0.66</span>
+<span class="s1">//       ballast  0.85            0.83            0.96            1</span>
+<span class="s1">//      ballasts  0.75            0.83            0.94            0.94</span>
+<span class="s1">//    balustrade  0.5             0.93            0.3             0.94</span>
+<span class="s1">//   balustrades  0.45            0.93            0.3             0.94</span>
+<span class="s1">//         blast  0.83            0.8             0.88            1</span>
+<span class="s1">//       blasted  0.57            0.66            0.8             0.94</span>
+<span class="s1">//       blaster  0.57            0.66            0.8             0.94</span>
+<span class="s1">//      blasters  0.5             0.66            0.77            0.94</span>
+<span class="s1">//      blasting  0.5             0.66            0.77            0.94</span>
+<span class="s1">//        blasts  0.66            0.66            0.84            0.94</span>
+<span class="s1">// to implement the example, iterate through /usr/dict/words selecting words</span>
+<span class="s1">// where one or a combination of metrics are greater than some threshold</span>
+<span class="s1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN327"
+>Matching from Where the Last Pattern Left Off</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s1"></span><span class="s1">//----------------------------------------------------------------------------------</span>
+<span class="s1">n = &quot;   49 here&quot;</span>
+<span class="s1">println n.replaceAll(/\G /,&#39;</span><span class="mi">0</span><span class="s1">&#39;)</span>
+<span class="s1">// =&gt; 00049 here</span>
+
+<span class="s1">str = &quot;3,4,5,9,120&quot;</span>
+<span class="s1">print &#39;</span><span class="n">Found</span> <span class="nl">numbers:</span><span class="s1">&#39;</span>
+<span class="s1">str.eachMatch(/\G,?(\d+)/){ print &#39;</span> <span class="s1">&#39; + it[1] }</span>
+<span class="s1">println()</span>
+<span class="s1">// =&gt; Found numbers: 3 4 5 9 120</span>
+
+<span class="s1">// Groovy doesn&#39;</span><span class="n">t</span> <span class="n">have</span> <span class="n">the</span> <span class="n">String</span><span class="o">.</span><span class="na">pos</span> <span class="n">or</span> <span class="n">a</span> <span class="s">/c re modifier like Perl</span>
+<span class="s">// But it does have similar functionality. Matcher has start() and</span>
+<span class="s">// end() for find the position and Matcher&#39;s usePattern() allows</span>
+<span class="s">// you to swap patterns without changing the buffer position</span>
+<span class="s">text = &#39;the year 1752 lost 10 days on the 3rd of September&#39;</span>
+<span class="s">p = ~/</span><span class="o">(?&lt;=</span><span class="err">\</span><span class="n">D</span><span class="o">)(</span><span class="err">\</span><span class="n">d</span><span class="o">+)</span><span class="s">/</span>
+<span class="s">m = p.matcher(text)</span>
+<span class="s">while (m.find()) {</span>
+<span class="s">    println &#39;Found &#39; + m.group() + &#39; starting at pos &#39; + m.start() +</span>
+<span class="s">            &#39; and ending at pos &#39; + m.end()</span>
+<span class="s">}</span>
+<span class="s">// now reset pos back to between 1st and 2nd numbers</span>
+<span class="s">if (m.find(16)) { println &#39;Found &#39; + m.group() }</span>
+<span class="s">// =&gt;</span>
+<span class="s">// Found 1752 starting at pos 9 and ending at pos 13</span>
+<span class="s">// Found 10 starting at pos 19 and ending at pos 21</span>
+<span class="s">// Found 3 starting at pos 34 and ending at pos 35</span>
+<span class="s">// Found 10</span>
+
+<span class="s">// Alternatively you can use Scanner in Java 5-7+:</span>
+<span class="s">p1 = ~/</span><span class="o">(?&lt;=</span><span class="err">\</span><span class="n">D</span><span class="o">)(</span><span class="err">\</span><span class="n">d</span><span class="o">+)</span><span class="s">/</span>
+<span class="s">p2 = ~/</span><span class="err">\</span><span class="n">S</span><span class="o">+</span><span class="s">/</span>
+<span class="s">s = new Scanner(text)</span>
+<span class="s">while ((f = s.findInLine(p1))) { println &#39;Found: &#39; + f }</span>
+<span class="s">if ((f = s.findInLine(p2))) { println &quot;Found $f after the last number.&quot; }</span>
+<span class="s">// =&gt;</span>
+<span class="s">// Found: 1752</span>
+<span class="s">// Found: 10</span>
+<span class="s">// Found: 3</span>
+<span class="s">// Found rd after the last number.</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN330"
+>Greedy and Non-Greedy Matches</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">html = &#39;&lt;b&gt;&lt;i&gt;this&lt;/</span><span class="n">i</span><span class="o">&gt;</span> <span class="n">and</span> <span class="o">&lt;</span><span class="n">i</span><span class="o">&gt;</span><span class="n">that</span><span class="o">&lt;</span><span class="s">/i&gt; are important&lt;/</span><span class="n">b</span><span class="o">&gt;</span> <span class="n">Oh</span><span class="o">,</span> <span class="o">&lt;</span><span class="n">b</span><span class="o">&gt;&lt;</span><span class="n">i</span><span class="o">&gt;</span><span class="n">me</span> <span class="n">too</span><span class="o">!&lt;</span><span class="s">/i&gt;&lt;/</span><span class="n">b</span><span class="o">&gt;</span><span class="s1">&#39;</span>
+
+<span class="s1">greedyHtmlStripPattern = ~/(?m)&lt;.*&gt;/       // not good</span>
+<span class="s1">nonGreedyHtmlStripPattern = ~/(?m)&lt;.*?&gt;/   // not great</span>
+<span class="s1">simpleNested = ~/(?mx)&lt;b&gt;&lt;i&gt;(.*?)&lt;\/i&gt;&lt;\/b&gt;/</span>
+<span class="s1">// match BEGIN, then not BEGIN, then END</span>
+<span class="s1">generalPattern = ~/BEGIN((?:(?!BEGIN).)*)END/</span>
+<span class="s1">betterButInefficient1 = ~/(?mx)&lt;b&gt;&lt;i&gt;(  (?: (?!&lt;\/b&gt;|&lt;\/i&gt;). )*  ) &lt;\/i&gt;&lt;\/b&gt;/</span>
+<span class="s1">betterButInefficient2 = ~/(?mx)&lt;b&gt;&lt;i&gt;(  (?: (?!&lt;\/[ib]&gt;). )*  ) &lt;\/i&gt;&lt;\/b&gt;/</span>
+
+<span class="s1">efficientPattern = &#39;&#39;&#39;</span><span class="o">(?</span><span class="n">mx</span><span class="o">)</span>
+    <span class="o">&lt;</span><span class="n">b</span><span class="o">&gt;&lt;</span><span class="n">i</span><span class="o">&gt;</span>
+    <span class="o">[^&lt;]*</span>  <span class="err">#</span> <span class="n">stuff</span> <span class="n">not</span> <span class="n">possibly</span> <span class="n">bad</span><span class="o">,</span> <span class="n">and</span> <span class="n">not</span> <span class="n">possibly</span> <span class="n">the</span> <span class="n">end</span><span class="o">.</span>
+    <span class="o">(?:</span>
+ <span class="err">#</span> <span class="n">at</span> <span class="k">this</span> <span class="n">point</span><span class="o">,</span> <span class="n">we</span> <span class="n">can</span> <span class="n">have</span> <span class="s1">&#39;&lt;&#39;</span> <span class="k">if</span> <span class="n">not</span> <span class="n">part</span> <span class="n">of</span> <span class="n">something</span> <span class="n">bad</span>
+     <span class="o">(?!</span>  <span class="o">&lt;</span><span class="s">/?[ib]&gt;  )   # what we can&#39;t have</span>
+<span class="s">     &lt;                  # okay, so match the &#39;&lt;&#39;</span>
+<span class="s">     [^&lt;]*              # and continue with more safe stuff</span>
+<span class="s">    ) *</span>
+<span class="s">    &lt;/</span><span class="n">i</span><span class="o">&gt;&lt;</span><span class="s">/b&gt;</span>
+<span class="s">&#39;&#39;&#39;                   //&#39;</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN333"
+>Detecting Duplicate Words</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">input = &#39;This is a test\nTest of the duplicate word finder.\n&#39;</span>
+<span class="s">dupWordPattern = &#39;&#39;&#39;(?ix)</span>
+<span class="s">       \\b    # start at word boundary</span>
+<span class="s">      (\\S+)  # find chunk of non-whitespace</span>
+<span class="s">       \\b    # until a word boundary</span>
+<span class="s">      (</span>
+<span class="s">       \\s+   # followed by whitespace</span>
+<span class="s">       \\1    # and that same chunk again</span>
+<span class="s">       \\b    # and a word boundary</span>
+<span class="s">      ) +     # one or more times</span>
+<span class="s">&#39;&#39;&#39;</span>
+<span class="s">finder = input =~ dupWordPattern</span>
+<span class="s">println &#39;Found duplicate word: &#39; + finder[0][1]</span>
+<span class="s">// =&gt; Found duplicate word: test</span>
+
+<span class="s">astr = &#39;nobody&#39;</span>
+<span class="s">bstr = &#39;bodysnatcher&#39;</span>
+<span class="s">m = &quot;$astr $bstr&quot; =~ /</span><span class="o">^(</span><span class="err">\</span><span class="n">w</span><span class="o">+)(</span><span class="err">\</span><span class="n">w</span><span class="o">+)</span> <span class="err">\</span><span class="mi">2</span><span class="o">(</span><span class="err">\</span><span class="n">w</span><span class="o">+)</span><span class="s">$/</span>
+<span class="s">actual = &quot;${m[0][2]} overlaps in ${m[0][1]}-${m[0][2]}-${m[0][3]}&quot;</span>
+<span class="s">assert actual == &#39;body overlaps in no-body-snatcher&#39;</span>
+
+<span class="s">cap = &#39;o&#39; * 180</span>
+<span class="s">while (m = (cap =~ /^(oo+?)\1+$/)) {</span>
+<span class="s">    p1 = m[0][1]</span>
+<span class="s">    print p1.size() + &#39; &#39;</span>
+<span class="s">    cap = cap.replaceAll(p1,&#39;o&#39;)</span>
+<span class="s">}</span>
+<span class="s">println cap.size()</span>
+<span class="s">// =&gt; 2 2 3 3 5</span>
+
+<span class="s">// diophantine</span>
+<span class="s">// solve for 12x + 15y + 16z = 281, maximizing x</span>
+<span class="s">if ((m = (&#39;o&#39; * 281) =~ /^(o*)\1{11}(o*)\2{14}(o*)\3{15}$/)) {</span>
+<span class="s">    x=m[0][1].size(); y=m[0][2].size(); z=m[0][3].size()</span>
+<span class="s">    println &quot;One solution is: x=$x; y=$y; z=$z&quot;</span>
+<span class="s">} else println &quot;No solution.&quot;</span>
+<span class="s">// =&gt; One solution is: x=17; y=3; z=2</span>
+
+<span class="s">// using different quantifiers:</span>
+<span class="s">// /^(o+)\1{11}(o+)\2{14}(o+)\3{15}$/</span>
+<span class="s">// =&gt; One solution is: x=17; y=3; z=2</span>
+
+<span class="s">// /^(o*?)\1{11}(o*)\2{14}(o*)\3{15}$/</span>
+<span class="s">// =&gt; One solution is: x=0; y=7; z=11</span>
+
+<span class="s">// /^(o+?)\1{11}(o*)\2{14}(o*)\3{15}$/</span>
+<span class="s">// =&gt; One solution is: x=1; y=3; z=14</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN336"
+>Expressing AND, OR, and NOT in a Single Pattern</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// Groovy doesn&#39;t currently support x!~y so you must use the !(x=~y) style</span>
+
+<span class="s">// alpha OR beta</span>
+<span class="s">assert &#39;alpha&#39; ==~ /alpha|beta/</span>
+<span class="s">assert &#39;beta&#39; ==~ /alpha|beta/</span>
+<span class="s">assert &#39;betalpha&#39; =~ /alpha/ || &#39;betalpha&#39; =~ /beta/</span>
+
+<span class="s">// alpha AND beta</span>
+<span class="s">assert !(&#39;alpha&#39; =~ /(?=.*alpha)(?=.*beta)/)</span>
+<span class="s">assert &#39;alphabeta&#39; =~ /(?=.*alpha)(?=.*beta)/</span>
+<span class="s">assert &#39;betalpha&#39; =~ /(?=.*alpha)(?=.*beta)/</span>
+<span class="s">assert &#39;betalpha&#39; =~ /alpha/ &amp;&amp; &#39;betalpha&#39; =~ /beta/</span>
+
+<span class="s">// alpha AND beta,  no overlap</span>
+<span class="s">assert &#39;alphabeta&#39; =~ /alpha.*beta|beta.*alpha/</span>
+<span class="s">assert !(&#39;betalpha&#39; =~ /alpha.*beta|beta.*alpha/)</span>
+
+<span class="s">// NOT beta</span>
+<span class="s">assert &#39;alpha gamma&#39; =~ /^(?:(?!beta).)*$/</span>
+<span class="s">assert !(&#39;alpha beta gamma&#39; =~ /^(?:(?!beta).)*$/)</span>
+
+<span class="s">// NOT bad BUT good</span>
+<span class="s">assert !(&#39;GOOD and BAD&#39; =~ /(?=(?:(?!BAD).)*$)GOOD/)</span>
+<span class="s">assert !(&#39;BAD&#39; =~ /(?=(?:(?!BAD).)*$)GOOD/)</span>
+<span class="s">assert !(&#39;WORSE&#39; =~ /(?=(?:(?!BAD).)*$)GOOD/)</span>
+<span class="s">assert &#39;GOOD&#39; =~ /(?=(?:(?!BAD).)*$)GOOD/</span>
+
+<span class="s">// minigrep could be done as a one-liner as follows</span>
+<span class="s">// groovy -p -e &quot;if (line =~ /pat/) return line&quot; datafile</span>
+
+<span class="s">string = &#39;labelled&#39;</span>
+<span class="s">assert string =~ /^(?=.*bell)(?=.*lab)/</span>
+<span class="s">assert string =~ /bell/ &amp;&amp; string =~ &#39;lab&#39;</span>
+<span class="s">fakeAddress = &quot;blah bell blah &quot;</span>
+<span class="s">murrayHillRegex = &#39;&#39;&#39;(?x)</span>
+<span class="s">             ^              # start of string</span>
+<span class="s">            (?=             # zero-width lookahead</span>
+<span class="s">                .*          # any amount of intervening stuff</span>
+<span class="s">                bell        # the desired bell string</span>
+<span class="s">            )               # rewind, since we were only looking</span>
+<span class="s">            (?=             # and do the same thing</span>
+<span class="s">                .*          # any amount of intervening stuff</span>
+<span class="s">                lab         # and the lab part</span>
+<span class="s">            )</span>
+<span class="s">&#39;&#39;&#39;</span>
+<span class="s">assert string =~ murrayHillRegex</span>
+<span class="s">assert !(fakeAddress =~ murrayHillRegex)</span>
+
+<span class="s">// eliminate overlapping</span>
+<span class="s">assert !(string =~ /(?:^.*bell.*lab)|(?:^.*lab.*bell)/)</span>
+
+<span class="s">brandRegex = &#39;&#39;&#39;(?x)</span>
+<span class="s">            (?:                 # non-capturing grouper</span>
+<span class="s">                ^ .*?           # any amount of stuff at the front</span>
+<span class="s">                  bell          # look for a bell</span>
+<span class="s">                  .*?           # followed by any amount of anything</span>
+<span class="s">                  lab           # look for a lab</span>
+<span class="s">              )                 # end grouper</span>
+<span class="s">        |                       # otherwise, try the other direction</span>
+<span class="s">            (?:                 # non-capturing grouper</span>
+<span class="s">                ^ .*?           # any amount of stuff at the front</span>
+<span class="s">                  lab           # look for a lab</span>
+<span class="s">                  .*?           # followed by any amount of anything</span>
+<span class="s">                  bell          # followed by a bell</span>
+<span class="s">              )                 # end grouper</span>
+<span class="s">&#39;&#39;&#39;</span>
+<span class="s">assert !(string =~ brandRegex)</span>
+
+<span class="s">map = &#39;the great baldo&#39;</span>
+
+<span class="s">assert map =~ /^(?:(?!waldo).)*$/</span>
+<span class="s">noWaldoRegex = &#39;&#39;&#39;(?x)</span>
+<span class="s">        ^                   # start of string</span>
+<span class="s">        (?:                 # non-capturing grouper</span>
+<span class="s">            (?!             # look ahead negation</span>
+<span class="s">                waldo       # is he ahead of us now?</span>
+<span class="s">            )               # is so, the negation failed</span>
+<span class="s">            .               # any character (cuzza /s)</span>
+<span class="s">        ) *                 # repeat that grouping 0 or more</span>
+<span class="s">        $                   # through the end of the string</span>
+<span class="s">&#39;&#39;&#39;</span>
+<span class="s">assert map =~ noWaldoRegex</span>
+
+<span class="s">// on unix systems use: realFakedInput = &#39;w&#39;.process().text</span>
+<span class="s">fakedInput = &#39;&#39;&#39;</span>
+<span class="s"> 7:15am  up 206 days, 13:30,  4 users,  load average: 1.04, 1.07, 1.04</span>
+<span class="s">USER     TTY      FROM              LOGIN@  IDLE   JCPU   PCPU  WHAT</span>
+<span class="s">tchrist  tty1                       5:16pm 36days 24:43   0.03s  xinit</span>
+<span class="s">tchrist  tty2                       5:19pm  6days  0.43s  0.43s  -tcsh</span>
+<span class="s">tchrist  ttyp0    chthon            7:58am  3days 23.44s  0.44s  -tcsh</span>
+<span class="s">gnat     ttyS4    coprolith         2:01pm 13:36m  0.30s  0.30s  -tcsh</span>
+<span class="s">&#39;&#39;&#39;.trim() + &#39;\n&#39;</span>
+
+<span class="s">def miniGrepMethod(input) {</span>
+<span class="s">    input.split(&#39;\n&#39;).findAll{it =~ &#39;^(?!.*ttyp).*tchrist&#39;}</span>
+<span class="s">}</span>
+<span class="s">assert miniGrepMethod(fakedInput).size() == 2</span>
+
+<span class="s">findUserRegex = &#39;&#39;&#39;(?xm)</span>
+<span class="s">    ^                       # anchored to the start</span>
+<span class="s">    (?!                     # zero-width look-ahead assertion</span>
+<span class="s">        .*                  # any amount of anything (faster than .*?)</span>
+<span class="s">        ttyp                # the string you don&#39;t want to find</span>
+<span class="s">    )                       # end look-ahead negation; rewind to start</span>
+<span class="s">    .*                      # any amount of anything (faster than .*?)</span>
+<span class="s">    tchrist                 # now try to find Tom</span>
+<span class="s">&#39;&#39;&#39;</span>
+<span class="s">assert (fakedInput =~ findUserRegex).count == 2</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN339"
+>Matching Multiple-Byte Characters</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// Groovy uses Unicode character encoding</span>
+<span class="s">// special care needs to be taken when using unicode because of the different</span>
+<span class="s">// byte lengths, e.g. ŕ can be encoded as two bytes \u0061\u0300 and is also</span>
+<span class="s">// supported in legacy character sets by a single character \u00E0.  To Match</span>
+<span class="s">// this character, you can&#39;t use any of /./, /../, /a/, /\u00E0/, /\u0061/\u0300</span>
+<span class="s">// or /\pL/. The correct way is to use /X (not currently supported) or one</span>
+<span class="s">// of /\pL/\pM*/ to ensure that it is a letter or /\PM\pM*/ when you just want</span>
+<span class="s">// to combine multicharacter sequences and don&#39;t care whether it is a letter</span>
+<span class="s">def checkUnicode(s) {</span>
+<span class="s">    println s + &#39; is of size &#39; + s.size()</span>
+<span class="s">    println &#39;Exactly matches /./   &#39; + (s ==~ /./)</span>
+<span class="s">    println &#39;Exactly matches /../  &#39; + (s ==~ /../)</span>
+<span class="s">    println &#39;Exactly matches /a/   &#39; + (s ==~ /a/)</span>
+<span class="s">    println &#39;Exactly matches /\\u00E0/       &#39;  + (s ==~ /\u00E0/)</span>
+<span class="s">    println &#39;Exactly matches /\\u0061\\u0300/ &#39; + (s ==~ /\u0061\u0300/)</span>
+<span class="s">    println &#39;Exactly matches /\\pL/          &#39;  + (s ==~ /\pL/)</span>
+<span class="s">    println &#39;Exactly matches /\\pL\\pM*/      &#39; + (s ==~ /\pL\pM*/)</span>
+<span class="s">    println &#39;Exactly matches /\\PM\\pM*/      &#39; + (s ==~ /\PM\pM*/)</span>
+<span class="s">}</span>
+<span class="s">checkUnicode(&#39;ŕ&#39;)</span>
+<span class="s">checkUnicode(&#39;\u0061\u0300&#39;)</span>
+<span class="s">checkUnicode(&#39;\u00E0&#39;)</span>
+<span class="s">// =&gt;</span>
+<span class="s">// ŕ is of size 1</span>
+<span class="s">// Exactly matches /./   true</span>
+<span class="s">// Exactly matches /../  false</span>
+<span class="s">// Exactly matches /a/   false</span>
+<span class="s">// Exactly matches /\u00E0/       true</span>
+<span class="s">// Exactly matches /\u0061\u0300/ false</span>
+<span class="s">// Exactly matches /\pL/          true</span>
+<span class="s">// Exactly matches /\pL\pM*/      true</span>
+<span class="s">// Exactly matches /\PM\pM*/      true</span>
+<span class="s">// a? is of size 2</span>
+<span class="s">// Exactly matches /./   false</span>
+<span class="s">// Exactly matches /../  true</span>
+<span class="s">// Exactly matches /a/   false</span>
+<span class="s">// Exactly matches /\u00E0/       false</span>
+<span class="s">// Exactly matches /\u0061\u0300/ true</span>
+<span class="s">// Exactly matches /\pL/          false</span>
+<span class="s">// Exactly matches /\pL\pM*/      true</span>
+<span class="s">// Exactly matches /\PM\pM*/      true</span>
+<span class="s">// ŕ is of size 1</span>
+<span class="s">// Exactly matches /./   true</span>
+<span class="s">// Exactly matches /../  false</span>
+<span class="s">// Exactly matches /a/   false</span>
+<span class="s">// Exactly matches /\u00E0/       true</span>
+<span class="s">// Exactly matches /\u0061\u0300/ false</span>
+<span class="s">// Exactly matches /\pL/          true</span>
+<span class="s">// Exactly matches /\pL\pM*/      true</span>
+<span class="s">// Exactly matches /\PM\pM*/      true</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN342"
+>Matching a Valid Mail Address</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// The Perl Cookbook categorizes this as a hard problem ... mostly for</span>
+<span class="s">// reasons not related to the actual regex - but with a 60-line regex</span>
+<span class="s">// perhaps there are some issues with that too. Further details:</span>
+<span class="s">// http://www.perl.com/CPAN/authors/Tom_Christiansen/scripts/ckaddr.gz</span>
+
+<span class="s">simpleCommentStripper = /\([^()]*\)/</span>
+<span class="s">println &#39;Book Publishing &lt;marketing@books.com&gt; (We will spam you)&#39;.replaceAll(simpleCommentStripper, &#39;&#39;)</span>
+<span class="s">// =&gt; Book Publishing &lt;marketing@books.com&gt;</span>
+
+<span class="s">// inspired by the fact that domain names can contain any foreign character these days</span>
+<span class="s">modern = /^.+@[^\.].*\.[a-z]{2,}&gt;?$/</span>
+
+<span class="s">// .Net </span>
+<span class="s">lenient = /\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*/</span>
+
+<span class="s">// a little more checking</span>
+<span class="s">strict = /^[_a-zA-Z0-9- &lt;]+(\.[_a-zA-Z0-9- &lt;]+)*@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*\./ +</span>
+<span class="s">         /(([0-9]{1,3})|([a-zA-Z]{2,3})|(aero|coop|info|museum|name))&gt;?$/</span>
+
+<span class="s">addresses = [&#39;someuser@somehost.com&#39;,</span>
+<span class="s">             &#39;Book Publishing &lt;marketing@books.com&gt;&#39;]</span>
+<span class="s">addresses.each{</span>
+<span class="s">    assert it =~ lenient</span>
+<span class="s">    assert it =~ strict</span>
+<span class="s">    assert it =~ modern</span>
+<span class="s">}</span>
+
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN345"
+>Matching Abbreviations</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">def findAction(ans) {</span>
+<span class="s">    def re = &#39;(?i)^&#39; + Pattern.quote(ans)</span>
+<span class="s">    if      (&quot;SEND&quot;  =~ re) println &quot;Action is send&quot;</span>
+<span class="s">    else if (&quot;STOP&quot;  =~ re) println &quot;Action is stop&quot;</span>
+<span class="s">    else if (&quot;ABORT&quot; =~ re) println &quot;Action is abort&quot;</span>
+<span class="s">    else if (&quot;EDIT&quot;  =~ re) println &quot;Action is edit&quot;</span>
+<span class="s">    else println &#39;No Match&#39;</span>
+<span class="s">}</span>
+<span class="s">findAction(&#39;edit something&#39;)</span>
+<span class="s">// =&gt; No Match</span>
+<span class="s">findAction(&#39;edit&#39;)</span>
+<span class="s">// =&gt; Action is edit</span>
+<span class="s">findAction(&#39;se&#39;)</span>
+<span class="s">// =&gt; Action is send</span>
+<span class="s">findAction(&#39;e&#39;)</span>
+<span class="s">// =&gt; Action is edit</span>
+
+<span class="s">def buildAbbrev(words) {</span>
+<span class="s">    def table = new TreeMap()</span>
+<span class="s">    words.each{ w -&gt;</span>
+<span class="s">        (0..&lt;w.size()).each { n -&gt;</span>
+<span class="s">            if (!(words - w).any{</span>
+<span class="s">                it.size() &gt;= n+1 &amp;&amp; it[0..n] == w[0..n]</span>
+<span class="s">            }) table[w[0..n]] = w</span>
+<span class="s">        }</span>
+<span class="s">    }</span>
+<span class="s">    table</span>
+<span class="s">}</span>
+<span class="s">println buildAbbrev(&#39;send stop abort edit&#39;.split(&#39; &#39;).toList())</span>
+<span class="s">// =&gt; [&quot;a&quot;:&quot;abort&quot;, &quot;ab&quot;:&quot;abort&quot;, &quot;abo&quot;:&quot;abort&quot;, &quot;abor&quot;:&quot;abort&quot;, &quot;abort&quot;:&quot;abort&quot;,</span>
+<span class="s">//     &quot;e&quot;:&quot;edit&quot;, &quot;ed&quot;:&quot;edit&quot;, &quot;edi&quot;:&quot;edit&quot;, &quot;edit&quot;:&quot;edit&quot;, &quot;se&quot;:&quot;send&quot;, &quot;sen&quot;:&quot;send&quot;,</span>
+<span class="s">//     &quot;send&quot;:&quot;send&quot;, &quot;st&quot;:&quot;stop&quot;, &quot;sto&quot;:&quot;stop&quot;, &quot;stop&quot;:&quot;stop&quot;]</span>
+
+<span class="s">// miniShellScript:</span>
+<span class="s">// dummy methods</span>
+<span class="s">def invokeEditor() { println &quot;invoking editor&quot; }</span>
+<span class="s">def deliverMessage() { println &quot;delivering message at &quot; + new Date() }</span>
+<span class="s">actions = [</span>
+<span class="s">    edit:    this.&amp;invokeEditor,</span>
+<span class="s">    send:    this.&amp;deliverMessage,</span>
+<span class="s">    list:    { println Runtime.runtime.freeMemory() },</span>
+<span class="s">    abort:   { System.exit(0) },</span>
+<span class="s">    unknown: { println &quot;Unknown Command&quot;}</span>
+<span class="s">]</span>
+
+<span class="s">table = buildAbbrev(actions.keySet().toList())</span>
+<span class="s">prompt = &#39;\n&gt; &#39;</span>
+<span class="s">print &#39;Enter Commands: edit send list abort&#39; + prompt</span>
+<span class="s">new BufferedReader(new InputStreamReader(System.in)).eachLine{ line -&gt;</span>
+<span class="s">    def idx = (table.containsKey(line)) ? table[line] : &#39;unknown&#39;</span>
+<span class="s">    actions[idx]()</span>
+<span class="s">    print prompt</span>
+<span class="s">}</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN348"
+>Program: urlify</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">//% gunzip -c ~/mail/archive.gz | urlify &gt; archive.urlified</span>
+<span class="s">//% urlify ~/mail/*.inbox &gt; ~/allmail.urlified</span>
+
+<span class="s">urls = &#39;(https?|telnet|gopher|file|wais|ftp|mail)&#39;</span>
+<span class="s">ltrs = /\w/</span>
+<span class="s">gunk = /\#\/~:.?+=&amp;%@!\-/</span>
+<span class="s">punc = /.:?\-/</span>
+<span class="s">doll = /$/</span>
+<span class="s">all  = /</span><span class="n">$ltrs$gunk$punc</span><span class="s">/</span>
+
+<span class="s">findUrls = &quot;&quot;&quot;(?ix)</span>
+<span class="s">        \\b                   # start at word boundary</span>
+<span class="s">        (                     # begin group 1  {</span>
+<span class="s">         $urls   :            # need resource and a colon</span>
+<span class="s">         [$all] +?            # followed by on or more of any valid</span>
+<span class="s">                              #  character, but be conservative and</span>
+<span class="s">                              #  take only what you need to...</span>
+<span class="s">        )                     # end   group 1  }</span>
+<span class="s">        (?=                   # look-ahead non-consumptive assertion</span>
+<span class="s">         [$punc]*             # either 0 or more punctuation</span>
+<span class="s">         [^$all]              #   followed by a non-url character</span>
+<span class="s">         |                    # or else</span>
+<span class="s">         $doll                #   then end of the string</span>
+<span class="s">        )</span>
+<span class="s">&quot;&quot;&quot;</span>
+
+<span class="s">input = &#39;&#39;&#39;</span>
+<span class="s">If you find a typo on http://groovy.codehaus.org please</span>
+<span class="s">send an email to mail:spelling.pedant@codehaus.org</span>
+<span class="s">&#39;&#39;&#39;</span>
+
+<span class="s">println input.replaceAll(findUrls,&#39;&lt;a href=&quot;$1&quot;&gt;$1&lt;/</span><span class="n">a</span><span class="o">&gt;</span><span class="s1">&#39;)</span>
+<span class="s1">// =&gt;</span>
+<span class="s1">// If you find a typo on &lt;a href=&quot;http://groovy.codehaus.org&quot;&gt;http://groovy.codehaus.org&lt;/a&gt; please</span>
+<span class="s1">// send an email to &lt;a href=&quot;mail:spelling.pedant@codehaus.org&quot;&gt;mail:spelling.pedant@codehaus.org&lt;/a&gt;</span>
+
+<span class="s1">// urlifyScript:</span>
+<span class="s1">#!/usr/bin/groovy</span>
+<span class="s1">// urlify - wrap HTML links around URL-like constructs</span>
+<span class="s1">// definitions from above</span>
+<span class="s1">args.each{ file -&gt;</span>
+<span class="s1">    new File(file).eachLine{ line -&gt;</span>
+<span class="s1">        println line.replaceAll(findUrls,&#39;</span><span class="o">&lt;</span><span class="n">a</span> <span class="n">href</span><span class="o">=</span><span class="s2">&quot;$1&quot;</span><span class="o">&gt;</span><span class="n">$1</span><span class="o">&lt;</span><span class="s">/a&gt;&#39;)</span>
+<span class="s">    }</span>
+<span class="s">}</span>
+
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN351"
+>Program: tcgrep</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">// @@INCOMPLETE@@</span>
+<span class="s">// @@INCOMPLETE@@</span>
+
+<span class="s">//----------------------------------------------------------------------------------</span><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">// not an exact equivalent to original cookbook but has</span>
+<span class="s">// a reasonable subset of mostly similar functionality</span>
+<span class="s">// instead of -r recursion option, use Ant fileset wildcards</span>
+<span class="s">// e.g. **/*.c.  You can also specify an excludes pattern</span>
+<span class="s">// e.g. **/*.* -X **/*.h will process all but header files</span>
+<span class="s">// (currently not optimised and with minimal error checking)</span>
+<span class="s">// uses jopt-simple (jopt-simple.sf.net)</span>
+
+<span class="s">op = new joptsimple.OptionParser()</span>
+<span class="s">NOCASE  = &#39;i&#39;;  op.accepts( NOCASE,  &quot;case insensitive&quot; )</span>
+<span class="s">WITHN   = &#39;n&#39;;  op.accepts( WITHN,   &quot;display line/para with line/para number&quot; )</span>
+<span class="s">WITHF   = &#39;H&#39;;  op.accepts( WITHF,   &quot;display line/para with filename&quot; )</span>
+<span class="s">NONAME  = &#39;h&#39;;  op.accepts( NONAME,  &quot;hide filenames&quot; )</span>
+<span class="s">COUNT   = &#39;c&#39;;  op.accepts( COUNT,   &quot;give count of lines/paras matching&quot; )</span>
+<span class="s">TCOUNT  = &#39;C&#39;;  op.accepts( TCOUNT,  &quot;give count of total matches (multiple per line/para)&quot; )</span>
+<span class="s">WORD    = &#39;w&#39;;  op.accepts( WORD,    &quot;word boundaries only&quot; )</span>
+<span class="s">EXACT   = &#39;x&#39;;  op.accepts( EXACT,   &quot;exact matches only&quot; )</span>
+<span class="s">INVERT  = &#39;v&#39;;  op.accepts( INVERT,  &quot;invert search sense (lines that DON&#39;T match)&quot; )</span>
+<span class="s">EXCLUDE = &#39;X&#39;;  op.accepts( EXCLUDE, &quot;exclude files matching pattern [default is &#39;**/*.bak&#39;]&quot; ).</span>
+<span class="s">                    withRequiredArg().describedAs(&#39;path_pattern&#39;)</span>
+<span class="s">MATCH   = &#39;l&#39;;  op.accepts( MATCH,   &quot;list names of files with matches&quot; )</span>
+<span class="s">NOMATCH = &#39;L&#39;;  op.accepts( NOMATCH, &quot;list names of files with no match&quot; )</span>
+<span class="s">PARA    = &#39;p&#39;;  op.accepts( PARA,    &quot;para mode (.* matches newlines)&quot; ).</span>
+<span class="s">                    withOptionalArg().describedAs(&#39;para_pattern&#39;)</span>
+<span class="s">EXPR    = &#39;e&#39;;  op.accepts( EXPR,    &quot;expression (when pattern begins with &#39;-&#39;)&quot; ).</span>
+<span class="s">                    withRequiredArg().describedAs(&#39;pattern&#39;)</span>
+<span class="s">FILE    = &#39;f&#39;;  op.accepts( FILE,    &quot;file containing pattern&quot; ).</span>
+<span class="s">                    withRequiredArg().describedAs(&#39;filename&#39;)</span>
+<span class="s">HELP = &#39;help&#39;;  op.accepts( HELP,    &quot;display this message&quot; )</span>
+
+<span class="s">options = op.parse(args)</span>
+<span class="s">params = options.nonOptionArguments()</span>
+<span class="s">if (options.wasDetected( HELP )) {</span>
+<span class="s">    op.printHelpOn( System.out )</span>
+<span class="s">} else if (params.size() == 0) {</span>
+<span class="s">    println &quot;Usage: grep [OPTION]... PATTERN [FILE]...\nTry &#39;grep --$HELP&#39; for more information.&quot;</span>
+<span class="s">} else {</span>
+<span class="s">    modifiers = []</span>
+<span class="s">    paraPattern = &#39;&#39;</span>
+<span class="s">    o_withn   = options.wasDetected( WITHN )</span>
+<span class="s">    o_withf   = options.wasDetected( WITHF )</span>
+<span class="s">    o_noname  = options.wasDetected( NONAME )</span>
+<span class="s">    o_count   = options.wasDetected( COUNT )</span>
+<span class="s">    o_tcount  = options.wasDetected( TCOUNT )</span>
+<span class="s">    o_invert  = options.wasDetected( INVERT )</span>
+<span class="s">    o_match   = options.wasDetected( MATCH )</span>
+<span class="s">    o_nomatch = options.wasDetected( NOMATCH )</span>
+<span class="s">    if (options.wasDetected( EXPR )) {</span>
+<span class="s">        pattern = options.valueOf( EXPR )</span>
+<span class="s">    } else if (options.wasDetected( FILE )) {</span>
+<span class="s">        pattern = new File(options.valueOf( FILE )).text.trim()</span>
+<span class="s">    } else {</span>
+<span class="s">        pattern = params[0]</span>
+<span class="s">        params = params[1..-1]</span>
+<span class="s">    }</span>
+<span class="s">    if (options.wasDetected( EXCLUDE )) excludes = options.valueOf( EXCLUDE )</span>
+<span class="s">    else excludes = [&#39;**/*.bak&#39;]</span>
+<span class="s">    if (options.wasDetected( EXACT )) pattern = &#39;^&#39; + pattern + &#39;$&#39;</span>
+<span class="s">    else if (options.wasDetected( WORD )) pattern = /\b$pattern\b/</span>
+<span class="s">    if (options.wasDetected( NOCASE )) modifiers += &#39;i&#39;</span>
+<span class="s">    if (options.wasDetected( PARA )) {</span>
+<span class="s">        if (options.hasArgument( PARA )) paraPattern = options.valueOf( PARA )</span>
+<span class="s">        else paraPattern = &#39;^$&#39;</span>
+<span class="s">        paraPattern = &#39;(?sm)&#39; + paraPattern</span>
+<span class="s">        modifiers += &#39;sm&#39;</span>
+<span class="s">    }</span>
+<span class="s">    if (modifiers) pattern = &quot;(?${modifiers.join()})&quot; + pattern</span>
+
+<span class="s">    if (params.size() == 0) grepStream(System.in, &#39;&lt;stdin&gt;&#39;)</span>
+<span class="s">    else {</span>
+<span class="s">        scanner = new AntBuilder().fileScanner {</span>
+<span class="s">            fileset(dir:&#39;.&#39;, includes:params.join(&#39;,&#39;), excludes:excludes)</span>
+<span class="s">        }</span>
+<span class="s">        for (f in scanner) {</span>
+<span class="s">            grepStream(new FileInputStream(f), f)</span>
+<span class="s">        }</span>
+<span class="s">    }</span>
+<span class="s">}</span>
+
+<span class="s">def grepStream(s, name) {</span>
+<span class="s">    def count = 0</span>
+<span class="s">    def tcount = 0</span>
+<span class="s">    def pieces</span>
+<span class="s">    if (paraPattern) pieces = s.text.split(paraPattern)</span>
+<span class="s">    else pieces = s.readLines()</span>
+<span class="s">    def fileMode = o_match || o_nomatch || o_count || o_tcount</span>
+<span class="s">    pieces.eachWithIndex{line, index -&gt;</span>
+<span class="s">        def m = line =~ pattern</span>
+<span class="s">        boolean found = m.count</span>
+<span class="s">        if (found != o_invert) {</span>
+<span class="s">            count++</span>
+<span class="s">            tcount += m.count</span>
+<span class="s">            if (!fileMode) {</span>
+<span class="s">                linefields = []</span>
+<span class="s">                if (o_withf) linefields += name</span>
+<span class="s">                if (o_withn) linefields += index + 1</span>
+<span class="s">                linefields += line</span>
+<span class="s">                println linefields.join(&#39;:&#39;)</span>
+<span class="s">            }</span>
+<span class="s">        }</span>
+<span class="s">    }</span>
+<span class="s">    def display = true</span>
+<span class="s">    if ((o_match &amp;&amp; count == 0) || (o_nomatch &amp;&amp; count != 0)) display = false</span>
+<span class="s">    if (fileMode &amp;&amp; display) {</span>
+<span class="s">        filefields = []</span>
+<span class="s">        if (!o_noname) filefields += name</span>
+<span class="s">        if (o_tcount) filefields += tcount</span>
+<span class="s">        else if (o_count) filefields += count</span>
+<span class="s">        println filefields.join(&#39;:&#39;)</span>
+<span class="s">    }</span>
+<span class="s">}</span>
+<span class="s">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN354"
+>Regular Expression Grabbag</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s"></span><span class="s">//----------------------------------------------------------------------------------</span>
+<span class="s">romans = /</span><span class="o">(?</span><span class="n">i</span><span class="o">)^</span><span class="n">m</span><span class="o">*(</span><span class="n">d</span><span class="o">?</span><span class="n">c</span><span class="o">{</span><span class="mi">0</span><span class="o">,</span><span class="mi">3</span><span class="o">}|</span><span class="n">c</span><span class="o">[</span><span class="n">dm</span><span class="o">])(</span><span class="n">l</span><span class="o">?</span><span class="n">x</span><span class="o">{</span><span class="mi">0</span><span class="o">,</span><span class="mi">3</span><span class="o">}|</span><span class="n">x</span><span class="o">[</span><span class="n">lc</span><span class="o">])(</span><span class="n">v</span><span class="o">?</span><span class="n">i</span><span class="o">{</span><span class="mi">0</span><span class="o">,</span><span class="mi">3</span><span class="o">}|</span><span class="n">i</span><span class="o">[</span><span class="n">vx</span><span class="o">])</span><span class="s">$/</span>
+<span class="s">assert &#39;cmxvi&#39; =~ romans</span>
+<span class="s">// can&#39;t have tens before 1000s (M) or 100s (C) after 5s (V)</span>
+<span class="s">assert !(&#39;xmvci&#39; =~ romans)</span>
+
+<span class="s">// swap first two words</span>
+<span class="s">assert &#39;the words&#39;.replaceAll(/(\S+)(\s+)(\S+)/, &#39;$3$2$1&#39;) == &#39;words the&#39;</span>
+
+<span class="s">// extract keyword and value</span>
+<span class="s">m = &#39;k=v&#39; =~ /(\w+)\s*=\s*(.*)\s*$/</span>
+<span class="s">assert m.matches()</span>
+<span class="s">assert m[0][1] == &#39;k&#39;</span>
+<span class="s">assert m[0][2] == &#39;v&#39;</span>
+
+<span class="s">hasAtLeastSize = { n -&gt; /.{$n,}/ }</span>
+<span class="s">assert &#39;abcdefghijklmnopqrstuvwxyz&#39; =~ hasAtLeastSize(20)</span>
+
+<span class="s">// MM/DD/YY HH:MM:SS (lenient - doesn&#39;t check HH &gt; 23 etc)</span>
+<span class="s">d = /\d+/</span>
+<span class="s">datetime = &quot;($d)/($d)/($d) ($d):($d):($d)&quot;</span>
+<span class="s">assert &#39;04/05/2006 10:26:59&#39; =~ datetime</span>
+
+<span class="s">orig = &#39;/usr/bin/vi&#39;</span>
+<span class="s">expected = &#39;/usr/local/bin/vi&#39;</span>
+<span class="s">orig.replaceAll(&#39;/usr/bin&#39;,&#39;/usr/local/bin&#39;) == expected</span>
+
+<span class="s">escapeSequenceRegex = /%([0-9A-Fa-f][0-9A-Fa-f])/</span>
+<span class="s">convertEscapeToChar = { Object[] ch -&gt; new Character((char)Integer.parseInt(ch[1],16)) }</span>
+<span class="s">assert &#39;abc%3cdef&#39;.replaceAll(escapeSequenceRegex, convertEscapeToChar) == &#39;abc&lt;def&#39;</span>
+
+<span class="s">commentStripper = &#39;&#39;&#39;(?xms)</span>
+<span class="s">    /\\*        # Match the opening delimiter</span>
+<span class="s">    .*          # Match a minimal number of characters */</span>
+<span class="s">    \\*/        # Match the closing delimiter</span>
+<span class="s">&#39;&#39;&#39;</span>
+
+<span class="s">input = &#39;&#39;&#39;</span>
+<span class="s">a line</span>
+<span class="s">/*</span>
+<span class="s">some comment</span>
+<span class="s">*/</span>
+<span class="s">another line</span>
+<span class="s">&#39;&#39;&#39;</span>
+<span class="s">expected = &#39;&#39;&#39;</span>
+<span class="s">a line</span>
+
+<span class="s">another line</span>
+<span class="s">&#39;&#39;&#39;</span>
+
+<span class="s">assert input.replaceAll(commentStripper,&#39;&#39;) == expected</span>
+
+<span class="s">// emulate s.trim()</span>
+<span class="s">assert &#39;  x  y  &#39;.replaceAll(/^\s+/, &#39;&#39;).replaceAll(/\s+$/, &#39;&#39;) == &#39;x  y&#39;</span>
+
+<span class="s">// convert \\n into \n</span>
+<span class="s">assert (/a\nb/.replaceAll(/\\n/,&quot;\n&quot;) == &#39;a\nb&#39;)</span>
+
+<span class="s">// remove package symbol (Groovy/Java doesn&#39;t use this as package symbol)</span>
+<span class="s">assert &#39;A::B&#39;.replaceAll(/^.*::/, &#39;&#39;) == &#39;B&#39;</span>
+
+<span class="s">// match IP Address (requires leading 0&#39;s)</span>
+<span class="s">ipregex = /^([01]?\d\d|2[0-4]\d|25[0-5])\.([01]?\d\d|2[0-4]\d|25[0-5])\./ +</span>
+<span class="s">    /([01]?\d\d|2[0-4]\d|25[0-5])\.([01]?\d\d|2[0-4]\d|25[0-5])$/</span>
+<span class="s">assert !(&#39;123.456.789&#39; =~ ipregex)</span>
+<span class="s">assert &#39;192.168.000.001&#39; =~ ipregex</span>
+
+<span class="s">// extract basename</span>
+<span class="s">assert &#39;c:/usr/temp.txt&#39;.replaceAll(/^.*\/{1}/, &#39;&#39;) == &#39;temp.txt&#39;</span>
+
+<span class="s">termcap = &#39;:co#80:li#24:&#39;</span>
+<span class="s">m = (termcap =~ /:co\#(\d+):/)</span>
+<span class="s">assert m.count == 1</span>
+<span class="s">assert m[0][1] == &#39;80&#39;</span>
+
+<span class="s">assert &#39;cmd c:/tmp/junk.txt&#39;.replaceAll(/ \S+\/{1}/, &#39; &#39;) == &#39;cmd junk.txt&#39;</span>
+
+<span class="s">os = System.getProperty(&#39;os.name&#39;)</span>
+<span class="s">println &#39;Is Linux? &#39; + (os ==~ /(?i)linux.*/)</span>
+<span class="s">println &#39;Is Windows? &#39; + (os ==~ /(?i)windows.*/)</span>
+<span class="s">println &#39;Is Mac? &#39; + (os ==~ /(?i)mac.*/)</span>
+
+<span class="s">// join multiline sting</span>
+<span class="s">multi = &#39;&#39;&#39;</span>
+<span class="s">This is</span>
+<span class="s">    a test</span>
+<span class="s">&#39;&#39;&#39;.trim()</span>
+<span class="s">assert multi.replaceAll(/(?m)\n\s+/, &#39; &#39;) == &#39;This is a test&#39;</span>
+
+<span class="s">// nums in string</span>
+<span class="s">string = &#39;The 5th test was won today by 10 wickets after 10.5 overs&#39;</span>
+<span class="s">nums = string =~ /(\d+\.?\d*|\.\d+)/</span>
+<span class="s">assert (0..&lt;nums.count).collect{ nums[it][1] }.join(&#39; &#39;) == &#39;5 10 10.5&#39;</span>
+
+<span class="s">// capitalize words</span>
+<span class="s">words = &#39;the Capital words ARE hiding&#39;</span>
+<span class="s">capwords = words =~ /(\b\p{Upper}+\b)/</span>
+<span class="s">assert (0..&lt;capwords.count).collect{ capwords[it][1] }.join(&#39; &#39;) == &#39;ARE&#39;</span>
+
+<span class="s">lowords = words =~ /(\b\p{Lower}+\b)/</span>
+<span class="s">assert (0..&lt;lowords.count).collect{ lowords[it][1] }.join(&#39; &#39;) == &#39;the words hiding&#39;</span>
+
+<span class="s">capWords = words =~ /(\b\p{Upper}\p{Lower}*\b)/</span>
+<span class="s">assert (0..&lt;capWords.count).collect{ capWords[it][1] }.join(&#39; &#39;) == &#39;Capital&#39;</span>
+
+<span class="s">input = &#39;&#39;&#39;</span>
+<span class="s">If you find a typo on &lt;a href=&quot;http://groovy.codehaus.org&quot;&gt;http://groovy.codehaus.org&lt;/a&gt; please</span>
+<span class="s">send an email to &lt;a href=&quot;mail:spelling.pedant@codehaus.org&quot;&gt;mail:spelling.pedant@codehaus.org&lt;/a&gt;</span>
+<span class="s">&#39;&#39;&#39;</span>
+
+<span class="s">linkRegex = /(?im)&lt;A[^&gt;]+?HREF\s*=\s*[&quot;&#39;]?([^&#39;&quot; &gt;]+?)[ &#39;&quot;]?&gt;/          //&#39;</span>
+<span class="s">links = input =~ linkRegex</span>
+<span class="s">(0..&lt;links.count).each{ println links[it][1] }</span>
+<span class="s">// =&gt;</span>
+<span class="s">// http://groovy.codehaus.org</span>
+<span class="s">// mail:spelling.pedant@codehaus.org</span>
+
+<span class="s">// find middle initial if any</span>
+<span class="s">m = &#39;Lee Harvey Oswald&#39; =~ /^\S+\s+(\S)\S*\s+\S/</span>
+<span class="s">initial = m.count ? m[0][1] : &quot;&quot;</span>
+<span class="s">assert initial == &#39;H&#39;</span>
+
+<span class="s">// inch marks to quotes</span>
+<span class="s">println &#39;I said &quot;Hello&quot; to you.&#39;.replaceAll(/&quot;([^&quot;]*)&quot;/, /``$1&#39;&#39;/)     //&quot;</span>
+<span class="s">// =&gt; I said ``Hello&#39;&#39; to you.</span>
+
+<span class="s">// extract sentences (2 spaces or newline after punctuation)</span>
+<span class="s">input = &#39;&#39;&#39;</span>
+<span class="s">Is this a sentence?</span>
+<span class="s">Yes!  And so</span>
+<span class="s">is this.  And the fourth.</span>
+<span class="s">&#39;&#39;&#39;</span>
+<span class="s">sentences = []</span>
+<span class="s">strip = input.replaceAll(/(\p{Punct})\n/, &#39;$1  &#39;).replaceAll(/\n/, &#39; &#39;).replaceAll(/ {3,}/,&#39;  &#39;)</span>
+<span class="s">m = strip =~ /(\S.*?\p{Punct})(?=  |\Z)/</span>
+<span class="s">(0..&lt;m.count).each{ sentences += m[it][1] }</span>
+<span class="s">assert sentences == [&quot;Is this a sentence?&quot;, &quot;Yes!&quot;, &quot;And so is this.&quot;, &quot;And the fourth.&quot;]</span>
+
+<span class="s">// YYYY-MM-DD</span>
+<span class="s">m = &#39;2007-2-28&#39; =~ /(\d{4})-(\d\d?)-(\d\d?)/</span>
+<span class="s">assert m.matches()</span>
+<span class="s">assert [&#39;2007&#39;, &#39;2&#39;, &#39;28&#39;] == [m[0][1], m[0][2], m[0][3]]</span>
+
+<span class="s">usPhoneRegex = /^[01]?[- .]?(\([2-9]\d{2}\)|[2-9]\d{2})[- .]?\d{3}[- .]?\d{4}$/</span>
+<span class="s">numbers = &#39;&#39;&#39;</span>
+<span class="s">(425) 555-0123</span>
+<span class="s">425-555-0123</span>
+<span class="s">425 555 0123</span>
+<span class="s">1-425-555-0123</span>
+<span class="s">&#39;&#39;&#39;.trim().split(&#39;\n&#39;).toList()</span>
+<span class="s">assert numbers.every{ it ==~ usPhoneRegex }</span>
+
+<span class="s">exclaimRegex = /(?i)\boh\s+my\s+gh?o(d(dess(es)?|s?)|odness|sh)\b/</span>
+<span class="s">assert &#39;Oh my Goodness!&#39; =~ exclaimRegex</span>
+<span class="s">assert !(&#39;Golly gosh&#39; =~ exclaimRegex)</span>
+
+<span class="s">input = &#39;line 1\rline 2\nline\r\nline 3\n\rline 4&#39;</span>
+<span class="s">m = input =~ /(?m)^([^\012\015]*)(\012\015?|\015\012?)/</span>
+<span class="s">assert m.count == 4</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="hashes.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="fileaccess.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Hashes</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>File Access</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

@@ -1,0 +1,1414 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Process Management and Communication</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-PHP"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="User Interfaces"
+HREF="userinterfaces.html"><LINK
+REL="NEXT"
+TITLE="Sockets"
+HREF="sockets.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-PHP</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="userinterfaces.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="sockets.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="PROCESSMANAGEMENTETC"
+>16. Process Management and Communication</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN851"
+>Gathering Output from a Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// Run a command and return its results as a string.</span>
+<span class="nv">$output_string</span> <span class="o">=</span> <span class="nb">shell_exec</span><span class="p">(</span><span class="s1">&#39;program args&#39;</span><span class="p">);</span>
+
+<span class="c1">// Same as above, using backtick operator.</span>
+<span class="nv">$output_string</span> <span class="o">=</span> <span class="sb">`program args`</span><span class="p">;</span>
+
+<span class="c1">// Run a command and return its results as a list of strings,</span>
+<span class="c1">// one per line.</span>
+<span class="nv">$output_lines</span> <span class="o">=</span> <span class="k">array</span><span class="p">();</span>
+<span class="nb">exec</span><span class="p">(</span><span class="s1">&#39;program args&#39;</span><span class="p">,</span> <span class="nv">$output_lines</span><span class="p">);</span>
+
+<span class="c1">// -----------------------------</span>
+
+<span class="c1">// The only way to execute a program without using the shell is to</span>
+<span class="c1">// use pcntl_exec(). However, there is no way to do redirection, so</span>
+<span class="c1">// you can&#39;t capture its output.</span>
+
+<span class="nv">$pid</span> <span class="o">=</span> <span class="nb">pcntl_fork</span><span class="p">();</span>
+<span class="k">if</span> <span class="p">(</span><span class="nv">$pid</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">die</span><span class="p">(</span><span class="s1">&#39;cannot fork&#39;</span><span class="p">);</span>
+<span class="p">}</span> <span class="k">elseif</span> <span class="p">(</span><span class="nv">$pid</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nb">pcntl_waitpid</span><span class="p">(</span><span class="nv">$pid</span><span class="p">,</span> <span class="nv">$status</span><span class="p">);</span>
+<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="c1">// Note that pcntl_exec() automatically prepends the program name</span>
+    <span class="c1">// to the array of arguments; the program name cannot be spoofed.</span>
+    <span class="nb">pcntl_exec</span><span class="p">(</span><span class="nv">$program</span><span class="p">,</span> <span class="k">array</span><span class="p">(</span><span class="nv">$arg1</span><span class="p">,</span> <span class="nv">$arg2</span><span class="p">));</span>
+<span class="p">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN854"
+>Running Another Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// Run a simple command and retrieve its result code.</span>
+<span class="nb">exec</span><span class="p">(</span><span class="s2">&quot;vi </span><span class="si">$myfile</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nv">$output</span><span class="p">,</span> <span class="nv">$result_code</span><span class="p">);</span>
+
+<span class="c1">// -----------------------------</span>
+
+<span class="c1">// Use the shell to perform redirection.</span>
+<span class="nb">exec</span><span class="p">(</span><span class="s1">&#39;cmd1 args | cmd2 | cmd3 &gt;outfile&#39;</span><span class="p">);</span>
+<span class="nb">exec</span><span class="p">(</span><span class="s1">&#39;cmd args &lt;infile &gt;outfile 2&gt;errfile&#39;</span><span class="p">);</span>
+
+<span class="c1">// -----------------------------</span>
+
+<span class="c1">// Run a command, handling its result code or signal.</span>
+<span class="nv">$pid</span> <span class="o">=</span> <span class="nb">pcntl_fork</span><span class="p">();</span>
+<span class="k">if</span> <span class="p">(</span><span class="nv">$pid</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">die</span><span class="p">(</span><span class="s1">&#39;cannot fork&#39;</span><span class="p">);</span>
+<span class="p">}</span> <span class="k">elseif</span> <span class="p">(</span><span class="nv">$pid</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nb">pcntl_waitpid</span><span class="p">(</span><span class="nv">$pid</span><span class="p">,</span> <span class="nv">$status</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nb">pcntl_wifexited</span><span class="p">(</span><span class="nv">$status</span><span class="p">))</span> <span class="p">{</span>
+        <span class="nv">$status</span> <span class="o">=</span> <span class="nb">pcntl_wexitstatus</span><span class="p">(</span><span class="nv">$status</span><span class="p">);</span>
+        <span class="k">echo</span> <span class="s2">&quot;program exited with status </span><span class="si">$status</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">;</span>
+    <span class="p">}</span> <span class="k">elseif</span> <span class="p">(</span><span class="nb">pcntl_wifsignaled</span><span class="p">(</span><span class="nv">$status</span><span class="p">))</span> <span class="p">{</span>
+        <span class="nv">$signal</span> <span class="o">=</span> <span class="nb">pcntl_wtermsig</span><span class="p">(</span><span class="nv">$status</span><span class="p">);</span>
+        <span class="k">echo</span> <span class="s2">&quot;program killed by signal </span><span class="si">$signal</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">;</span>
+    <span class="p">}</span> <span class="k">elseif</span> <span class="p">(</span><span class="nb">pcntl_wifstopped</span><span class="p">(</span><span class="nv">$status</span><span class="p">))</span> <span class="p">{</span>
+        <span class="nv">$signal</span> <span class="o">=</span> <span class="nb">pcntl_wstopsig</span><span class="p">(</span><span class="nv">$status</span><span class="p">);</span>
+        <span class="k">echo</span> <span class="s2">&quot;program stopped by signal </span><span class="si">$signal</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="nb">pcntl_exec</span><span class="p">(</span><span class="nv">$program</span><span class="p">,</span> <span class="nv">$args</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// -----------------------------</span>
+
+<span class="c1">// Run a command while blocking interrupt signals.</span>
+<span class="nv">$pid</span> <span class="o">=</span> <span class="nb">pcntl_fork</span><span class="p">();</span>
+<span class="k">if</span> <span class="p">(</span><span class="nv">$pid</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">die</span><span class="p">(</span><span class="s1">&#39;cannot fork&#39;</span><span class="p">);</span>
+<span class="p">}</span> <span class="k">elseif</span> <span class="p">(</span><span class="nv">$pid</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// parent catches INT and berates user</span>
+    <span class="k">declare</span><span class="p">(</span><span class="nx">ticks</span> <span class="o">=</span> <span class="mi">1</span><span class="p">);</span>
+    <span class="k">function</span> <span class="nf">handle_sigint</span><span class="p">(</span><span class="nv">$signal</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">echo</span> <span class="s2">&quot;Tsk tsk, no process interruptus</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="nb">pcntl_signal</span><span class="p">(</span><span class="nx">SIGINT</span><span class="p">,</span> <span class="s1">&#39;handle_sigint&#39;</span><span class="p">);</span>
+    <span class="k">while</span> <span class="p">(</span><span class="o">!</span><span class="nb">pcntl_waitpid</span><span class="p">(</span><span class="nv">$pid</span><span class="p">,</span> <span class="nv">$status</span><span class="p">,</span> <span class="nx">WNOHANG</span><span class="p">))</span> <span class="p">{}</span>
+<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="c1">// child ignores INT and does its thing</span>
+    <span class="nb">pcntl_signal</span><span class="p">(</span><span class="nx">SIGINT</span><span class="p">,</span> <span class="nx">SIG_IGN</span><span class="p">);</span>
+    <span class="nb">pcntl_exec</span><span class="p">(</span><span class="s1">&#39;/bin/sleep&#39;</span><span class="p">,</span> <span class="k">array</span><span class="p">(</span><span class="s1">&#39;10&#39;</span><span class="p">));</span>
+<span class="p">}</span>
+
+<span class="c1">// -----------------------------</span>
+
+<span class="c1">// Since there is no direct access to execv() and friends, and</span>
+<span class="c1">// pcntl_exec() won&#39;t let us supply an alternate program name</span>
+<span class="c1">// in the argument list, there is no way to run a command with</span>
+<span class="c1">// a different name in the process table.</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN857"
+>Replacing the Current Program with a Different One</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// Transfer control to the shell to run another program.</span>
+<span class="nb">pcntl_exec</span><span class="p">(</span><span class="s1">&#39;/bin/sh&#39;</span><span class="p">,</span> <span class="k">array</span><span class="p">(</span><span class="s1">&#39;-c&#39;</span><span class="p">,</span> <span class="s1">&#39;archive *.data&#39;</span><span class="p">));</span>
+<span class="c1">// Transfer control directly to another program.</span>
+<span class="nb">pcntl_exec</span><span class="p">(</span><span class="s1">&#39;/path/to/archive&#39;</span><span class="p">,</span> <span class="k">array</span><span class="p">(</span><span class="s1">&#39;accounting.data&#39;</span><span class="p">));</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN860"
+>Reading or Writing to Another Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// Handle each line in the output of a process.</span>
+<span class="nv">$readme</span> <span class="o">=</span> <span class="nb">popen</span><span class="p">(</span><span class="s1">&#39;program arguments&#39;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">);</span>
+<span class="k">while</span> <span class="p">(</span><span class="o">!</span><span class="nb">feof</span><span class="p">(</span><span class="nv">$readme</span><span class="p">))</span> <span class="p">{</span>
+    <span class="nv">$line</span> <span class="o">=</span> <span class="nb">fgets</span><span class="p">(</span><span class="nv">$readme</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nv">$line</span> <span class="o">===</span> <span class="k">false</span><span class="p">)</span> <span class="k">break</span><span class="p">;</span>
+    <span class="c1">// ...</span>
+<span class="p">}</span>
+<span class="nb">pclose</span><span class="p">(</span><span class="nv">$readme</span><span class="p">);</span>
+
+<span class="c1">// -----------------------------</span>
+
+<span class="c1">// Write to the input of a process.</span>
+<span class="nv">$writeme</span> <span class="o">=</span> <span class="nb">popen</span><span class="p">(</span><span class="s1">&#39;program arguments&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">);</span>
+<span class="nb">fwrite</span><span class="p">(</span><span class="nv">$writeme</span><span class="p">,</span> <span class="s1">&#39;data&#39;</span><span class="p">);</span>
+<span class="nb">pclose</span><span class="p">(</span><span class="nv">$writeme</span><span class="p">);</span>
+
+<span class="c1">// -----------------------------</span>
+
+<span class="c1">// Wait for a process to complete.</span>
+<span class="nv">$f</span> <span class="o">=</span> <span class="nb">popen</span><span class="p">(</span><span class="s1">&#39;sleep 1000000&#39;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">);</span>  <span class="c1">// child goes to sleep</span>
+<span class="nb">pclose</span><span class="p">(</span><span class="nv">$f</span><span class="p">);</span>                        <span class="c1">// and parent goes to lala land</span>
+
+<span class="c1">// -----------------------------</span>
+
+<span class="nv">$writeme</span> <span class="o">=</span> <span class="nb">popen</span><span class="p">(</span><span class="s1">&#39;program arguments&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">);</span>
+<span class="nb">fwrite</span><span class="p">(</span><span class="nv">$writeme</span><span class="p">,</span> <span class="s2">&quot;hello</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">);</span>  <span class="c1">// program will get hello\n on STDIN</span>
+<span class="nb">pclose</span><span class="p">(</span><span class="nv">$writeme</span><span class="p">);</span>             <span class="c1">// program will get EOF on STDIN</span>
+
+<span class="c1">// -----------------------------</span>
+
+<span class="c1">// Output buffering callback that sends output to the pager.</span>
+<span class="k">function</span> <span class="nf">ob_pager</span><span class="p">(</span><span class="nv">$output</span><span class="p">,</span> <span class="nv">$mode</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">static</span> <span class="nv">$pipe</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nv">$mode</span> <span class="o">&amp;</span> <span class="nx">PHP_OUTPUT_HANDLER_START</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nv">$pager</span> <span class="o">=</span> <span class="nb">getenv</span><span class="p">(</span><span class="s1">&#39;PAGER&#39;</span><span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nv">$pager</span><span class="p">)</span> <span class="nv">$pager</span> <span class="o">=</span> <span class="s1">&#39;/usr/bin/less&#39;</span><span class="p">;</span>  <span class="c1">// XXX: might not exist</span>
+        <span class="nv">$pipe</span> <span class="o">=</span> <span class="nb">popen</span><span class="p">(</span><span class="nv">$pager</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="nb">fwrite</span><span class="p">(</span><span class="nv">$pipe</span><span class="p">,</span> <span class="nv">$output</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nv">$mode</span> <span class="o">&amp;</span> <span class="nx">PHP_OUTPUT_HANDLER_END</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nb">pclose</span><span class="p">(</span><span class="nv">$pipe</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="c1">// Redirect standard output to the pager.</span>
+<span class="nb">ob_start</span><span class="p">(</span><span class="s1">&#39;ob_pager&#39;</span><span class="p">);</span>
+
+<span class="c1">// Do something useful that writes to standard output, then</span>
+<span class="c1">// close the output buffer.</span>
+<span class="c1">// ...</span>
+<span class="nb">ob_end_flush</span><span class="p">();</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN863"
+>Filtering Your Own Output</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// Output buffering: Only display a certain number of lines of output.</span>
+<span class="k">class</span> <span class="nc">Head</span> <span class="p">{</span>
+    <span class="k">function</span> <span class="nf">Head</span><span class="p">(</span><span class="nv">$lines</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">lines</span> <span class="o">=</span> <span class="nv">$lines</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">function</span> <span class="nf">filter</span><span class="p">(</span><span class="nv">$output</span><span class="p">,</span> <span class="nv">$mode</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nv">$result</span> <span class="o">=</span> <span class="k">array</span><span class="p">();</span>
+        <span class="nv">$newline</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">;</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nb">strlen</span><span class="p">(</span><span class="nv">$output</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="nv">$output</span><span class="p">[</span><span class="nb">strlen</span><span class="p">(</span><span class="nv">$output</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span> <span class="p">{</span>
+            <span class="nv">$newline</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">;</span>
+            <span class="nv">$output</span> <span class="o">=</span> <span class="nx">substr</span><span class="p">(</span><span class="nv">$output</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">);</span>
+        <span class="p">}</span>
+        <span class="k">foreach</span> <span class="p">(</span><span class="nb">explode</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nv">$output</span><span class="p">)</span> <span class="k">as</span> <span class="nv">$i</span> <span class="o">=&gt;</span> <span class="nv">$line</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">if</span> <span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">lines</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+                <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">lines</span><span class="o">--</span><span class="p">;</span>
+                <span class="nv">$result</span><span class="p">[]</span> <span class="o">=</span> <span class="nv">$line</span><span class="p">;</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="nv">$result</span> <span class="o">?</span> <span class="nb">implode</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nv">$result</span><span class="p">)</span> <span class="o">.</span> <span class="nv">$newline</span> <span class="o">:</span> <span class="s1">&#39;&#39;</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="c1">// Output buffering: Prepend line numbers to each line of output.</span>
+<span class="k">class</span> <span class="nc">Number</span> <span class="p">{</span>
+    <span class="k">function</span> <span class="nf">Number</span><span class="p">()</span> <span class="p">{</span>
+        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">line_number</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">function</span> <span class="nf">filter</span><span class="p">(</span><span class="nv">$output</span><span class="p">,</span> <span class="nv">$mode</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nv">$result</span> <span class="o">=</span> <span class="k">array</span><span class="p">();</span>
+        <span class="nv">$newline</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">;</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nb">strlen</span><span class="p">(</span><span class="nv">$output</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="nv">$output</span><span class="p">[</span><span class="nb">strlen</span><span class="p">(</span><span class="nv">$output</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span> <span class="p">{</span>
+            <span class="nv">$newline</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">;</span>
+            <span class="nv">$output</span> <span class="o">=</span> <span class="nx">substr</span><span class="p">(</span><span class="nv">$output</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">);</span>
+        <span class="p">}</span>
+        <span class="k">foreach</span> <span class="p">(</span><span class="nb">explode</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nv">$output</span><span class="p">)</span> <span class="k">as</span> <span class="nv">$i</span> <span class="o">=&gt;</span> <span class="nv">$line</span><span class="p">)</span> <span class="p">{</span>
+            <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">line_number</span><span class="o">++</span><span class="p">;</span>
+            <span class="nv">$result</span><span class="p">[]</span> <span class="o">=</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">line_number</span> <span class="o">.</span> <span class="s1">&#39;: &#39;</span> <span class="o">.</span> <span class="nv">$line</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="nb">implode</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nv">$result</span><span class="p">)</span> <span class="o">.</span> <span class="nv">$newline</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="c1">// Output buffering: Prepend &quot;&gt; &quot; to each line of output.</span>
+<span class="k">class</span> <span class="nc">Quote</span> <span class="p">{</span>
+    <span class="k">function</span> <span class="nf">Quote</span><span class="p">()</span> <span class="p">{</span>
+    <span class="p">}</span>
+
+    <span class="k">function</span> <span class="nf">filter</span><span class="p">(</span><span class="nv">$output</span><span class="p">,</span> <span class="nv">$mode</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nv">$result</span> <span class="o">=</span> <span class="k">array</span><span class="p">();</span>
+        <span class="nv">$newline</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">;</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nb">strlen</span><span class="p">(</span><span class="nv">$output</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="nv">$output</span><span class="p">[</span><span class="nb">strlen</span><span class="p">(</span><span class="nv">$output</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span> <span class="p">{</span>
+            <span class="nv">$newline</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">;</span>
+            <span class="nv">$output</span> <span class="o">=</span> <span class="nx">substr</span><span class="p">(</span><span class="nv">$output</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">);</span>
+        <span class="p">}</span>
+        <span class="k">foreach</span> <span class="p">(</span><span class="nb">explode</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nv">$output</span><span class="p">)</span> <span class="k">as</span> <span class="nv">$i</span> <span class="o">=&gt;</span> <span class="nv">$line</span><span class="p">)</span> <span class="p">{</span>
+            <span class="nv">$result</span><span class="p">[]</span> <span class="o">=</span> <span class="s2">&quot;&gt; </span><span class="si">$line</span><span class="s2">&quot;</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="nb">implode</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nv">$result</span><span class="p">)</span> <span class="o">.</span> <span class="nv">$newline</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="c1">// Use arrays as callbacks to register filter methods.</span>
+<span class="nb">ob_start</span><span class="p">(</span><span class="k">array</span><span class="p">(</span><span class="k">new</span> <span class="nx">Head</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span> <span class="s1">&#39;filter&#39;</span><span class="p">));</span>
+<span class="nb">ob_start</span><span class="p">(</span><span class="k">array</span><span class="p">(</span><span class="k">new</span> <span class="nx">Number</span><span class="p">(),</span> <span class="s1">&#39;filter&#39;</span><span class="p">));</span>
+<span class="nb">ob_start</span><span class="p">(</span><span class="k">array</span><span class="p">(</span><span class="k">new</span> <span class="nx">Quote</span><span class="p">(),</span> <span class="s1">&#39;filter&#39;</span><span class="p">));</span>
+
+<span class="c1">// Act like /bin/cat.</span>
+<span class="k">while</span> <span class="p">(</span><span class="o">!</span><span class="nb">feof</span><span class="p">(</span><span class="nx">STDIN</span><span class="p">))</span> <span class="p">{</span>
+    <span class="nv">$line</span> <span class="o">=</span> <span class="nb">fgets</span><span class="p">(</span><span class="nx">STDIN</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nv">$line</span> <span class="o">===</span> <span class="k">false</span><span class="p">)</span> <span class="k">break</span><span class="p">;</span>
+    <span class="k">echo</span> <span class="nv">$line</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="c1">// Should match number of calls to ob_start().</span>
+<span class="nb">ob_end_flush</span><span class="p">();</span>
+<span class="nb">ob_end_flush</span><span class="p">();</span>
+<span class="nb">ob_end_flush</span><span class="p">();</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN866"
+>Preprocessing Input</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// Process command-line arguments using fopen(). PHP supports URLs for</span>
+<span class="c1">// filenames as long as the &quot;allow_url_fopen&quot; configuration option is set.</span>
+<span class="c1">//</span>
+<span class="c1">// Valid URL protocols include:</span>
+<span class="c1">//   - http://www.myserver.com/myfile.html</span>
+<span class="c1">//   - ftp://ftp.myserver.com/myfile.txt</span>
+<span class="c1">//   - compress.zlib://myfile.gz</span>
+<span class="c1">//   - php://stdin</span>
+<span class="c1">//</span>
+<span class="c1">// See http://www.php.net/manual/en/wrappers.php for details.</span>
+<span class="c1">//</span>
+<span class="nv">$filenames</span> <span class="o">=</span> <span class="nb">array_slice</span><span class="p">(</span><span class="nv">$argv</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+<span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nv">$filenames</span><span class="p">)</span> <span class="nv">$filenames</span> <span class="o">=</span> <span class="k">array</span><span class="p">(</span><span class="s1">&#39;php://stdin&#39;</span><span class="p">);</span>
+<span class="k">foreach</span> <span class="p">(</span><span class="nv">$filenames</span> <span class="k">as</span> <span class="nv">$filename</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nv">$handle</span> <span class="o">=</span> <span class="o">@</span><span class="nb">fopen</span><span class="p">(</span><span class="nv">$filename</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nv">$handle</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">while</span> <span class="p">(</span><span class="o">!</span><span class="nb">feof</span><span class="p">(</span><span class="nv">$handle</span><span class="p">))</span> <span class="p">{</span>
+            <span class="nv">$line</span> <span class="o">=</span> <span class="nb">fgets</span><span class="p">(</span><span class="nv">$handle</span><span class="p">);</span>
+            <span class="k">if</span> <span class="p">(</span><span class="nv">$line</span> <span class="o">===</span> <span class="k">false</span><span class="p">)</span> <span class="k">break</span><span class="p">;</span>
+            <span class="c1">// ...</span>
+        <span class="p">}</span>
+        <span class="nb">fclose</span><span class="p">(</span><span class="nv">$handle</span><span class="p">);</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+        <span class="k">die</span><span class="p">(</span><span class="s2">&quot;can&#39;t open </span><span class="si">$filename</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN869"
+>Reading STDERR from a Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="nv">$output</span> <span class="o">=</span> <span class="sb">`cmd 2&gt;&amp;1`</span><span class="p">;</span>                          <span class="c1">// with backticks</span>
+<span class="c1">// or</span>
+<span class="nv">$ph</span> <span class="o">=</span> <span class="nb">popen</span><span class="p">(</span><span class="s1">&#39;cmd 2&gt;&amp;1&#39;</span><span class="p">);</span>                       <span class="c1">// with an open pipe</span>
+<span class="k">while</span> <span class="p">(</span><span class="o">!</span><span class="nb">feof</span><span class="p">(</span><span class="nv">$ph</span><span class="p">))</span> <span class="p">{</span> <span class="nv">$line</span> <span class="o">=</span> <span class="nb">fgets</span><span class="p">(</span><span class="nv">$ph</span><span class="p">);</span> <span class="p">}</span>     <span class="c1">// plus a read</span>
+<span class="c1">// -----------------------------</span>
+<span class="nv">$output</span> <span class="o">=</span> <span class="sb">`cmd 2&gt;/dev/null`</span><span class="p">;</span>                   <span class="c1">// with backticks</span>
+<span class="c1">// or</span>
+<span class="nv">$ph</span> <span class="o">=</span> <span class="nb">popen</span><span class="p">(</span><span class="s1">&#39;cmd 2&gt;/dev/null&#39;</span><span class="p">);</span>                <span class="c1">// with an open pipe</span>
+<span class="k">while</span> <span class="p">(</span><span class="o">!</span><span class="nb">feof</span><span class="p">(</span><span class="nv">$ph</span><span class="p">))</span> <span class="p">{</span> <span class="nv">$line</span> <span class="o">=</span> <span class="nb">fgets</span><span class="p">(</span><span class="nv">$ph</span><span class="p">);</span> <span class="p">}</span>     <span class="c1">// plus a read</span>
+<span class="c1">// -----------------------------</span>
+<span class="nv">$output</span> <span class="o">=</span> <span class="sb">`cmd 2&gt;&amp;1 1&gt;/dev/null`</span><span class="p">;</span>              <span class="c1">// with backticks</span>
+<span class="c1">// or</span>
+<span class="nv">$ph</span> <span class="o">=</span> <span class="nb">popen</span><span class="p">(</span><span class="s1">&#39;cmd 2&gt;&amp;1 1&gt;/dev/null&#39;</span><span class="p">);</span>           <span class="c1">// with an open pipe</span>
+<span class="k">while</span> <span class="p">(</span><span class="o">!</span><span class="nb">feof</span><span class="p">(</span><span class="nv">$ph</span><span class="p">))</span> <span class="p">{</span> <span class="nv">$line</span> <span class="o">=</span> <span class="nb">fgets</span><span class="p">(</span><span class="nv">$ph</span><span class="p">);</span> <span class="p">}</span>     <span class="c1">// plus a read</span>
+<span class="c1">// -----------------------------</span>
+<span class="nv">$output</span> <span class="o">=</span> <span class="sb">`cmd 3&gt;&amp;1 1&gt;&amp;2 2&gt;&amp;3 3&gt;&amp;-`</span><span class="p">;</span>           <span class="c1">// with backticks</span>
+<span class="c1">// or</span>
+<span class="nv">$ph</span> <span class="o">=</span> <span class="nb">popen</span><span class="p">(</span><span class="s1">&#39;cmd 3&gt;&amp;1 1&gt;&amp;2 2&gt;&amp;3 3&gt;&amp;-|&#39;</span><span class="p">);</span>       <span class="c1">// with an open pipe</span>
+<span class="k">while</span> <span class="p">(</span><span class="o">!</span><span class="nb">feof</span><span class="p">(</span><span class="nv">$ph</span><span class="p">))</span> <span class="p">{</span> <span class="nv">$line</span> <span class="o">=</span> <span class="nb">fgets</span><span class="p">(</span><span class="nv">$ph</span><span class="p">);</span> <span class="p">}</span>     <span class="c1">// plus a read</span>
+<span class="c1">// -----------------------------</span>
+<span class="nb">exec</span><span class="p">(</span><span class="s1">&#39;program args 1&gt;/tmp/program.stdout 2&gt;/tmp/program.stderr&#39;</span><span class="p">);</span>
+<span class="c1">// -----------------------------</span>
+<span class="nv">$output</span> <span class="o">=</span> <span class="sb">`cmd 3&gt;&amp;1 1&gt;&amp;2 2&gt;&amp;3 3&gt;&amp;-`</span><span class="p">;</span>
+<span class="c1">// -----------------------------</span>
+<span class="nv">$fd3</span> <span class="o">=</span> <span class="nv">$fd1</span><span class="p">;</span>
+<span class="nv">$fd1</span> <span class="o">=</span> <span class="nv">$fd2</span><span class="p">;</span>
+<span class="nv">$fd2</span> <span class="o">=</span> <span class="nv">$fd3</span><span class="p">;</span>
+<span class="nv">$fd3</span> <span class="o">=</span> <span class="k">null</span><span class="p">;</span>
+<span class="c1">// -----------------------------</span>
+<span class="nb">exec</span><span class="p">(</span><span class="s1">&#39;prog args 1&gt;tmpfile 2&gt;&amp;1&#39;</span><span class="p">);</span>
+<span class="nb">exec</span><span class="p">(</span><span class="s1">&#39;prog args 2&gt;&amp;1 1&gt;tmpfile&#39;</span><span class="p">);</span>
+<span class="c1">// -----------------------------</span>
+<span class="c1">// exec(&#39;prog args 1&gt;tmpfile 2&gt;&amp;1&#39;);</span>
+<span class="nv">$fd1</span> <span class="o">=</span> <span class="s2">&quot;tmpfile&quot;</span><span class="p">;</span>        <span class="c1">// change stdout destination first</span>
+<span class="nv">$fd2</span> <span class="o">=</span> <span class="nv">$fd1</span><span class="p">;</span>             <span class="c1">// now point stderr there, too</span>
+<span class="c1">// -----------------------------</span>
+<span class="c1">// exec(&#39;prog args 2&gt;&amp;1 1&gt;tmpfile&#39;);</span>
+<span class="nv">$fd2</span> <span class="o">=</span> <span class="nv">$fd1</span><span class="p">;</span>             <span class="c1">// stderr same destination as stdout</span>
+<span class="nv">$fd1</span> <span class="o">=</span> <span class="s2">&quot;tmpfile&quot;</span><span class="p">;</span>        <span class="c1">// but change stdout destination</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN872"
+>Controlling Input and Output of Another Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// Connect to input and output of a process.</span>
+<span class="nv">$proc</span> <span class="o">=</span> <span class="nb">proc_open</span><span class="p">(</span><span class="nv">$program</span><span class="p">,</span>
+                  <span class="k">array</span><span class="p">(</span><span class="mi">0</span> <span class="o">=&gt;</span> <span class="k">array</span><span class="p">(</span><span class="s1">&#39;pipe&#39;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">),</span>
+                        <span class="mi">1</span> <span class="o">=&gt;</span> <span class="k">array</span><span class="p">(</span><span class="s1">&#39;pipe&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)),</span>
+                  <span class="nv">$pipes</span><span class="p">);</span>
+<span class="k">if</span> <span class="p">(</span><span class="nb">is_resource</span><span class="p">(</span><span class="nv">$proc</span><span class="p">))</span> <span class="p">{</span>
+    <span class="nb">fwrite</span><span class="p">(</span><span class="nv">$pipes</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;here&#39;s your input</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">);</span>
+    <span class="nb">fclose</span><span class="p">(</span><span class="nv">$pipes</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+    <span class="k">echo</span> <span class="nb">stream_get_contents</span><span class="p">(</span><span class="nv">$pipes</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+    <span class="nb">fclose</span><span class="p">(</span><span class="nv">$pipes</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+    <span class="nv">$result_code</span> <span class="o">=</span> <span class="nb">proc_close</span><span class="p">(</span><span class="nv">$proc</span><span class="p">);</span>
+    <span class="k">echo</span> <span class="s2">&quot;</span><span class="si">$result_code</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="c1">// -----------------------------</span>
+
+<span class="nv">$all</span> <span class="o">=</span> <span class="k">array</span><span class="p">();</span>
+<span class="nv">$outlines</span> <span class="o">=</span> <span class="k">array</span><span class="p">();</span>
+<span class="nv">$errlines</span> <span class="o">=</span> <span class="k">array</span><span class="p">();</span>
+<span class="nb">exec</span><span class="p">(</span><span class="s2">&quot;( </span><span class="si">$cmd</span><span class="s2"> | sed -e &#39;s/^/stdout: /&#39; ) 2&gt;&amp;1&quot;</span><span class="p">,</span> <span class="nv">$all</span><span class="p">);</span>
+<span class="k">foreach</span> <span class="p">(</span><span class="nv">$all</span> <span class="k">as</span> <span class="nv">$line</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nv">$pos</span> <span class="o">=</span> <span class="nb">strpos</span><span class="p">(</span><span class="nv">$line</span><span class="p">,</span> <span class="s1">&#39;stdout: &#39;</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nv">$pos</span> <span class="o">!==</span> <span class="k">false</span> <span class="o">&amp;&amp;</span> <span class="nv">$pos</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nv">$outlines</span><span class="p">[]</span> <span class="o">=</span> <span class="nx">substr</span><span class="p">(</span><span class="nv">$line</span><span class="p">,</span> <span class="mi">8</span><span class="p">);</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+        <span class="nv">$errlines</span><span class="p">[]</span> <span class="o">=</span> <span class="nv">$line</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+<span class="k">print</span><span class="p">(</span><span class="s2">&quot;STDOUT:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">);</span>
+<span class="nb">print_r</span><span class="p">(</span><span class="nv">$outlines</span><span class="p">);</span>
+<span class="k">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">);</span>
+<span class="k">print</span><span class="p">(</span><span class="s2">&quot;STDERR:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">);</span>
+<span class="nb">print_r</span><span class="p">(</span><span class="nv">$errlines</span><span class="p">);</span>
+<span class="k">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">);</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN875"
+>Controlling the Input, Output, and Error of Another Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="nv">$proc</span> <span class="o">=</span> <span class="nb">proc_open</span><span class="p">(</span><span class="nv">$cmd</span><span class="p">,</span>
+                  <span class="k">array</span><span class="p">(</span><span class="mi">0</span> <span class="o">=&gt;</span> <span class="k">array</span><span class="p">(</span><span class="s1">&#39;pipe&#39;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">),</span>
+                        <span class="mi">1</span> <span class="o">=&gt;</span> <span class="k">array</span><span class="p">(</span><span class="s1">&#39;pipe&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">),</span>
+                        <span class="mi">2</span> <span class="o">=&gt;</span> <span class="k">array</span><span class="p">(</span><span class="s1">&#39;pipe&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)),</span>
+                  <span class="nv">$pipes</span><span class="p">);</span>
+
+<span class="k">if</span> <span class="p">(</span><span class="nb">is_resource</span><span class="p">(</span><span class="nv">$proc</span><span class="p">))</span> <span class="p">{</span>
+    <span class="c1">// give end of file to kid, or feed him</span>
+    <span class="nb">fclose</span><span class="p">(</span><span class="nv">$pipes</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+
+    <span class="c1">// read till EOF</span>
+    <span class="nv">$outlines</span> <span class="o">=</span> <span class="k">array</span><span class="p">();</span>
+    <span class="k">while</span> <span class="p">(</span><span class="o">!</span><span class="nb">feof</span><span class="p">(</span><span class="nv">$pipes</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span> <span class="p">{</span>
+        <span class="nv">$line</span> <span class="o">=</span> <span class="nb">fgets</span><span class="p">(</span><span class="nv">$pipes</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nv">$line</span> <span class="o">===</span> <span class="k">false</span><span class="p">)</span> <span class="k">break</span><span class="p">;</span>
+        <span class="nv">$outlines</span><span class="p">[]</span> <span class="o">=</span> <span class="nb">rtrim</span><span class="p">(</span><span class="nv">$line</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="c1">// XXX: block potential if massive</span>
+    <span class="nv">$errlines</span> <span class="o">=</span> <span class="k">array</span><span class="p">();</span>
+    <span class="k">while</span> <span class="p">(</span><span class="o">!</span><span class="nb">feof</span><span class="p">(</span><span class="nv">$pipes</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span> <span class="p">{</span>
+        <span class="nv">$line</span> <span class="o">=</span> <span class="nb">fgets</span><span class="p">(</span><span class="nv">$pipes</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nv">$line</span> <span class="o">===</span> <span class="k">false</span><span class="p">)</span> <span class="k">break</span><span class="p">;</span>
+        <span class="nv">$errlines</span><span class="p">[]</span> <span class="o">=</span> <span class="nb">rtrim</span><span class="p">(</span><span class="nv">$line</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="nb">fclose</span><span class="p">(</span><span class="nv">$pipes</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+    <span class="nb">fclose</span><span class="p">(</span><span class="nv">$pipes</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
+    <span class="nb">proc_close</span><span class="p">(</span><span class="nv">$proc</span><span class="p">);</span>
+
+    <span class="k">print</span><span class="p">(</span><span class="s2">&quot;STDOUT:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">);</span>
+    <span class="nb">print_r</span><span class="p">(</span><span class="nv">$outlines</span><span class="p">);</span>
+    <span class="k">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">);</span>
+    <span class="k">print</span><span class="p">(</span><span class="s2">&quot;STDERR:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">);</span>
+    <span class="nb">print_r</span><span class="p">(</span><span class="nv">$errlines</span><span class="p">);</span>
+    <span class="k">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// -----------------------------</span>
+
+<span class="c1">// cmd3sel - control all three of kids in, out, and error.</span>
+<span class="nv">$cmd</span> <span class="o">=</span> <span class="s2">&quot;grep vt33 /none/such - /etc/termcap&quot;</span><span class="p">;</span>
+<span class="nv">$proc</span> <span class="o">=</span> <span class="nb">proc_open</span><span class="p">(</span><span class="nv">$cmd</span><span class="p">,</span>
+                  <span class="k">array</span><span class="p">(</span><span class="mi">0</span> <span class="o">=&gt;</span> <span class="k">array</span><span class="p">(</span><span class="s1">&#39;pipe&#39;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">),</span>
+                        <span class="mi">1</span> <span class="o">=&gt;</span> <span class="k">array</span><span class="p">(</span><span class="s1">&#39;pipe&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">),</span>
+                        <span class="mi">2</span> <span class="o">=&gt;</span> <span class="k">array</span><span class="p">(</span><span class="s1">&#39;pipe&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)),</span>
+                  <span class="nv">$pipes</span><span class="p">);</span>
+
+<span class="k">if</span> <span class="p">(</span><span class="nb">is_resource</span><span class="p">(</span><span class="nv">$proc</span><span class="p">))</span> <span class="p">{</span>
+    <span class="nb">fwrite</span><span class="p">(</span><span class="nv">$pipes</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;This line has a vt33 lurking in it</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">);</span>
+    <span class="nb">fclose</span><span class="p">(</span><span class="nv">$pipes</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+
+    <span class="nv">$readers</span> <span class="o">=</span> <span class="k">array</span><span class="p">(</span><span class="nv">$pipes</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="nv">$pipes</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
+    <span class="k">while</span> <span class="p">(</span><span class="nb">stream_select</span><span class="p">(</span><span class="nv">$read</span><span class="o">=</span><span class="nv">$readers</span><span class="p">,</span>
+                         <span class="nv">$write</span><span class="o">=</span><span class="k">null</span><span class="p">,</span>
+                         <span class="nv">$except</span><span class="o">=</span><span class="k">null</span><span class="p">,</span>
+                         <span class="mi">0</span><span class="p">,</span> <span class="mi">200000</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">foreach</span> <span class="p">(</span><span class="nv">$read</span> <span class="k">as</span> <span class="nv">$stream</span><span class="p">)</span> <span class="p">{</span>
+            <span class="nv">$line</span> <span class="o">=</span> <span class="nb">fgets</span><span class="p">(</span><span class="nv">$stream</span><span class="p">);</span>
+            <span class="k">if</span> <span class="p">(</span><span class="nv">$line</span> <span class="o">!==</span> <span class="k">false</span><span class="p">)</span> <span class="p">{</span>
+                <span class="k">if</span> <span class="p">(</span><span class="nv">$stream</span> <span class="o">===</span> <span class="nv">$pipes</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="p">{</span>
+                    <span class="k">print</span> <span class="s2">&quot;STDOUT: </span><span class="si">$line</span><span class="s2">&quot;</span><span class="p">;</span>
+                <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+                    <span class="k">print</span> <span class="s2">&quot;STDERR: </span><span class="si">$line</span><span class="s2">&quot;</span><span class="p">;</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+            <span class="k">if</span> <span class="p">(</span><span class="nb">feof</span><span class="p">(</span><span class="nv">$stream</span><span class="p">))</span> <span class="p">{</span>
+                <span class="nv">$readers</span> <span class="o">=</span> <span class="nb">array_diff</span><span class="p">(</span><span class="nv">$readers</span><span class="p">,</span> <span class="k">array</span><span class="p">(</span><span class="nv">$stream</span><span class="p">));</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="nb">fclose</span><span class="p">(</span><span class="nv">$pipes</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+    <span class="nb">fclose</span><span class="p">(</span><span class="nv">$pipes</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
+    <span class="nb">proc_close</span><span class="p">(</span><span class="nv">$proc</span><span class="p">);</span>
+<span class="p">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN878"
+>Communicating Between Related Processes</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// PHP supports fork/exec/wait but not pipe. However, it does</span>
+<span class="c1">// support socketpair, which can do everything pipes can as well</span>
+<span class="c1">// as bidirectional communication. The original recipes have been</span>
+<span class="c1">// modified here to use socketpair only.</span>
+
+<span class="c1">// -----------------------------</span>
+
+<span class="c1">// pipe1 - use socketpair and fork so parent can send to child</span>
+<span class="nv">$sockets</span> <span class="o">=</span> <span class="k">array</span><span class="p">();</span>
+<span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nb">socket_create_pair</span><span class="p">(</span><span class="nx">AF_UNIX</span><span class="p">,</span> <span class="nx">SOCK_STREAM</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nv">$sockets</span><span class="p">))</span> <span class="p">{</span>
+    <span class="k">die</span><span class="p">(</span><span class="nb">socket_strerror</span><span class="p">(</span><span class="nb">socket_last_error</span><span class="p">()));</span>
+<span class="p">}</span>
+<span class="k">list</span><span class="p">(</span><span class="nv">$reader</span><span class="p">,</span> <span class="nv">$writer</span><span class="p">)</span> <span class="o">=</span> <span class="nv">$sockets</span><span class="p">;</span>
+
+<span class="nv">$pid</span> <span class="o">=</span> <span class="nb">pcntl_fork</span><span class="p">();</span>
+<span class="k">if</span> <span class="p">(</span><span class="nv">$pid</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">die</span><span class="p">(</span><span class="s1">&#39;cannot fork&#39;</span><span class="p">);</span>
+<span class="p">}</span> <span class="k">elseif</span> <span class="p">(</span><span class="nv">$pid</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nb">socket_close</span><span class="p">(</span><span class="nv">$reader</span><span class="p">);</span>
+    <span class="nv">$line</span> <span class="o">=</span> <span class="nb">sprintf</span><span class="p">(</span><span class="s2">&quot;Parent Pid %d is sending this</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">getmypid</span><span class="p">());</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nb">socket_write</span><span class="p">(</span><span class="nv">$writer</span><span class="p">,</span> <span class="nv">$line</span><span class="p">,</span> <span class="nb">strlen</span><span class="p">(</span><span class="nv">$line</span><span class="p">)))</span> <span class="p">{</span>
+        <span class="nb">socket_close</span><span class="p">(</span><span class="nv">$writer</span><span class="p">);</span>
+        <span class="k">die</span><span class="p">(</span><span class="nb">socket_strerror</span><span class="p">(</span><span class="nb">socket_last_error</span><span class="p">()));</span>
+    <span class="p">}</span>
+    <span class="nb">socket_close</span><span class="p">(</span><span class="nv">$writer</span><span class="p">);</span>
+    <span class="nb">pcntl_waitpid</span><span class="p">(</span><span class="nv">$pid</span><span class="p">,</span> <span class="nv">$status</span><span class="p">);</span>
+<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="nb">socket_close</span><span class="p">(</span><span class="nv">$writer</span><span class="p">);</span>
+    <span class="nv">$line</span> <span class="o">=</span> <span class="nb">socket_read</span><span class="p">(</span><span class="nv">$reader</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="nx">PHP_NORMAL_READ</span><span class="p">);</span>
+    <span class="nb">printf</span><span class="p">(</span><span class="s2">&quot;Child Pid %d just read this: `%s&#39;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">getmypid</span><span class="p">(),</span> <span class="nb">rtrim</span><span class="p">(</span><span class="nv">$line</span><span class="p">));</span>
+    <span class="nb">socket_close</span><span class="p">(</span><span class="nv">$reader</span><span class="p">);</span>  <span class="c1">// this will happen anyway</span>
+    <span class="k">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// -----------------------------</span>
+
+<span class="c1">// pipe2 - use socketpair and fork so child can send to parent</span>
+<span class="nv">$sockets</span> <span class="o">=</span> <span class="k">array</span><span class="p">();</span>
+<span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nb">socket_create_pair</span><span class="p">(</span><span class="nx">AF_UNIX</span><span class="p">,</span> <span class="nx">SOCK_STREAM</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nv">$sockets</span><span class="p">))</span> <span class="p">{</span>
+    <span class="k">die</span><span class="p">(</span><span class="nb">socket_strerror</span><span class="p">(</span><span class="nb">socket_last_error</span><span class="p">()));</span>
+<span class="p">}</span>
+<span class="k">list</span><span class="p">(</span><span class="nv">$reader</span><span class="p">,</span> <span class="nv">$writer</span><span class="p">)</span> <span class="o">=</span> <span class="nv">$sockets</span><span class="p">;</span>
+
+<span class="nv">$pid</span> <span class="o">=</span> <span class="nb">pcntl_fork</span><span class="p">();</span>
+<span class="k">if</span> <span class="p">(</span><span class="nv">$pid</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">die</span><span class="p">(</span><span class="s1">&#39;cannot fork&#39;</span><span class="p">);</span>
+<span class="p">}</span> <span class="k">elseif</span> <span class="p">(</span><span class="nv">$pid</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nb">socket_close</span><span class="p">(</span><span class="nv">$writer</span><span class="p">);</span>
+    <span class="nv">$line</span> <span class="o">=</span> <span class="nb">socket_read</span><span class="p">(</span><span class="nv">$reader</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="nx">PHP_NORMAL_READ</span><span class="p">);</span>
+    <span class="nb">printf</span><span class="p">(</span><span class="s2">&quot;Parent Pid %d just read this: `%s&#39;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">getmypid</span><span class="p">(),</span> <span class="nb">rtrim</span><span class="p">(</span><span class="nv">$line</span><span class="p">));</span>
+    <span class="nb">socket_close</span><span class="p">(</span><span class="nv">$reader</span><span class="p">);</span>
+    <span class="nb">pcntl_waitpid</span><span class="p">(</span><span class="nv">$pid</span><span class="p">,</span> <span class="nv">$status</span><span class="p">);</span>
+<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="nb">socket_close</span><span class="p">(</span><span class="nv">$reader</span><span class="p">);</span>
+    <span class="nv">$line</span> <span class="o">=</span> <span class="nb">sprintf</span><span class="p">(</span><span class="s2">&quot;Child Pid %d is sending this</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">getmypid</span><span class="p">());</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nb">socket_write</span><span class="p">(</span><span class="nv">$writer</span><span class="p">,</span> <span class="nv">$line</span><span class="p">,</span> <span class="nb">strlen</span><span class="p">(</span><span class="nv">$line</span><span class="p">)))</span> <span class="p">{</span>
+        <span class="nb">socket_close</span><span class="p">(</span><span class="nv">$writer</span><span class="p">);</span>
+        <span class="k">die</span><span class="p">(</span><span class="nb">socket_strerror</span><span class="p">(</span><span class="nb">socket_last_error</span><span class="p">()));</span>
+    <span class="p">}</span>
+    <span class="nb">socket_close</span><span class="p">(</span><span class="nv">$writer</span><span class="p">);</span>  <span class="c1">// this will happen anyway</span>
+    <span class="k">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// -----------------------------</span>
+
+<span class="c1">// pipe3 and pipe4 demonstrate the use of perl&#39;s &quot;forking open&quot;</span>
+<span class="c1">// feature to reimplement pipe1 and pipe2. pipe5 uses two pipes</span>
+<span class="c1">// to simulate socketpair. Since PHP supports socketpair but not</span>
+<span class="c1">// pipe, and does not have a &quot;forking open&quot; feature, these</span>
+<span class="c1">// examples are skipped here.</span>
+
+<span class="c1">// -----------------------------</span>
+
+<span class="c1">// pipe6 - bidirectional communication using socketpair</span>
+<span class="nv">$sockets</span> <span class="o">=</span> <span class="k">array</span><span class="p">();</span>
+<span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nb">socket_create_pair</span><span class="p">(</span><span class="nx">AF_UNIX</span><span class="p">,</span> <span class="nx">SOCK_STREAM</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nv">$sockets</span><span class="p">))</span> <span class="p">{</span>
+    <span class="k">die</span><span class="p">(</span><span class="nb">socket_strerror</span><span class="p">(</span><span class="nb">socket_last_error</span><span class="p">()));</span>
+<span class="p">}</span>
+<span class="k">list</span><span class="p">(</span><span class="nv">$child</span><span class="p">,</span> <span class="nv">$parent</span><span class="p">)</span> <span class="o">=</span> <span class="nv">$sockets</span><span class="p">;</span>
+
+<span class="nv">$pid</span> <span class="o">=</span> <span class="nb">pcntl_fork</span><span class="p">();</span>
+<span class="k">if</span> <span class="p">(</span><span class="nv">$pid</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">die</span><span class="p">(</span><span class="s1">&#39;cannot fork&#39;</span><span class="p">);</span>
+<span class="p">}</span> <span class="k">elseif</span> <span class="p">(</span><span class="nv">$pid</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nb">socket_close</span><span class="p">(</span><span class="nv">$parent</span><span class="p">);</span>
+    <span class="nv">$line</span> <span class="o">=</span> <span class="nb">sprintf</span><span class="p">(</span><span class="s2">&quot;Parent Pid %d is sending this</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">getmypid</span><span class="p">());</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nb">socket_write</span><span class="p">(</span><span class="nv">$child</span><span class="p">,</span> <span class="nv">$line</span><span class="p">,</span> <span class="nb">strlen</span><span class="p">(</span><span class="nv">$line</span><span class="p">)))</span> <span class="p">{</span>
+        <span class="nb">socket_close</span><span class="p">(</span><span class="nv">$child</span><span class="p">);</span>
+        <span class="k">die</span><span class="p">(</span><span class="nb">socket_strerror</span><span class="p">(</span><span class="nb">socket_last_error</span><span class="p">()));</span>
+    <span class="p">}</span>
+    <span class="nv">$line</span> <span class="o">=</span> <span class="nb">socket_read</span><span class="p">(</span><span class="nv">$child</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="nx">PHP_NORMAL_READ</span><span class="p">);</span>
+    <span class="nb">printf</span><span class="p">(</span><span class="s2">&quot;Parent Pid %d just read this: `%s&#39;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">getmypid</span><span class="p">(),</span> <span class="nb">rtrim</span><span class="p">(</span><span class="nv">$line</span><span class="p">));</span>
+    <span class="nb">socket_close</span><span class="p">(</span><span class="nv">$child</span><span class="p">);</span>
+    <span class="nb">pcntl_waitpid</span><span class="p">(</span><span class="nv">$pid</span><span class="p">,</span> <span class="nv">$status</span><span class="p">);</span>
+<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="nb">socket_close</span><span class="p">(</span><span class="nv">$child</span><span class="p">);</span>
+    <span class="nv">$line</span> <span class="o">=</span> <span class="nb">socket_read</span><span class="p">(</span><span class="nv">$parent</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="nx">PHP_NORMAL_READ</span><span class="p">);</span>
+    <span class="nb">printf</span><span class="p">(</span><span class="s2">&quot;Child Pid %d just read this: `%s&#39;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">getmypid</span><span class="p">(),</span> <span class="nb">rtrim</span><span class="p">(</span><span class="nv">$line</span><span class="p">));</span>
+    <span class="nv">$line</span> <span class="o">=</span> <span class="nb">sprintf</span><span class="p">(</span><span class="s2">&quot;Child Pid %d is sending this</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">getmypid</span><span class="p">());</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nb">socket_write</span><span class="p">(</span><span class="nv">$parent</span><span class="p">,</span> <span class="nv">$line</span><span class="p">,</span> <span class="nb">strlen</span><span class="p">(</span><span class="nv">$line</span><span class="p">)))</span> <span class="p">{</span>
+        <span class="nb">socket_close</span><span class="p">(</span><span class="nv">$parent</span><span class="p">);</span>
+        <span class="k">die</span><span class="p">(</span><span class="nb">socket_strerror</span><span class="p">(</span><span class="nb">socket_last_error</span><span class="p">()));</span>
+    <span class="p">}</span>
+    <span class="nb">socket_close</span><span class="p">(</span><span class="nv">$parent</span><span class="p">);</span>
+    <span class="k">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN881"
+>Making a Process Look Like a File with Named Pipes</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// -----------------------------</span>
+<span class="c1">// % mkfifo /path/to/named.pipe</span>
+<span class="c1">// -----------------------------</span>
+
+<span class="nv">$fifo</span> <span class="o">=</span> <span class="nb">fopen</span><span class="p">(</span><span class="s1">&#39;/path/to/named.pipe&#39;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">);</span>
+<span class="k">if</span> <span class="p">(</span><span class="nv">$fifo</span> <span class="o">!==</span> <span class="k">false</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">while</span> <span class="p">(</span><span class="o">!</span><span class="nb">feof</span><span class="p">(</span><span class="nv">$fifo</span><span class="p">))</span> <span class="p">{</span>
+        <span class="nv">$line</span> <span class="o">=</span> <span class="nb">fgets</span><span class="p">(</span><span class="nv">$fifo</span><span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nv">$line</span> <span class="o">===</span> <span class="k">false</span><span class="p">)</span> <span class="k">break</span><span class="p">;</span>
+        <span class="k">echo</span> <span class="s2">&quot;Got: </span><span class="si">$line</span><span class="s2">&quot;</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="nb">fclose</span><span class="p">(</span><span class="nv">$fifo</span><span class="p">);</span>
+<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="k">die</span><span class="p">(</span><span class="s1">&#39;could not open fifo for read&#39;</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// -----------------------------</span>
+
+<span class="nv">$fifo</span> <span class="o">=</span> <span class="nb">fopen</span><span class="p">(</span><span class="s1">&#39;/path/to/named.pipe&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">);</span>
+<span class="k">if</span> <span class="p">(</span><span class="nv">$fifo</span> <span class="o">!==</span> <span class="k">false</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nb">fwrite</span><span class="p">(</span><span class="nv">$fifo</span><span class="p">,</span> <span class="s2">&quot;Smoke this.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">);</span>
+    <span class="nb">fclose</span><span class="p">(</span><span class="nv">$fifo</span><span class="p">);</span>
+<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="k">die</span><span class="p">(</span><span class="s1">&#39;could not open fifo for write&#39;</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// -----------------------------</span>
+<span class="c1">// % mkfifo ~/.plan                    #  isn&#39;t this everywhere yet?</span>
+<span class="c1">// % mknod  ~/.plan p                  #  in case you don&#39;t have mkfifo</span>
+<span class="c1">// -----------------------------</span>
+
+<span class="c1">// dateplan - place current date and time in .plan file</span>
+<span class="k">while</span> <span class="p">(</span><span class="k">true</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nv">$home</span> <span class="o">=</span> <span class="nb">getenv</span><span class="p">(</span><span class="s1">&#39;HOME&#39;</span><span class="p">);</span>
+    <span class="nv">$fifo</span> <span class="o">=</span> <span class="nb">fopen</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">$home</span><span class="s2">/.plan&quot;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nv">$fifo</span> <span class="o">===</span> <span class="k">false</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">die</span><span class="p">(</span><span class="s2">&quot;Couldn&#39;t open </span><span class="si">$home</span><span class="s2">/.plan for writing.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="nb">fwrite</span><span class="p">(</span><span class="nv">$fifo</span><span class="p">,</span>
+           <span class="s1">&#39;The current time is &#39;</span>
+           <span class="o">.</span> <span class="nb">strftime</span><span class="p">(</span><span class="s1">&#39;%a, %d %b %Y %H:%M:%S %z&#39;</span><span class="p">)</span>
+           <span class="o">.</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">);</span>
+    <span class="nb">fclose</span><span class="p">(</span><span class="nv">$fifo</span><span class="p">);</span>
+    <span class="nb">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// -----------------------------</span>
+
+<span class="c1">// fifolog - read and record log msgs from fifo</span>
+
+<span class="nv">$fifo</span> <span class="o">=</span> <span class="k">null</span><span class="p">;</span>
+
+<span class="k">declare</span><span class="p">(</span><span class="nx">ticks</span> <span class="o">=</span> <span class="mi">1</span><span class="p">);</span>
+<span class="k">function</span> <span class="nf">handle_alarm</span><span class="p">(</span><span class="nv">$signal</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">global</span> <span class="nv">$fifo</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nv">$fifo</span><span class="p">)</span> <span class="nb">fclose</span><span class="p">(</span><span class="nv">$fifo</span><span class="p">);</span>   <span class="c1">// move on to the next queued process</span>
+<span class="p">}</span>
+<span class="nb">pcntl_signal</span><span class="p">(</span><span class="nx">SIGALRM</span><span class="p">,</span> <span class="s1">&#39;handle_alarm&#39;</span><span class="p">);</span>
+
+<span class="k">while</span> <span class="p">(</span><span class="k">true</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nb">pcntl_alarm</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>             <span class="c1">// turn off alarm for blocking open</span>
+    <span class="nv">$fifo</span> <span class="o">=</span> <span class="nb">fopen</span><span class="p">(</span><span class="s1">&#39;/tmp/log&#39;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nv">$fifo</span> <span class="o">===</span> <span class="k">false</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">die</span><span class="p">(</span><span class="s2">&quot;can&#39;t open /tmp/log&quot;</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="nb">pcntl_alarm</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>             <span class="c1">// you have 1 second to log</span>
+
+    <span class="nv">$service</span> <span class="o">=</span> <span class="nb">fgets</span><span class="p">(</span><span class="nv">$fifo</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nv">$service</span> <span class="o">===</span> <span class="k">false</span><span class="p">)</span> <span class="k">continue</span><span class="p">;</span> <span class="c1">// interrupt or nothing logged</span>
+    <span class="nv">$service</span> <span class="o">=</span> <span class="nb">rtrim</span><span class="p">(</span><span class="nv">$service</span><span class="p">);</span>
+
+    <span class="nv">$message</span> <span class="o">=</span> <span class="nb">fgets</span><span class="p">(</span><span class="nv">$fifo</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nv">$message</span> <span class="o">===</span> <span class="k">false</span><span class="p">)</span> <span class="k">continue</span><span class="p">;</span> <span class="c1">// interrupt or nothing logged</span>
+    <span class="nv">$message</span> <span class="o">=</span> <span class="nb">rtrim</span><span class="p">(</span><span class="nv">$message</span><span class="p">);</span>
+
+    <span class="nb">pcntl_alarm</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>             <span class="c1">// turn off alarms for message processing</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="nv">$service</span> <span class="o">==</span> <span class="s1">&#39;http&#39;</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// ignoring</span>
+    <span class="p">}</span> <span class="k">elseif</span> <span class="p">(</span><span class="nv">$service</span> <span class="o">==</span> <span class="s1">&#39;login&#39;</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// log to /var/log/login</span>
+        <span class="nv">$log</span> <span class="o">=</span> <span class="nb">fopen</span><span class="p">(</span><span class="s1">&#39;/var/log/login&#39;</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nv">$log</span> <span class="o">!==</span> <span class="k">false</span><span class="p">)</span> <span class="p">{</span>
+            <span class="nb">fwrite</span><span class="p">(</span><span class="nv">$log</span><span class="p">,</span>
+                   <span class="nb">strftime</span><span class="p">(</span><span class="s1">&#39;%a, %d %b %Y %H:%M:%S %z&#39;</span><span class="p">)</span>
+                   <span class="o">.</span> <span class="s2">&quot; </span><span class="si">$service</span><span class="s2"> </span><span class="si">$message</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">);</span>
+            <span class="nb">fclose</span><span class="p">(</span><span class="nv">$log</span><span class="p">);</span>
+        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+            <span class="nb">trigger_error</span><span class="p">(</span><span class="s2">&quot;Couldn&#39;t log </span><span class="si">$service</span><span class="s2"> </span><span class="si">$message</span><span class="s2"> to /var/log/login</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+                          <span class="nx">E_USER_WARNING</span><span class="p">);</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN884"
+>Sharing Variables in Different Processes</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// sharetest - test shared variables across forks</span>
+
+<span class="nv">$SHM_KEY</span> <span class="o">=</span> <span class="nb">ftok</span><span class="p">(</span><span class="k">__FILE__</span><span class="p">,</span> <span class="nb">chr</span><span class="p">(</span><span class="mi">1</span><span class="p">));</span>
+<span class="nv">$handle</span> <span class="o">=</span> <span class="nb">sem_get</span><span class="p">(</span><span class="nv">$SHM_KEY</span><span class="p">);</span>
+<span class="nv">$buffer</span> <span class="o">=</span> <span class="nb">shm_attach</span><span class="p">(</span><span class="nv">$handle</span><span class="p">,</span> <span class="mi">1024</span><span class="p">);</span>
+
+<span class="c1">// The original recipe has an INT signal handler here. However, it</span>
+<span class="c1">// causes erratic behavior with PHP, and PHP seems to do the right</span>
+<span class="c1">// thing without it.</span>
+
+<span class="k">for</span> <span class="p">(</span><span class="nv">$i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nv">$i</span> <span class="o">&lt;</span> <span class="mi">10</span><span class="p">;</span> <span class="nv">$i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nv">$child</span> <span class="o">=</span> <span class="nb">pcntl_fork</span><span class="p">();</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nv">$child</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">die</span><span class="p">(</span><span class="s1">&#39;cannot fork&#39;</span><span class="p">);</span>
+    <span class="p">}</span> <span class="k">elseif</span> <span class="p">(</span><span class="nv">$child</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nv">$kids</span><span class="p">[]</span> <span class="o">=</span> <span class="nv">$child</span><span class="p">;</span> <span class="c1">// in case we care about their pids</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+        <span class="nx">squabble</span><span class="p">();</span>
+        <span class="k">exit</span><span class="p">();</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="k">while</span> <span class="p">(</span><span class="k">true</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">print</span> <span class="s1">&#39;Buffer is &#39;</span> <span class="o">.</span> <span class="nb">shm_get_var</span><span class="p">(</span><span class="nv">$buffer</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">.</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">;</span>
+    <span class="nb">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+<span class="p">}</span>
+<span class="k">die</span><span class="p">(</span><span class="s1">&#39;Not reached&#39;</span><span class="p">);</span>
+
+<span class="k">function</span> <span class="nf">squabble</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">global</span> <span class="nv">$handle</span><span class="p">;</span>
+    <span class="k">global</span> <span class="nv">$buffer</span><span class="p">;</span>
+    <span class="nv">$i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="nv">$pid</span> <span class="o">=</span> <span class="nb">getmypid</span><span class="p">();</span>
+    <span class="k">while</span> <span class="p">(</span><span class="k">true</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nb">preg_match</span><span class="p">(</span><span class="s2">&quot;/^</span><span class="si">$pid</span><span class="se">\\</span><span class="s2">b/&quot;</span><span class="p">,</span> <span class="nb">shm_get_var</span><span class="p">(</span><span class="nv">$buffer</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span> <span class="k">continue</span><span class="p">;</span>
+        <span class="nb">sem_acquire</span><span class="p">(</span><span class="nv">$handle</span><span class="p">);</span>
+        <span class="nv">$i</span><span class="o">++</span><span class="p">;</span>
+        <span class="nb">shm_put_var</span><span class="p">(</span><span class="nv">$buffer</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">$pid</span><span class="s2"> </span><span class="si">$i</span><span class="s2">&quot;</span><span class="p">);</span>
+        <span class="nb">sem_release</span><span class="p">(</span><span class="nv">$handle</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="c1">// Buffer is 14357 1</span>
+<span class="c1">// Buffer is 14355 3</span>
+<span class="c1">// Buffer is 14355 4</span>
+<span class="c1">// Buffer is 14354 5</span>
+<span class="c1">// Buffer is 14353 6</span>
+<span class="c1">// Buffer is 14351 8</span>
+<span class="c1">// Buffer is 14351 9</span>
+<span class="c1">// Buffer is 14350 10</span>
+<span class="c1">// Buffer is 14348 11</span>
+<span class="c1">// Buffer is 14348 12</span>
+<span class="c1">// Buffer is 14357 10</span>
+<span class="c1">// Buffer is 14357 11</span>
+<span class="c1">// Buffer is 14355 13</span>
+<span class="c1">// ...</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN887"
+>Listing Available Signals</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// Available signal constants</span>
+<span class="o">%</span> <span class="nx">php</span> <span class="o">-</span><span class="nx">r</span> <span class="s1">&#39;print_r(get_defined_constants());&#39;</span> <span class="o">|</span> <span class="nx">grep</span> <span class="s1">&#39;\[SIG&#39;</span> <span class="o">|</span> <span class="nx">grep</span> <span class="o">-</span><span class="nx">v</span> <span class="nx">_</span>
+    <span class="p">[</span><span class="nx">SIGHUP</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="mi">1</span>
+    <span class="p">[</span><span class="nx">SIGINT</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="mi">2</span>
+    <span class="p">[</span><span class="nx">SIGQUIT</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="mi">3</span>
+    <span class="p">[</span><span class="nx">SIGILL</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="mi">4</span>
+    <span class="p">[</span><span class="nx">SIGTRAP</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="mi">5</span>
+    <span class="p">[</span><span class="nx">SIGABRT</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="mi">6</span>
+    <span class="p">[</span><span class="nx">SIGIOT</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="mi">6</span>
+    <span class="p">[</span><span class="nx">SIGBUS</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="mi">7</span>
+    <span class="p">[</span><span class="nx">SIGFPE</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="mi">8</span>
+    <span class="p">[</span><span class="nx">SIGKILL</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="mi">9</span>
+    <span class="p">[</span><span class="nx">SIGUSR1</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="mi">10</span>
+    <span class="p">[</span><span class="nx">SIGSEGV</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="mi">11</span>
+    <span class="p">[</span><span class="nx">SIGUSR2</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="mi">12</span>
+    <span class="p">[</span><span class="nx">SIGPIPE</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="mi">13</span>
+    <span class="p">[</span><span class="nx">SIGALRM</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="mi">14</span>
+    <span class="p">[</span><span class="nx">SIGTERM</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="mi">15</span>
+    <span class="p">[</span><span class="nx">SIGSTKFLT</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="mi">16</span>
+    <span class="p">[</span><span class="nx">SIGCLD</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="mi">17</span>
+    <span class="p">[</span><span class="nx">SIGCHLD</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="mi">17</span>
+    <span class="p">[</span><span class="nx">SIGCONT</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="mi">18</span>
+    <span class="p">[</span><span class="nx">SIGSTOP</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="mi">19</span>
+    <span class="p">[</span><span class="nx">SIGTSTP</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="mi">20</span>
+    <span class="p">[</span><span class="nx">SIGTTIN</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="mi">21</span>
+    <span class="p">[</span><span class="nx">SIGTTOU</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="mi">22</span>
+    <span class="p">[</span><span class="nx">SIGURG</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="mi">23</span>
+    <span class="p">[</span><span class="nx">SIGXCPU</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="mi">24</span>
+    <span class="p">[</span><span class="nx">SIGXFSZ</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="mi">25</span>
+    <span class="p">[</span><span class="nx">SIGVTALRM</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="mi">26</span>
+    <span class="p">[</span><span class="nx">SIGPROF</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="mi">27</span>
+    <span class="p">[</span><span class="nx">SIGWINCH</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="mi">28</span>
+    <span class="p">[</span><span class="nx">SIGPOLL</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="mi">29</span>
+    <span class="p">[</span><span class="nx">SIGIO</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="mi">29</span>
+    <span class="p">[</span><span class="nx">SIGPWR</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="mi">30</span>
+    <span class="p">[</span><span class="nx">SIGSYS</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="mi">31</span>
+    <span class="p">[</span><span class="nx">SIGBABY</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="mi">31</span>
+
+<span class="c1">// Predefined signal handler constants</span>
+<span class="o">%</span> <span class="nx">php</span> <span class="o">-</span><span class="nx">r</span> <span class="s1">&#39;print_r(get_defined_constants());&#39;</span> <span class="o">|</span> <span class="nx">grep</span> <span class="s1">&#39;\[SIG&#39;</span> <span class="o">|</span> <span class="nx">grep</span> <span class="nx">_</span>
+    <span class="p">[</span><span class="nx">SIG_IGN</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="mi">1</span>
+    <span class="p">[</span><span class="nx">SIG_DFL</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="mi">0</span>
+    <span class="p">[</span><span class="nx">SIG_ERR</span><span class="p">]</span> <span class="o">=&gt;</span> <span class="o">-</span><span class="mi">1</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN890"
+>Sending a Signal</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// send pid a signal 9</span>
+<span class="nb">posix_kill</span><span class="p">(</span><span class="nv">$pid</span><span class="p">,</span> <span class="mi">9</span><span class="p">);</span>
+<span class="c1">// send whole job a signal 1</span>
+<span class="nb">posix_kill</span><span class="p">(</span><span class="nv">$pgrp</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">);</span>
+<span class="c1">// send myself a SIGUSR1</span>
+<span class="nb">posix_kill</span><span class="p">(</span><span class="nb">getmypid</span><span class="p">(),</span> <span class="nx">SIGUSR1</span><span class="p">);</span>
+<span class="c1">// send a SIGHUP to processes in pids</span>
+<span class="k">foreach</span> <span class="p">(</span><span class="nv">$pids</span> <span class="k">as</span> <span class="nv">$pid</span><span class="p">)</span> <span class="nb">posix_kill</span><span class="p">(</span><span class="nv">$pid</span><span class="p">,</span> <span class="nx">SIGHUP</span><span class="p">);</span>
+
+<span class="c1">// -----------------------------</span>
+
+<span class="c1">// Use kill with pseudo-signal 0 to see if process is alive.</span>
+<span class="k">if</span> <span class="p">(</span><span class="nb">posix_kill</span><span class="p">(</span><span class="nv">$minion</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span> <span class="p">{</span>
+    <span class="k">echo</span> <span class="s2">&quot;</span><span class="si">$minion</span><span class="s2"> is alive!</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">;</span>
+<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="k">echo</span> <span class="s2">&quot;</span><span class="si">$minion</span><span class="s2"> is deceased.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">;</span>
+<span class="p">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN893"
+>Installing a Signal Handler</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// call got_sig_quit for every SIGQUIT</span>
+<span class="nb">pcntl_signal</span><span class="p">(</span><span class="nx">SIGQUIT</span><span class="p">,</span> <span class="s1">&#39;got_sig_quit&#39;</span><span class="p">);</span>
+<span class="c1">// call got_sig_pipe for every SIGPIPE</span>
+<span class="nb">pcntl_signal</span><span class="p">(</span><span class="nx">SIGPIPE</span><span class="p">,</span> <span class="s1">&#39;got_sig_pipe&#39;</span><span class="p">);</span>
+<span class="c1">// increment ouch for every SIGINT</span>
+<span class="k">function</span> <span class="nf">got_sig_int</span><span class="p">(</span><span class="nv">$signal</span><span class="p">)</span> <span class="p">{</span> <span class="k">global</span> <span class="nv">$ouch</span><span class="p">;</span> <span class="nv">$ouch</span><span class="o">++</span><span class="p">;</span> <span class="p">}</span>
+<span class="nb">pcntl_signal</span><span class="p">(</span><span class="nx">SIGINT</span><span class="p">,</span> <span class="s1">&#39;got_sig_int&#39;</span><span class="p">);</span>
+<span class="c1">// ignore the signal INT</span>
+<span class="nb">pcntl_signal</span><span class="p">(</span><span class="nx">SIGINT</span><span class="p">,</span> <span class="nx">SIG_IGN</span><span class="p">);</span>
+<span class="c1">// restore default STOP signal handling</span>
+<span class="nb">pcntl_signal</span><span class="p">(</span><span class="nx">SIGSTOP</span><span class="p">,</span> <span class="nx">SIG_DFL</span><span class="p">);</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN896"
+>Temporarily Overriding a Signal Handler</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// the signal handler</span>
+<span class="k">function</span> <span class="nf">ding</span><span class="p">(</span><span class="nv">$signal</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nb">fwrite</span><span class="p">(</span><span class="nx">STDERR</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\x07</span><span class="s2">Enter your name!</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// prompt for name, overriding SIGINT</span>
+<span class="k">function</span> <span class="nf">get_name</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">declare</span><span class="p">(</span><span class="nx">ticks</span> <span class="o">=</span> <span class="mi">1</span><span class="p">);</span>
+    <span class="nb">pcntl_signal</span><span class="p">(</span><span class="nx">SIGINT</span><span class="p">,</span> <span class="s1">&#39;ding&#39;</span><span class="p">);</span>
+
+    <span class="k">echo</span> <span class="s2">&quot;Kindly Stranger, please enter your name: &quot;</span><span class="p">;</span>
+    <span class="k">while</span> <span class="p">(</span><span class="o">!@</span><span class="nb">stream_select</span><span class="p">(</span><span class="nv">$read</span><span class="o">=</span><span class="k">array</span><span class="p">(</span><span class="nx">STDIN</span><span class="p">),</span>
+                           <span class="nv">$write</span><span class="o">=</span><span class="k">null</span><span class="p">,</span>
+                           <span class="nv">$except</span><span class="o">=</span><span class="k">null</span><span class="p">,</span>
+                           <span class="mi">1</span><span class="p">))</span> <span class="p">{</span>
+        <span class="c1">// allow signals to be observed</span>
+    <span class="p">}</span>
+    <span class="nv">$name</span> <span class="o">=</span> <span class="nb">fgets</span><span class="p">(</span><span class="nx">STDIN</span><span class="p">);</span>
+
+    <span class="c1">// Since pcntl_signal() doesn&#39;t return the old signal handler, the</span>
+    <span class="c1">// best we can do here is set it back to the default behavior.</span>
+    <span class="nb">pcntl_signal</span><span class="p">(</span><span class="nx">SIGINT</span><span class="p">,</span> <span class="nx">SIG_DFL</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="nv">$name</span><span class="p">;</span>
+<span class="p">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN899"
+>Writing a Signal Handler</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="k">function</span> <span class="nf">got_int</span><span class="p">(</span><span class="nv">$signal</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nb">pcntl_signal</span><span class="p">(</span><span class="nx">SIGINT</span><span class="p">,</span> <span class="s1">&#39;got_int&#39;</span><span class="p">);</span>  <span class="c1">// but not for SIGCHLD!</span>
+    <span class="c1">// ...</span>
+<span class="p">}</span>
+<span class="nb">pcntl_signal</span><span class="p">(</span><span class="nx">SIGINT</span><span class="p">,</span> <span class="s1">&#39;got_int&#39;</span><span class="p">);</span>
+
+<span class="c1">// -----------------------------</span>
+
+<span class="k">declare</span><span class="p">(</span><span class="nx">ticks</span> <span class="o">=</span> <span class="mi">1</span><span class="p">);</span>
+<span class="nv">$interrupted</span> <span class="o">=</span> <span class="k">false</span><span class="p">;</span>
+
+<span class="k">function</span> <span class="nf">got_int</span><span class="p">(</span><span class="nv">$signal</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">global</span> <span class="nv">$interrupted</span><span class="p">;</span>
+    <span class="nv">$interrupted</span> <span class="o">=</span> <span class="k">true</span><span class="p">;</span>
+    <span class="c1">// The third argument to pcntl_signal() determines if system calls</span>
+    <span class="c1">// should be restarted after a signal. It defaults to true.</span>
+    <span class="nb">pcntl_signal</span><span class="p">(</span><span class="nx">SIGINT</span><span class="p">,</span> <span class="s1">&#39;got_int&#39;</span><span class="p">,</span> <span class="k">false</span><span class="p">);</span>  <span class="c1">// or SIG_IGN</span>
+<span class="p">}</span>
+<span class="nb">pcntl_signal</span><span class="p">(</span><span class="nx">SIGINT</span><span class="p">,</span> <span class="s1">&#39;got_int&#39;</span><span class="p">,</span> <span class="k">false</span><span class="p">);</span>
+
+<span class="c1">// ... long-running code that you don&#39;t want to restart</span>
+
+<span class="k">if</span> <span class="p">(</span><span class="nv">$interrupted</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// deal with the signal</span>
+<span class="p">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN902"
+>Catching Ctrl-C</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// ignore signal INT</span>
+<span class="nb">pcntl_signal</span><span class="p">(</span><span class="nx">SIGINT</span><span class="p">,</span> <span class="nx">SIG_IGN</span><span class="p">);</span>
+
+<span class="c1">// install signal handler</span>
+<span class="k">declare</span><span class="p">(</span><span class="nx">ticks</span> <span class="o">=</span> <span class="mi">1</span><span class="p">);</span>
+<span class="k">function</span> <span class="nf">tsktsk</span><span class="p">(</span><span class="nv">$signal</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nb">fwrite</span><span class="p">(</span><span class="nx">STDERR</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\x07</span><span class="s2">The long habit of living indisposeth us for dying.&quot;</span><span class="p">);</span>
+    <span class="nb">pcntl_signal</span><span class="p">(</span><span class="nx">SIGINT</span><span class="p">,</span> <span class="s1">&#39;tsktsk&#39;</span><span class="p">);</span>
+<span class="p">}</span>
+<span class="nb">pcntl_signal</span><span class="p">(</span><span class="nx">SIGINT</span><span class="p">,</span> <span class="s1">&#39;tsktsk&#39;</span><span class="p">);</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN905"
+>Avoiding Zombie Processes</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="nb">pcntl_signal</span><span class="p">(</span><span class="nx">SIGCHLD</span><span class="p">,</span> <span class="nx">SIG_IGN</span><span class="p">);</span>
+
+<span class="c1">// -----------------------------</span>
+
+<span class="k">declare</span><span class="p">(</span><span class="nx">ticks</span> <span class="o">=</span> <span class="mi">1</span><span class="p">);</span>
+<span class="k">function</span> <span class="nf">reaper</span><span class="p">(</span><span class="nv">$signal</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nv">$pid</span> <span class="o">=</span> <span class="nb">pcntl_waitpid</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="nv">$status</span><span class="p">,</span> <span class="nx">WNOHANG</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nv">$pid</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// ...</span>
+        <span class="nx">reaper</span><span class="p">(</span><span class="nv">$signal</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="c1">// install *after* calling waitpid</span>
+    <span class="nb">pcntl_signal</span><span class="p">(</span><span class="nx">SIGCHLD</span><span class="p">,</span> <span class="s1">&#39;reaper&#39;</span><span class="p">);</span>
+<span class="p">}</span>
+<span class="nb">pcntl_signal</span><span class="p">(</span><span class="nx">SIGCHLD</span><span class="p">,</span> <span class="s1">&#39;reaper&#39;</span><span class="p">);</span>
+
+<span class="c1">// -----------------------------</span>
+
+<span class="k">declare</span><span class="p">(</span><span class="nx">ticks</span> <span class="o">=</span> <span class="mi">1</span><span class="p">);</span>
+<span class="k">function</span> <span class="nf">reaper</span><span class="p">(</span><span class="nv">$signal</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nv">$pid</span> <span class="o">=</span> <span class="nb">pcntl_waitpid</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="nv">$status</span><span class="p">,</span> <span class="nx">WNOHANG</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nv">$pid</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// No child waiting. Ignore it.</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nb">pcntl_wifexited</span><span class="p">(</span><span class="nv">$signal</span><span class="p">))</span> <span class="p">{</span>
+            <span class="k">echo</span> <span class="s2">&quot;Process </span><span class="si">$pid</span><span class="s2"> exited.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">;</span>
+        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+            <span class="k">echo</span> <span class="s2">&quot;False alarm on </span><span class="si">$pid</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="nx">reaper</span><span class="p">(</span><span class="nv">$signal</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="nb">pcntl_signal</span><span class="p">(</span><span class="nx">SIGCHLD</span><span class="p">,</span> <span class="s1">&#39;reaper&#39;</span><span class="p">);</span>
+<span class="p">}</span>
+<span class="nb">pcntl_signal</span><span class="p">(</span><span class="nx">SIGCHLD</span><span class="p">,</span> <span class="s1">&#39;reaper&#39;</span><span class="p">);</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN908"
+>Blocking Signals</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">// PHP does not support sigprocmask().</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN911"
+>Timing Out an Operation</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="k">declare</span><span class="p">(</span><span class="nx">ticks</span> <span class="o">=</span> <span class="mi">1</span><span class="p">);</span>
+<span class="nv">$aborted</span> <span class="o">=</span> <span class="k">false</span><span class="p">;</span>
+
+<span class="k">function</span> <span class="nf">handle_alarm</span><span class="p">(</span><span class="nv">$signal</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">global</span> <span class="nv">$aborted</span><span class="p">;</span>
+    <span class="nv">$aborted</span> <span class="o">=</span> <span class="k">true</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="nb">pcntl_signal</span><span class="p">(</span><span class="nx">SIGALRM</span><span class="p">,</span> <span class="s1">&#39;handle_alarm&#39;</span><span class="p">);</span>
+
+<span class="nb">pcntl_alarm</span><span class="p">(</span><span class="mi">3600</span><span class="p">);</span>
+<span class="c1">// long-time operations here</span>
+<span class="nb">pcntl_alarm</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="k">if</span> <span class="p">(</span><span class="nv">$aborted</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// timed out - do what you will here</span>
+<span class="p">}</span>
+</pre></div>
+</body>
+</html></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN914"
+>Program: sigrand</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="userinterfaces.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="sockets.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>User Interfaces</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Sockets</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

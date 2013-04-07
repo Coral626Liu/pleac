@@ -1,0 +1,731 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Database Access</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Ruby"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Classes, Objects, and Ties"
+HREF="classesetc.html"><LINK
+REL="NEXT"
+TITLE="User Interfaces"
+HREF="userinterfaces.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Ruby</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="classesetc.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="userinterfaces.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="DBACCESS"
+>14. Database Access</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN754"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN757"
+>Making and Using a DBM File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp"># There are dbm, sdbm, gdbm modules</span>
+<span class="cp"># and the bdb module for accessing the berkeley db</span>
+<span class="cp"># sdbm seem to be available on the most systems,</span>
+<span class="cp"># so we use it here</span>
+<span class="cp">#</span>
+<span class="cp">require &quot;sdbm&quot;</span>
+<span class="cp">SDBM.open(&quot;filename&quot;, 0666) { |dbobj|</span>
+<span class="cp">    # raises exception if open error</span>
+<span class="cp">    </span>
+<span class="cp">    # the returned sdbm-dbobj has most of the methods of a hash</span>
+<span class="cp">    v = dbobj[&quot;key&quot;]</span>
+<span class="cp">    dbobj[&quot;key&quot;] = &quot;newvalue&quot;</span>
+<span class="cp">    if dbobj.has_key?(&quot;key&quot;)</span>
+<span class="cp">        # ...</span>
+<span class="cp">    end</span>
+<span class="cp">    dbobj.delete(&quot;key2&quot;)</span>
+<span class="cp">}</span>
+<span class="cp"># database is open only inside the block.</span>
+
+<span class="cp"># It is also possible to use a open .. close pair:</span>
+<span class="cp">dbobj = SDBM.open(&quot;filename&quot;, 0666)</span>
+<span class="cp">#.. do something with dbobj</span>
+<span class="cp">dbobj.close</span>
+
+<span class="cp">#!/usr/bin/ruby -w</span>
+<span class="cp"># userstats - generate statistics on who is logged in</span>
+<span class="cp"># call with usernames as argument to display the totals</span>
+<span class="cp"># for the given usernames, call with &quot;ALL&quot; to display all users</span>
+
+<span class="cp">require &quot;sdbm&quot;</span>
+<span class="cp">filename = &#39;/tmp/userstats.db&#39;</span>
+<span class="cp">SDBM.open(filename, 0666) { |dbobj|</span>
+<span class="cp">    if ARGV.length &gt; 0</span>
+<span class="cp">        if ARGV[0] == &quot;ALL&quot;</span>
+<span class="cp">            # ARGV is constant, so we need the variable userlist</span>
+<span class="cp">            userlist = dbobj.keys().sort()</span>
+<span class="cp">        else</span>
+<span class="cp">            userlist = ARGV</span>
+<span class="cp">        end</span>
+<span class="cp">        userlist.each { |user|</span>
+<span class="cp">            print &quot;#{user}\t#{dbobj[user]}\n&quot;</span>
+<span class="cp">        }</span>
+<span class="cp">    else</span>
+<span class="cp">        who = `who`</span>
+<span class="cp">        who.split(&quot;\n&quot;).each { |line|</span>
+<span class="cp">            md = /^(\S+)/.match(line)</span>
+<span class="cp">            raise &quot;Bad line from who: #{line}&quot; unless md</span>
+<span class="cp">            # sdbm stores only strings, so &quot;+=&quot; doesn&#39;t work,</span>
+<span class="cp">            # we need to convert them expicitly back to integer.</span>
+<span class="cp">            if dbobj.has_key?(md[0])</span>
+<span class="cp">                dbobj[md[0]] = dbobj[md[0]].to_i + 1</span>
+<span class="cp">            else</span>
+<span class="cp">                dbobj[md[0]] = &quot;1&quot;</span>
+<span class="cp">            end</span>
+<span class="cp">        }</span>
+<span class="cp">    end</span>
+<span class="cp">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN760"
+>Emptying a DBM File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp"># using open and clear</span>
+<span class="cp">dbobj = SDBM.open(&quot;filename&quot;, 0666)</span>
+<span class="cp">dbobj.clear()</span>
+<span class="cp">dbobj.close()</span>
+<span class="cp"># deleting file and recreating it</span>
+<span class="cp"># the filenames depend on the flavor of dbm you use,</span>
+<span class="cp"># for example sdbm has two files named filename.pag and filename.dir,</span>
+<span class="cp"># so you need to delete both files</span>
+<span class="cp">begin</span>
+<span class="cp">    File.delete(&quot;filename&quot;)</span>
+<span class="cp">    # raises Exception if not exist</span>
+<span class="cp">    dbobj = SDBM.open(&quot;filename&quot;, 0666)</span>
+<span class="cp">rescue</span>
+<span class="cp">    # add error handling here</span>
+<span class="cp">end</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN763"
+>Converting Between DBM Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp"># sdbm2gdbm: converts sdbm database to a gdbm database</span>
+<span class="cp">require &quot;sdbm&quot;</span>
+<span class="cp">require &quot;gdbm&quot;</span>
+
+<span class="cp">unless ARGV.length == 2</span>
+<span class="cp">    fail &quot;usage: sdbm2gdbm infile outfile&quot;</span>
+<span class="cp">end</span>
+<span class="cp">infile = ARGV[0]</span>
+<span class="cp">outfile = ARGV[1]</span>
+
+<span class="cp">sdb = SDBM.open(infile)</span>
+<span class="cp">gdb = GDBM.open(outfile, 0666)</span>
+<span class="cp">sdb.each { |key, val|</span>
+<span class="cp">    gdb[key] = val</span>
+<span class="cp">}</span>
+<span class="cp">gdb.close</span>
+<span class="cp">sdb.close</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN766"
+>Merging DBM Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#!/usr/bin/ruby -w</span>
+<span class="cp"># dbmmerge: merges two dbm databases</span>
+<span class="cp">require &quot;sdbm&quot;</span>
+
+<span class="cp">unless ARGV.length == 3</span>
+<span class="cp">    fail &quot;usage: dbmmerge indb1 indb2 outdb&quot;</span>
+<span class="cp">end</span>
+<span class="cp">infile1 = ARGV[0]</span>
+<span class="cp">infile2 = ARGV[0]</span>
+<span class="cp">outfile = ARGV[2]</span>
+
+<span class="cp">in1 = SDBM.open(infile1, nil)</span>
+<span class="cp">in2 = SDBM.open(infile2, nil)</span>
+<span class="cp">outdb = SDBM.open(outfile, 0666)</span>
+
+<span class="cp">[in1, in2].each { |indb|</span>
+<span class="cp">    indb.each { |key, val|</span>
+<span class="cp">        if outdb.has_key?(key)</span>
+<span class="cp">            # decide which value to set.</span>
+<span class="cp">            # set outdb[key] if necessary</span>
+<span class="cp">        else</span>
+<span class="cp">            outdb[key] = val</span>
+<span class="cp">        end</span>
+<span class="cp">    }</span>
+<span class="cp">}</span>
+<span class="cp">in1.close</span>
+<span class="cp">in2.close</span>
+<span class="cp">outdb.close</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN769"
+>Locking DBM Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN772"
+>Sorting Large DBM Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN775"
+>Treating a Text File as a Database Array</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp"># we write a tie method that extends the Array class.</span>
+<span class="cp"># It reads the file into the memory, executes the code block</span>
+<span class="cp"># in which you can manipulate the array as needed, and writes</span>
+<span class="cp"># the array back to the file after the end of the block execution</span>
+<span class="cp">class Array</span>
+<span class="cp">    def tie(filename, flags)</span>
+<span class="cp">        File.open(filename, flags) { |f|</span>
+<span class="cp">            f.each_line { |line|</span>
+<span class="cp">                self.push(line.chomp)</span>
+<span class="cp">            }</span>
+<span class="cp">            yield</span>
+<span class="cp">            f.rewind</span>
+<span class="cp">            each { |line|</span>
+<span class="cp">                if line</span>
+<span class="cp">                    f.puts(line)</span>
+<span class="cp">                else</span>
+<span class="cp">                    f.puts &quot;&quot;</span>
+<span class="cp">                end</span>
+<span class="cp">            }</span>
+<span class="cp">        }</span>
+<span class="cp">    end</span>
+<span class="cp">end</span>
+
+<span class="cp">array = Array.new</span>
+<span class="cp">array.tie(&quot;/tmp/textfile.txt&quot;, File::RDWR|File::CREAT) {</span>
+<span class="cp">    array[4] = &quot;a new line 4&quot;</span>
+<span class="cp">}</span>
+
+<span class="cp"># The tied array can be manipulated like a normal array,</span>
+<span class="cp"># so there is no need for a special API, and the recno_demo program</span>
+<span class="cp"># to demonstrate is API is useless</span>
+
+
+<span class="cp"># tied array demo: show how to use array with a tied file</span>
+<span class="cp">filename = &quot;db_file.txt&quot;</span>
+<span class="cp">lines = Array.new</span>
+<span class="cp">File.unlink(filename) if File.exists?(filename)</span>
+<span class="cp">lines.tie(filename, File::RDWR | File::CREAT) {</span>
+<span class="cp">    # first create a textfile to play with</span>
+<span class="cp">    lines[0] = &quot;zero&quot;</span>
+<span class="cp">    lines[1] = &quot;one&quot;</span>
+<span class="cp">    lines[2] = &quot;two&quot;</span>
+<span class="cp">    lines[3] = &quot;three&quot;</span>
+<span class="cp">    lines[4] = &quot;four&quot;</span>
+
+<span class="cp">    # print the records in order.</span>
+<span class="cp">    # Opposed to perl, the tied array behaves exactly as a normal array</span>
+<span class="cp">    puts &quot;\nOriginal&quot;</span>
+<span class="cp">    for i in 0..(lines.length-1)</span>
+<span class="cp">        puts &quot;#{i}: #{lines[i]}&quot;</span>
+<span class="cp">    end</span>
+
+<span class="cp">    #use push and pop</span>
+<span class="cp">    a = lines.pop</span>
+<span class="cp">    lines.push(&quot;last&quot;)</span>
+<span class="cp">    puts(&quot;The last line was [#{a}]&quot;)</span>
+
+<span class="cp">    #use shift and unshift</span>
+<span class="cp">    a = lines.shift</span>
+<span class="cp">    lines.unshift(&quot;first&quot;)</span>
+<span class="cp">    puts(&quot;The first line was [#{a}]&quot;)</span>
+
+<span class="cp">    # add record after record 2</span>
+<span class="cp">    i = 2</span>
+<span class="cp">    lines.insert(i + 1, &quot;Newbie&quot;)</span>
+
+<span class="cp">    # add record before record one</span>
+<span class="cp">    i = 1</span>
+<span class="cp">    lines.insert(i, &quot;New One&quot;)</span>
+
+<span class="cp">    # delete record 3</span>
+<span class="cp">    lines.delete_at(3)</span>
+
+<span class="cp">    #now print the records in reverse order</span>
+<span class="cp">    puts &quot;\nReverse&quot;</span>
+<span class="cp">    (lines.length - 1).downto(0){ |i|</span>
+<span class="cp">        puts &quot;#{i}: #{lines[i]}&quot;</span>
+<span class="cp">    }</span>
+
+<span class="cp">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN778"
+>Storing Complex Data in a DBM File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp"># example to store complex data in a database</span>
+<span class="cp"># uses marshall from the standard library</span>
+<span class="cp">require &quot;sdbm&quot;</span>
+<span class="cp">db = SDBM.open(&quot;pleac14-8-database&quot;, 0666)</span>
+
+<span class="cp"># convert the Objects into strings and back by using the Marshal module.</span>
+<span class="cp"># Most normal objects can be converted out of the box,</span>
+<span class="cp"># but not special things like procedure objects,</span>
+<span class="cp"># IO instance variables, singleton objects</span>
+
+<span class="cp">db[&quot;Tom Christiansen&quot;] = Marshal.dump([&quot;book author&quot;,  &quot;tchrist@perl.com&quot;])</span>
+<span class="cp">db[&quot;Tom Boutell&quot;] = Marshal.dump([&quot;shareware author&quot;,</span>
+<span class="cp">&quot;boutell@boutell.com&quot;])</span>
+
+<span class="cp">name1 = &quot;Tom Christiansen&quot;</span>
+<span class="cp">name2 = &quot;Tom Boutell&quot;</span>
+
+<span class="cp">tom1 = Marshal.load(db[name1])</span>
+<span class="cp">tom2 = Marshal.load(db[name2])</span>
+
+<span class="cp">puts &quot;Two Toming: #{tom1} #{tom2}&quot;</span>
+
+<span class="cp">if tom1[0] == tom2[0] &amp;&amp; tom1[1] == tom2[1]</span>
+<span class="cp">   puts &quot;You&#39;re having runtime fun with one Tom made two.&quot;</span>
+<span class="cp">else</span>
+<span class="cp">   puts &quot;No two Toms are ever alike&quot;</span>
+<span class="cp">end</span>
+
+<span class="cp"># To change parts of an entry, get the whole entry, change the parts,</span>
+<span class="cp"># and save the whole entry back</span>
+<span class="cp">entry = Marshal.load(db[&quot;Tom Boutell&quot;])</span>
+<span class="cp">entry[0] = &quot;Poet Programmer&quot;</span>
+<span class="cp">db[&quot;Tom Boutell&quot;] = Marshal.dump(entry)</span>
+<span class="cp">db.close</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN781"
+>Persistent Data</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp"># example to make data persistent</span>
+<span class="cp"># uses Marshal from the standard lib</span>
+<span class="cp"># Stores the data in a simple file,</span>
+<span class="cp"># see 14.8 on how to store it in a dbm file</span>
+
+<span class="cp"># The BEGIN block is executed before the rest of the script</span>
+<span class="cp"># we use global variables here because local variables</span>
+<span class="cp"># will go out of scope and are not accessible from the main script</span>
+
+<span class="cp">BEGIN {</span>
+<span class="cp">   $persistent_store = &quot;persitence.dat&quot;</span>
+<span class="cp">   begin</span>
+<span class="cp">     File.open($persistent_store) do |f|</span>
+<span class="cp">       $stringvariable1 = Marshal.load(f)</span>
+<span class="cp">       $arrayvariable2 = Marshal.load(f)</span>
+<span class="cp">     end</span>
+<span class="cp">   rescue</span>
+<span class="cp">     puts &quot;Can not open #{$persistent_store}&quot;</span>
+<span class="cp">     # Initialisation if this script runs the first time</span>
+<span class="cp">     $stringvariable1 = &quot;&quot;</span>
+<span class="cp">     $arrayvariable2 = []</span>
+<span class="cp">   end</span>
+<span class="cp">}</span>
+
+<span class="cp">END {</span>
+<span class="cp">   File.open($persistent_store, &quot;w+&quot;) do |f|</span>
+<span class="cp">     Marshal.dump($stringvariable1, f)</span>
+<span class="cp">     Marshal.dump($arrayvariable2, f)</span>
+<span class="cp">   end</span>
+<span class="cp">}</span>
+
+<span class="cp"># simple test program</span>
+<span class="cp">puts $stringvariable1</span>
+<span class="cp">puts $arrayvariable2</span>
+<span class="cp">$stringvariable1 = &quot;Hello World&quot;</span>
+<span class="cp">$arrayvariable2.push(5)</span>
+<span class="cp">puts $stringvariable1</span>
+<span class="cp">puts $arrayvariable2</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN784"
+>Executing an SQL Command Using DBI and DBD</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="cp"></span><span class="cp">#!/usr/bin/ruby -w</span>
+<span class="cp"># Ruby has a dbi module with an architecture similar</span>
+<span class="cp"># to the Perl dbi module: the dbi module provides an unified</span>
+<span class="cp"># interface and uses specialized drivers for each dbms vendor</span>
+<span class="cp">#</span>
+<span class="cp">begin</span>
+<span class="cp">    DBI.connect(&quot;DBI:driver:driverspecific&quot;, &quot;username&quot;, &quot;auth&quot;) {</span>
+<span class="cp">        |dbh|</span>
+
+<span class="cp">        dbh.do(SQL1)</span>
+
+<span class="cp">        dbh.prepare(SQL2){ |sth|</span>
+<span class="cp">            sth.execute</span>
+<span class="cp">            sth.fetch {|row|</span>
+<span class="cp">                # ...</span>
+<span class="cp">            }</span>
+<span class="cp">        } # end of block finishes the statement handle</span>
+<span class="cp">    } # end of block closes the database connection</span>
+<span class="cp">rescue DBI::DatabaseError =&gt; e</span>
+<span class="cp">    puts &quot;dbi error occurred&quot;</span>
+<span class="cp">    puts &quot;Error code: #{e.err}&quot;</span>
+<span class="cp">    puts &quot;Error message: #{e.errstr}&quot;</span>
+<span class="cp">end</span>
+
+<span class="cp">#!/usr/bin/ruby -w</span>
+<span class="cp"># dbusers - example for mysql which creates a table,</span>
+<span class="cp"># fills it with values, retrieves the values back,</span>
+<span class="cp"># and finally destroys the table.</span>
+
+<span class="cp">require &quot;dbi&quot;</span>
+
+<span class="cp"># replacement for the User::pwnt module</span>
+<span class="cp">def getpwent</span>
+<span class="cp">    result = []</span>
+<span class="cp">    File.open(&quot;/etc/passwd&quot;) {|file|</span>
+<span class="cp">        file.each_line {|line|</span>
+<span class="cp">            next if line.match(/^#/)</span>
+<span class="cp">            cols = line.split(&quot;:&quot;)</span>
+<span class="cp">            result.push([cols[2], cols[0]])</span>
+<span class="cp">        }</span>
+<span class="cp">    }</span>
+<span class="cp">    result</span>
+<span class="cp">end</span>
+
+<span class="cp">begin</span>
+<span class="cp">    DBI.connect(&quot;DBI:Mysql:pleacdatabase&quot;, &quot;pleac&quot;, &quot;pleacpassword&quot;) {</span>
+<span class="cp">        |conn|</span>
+
+<span class="cp">        conn.do(&quot;CREATE TABLE users (uid INT, login CHAR(8))&quot;)</span>
+
+<span class="cp">        users = getpwent</span>
+
+<span class="cp">        conn.prepare(&quot;INSERT INTO users VALUES (?,?)&quot;) {|sth|</span>
+<span class="cp">            users.each {|entry|</span>
+<span class="cp">                sth.execute(entry[0], entry[1])</span>
+<span class="cp">            }</span>
+<span class="cp">        }</span>
+
+<span class="cp">        conn.execute(&quot;SELECT uid, login FROM users WHERE uid &lt; 50&quot;) {|sth|</span>
+<span class="cp">            sth.fetch {|row|</span>
+<span class="cp">                puts row.collect {|col|</span>
+<span class="cp">                    if col.nil?</span>
+<span class="cp">                        &quot;(null)&quot;</span>
+<span class="cp">                    else</span>
+<span class="cp">                        col</span>
+<span class="cp">                    end</span>
+<span class="cp">                }.join(&quot;, &quot;)</span>
+<span class="cp">            }</span>
+<span class="cp">        }</span>
+
+<span class="cp">        conn.do(&quot;DROP TABLE users&quot;)</span>
+<span class="cp">    }</span>
+<span class="cp">rescue DBI::DatabaseError =&gt; e</span>
+<span class="cp">    puts &quot;dbi error occurred&quot;</span>
+<span class="cp">    puts &quot;Error code: #{e.err}&quot;</span>
+<span class="cp">    puts &quot;Error message: #{e.errstr}&quot;</span>
+<span class="cp">end</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN787"
+>Program: ggh - Grep Netscape Global History</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="classesetc.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="userinterfaces.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Classes, Objects, and Ties</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>User Interfaces</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

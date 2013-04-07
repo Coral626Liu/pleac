@@ -1,0 +1,1373 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Hashes</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-REXX "
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Arrays"
+HREF="arrays.html"><LINK
+REL="NEXT"
+TITLE="Pattern Matching"
+HREF="patternmatching.html"></HEAD
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-REXX </TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="arrays.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="patternmatching.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="HASHES"
+>5. Hashes</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN232"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* Where Perl implements 'hashes', REXX offers 'compound variables' to*/
+/* fulfil the same role [they are each, after all, associative array  */
+/* implementations]. Additionally, it is important to understand that */
+/* compound variables are not simply another data structure, but a key*/
+/* REXX feature - many REXX idioms involve compound variable use. For */
+/* example, external library functions such as those from the 'rxSock'*/
+/* library [i.e. TCP/IP sockets] use compound variables to exchange   */
+/* multi-valued data such as host name/address and port number aggre- */
+/* gations. Another use is the making available the lines of a file as*/
+/* compound variable 'leaves', where, for example, the five lines read*/
+/* from 'infile.txt' into a compound variable called 'infile.', would */
+/* be accessable as, 'infile.1' through 'infile.5'; each 'leaf' is    */
+/* named after the corresponding line number. Note also that the term */
+/* 'stem variable' is sometimes used to describe compound variables.  */
+/*                                                                    */
+/* By adopting certain design conventions, compound variables may be  */
+/* used to build high-level data structures like lists and trees,     */
+/* build 'associations' between items [i.e. property lists], as well  */
+/* as mimic data structures like records / structures, and also single*/
+/* and multi-dimensional arrays [both numerically and non-numerically */
+/* indexed]. However, it will be their use as 'hashes' that will be   */
+/* disccussed here.                                                   */
+/*                                                                    */
+/* Whilst compound variables are quite versatile, there are a number  */
+/* of quirks associated with their use:                               */
+/*                                                                    */
+/* * Indexing is via the '.' operator. This usage can be confusing for*/
+/*   those used to using this operator to access structure members [as*/
+/*   in C or Java]. Furthermore, the '[]' operator, commonly used as  */
+/*   an array index operator, is not available [though it is in more  */
+/*   recent REXX implementations like ooREXX]                         */
+/*                                                                    */
+/* * They cannot be passed to, nor returned from, REXX subroutines, by*/
+/*   reference [though it is possible to pass the name of such items  */
+/*   and access their contents indirectly via the VALUE BIF]. It is,  */
+/*   however, possible to pass the name of a compound variable to an  */
+/*   external library function and have it access and/or 'fill' it    */
+/*   with data                                                        */
+/*                                                                    */
+/* * Index names must either be literals, or variables; expressions   */
+/*   cannot be used [they would need to be assigned to a variable, and*/
+/*   the variable used for indexing]                                  */
+/*                                                                    */
+/* * There is no instruction or BIF for traversing compound variable  */
+/*   members. In order to allow such an operation, it is typical to:  */
+/*                                                                    */
+/*   - Use numerically-based indexes [index '0' has total items] e.g. */
+/*                                                                    */
+/*     cv.1 = &quot;first&quot; ; cv.2 = &quot;second&quot; ; cv.3 = &quot;third&quot; ; cv.0 = 3   */
+/*                                                                    */
+/*     do i = 1 to cv.0                                               */
+/*       say cv.i                                                     */
+/*     end                                                            */
+/*                                                                    */
+/*   - Use a purpose-built, external library function. 'regStemDoOver'*/
+/*     from the *NIX / Win32 implementation of the 'rexxUtil' library */
+/*     is one such function                                           */
+/*                                                                    */
+/* * It is not possible to manually sort or merge compound variables  */
+/*   unless numerically-based indexes are used [or purpose-built, ext-*/
+/*   ernal library function used]. Similarly, certain external library*/
+/*   functions [e.g. 'sysStemInsert', 'sysStemDelete' etc] will only  */
+/*   work with compound variables following this convention           */
+/*                                                                    */
+/* Owing to these quirks, it is common to see use made of compound    */
+/* variables with numerically-based indexes where there is a need for */
+/* non key-based searching, or where data needs to be sorted. Also, a */
+/* compound variable will tend to be shared among subroutines, usually*/
+/* via the 'EXPOSE' instruction, in the same manner as a global value.*/
+/*                                                                    */
+/* Several examples make use of 'rexxUtil' library functionality, so  */
+/* assume the existence of the following prologue code:               */
+/*                                                                    */
+/*     call rxFuncAdd 'sysLoadFuncs', 'rexxUtil', 'sysLoadFuncs'      */
+/*     call ssyLoadFuncs                                              */
+/*                                                                    */
+/* and the following epilogue code [usually at program's end]:        */
+/*                                                                    */
+/*     call sysDropFuncs                                              */
+/* ------------------------------------------------------------------ */
+
+/* Create compound variable, 'age.', uninitialised variables as keys */
+
+age.Nat = 24                         /* Equivalent to: age.&quot;NAT&quot; */
+age.Jules = 24                       /* ... age.&quot;JULES&quot; */
+age.Josh = 17                        /* ... age.&quot;JOSH&quot; */
+
+/* ----------------------------- */
+
+/* As previous; used from subroutine when stem name runtime-supplied */
+stem = &quot;age.&quot;
+key = &quot;Nat&quot; ; call VALUE stem||key, 24
+key = &quot;Jules&quot; ; call VALUE stem||key, 24
+key = &quot;Josh&quot; ; call VALUE stem||key, 17
+
+/* ----------------------------- */
+
+/* Preferred approach [key placed in variable] as keys retain case */
+key = &quot;Nat&quot; ; age.key = 24
+key = &quot;Jules&quot; ; age.key = 24
+key = &quot;Josh&quot; ; age.key = 17
+
+/* As previous, except key-value pairs parsed from list */
+name_list = &quot;Nat 24 Jules 24 Josh 17&quot;
+do while name_list &lt;&gt; NULL
+  parse var name_list key age.key name_list
+end
+
+/* ----------------------------- */
+
+key = &quot;Apple&quot; ; food_color.key = &quot;red&quot;
+key = &quot;Banana&quot; ; food_color.key = &quot;yellow&quot;
+key = &quot;Lemon&quot; ; food_color.key = &quot;yellow&quot;
+key = &quot;Carrot&quot; ; food_color.key = &quot;orange&quot;
+
+/* As previous, except key-value pairs parsed from list */
+food_list = &quot;Apple red Banana yellow Lemon yellow Carrot orange&quot;
+do while food_list &lt;&gt; NULL
+  parse var food_list key food_color.key food_list
+end</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN235"
+>Adding an Element to a Hash</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* The rules for leaf [i.e. element, key / value] addition are simple:*/
+/*                                                                    */
+/* * If a leaf exists, then its content is replaced with the new value*/
+/*                                                                    */
+/* * If a leaf does not exist, then a new leaf is created, and the new*/
+/*   value stored there                                               */
+/*                                                                    */
+/* The external library function, 'sysStemInsert', may also be used   */
+/* provided the compound variable uses numerically-based indexes.     */
+/* ------------------------------------------------------------------ */
+
+key = &quot;...key...&quot; ; mydict.key = &quot;...value...&quot;
+
+/* ----------------------------- */
+
+key = &quot;Raspberry&quot; ; food_color.key = &quot;pink&quot;
+
+/* Traverse compound variable using external ['rexxUtil'] function */
+say &quot;Known foods:&quot;
+do while regStemDoOver('food_color.', 'food')
+  say food &quot;is&quot; food_color.food
+end</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN238"
+>Testing for the Presence of a Key in a Hash</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* The built-in function [BIF], 'SYMBOL', is used to check whether a  */
+/* particular leaf / key already exists. Note, however, effective use */
+/* of this technique requires that the compound variable *not* be set */
+/* to default values via:                                             */
+/*                                                                    */
+/*     cv. = DEFAULT_VALUE                                            */
+/*                                                                    */
+/* otherwise a 'SYMBOL' call will always indicate that the leaf / key */
+/* exists even if it has not been explicitly added. In such cases the */
+/* testing for leaf / key presence sees a content comparision with the*/
+/* default value:                                                     */
+/*                                                                    */
+/*     if cv.key \= DEFAULT_VALUE then ; say &quot;Key defined&quot;            */
+/*     else ; say &quot;No such key defined&quot;                               */
+/*                                                                    */
+/* In other words [and as illustrated below] there is no distinction  */
+/* between an 'exists' test and a 'defined' test when a compound var- */
+/* iable is default-valued. This is a behaviour which can easily trap */
+/* the unwary.                                                        */
+/* ------------------------------------------------------------------ */
+
+/* Does 'mydict' have a value for KEY ? */
+
+key = &quot;...&quot;
+
+if SYMBOL('mydict.key') == 'VAR' then
+  /* Key exists */
+  nop
+else
+  /* No such key */
+  nop
+
+/* ----------------------------- */
+
+food_list = &quot;Banana Martini&quot;
+
+/* 1: Parse list using WORD-based BIF's and counted loop */
+numberOfWords = WORDS(food_list)
+
+do i = 1 for numberOfWords
+  name = WORD(food_list, i)
+  if SYMBOL('food_color.name') == 'VAR' then
+    say name &quot;is a food.&quot;
+  else
+    say name &quot;is a drink.&quot;
+end
+
+/* 2: Parse list using PARSE instruction with conditional loop */
+do while food_list &lt;&gt; NULL
+  parse var food_list name food_list
+  if SYMBOL('food_color.name') == 'VAR' then
+    say name &quot;is a food.&quot;
+  else
+    say name &quot;is a drink.&quot;
+end
+
+/* ----------------------------- */
+
+drop age.
+
+key = &quot;Toddler&quot; ; age.key = 3
+key = &quot;Unborn&quot; ; age.key = 0
+key = &quot;Phantasm&quot; ; age.key = NULL
+
+do i = 1
+  thing = WORD(&quot;Toddler Unborn Phantasm Relic&quot;, i)
+  if thing = NULL then ; leave
+  call CHAROUT , thing||&quot;: &quot;
+  if SYMBOL('age.thing') == 'VAR' then do
+    call CHAROUT , &quot;Exists &quot;
+    if age.thing \= NULL then ; call CHAROUT , &quot;Defined&quot;
+  end
+  call LINEOUT , NULL
+end
+
+/* ----------------------------- */
+
+/* Read a file-based list of filenames; store their sizes in a hash */
+do forever
+  parse value STRIP(LINEIN(&quot;filelist.txt&quot;)) with filename
+  if filename == NULL then ; leave
+  if SYMBOL('size.filename') \= 'VAR' then
+    size.filename = STREAM(filename, 'C', &quot;QUERY SIZE&quot;)
+end</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN241"
+>Deleting from a Hash</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* The DROP instruction may be used both to:                          */
+/*                                                                    */
+/* * Remove a specific leaf / key [e.g. drop cv.key]                  */
+/*                                                                    */
+/* * Destroy the entire compound variable [e.g. drop cv.]             */
+/*                                                                    */
+/* The external library function, 'sysStemDelete', may also be used   */
+/* provided the compound variable uses numerically-based indexes.     */
+/* ------------------------------------------------------------------ */
+
+/* Remove KEY and its value from 'mydict' */
+
+key = &quot;...key...&quot; ; drop mydict.key
+
+/* ----------------------------- */
+
+say &quot;Intially&quot;
+call print_foods
+
+say &quot;With Banana set to None&quot;
+key = &quot;Banana&quot; ; food_color.key = NULL
+call print_foods
+
+say &quot;With Banana deleted&quot;
+key = &quot;Banana&quot; ; drop food_color.key
+call print_foods
+
+exit 0
+
+/* ----------------------------- */
+
+print_foods : procedure expose food_color. (globals)
+  keys = NULL ; values = NULL
+
+  do while regStemDoOver('food_color.', 'food')
+    keys = keys food
+    if food_color.food \= NULL then
+      values = values food_color.food
+    else
+      values = values &quot;undef&quot;
+  end
+
+  say &quot;Keys:  &quot; keys
+  say &quot;Values:&quot; values
+
+  return
+
+/* ----------------------------- */
+
+key = &quot;Banana&quot; ; drop food_color.key
+key = &quot;Apple&quot; ; drop food_color.key
+key = &quot;Cabbage&quot; ; drop food_color.key
+
+/* As previous, except keys parsed from list */
+key_list = &quot;Banana Apple Cabbage&quot;
+do while key_list &lt;&gt; NULL
+  parse var key_list key key_list
+  drop food_color.key
+end</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN244"
+>Traversing a Hash</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* Compound variable traversal may be accomplished two ways:          */
+/*                                                                    */
+/* * Via 'do ... end' instruction if the compound variable follows the*/
+/*   numeric index convention [i.e. cv.0 = N ; elements: cv.1 .. cv.N]*/
+/*                                                                    */
+/* * Via external library function like 'rexxUtil's 'regStemDoOver',  */
+/*   which may be used to traverse *any* compound variable, or create */
+/*   a numerically indexed copy of an existing compound variable      */
+/* ------------------------------------------------------------------ */
+
+cv.0 = N                    /* Number of data items */
+cv.1 = &quot;...&quot; ; cv.N = &quot;...&quot; /* Data */
+
+do i = 1 for cv.0
+  /* do something with index and value */
+  say i &quot;==&gt;&quot; cv.i
+end
+
+/* ----------- */
+
+do while regStemDoOver('compound_variable_name.', 'key')
+  /* do something with key and value */
+  say key &quot;==&gt;&quot; compound_variable_name.key
+end
+
+/* ----------------------------- */
+
+/* Numeric index-based compound variable traversal */
+
+cv.0 = 5 /* Number of data items */
+cv.1 = 23 ; cv.2 = 734 ; cv.3 = 152 ; cv.4 = 876 ; cv.5 = 91  /* Data */
+
+do i = 1 for cv.0
+  say &quot;Element&quot; i &quot;contains&quot; cv.i
+end
+
+/* ----------- */
+
+/* Same using external ['rexxUtil'] function [order not guaranteed] */
+
+do while regStemDoOver('cv.', 'i')
+  if i == &quot;0&quot; then ; iterate /* Exclude 'cv.0' */
+  say &quot;Element&quot; i &quot;contains&quot; cv.i
+end
+
+/* ----------------------------- */
+
+/* Non-numeric index-based traversal [order not guaranteed] */
+
+say &quot;Known foods:&quot;
+do while regStemDoOver('food_color.', 'food')
+  say food &quot;is&quot; food_color.food
+end
+
+/* ----------- */
+
+/* Non-numeric index-based *ordered* traversal */
+
+/* 1: Create numeric index-based compound variable of *keys* */
+do i = 1 while regStemDoOver('food_color.', 'food')
+  idx_food_color.i = food ; idx_food_color.0 = i
+end
+
+/* 2: Sort the new compound variable */
+call sysStemSort 'idx_food_color.'
+
+/* 3: Traverse key-sorted compound variable; use lookup for values */
+do i = 1 for idx_food_color.0
+  key = idx_food_color.i
+  say &quot;Element&quot; i &quot;contains&quot; LEFT(&quot;[&quot; || key || &quot;]&quot;, 8) &quot; ==&gt;&quot;,
+      food_color.key
+end</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN247"
+>Printing a Hash</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* Printing a compound variable is merely a special case of traversal */
+/* therefore all examples shown in the previous section apply.        */
+/* ------------------------------------------------------------------ */
+
+/* *** All examples in previous section apply here also *** */</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN250"
+>Retrieving from a Hash in Insertion Order</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* Insertion order is not part of a compound variable's metadata. If  */
+/* needed, an insertion-order index could be stored in a seperate     */
+/* compound variable, most likely a numerically-indexed one. Each     */
+/* index would itself indicate insertion order [i.e. .1 before 2. and */
+/* so on]. However such metadata could be lost if sorting occurs or   */
+/* there are frequent deletions and accompanying reuse of indexes.    */
+/* ------------------------------------------------------------------ */
+
+/* Store insertion order metadata in separate compound variable */
+key = &quot;Banana&quot; ; food_color.key = &quot;yellow&quot; ; food_color_order.1 = key
+key = &quot;Apple&quot; ; food_color.key = &quot;red&quot; ; food_color_order.2 = key
+key = &quot;Lemon&quot; ; food_color.key = &quot;yellow&quot; ; food_color_order.3 = key
+food_color_order.0 = 3
+
+say &quot;In insertion order, the foods are:&quot;
+do i = 1 to food_color_order.0
+  say &quot;   &quot; food_color_order.i
+end
+
+say &quot;Still in insertion order, the foods' colors are:&quot;
+do i = 1 to food_color_order.0
+  key = food_color_order.i
+  say key &quot;is colored&quot; food_color.key
+end</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN253"
+>Hashes with Multiple Values Per Key</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* Multiple values per leaf / key can easily be accommodated if stored*/
+/* as REXX lists [i.e. SPACE-delimited strings]. Related issues:      */
+/*                                                                    */
+/* * PARSE instruction or WORD BIF's can be used to extract required  */
+/*   value                                                            */
+/*                                                                    */
+/* * Values may simply be appended, or ordered insertions made, the   */
+/*   latter useful for search [binary search can be used] or reporting*/
+/*   purposes                                                         */
+/* ------------------------------------------------------------------ */
+
+cmd = &quot;who&quot; ; address SYSTEM cmd with OUTPUT FIFO ''
+
+do while QUEUED() &gt; 0
+  parse pull user tty .
+
+  /* Insert values in ascending order so no sorting later needed */
+  if SYMBOL('ttys.user') == 'VAR' then
+    ttys.user = insertWord(tty, ttys.user)
+  else
+    ttys.user = tty
+end
+
+do while regStemDoOver('ttys.', 'user')
+  say user || &quot;:&quot; ttys.user
+end
+
+exit 0
+
+/* ----------------------------- */
+
+insertWord : procedure
+  V = ARG(1) ; S = STRIP(ARG(2)) ; R = WORDS(S)
+  if R &lt; 1 then ; return V
+  L = 1
+
+  do while L &lt;= R
+    M = (L + R) % 2 ; W = WORD(S, M)
+    if V = W then ; return S
+    if V &lt; W then ; R = M - 1 ; else L = M + 1
+  end
+
+  /* insert [after] item here */
+  select
+    when R &lt; 1 then ; insertAfter = 0
+    when L &gt; WORDS(S) then ; insertAfter = LENGTH(S) + 1
+    otherwise
+      if M = R then ; insertAfter = WORDINDEX(S, M + 1) - 1
+      else ; insertAfter = WORDINDEX(S, M) - 1
+  end
+
+  return INSERT(V, S, insertAfter, LENGTH(V) + 1)</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN256"
+>Inverting a Hash</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* This task requires that an existing compound variable be traversed */
+/* and a new compound variable created in which the contents of each  */
+/* of the existing compound variable's entries becomes a key in the   */
+/* new compound variable, and the corresponding key, its contents.    */
+/*                                                                    */
+/* A decision as to how duplicate new keys will be handled is needed. */
+/* ------------------------------------------------------------------ */
+
+key = &quot;Mantle&quot; ; surname.key = &quot;Mickey&quot; ; key = &quot;Ruth&quot; ; surname.key =
+&quot;Babe&quot;
+
+/*
+   Mantle Mickey
+   Ruth Babe
+*/
+do while regStemDoOver('surname.', 'name')
+  say name surname.name
+end
+
+/* Invert key &lt;==&gt; value */
+do while regStemDoOver('surname.', 'name')
+  key = surname.name ; firstname.key = name
+end
+
+/*
+   Mickey Mantle
+   Babe Ruth
+*/
+do while regStemDoOver('firstname.', 'name')
+  say name firstname.name
+end
+
+/* ----------------------------- */
+
+if ARG() &lt; 1 then do ; say &quot;usage: foodfind food|color&quot; ; exit 1 ; end
+
+given = ARG(1)
+
+key = &quot;Apple&quot; ; color.key = &quot;red&quot;
+key = &quot;Banana&quot; ; color.key = &quot;yellow&quot;
+key = &quot;Lemon&quot; ; color.key = &quot;yellow&quot;
+key = &quot;Carrot&quot; ; color.key = &quot;orange&quot;
+
+/* Invert key &lt;==&gt; value */
+do while regStemDoOver('color.', 'food')
+  key = color.food ; food.key = food
+end
+
+if SYMBOL('color.given') == 'VAR' then
+  say given &quot;is a food with color&quot; color.given
+
+if SYMBOL('food.given') == 'VAR' then
+  say food.given &quot;is a food with color&quot; given
+
+exit 0</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN259"
+>Sorting a Hash</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* The only means of sorting [i.e. ordering the leaves or their data] */
+/* of a compound variable is to:                                      */
+/*                                                                    */
+/* * Ensure the compound variable has a numerically-based index struc-*/
+/*   ture [i.e. is an NICV; if not, copy data and create one]         */
+/*                                                                    */
+/* * Use one of:                                                      */
+/*                                                                    */
+/*   - External library sort routine ['rexxUtil's 'sysStemSort']      */
+/*   - Custom-written native REXX sort routine                        */
+/*   - External sort utility via the ADDRESS instruction [Regina-only]*/
+/*                                                                    */
+/* Use of an external library sort routine is the most preferable as  */
+/* it not only avoids the need to write such code, but is also the    */
+/* most efficient since it is machine code acting directly on data,   */
+/* and avoiding the data conversion that would be needed in the case  */
+/* of a custom-written native REXX routine. However the latter is the */
+/* most flexible since there is the widest choice of sort algorithm   */
+/* available.                                                         */
+/*                                                                    */
+/* Generally speaking, the use of an ADDRESS instruction-based sort   */
+/* should be avoided unless a very large [i.e. 1MB or more] amount of */
+/* data is being handled, or data is file-based, in which case it is  */
+/* a reasonable means of loading data into a compound variable since  */
+/* the load / sort step is combined.                                  */
+/*                                                                    */
+/* Strange as it may seem, REXX does not offer a built-in function    */
+/* [BIF] for sorting. This is a legacy of its mainframe origins; in   */
+/* such environments data sorting tends to be performed on enormous   */
+/* amounts of file-based [rather than memory-resident] data, and is a */
+/* task reserved for specialised sorting utilities eg. DFSORT utility */
+/* on IBM's MVS operating system.                                     */
+/* ------------------------------------------------------------------ */
+
+/* Numerically-indexed compound variable */
+
+cv.0 = N                    /* Number of data items */
+cv.1 = &quot;...&quot; ; cv.N = &quot;...&quot; /* Data */
+
+/* ----------- */
+
+/* 1: External Library Sort Routine */
+
+call sysStemSort 'cv.', 'ascending'
+
+/* ----------- */
+
+/* 2: Custom REXX Sort Routine */
+
+/* Version with direct access to, 'cv.' */
+call mySortRoutine
+
+/* Generic version which is passed a compound variable name */
+call myGenericSortRoutine 'cv.'
+
+/* ----------- */
+
+/* 3: ADDRESS Instruction using Sort Utility [Regina-only] */
+
+cmd = &quot;sort&quot;
+address SYSTEM cmd with INPUT STEM cv. OUTPUT REPLACE STEM cv.
+
+/* ----------------------------- */
+
+mySortRoutine : procedure expose cv.
+  swp = 1
+  do while swp
+    swp = 0
+    do i = 2 to cv.0
+      n = i - 1
+      if cv.n &gt; cv.i then ; parse value 1 cv.n cv.i with swp cv.i cv.n
+    end
+  end
+  return
+
+/* ----------------------------- */
+
+myGenericSortRoutine :
+  _stm = ARG(1) ; if RIGHT(_stm, 1) \= &quot;.&quot; then ; _stm = _stm || &quot;.&quot;
+  _size = VALUE(_stm||&quot;0&quot;) ; _swp = 1
+  do while _swp
+    _swp = 0
+    do _i = 2 to _size
+      _n = _i - 1
+      if VALUE(_stm||_n) &gt; VALUE(_stm||_i) then do
+        _swp = 1 ; _tmp = VALUE(_stm||_i)
+        call VALUE _stm||_i, VALUE(_stm||_n) ; call VALUE _stm||_n, _tmp
+      end
+    end
+  end
+  drop _stm _size _swp _tmp _n ; return</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN262"
+>Merging Hashes</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* If 'merging' is defined as the combining of the contents of two or */
+/* more compound variables, then there are no restrictions on the type*/
+/* of compound variables that can be merged. Each has to be traversed */
+/* and their contents placed into another compound variable, and care */
+/* taken in how duplicate keys are handled.                           */
+/*                                                                    */
+/* If merging has to follow some order then the same restrictions     */
+/* applicable to sorting compound variables also applies: NICV's -    */
+/* numerically-indexed compound variables - must be used.             */
+/* ------------------------------------------------------------------ */
+
+a.key1 = &quot;...&quot; ; a.key2 = &quot;...&quot; ; b.keyX = &quot;...&quot; ; b.keyY = &quot;...&quot;
+
+merge_list = &quot;a. b.&quot;
+
+do while merge_list &lt;&gt; NULL
+  parse var merge_list hash merge_list
+  do while regStemDoOver(hash, 'key')
+    merged.key = VALUE(hash||&quot;key&quot;)
+  end
+end
+
+/* ----------------------------- */
+
+key = &quot;Apple&quot; ; food_color.key = &quot;red&quot;
+key = &quot;Banana&quot; ; food_color.key = &quot;yellow&quot;
+key = &quot;Lemon&quot; ; food_color.key = &quot;yellow&quot;
+
+key = &quot;Galleano&quot; ; drink_color.key = &quot;yellow&quot;
+key = &quot;Mai Tai&quot; ; drink_color.key = &quot;blue&quot;
+
+drop substance_color.
+
+merge_list = &quot;food_color. drink_color.&quot;
+
+do while merge_list &lt;&gt; NULL
+  parse var merge_list hash merge_list
+  do while regStemDoOver(hash, 'key')
+    substance_color.key = VALUE(hash||&quot;key&quot;)
+  end
+end</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN265"
+>Finding Common or Different Keys in Two Hashes</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* This task is simply a matter of compound variable traversal and key*/
+/* existence checking and/or comparison.                              */
+/* ------------------------------------------------------------------ */
+
+keys = &quot;k1 k3 k5 k8&quot;
+do while keys &lt;&gt; NULL
+  parse var keys key keys ; hash1.key = TRUE
+end
+
+keys = &quot;k1 k2 k3 k6 k7&quot;
+do while keys &lt;&gt; NULL
+  parse var keys key keys ; hash2.key = TRUE
+end
+
+/* ----------- */
+
+drop common.
+
+do while regStemDoOver('hash1.', 'key')
+  if SYMBOL('hash2.key') == 'VAR' then ; common.key = TRUE
+end
+
+do while regStemDoOver('common.', 'key')
+  say key /* k1, k3 */
+end
+
+/* ----------- */
+
+drop this_not_that.
+
+do while regStemDoOver('hash1.', 'key')
+  if SYMBOL('hash2.key') \= 'VAR' then ; this_not_that.key = TRUE
+end
+
+do while regStemDoOver('this_not_that.', 'key')
+  say key /* k5, k8 */
+end
+
+/* ----------------------------- */
+
+key = &quot;Apple&quot; ; food_color.key = &quot;red&quot;
+key = &quot;Banana&quot; ; food_color.key = &quot;yellow&quot;
+key = &quot;Lemon&quot; ; food_color.key = &quot;yellow&quot;
+
+key = &quot;Lemon&quot; ; citrus_color.key = &quot;yellow&quot;
+key = &quot;Orange&quot; ; citrus_color.key = &quot;orange&quot;
+key = &quot;Lime&quot; ; citrus_color.key = &quot;green&quot;
+
+drop non_citrus.
+
+do while regStemDoOver('food_color.', 'key')
+  if SYMBOL('citrus_color.key') \= 'VAR' then ; non_citrus.key = TRUE
+end
+
+do while regStemDoOver('non_citrus.', 'key')
+  say key /* Apple, Banana */
+end</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN268"
+>Hashing References</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* REXX does not support references; this section is, therefore, not  */
+/* applicable. The example using 'files' is, however, implemented to  */
+/* illustrate some of REXX's basic file operations.                   */
+/* ------------------------------------------------------------------ */
+
+file_list = &quot;/etc/termcap vmunix /bin/cat&quot;
+
+do while file_list &lt;&gt; NULL
+  parse var file_list file file_list
+  call STREAM file, 'C', 'OPEN READ'
+  name.file = TRUE
+end
+
+do while regStemDoOver('name.', 'file')
+  bytes = STREAM(file, 'C', 'SEEK &lt; READ CHAR')
+  say file &quot;is&quot; bytes &quot;bytes long&quot;
+  call STREAM file, 'C', 'CLOSE'
+end</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN271"
+>Presizing a Hash</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* Compound variables do not have a 'size', as such. Size is merely a */
+/* count of how many leaves exist at a specified time. Thus, size is  */
+/* not part of a compound variable's metadata, nor is the concept of  */
+/* 'presizing' one that is ordinarily applicable.                     */
+/*                                                                    */
+/* Of course it is possible to:                                       */
+/*                                                                    */
+/* * Manually maintain 'size' metadata [e.g. the '.0' leaf in NICV's] */
+/*                                                                    */
+/* * Add a specified number of leaves to a compound variable, each    */
+/*   perhaps containing a value to be interpreted as 'empty'. It is   */
+/*   important to note that this can only be performed with NICV's    */
+/*   because the key / leaf name must be known in order to add it     */
+/* ------------------------------------------------------------------ */
+
+/* 'Pre-size' a numerically-indexed compound variable [NICV] */
+hash.0 = required_size
+
+/* Leaves 'hash.1', 'hash.2', through 'hash.required_size' created */
+do i = 1 to hash.0
+  hash.i = null_value
+end
+
+/* ----------------------------- */
+
+/* 'Pre-size' a 512 leaf compound variable */
+users.0 = 512
+
+do i = 1 to users.0
+  users.i = &quot;&quot;
+end
+
+/* ----------- */
+
+/* 'Upsize' to 1000 leaves */
+oldsize = users.0 ; users.0 = 1000
+
+do i = oldsize + 1 to users.0
+  users.i = &quot;&quot;
+end</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN274"
+>Finding the Most Common Anything</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* Two approaches possible:                                           */
+/*                                                                    */
+/* * Initialise compound variable leaves to a start value [which makes*/
+/*   sure there is always a matching key i.e. a check for existence of*/
+/*   leaf / key 'X' is always affirmative]                            */
+/*                                                                    */
+/* * Check for presence of leaf / key before adding / updating entry  */
+/* ------------------------------------------------------------------ */
+
+count. = 0
+
+do while regStemDoOver('array.', 'key')
+  element = array.key
+  count.element = count.element + 1
+end
+
+do while regStemDoOver('count.', 'element')
+  say element &quot;=&quot; count.element
+end
+
+/* ----------- */
+
+do while regStemDoOver('array.', 'key')
+  element = array.key
+  if SYMBOL('count.element') == 'VAR' then
+    count.element = count.element + 1
+  else
+    count.element = 0
+end</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN277"
+>Representing Relationships Between Data</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* Relationships can easily be set up through judicious naming of keys*/
+/* and compound variable names. The examples in the first part of this*/
+/* section exemplify this:                                            */
+/*                                                                    */
+/*    cv.key ==&gt; father.child ==&gt; father of child is [value]          */
+/*                                                                    */
+/* Here is a 1:N mapping in which one father has one or more children;*/
+/* the 'many' component are keys / leaves, so allowing for traversal  */
+/* by children, and the 'one' component extractable via comparision.  */
+/*                                                                    */
+/* Since keys / leaves must be unique, an inversion of the form:      */
+/*                                                                    */
+/*    cv.key ==&gt; child.father ==&gt; child of father is [value]          */
+/*                                                                    */
+/* is not possible since the 'many' component would be lost. However, */
+/* if the 'many' component is represented as a string with each new   */
+/* item appended, then a mapping of the form:                         */
+/*                                                                    */
+/*    cv.key ==&gt; children.father ==&gt; children of father are [value]   */
+/*                                                                    */
+/* is possible.                                                       */
+/* ------------------------------------------------------------------ */
+
+key = &quot;Cain&quot; ; father.key = &quot;Adam&quot;
+key = &quot;Abel&quot; ; father.key = &quot;Adam&quot;
+
+key = &quot;Seth&quot; ; father.key = &quot;Adam&quot;
+key = &quot;Enoch&quot; ; father.key = &quot;Cain&quot;
+
+key = &quot;Irad&quot; ; father.key = &quot;Enoch&quot;
+key = &quot;Mehujael&quot; ; father.key = &quot;Irad&quot;
+
+key = &quot;Methusael&quot; ; father.key = &quot;Mehujael&quot;
+key = &quot;Lamech&quot; ; father.key = &quot;Methusael&quot;
+
+key = &quot;Jabal&quot; ; father.key = &quot;Lamech&quot;
+key = &quot;Jubal&quot; ; father.key = &quot;Lamech&quot;
+
+key = &quot;Tubalcain&quot; ; father.key = &quot;Lamech&quot;
+key = &quot;Enos&quot; ; father.key = &quot;Seth&quot;
+
+/* ----------- */
+
+do while LINES() &gt; 0
+  father = LINEIN() ; if father == NULL then ; leave
+  say father || &quot;:&quot;
+  do while regStemDoOver('father.', 'child')
+    if father == father.child then ; say &quot;   &quot; child
+  end
+end
+
+/* ----------------------------- */
+
+/* Flawed inversion of 'father.child' relationship */
+
+do while regStemDoOver('father.', 'child')
+  key = father.child ; child.key = child
+end
+
+/* 1:N mapping lost; only one child per father */
+do while regStemDoOver('child.', 'father')
+  say father &quot;begat&quot; child.father
+end
+
+/* ----------- */
+
+/* String-based inversion of 'father.child' relationship */
+
+do while regStemDoOver('father.', 'child')
+  key = father.child
+  if SYMBOL('children.key') == 'VAR' then
+    children.key = children.key child
+  else
+    children.key = child
+end
+
+/* 1:N mapping retained */
+do while regStemDoOver('children.', 'father')
+  if LENGTH(children.father) &gt; 0 then
+    list_of_children = CHANGESTR(&quot; &quot;, children.father, &quot;, &quot;)
+  else
+    list_of_children = &quot;nobody&quot;
+  say father &quot;begat&quot; list_of_children
+end
+
+/* ----------------------------- */
+
+key = &quot;f1.txt&quot; ; files.key = TRUE ; key = &quot;f2.txt&quot; ; files.key = TRUE
+
+do while regStemDoOver('files.', 'file')
+  call STREAM file, 'C', 'OPEN READ'
+
+  do while LINES(file) &gt; 0
+    /* 'match' is a REXXToolkit custom function [see Appendix] */
+    if match(LINEIN(file), &quot;#include&quot;) then ; includes.file = TRUE
+  end
+
+  call STREAM file, 'C', 'CLOSE'
+end
+
+/* ----------- */
+
+do while regStemDoOver('files.', 'file')
+  if SYMBOL('includes.file') \= 'VAR' then ; includes_free.file = TRUE
+end</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN280"
+>Program: dutree</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* Program: dutree                                                    */
+/* ------------------------------------------------------------------ */
+
+@@INCOMPLETE@@
+@@INCOMPLETE@@</PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="arrays.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="patternmatching.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Arrays</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Pattern Matching</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

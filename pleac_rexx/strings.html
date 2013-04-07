@@ -1,0 +1,906 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Strings</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-REXX "
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="PLEAC-REXX "
+HREF="index.html"><LINK
+REL="NEXT"
+TITLE="Numbers"
+HREF="numbers.html"></HEAD
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-REXX </TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="index.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="numbers.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="STRINGS"
+>1. Strings</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN14"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">string = '\n'     /* two characters, \ and an n, though not a newline */
+string = &quot;\n&quot;     /* two characters, \ and an n, though not a newline */
+
+string = &quot;0A&quot;X                     /* newline character code [hex] */
+string = &quot;1010&quot;B                   /* newline character code [binary] */
+string = &quot;Newline&quot; &quot;0A&quot;X &quot;here&quot;    /* embedded newline in string */
+
+string = 'Jon ''Maddog'' Orwant'   /* literal single quotes */
+string = &quot;Jon &quot;&quot;Maddog&quot;&quot; Orwant&quot;   /* literal double quotes */
+
+string = &quot;Jon 'Maddog' Orwant&quot;     /* embedded literal single quotes */
+string = 'Jon &quot;Maddog&quot; Orwant'     /* embedded literal double quotes */
+
+/* ----------------------------- */
+
+/* HERE documents not supported, but multi-line string allowed */
+a = &quot;This is a multiline string that is not a HERE document&quot; ,
+    &quot;but consists of a series of concatenated strings&quot; ,
+    &quot;each on its own line courtesy of the 'comma' which, when&quot; ,
+    &quot;it appears as the last, space-separated character on a&quot; ,
+    &quot;line, acts as a line continuation character&quot;
+
+/* ----------------------------- */
+
+/* Pseudo implementation of a HERE document */
+
+signal HEREDOC /*
+Line 1 ...
+Line 2 ...
+Line 3
+*/
+
+HEREDOC:
+  a = NULL
+  do i = SIGL + 1
+    line = SOURCELINE(i)
+    if line = &quot;*/&quot; then leave
+    a = a||NEWLINE||line
+  end</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN17"
+>Accessing Substrings</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* * REXX offers string manipulation built-in functions [BIF's] many  */
+/*   being equivalent to Perl offerings. However, all REXX BIF's      */
+/*   return copies of the transformed string; original is unaltered.  */
+/*   Therefore this type of usage is illegal:                         */
+/*                                                                    */
+/*     SUBSTR(string, offset, count) = newstring                      */
+/*                                                                    */
+/*   Instead, variable storing original must be reassigned with the   */
+/*   altered copy                                                     */
+/*                                                                    */
+/* * REXX implements PARSE instruction which provides a faster means  */
+/*   of:                                                              */
+/*   - tokenising strings [from several sources: string, file, stack] */
+/*   - assigning tokens to variables                                  */
+/*   - initialisng and swapping variables, multi-line assignments     */
+/*                                                                    */
+/* Examples of both approaches shown wherever applicable              */
+/* ------------------------------------------------------------------ */
+
+string = &quot;a value&quot;
+
+/* ----------------------------- */
+
+offset = 3 ; count = 9 ; padchar = 'X'
+
+parse var string =(offset) v
+v = SUBSTR(string, offset)                     /* &quot;value    &quot; */
+
+parse var string =(offset) v +(count)
+v = SUBSTR(string, offset, count)              /* &quot;value    &quot; */
+
+v = SUBSTR(string, offset, count, padchar)     /* &quot;valueXXXX&quot; */
+
+/* ----------------------------- */
+
+offset = 2 ; count = 2 ; padchar = '*' ; newstr = &quot;Z&quot;
+
+v = INSERT(newstr, string, offset, count, padchar)  /* &quot;a Z*value&quot; */
+v = OVERLAY(newstr, string, offset, count, padchar) /* &quot;aZ*alue&quot; */
+
+/* ----------------------------- */
+
+/* *** Unfinished *** - UNPACK   */
+
+/* ----------------------------- */
+
+/* PARSE VAR instruction equivalent, but more efficient, than SUBSTR */
+string = &quot;This is what you have&quot;
+slen = LENGTH(string)
+
+parse var string =1 first +1
+first = SUBSTR(string, 1, 1)                           /* &quot;T&quot; */
+
+parse var string =6 start +2
+start = SUBSTR(string, 6, 2)                           /* &quot;is&quot; */
+
+parse var string =14 rest
+rest = SUBSTR(string, 14)                              /* &quot;you have&quot; */
+
+parse var string =(slen) last +1
+last = SUBSTR(string, slen, 1)                         /* &quot;e&quot; */
+
+parse var string =(slen) -3 end
+end = SUBSTR(string, slen - 3)                         /* &quot;have&quot; */
+
+parse var string =(slen) -7 piece +3
+piece = SUBSTR(string, slen - 7, 3)                    /* &quot;you&quot; */
+
+/* Display contents of string */
+say string
+
+/* Change &quot;is&quot; to &quot;wasn't&quot; : This wasn't  what you have */
+string = CHANGEWORD(&quot;is&quot;, string, &quot;wasn't&quot;)
+
+/* Replace last 12 characters : This wasn't wondrous */
+newstr = &quot;ondrous&quot; ; slen = LENGTH(string) ; nlen = LENGTH(newstr)
+
+/* 1 - slow */
+string = OVERLAY(newstr, string, slen - 11)
+string = DELSTR(string, LASTPOS(newstr, string) + nlen) 
+
+/* 2 - faster */
+string = LEFT(string, slen - 12) || newstr
+
+/* 3 - fastest */
+sparse = slen - 12
+parse var string string +(sparse)
+string = string || newstr
+
+/* delete first character : his wasn't wondrous */
+parse var string =2 string
+string = DELSTR(string, 1, 1)
+string = RIGHT(string, slen - 1)
+
+/* Return last 15 characters : wasn't wondrous */
+slen = LENGTH(string)
+parse var string =(slen) -14 string +15
+string = SUBSTR(string, slen - 14, 15)
+string = RIGHT(string, 15)
+
+/* Delete last 10 characters : wasn' */
+slen = LENGTH(string) ; sparse = slen - 10
+parse var string string +(sparse)
+string = DELSTR(string, slen - 9, 10)
+string = LEFT(string, slen - 10)
+
+/* *** Unfinished *** */</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN20"
+>Establishing a Default Value</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* REXX Boolean values are strictly:                                  */
+/*                                                                    */
+/*   1 - TRUE                                                         */
+/*   0 - FALSE                                                        */
+/*                                                                    */
+/* All other values force an syntax error if used in a Boolean        */
+/* context; Boolean expression can be forced via a comparision        */
+/* operation [see example below]                                      */
+/*                                                                    */
+/* REXX does not support conditional structures other than the 'IF'   */
+/* and 'SELECT' instructions; there is no ternary operator, nor a     */
+/* conditional assignment expression. This can, however, be mimiced   */
+/* via function; examples below use an 'iif' function implementation  */
+/* that, rather crudely, supports this type of operation              */
+/*                                                                    */
+/* iif(CONDITION, TRUE_VALUE, FALSE_VALUE)                            */
+/*                                                                    */
+/* It is also worth mentioning that the WORD BIF can also be used for */
+/* performing conditional assignment. It can be used where alternate  */
+/* values can be placed in the same string, and relies on:            */
+/*                                                                    */
+/* * The fact that in REXX all data are strings                       */
+/* * The values of FALSE and TRUE being exactly 0, and 1, respectively*/
+/*                                                                    */
+/* See example at end of this section                                 */
+/* ------------------------------------------------------------------ */
+
+condition = TRUE ; b = 'B' ; c = 'C' ; x = TRUE ; y = 'Y'
+
+/* Use 'b' if 'condition' is TRUE, else return 'c' */
+a = iif(condition, b, c)
+
+/* Use 'b' if 'b' is TRUE, else 'c' */
+a = iif(, b, c) 
+
+/* Set 'x' to 'y' unless 'x' is already TRUE */
+x = iif(, \x, y) 
+
+/* As above; Boolean expression forced in case 'x' non-Boolean */
+x = iif(, \(x == TRUE), y) 
+
+/* ----------- */
+
+/* Use 'b' if 'b' is defined, else 'c' */
+a = iif(SYMBOL('b') == &quot;VAR&quot;, b, c)
+
+bar = &quot;ANOTHER VALUE&quot;
+foo = iif(SYMBOL('bar') \= &quot;VAR&quot;, bar, &quot;DEFAULT VALUE&quot;)
+
+exit 0
+
+/* ----------- */
+
+iif : procedure expose (globals)
+  if ARG(1, 'E') then cond = ARG(1) ; else cond = ARG(2)
+  if cond == TRUE then return ARG(2) ; else return ARG(3)
+
+/* ----------------------------- */
+
+condition = TRUE ; alternatives = &quot;B C&quot;
+
+/*
+    condition: FALSE -&gt; 'B' returned
+    condition: TRUE  -&gt; 'C' returned
+*/
+
+WORD(alternatives, condition + 1)</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN23"
+>Exchanging Values Without Using Temporary Variables</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* No multiple-assignment support, but PARSE VALUE instruction may be */
+/* used to perform:                                                   */
+/*                                                                    */
+/* * Multiple variable initialisation                                 */
+/* * Multiple variable assignment [even swap values without temps]    */
+/* ------------------------------------------------------------------ */
+
+parse value 1 2 with VAR1 VAR2
+parse value VAR1 VAR2 with VAR2 VAR1
+
+/* ----------------------------- */
+
+a = 1 ; b = 2
+temp = a ; a = b ; b = temp
+
+/* ----------------------------- */
+
+parse value 57 72 103 with alpha beta production
+parse value beta production alpha with alpha beta production</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN26"
+>Converting Between ASCII Characters and Values</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* REXX is a typeless language: all data are strings. This means:     */
+/*                                                                    */
+/* * REXX has no notion of objects, or aggregate types like arrays    */
+/* * It does not support 'primitive' types, those usually mapped to   */
+/*   hardware registers                                               */
+/*                                                                    */
+/* In order to support mathematical operations, however, strings in   */
+/* Base 10 format [containing 0-9, leading + or -, a decimal point,   */
+/* exponent indicator 'E' and exponent] are recognised as 'numeric'   */
+/* strings in such contexts [whilst hex and binary strings are not].  */
+/*                                                                    */
+/* The benefit of this approach:                                      */
+/*                                                                    */
+/* * Simplifies interpreter implementation on new platforms           */
+/* * Implicit support for arbitrary precision arithmetic              */
+/* * Language kept simple - no declarations, casting or conversions   */
+/*                                                                    */
+/* A set of conversion BIF's is supplied to facilitate the conversion */
+/* of strings to / from various numeric representations, though it is */
+/* understood that this is not a type conversion, but a 'form'        */
+/* conversion, one that may facilitate data printing or storage:      */
+/*                                                                    */
+/* * C2D / D2C [Character to Decimal / vice versa]                    */
+/* * C2X / X2C [Character to Hex / vice versa]                        */
+/* * X2B / B2X [Hex to Binary / vice versa]                           */
+/* ------------------------------------------------------------------ */
+
+char = 'A'                            /* or: char = '41'X [ASCII] */
+num = C2D(char)
+char = D2C(num)
+
+/* ----------------------------- */
+
+char = 'e'
+say &quot;Number&quot; C2D(char) &quot;is&quot; char      /* Number 101 is e */
+
+/* ----------------------------- */
+
+string = &quot;ABCDE&quot;
+ascii = C2X(string)                   /* ascii [hex]: 4142434445 */
+string = X2C(ascii)                   /* string: ABCDE */
+
+/* ----------------------------- */
+
+/* Contents: 73616D706C65 */ 
+ascii_character_numbers = C2X(&quot;sample&quot;)
+
+/* Output will now be: 73 61 6D 70 6C 65 */ 
+out = &quot;&quot; ; acn = ascii_character_numbers
+do while acn &lt;&gt; NULL
+  parse var acn token +2 acn
+  out = out token
+end
+say STRIP(out)
+
+/* Output will now be: sample */ 
+out = X2C(ascii_character_numbers)
+say out
+
+/* ----------------------------- */
+
+hal = &quot;HAL&quot; ; ibm = &quot;&quot;
+
+do while hal &lt;&gt; NULL
+  parse var hal token +1 hal
+  ibm = ibm||D2C(C2D(token) + 1)
+end 
+
+/* Output will now be: IBM */ 
+say ibm</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN29"
+>Processing a String One Character at a Time</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN32"
+>Reversing a String by Word or Character</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* The task of reversing strings is easily and efficiently performed  */
+/* via the REVERSE BIF. Implementation of a palindome-checking routine*/
+/* is probably best accomplished via its use since it involves a      */
+/* single function call, thus incurs minimal calling overhead. Since  */
+/* REXX is typically used as an interpreted language, it often becomes*/
+/* a significant issue. Performance comparision of the following two  */
+/* 'isPalindrome' functions should clearly reveal it's impact.        */
+/*                                                                    */
+/* isPalindrome : procedure                                           */
+/*   i = 1 ; j = LENGTH(ARG(1))                                       */
+/*   do until i &gt;= j                                                  */
+/*     if SUBSTR(ARG(1),i,1) \= SUBSTR(ARG(1),j,1) ; then return FALSE*/
+/*     i = i + 1 ; j = j - 1                                          */ 
+/*   end                                                              */
+/*   return TRUE                                                      */ 
+/*                                                                    */
+/* isPalindrome : procedure                                           */
+/*   return REVERSE(ARG(1)) == ARG(1)                                 */
+/*                                                                    */
+/* The task of reversing words within a string can quite easily be    */
+/* accomplished in several ways:                                      */
+/*                                                                    */
+/* * PARSE instruction together with the stack operations PUSH and    */
+/*   PARSE PULL [stack and queue structures are native to REXX, and   */
+/*   are used for many diverse tasks including interprocess comms]    */
+/*                                                                    */
+/* * Word-oriented BIF's ['reverseWords' is a recursive function that */
+/*   uses two of these: DELWORD and WORD. Anyone familiar with LISP or*/
+/*   Scheme will note how they are being used like 'car' and cdr']    */ 
+/*                                                                    */
+/* reverseWords : procedure                                           */ 
+/*   if ARG(1) == &quot;&quot; then ; return &quot;&quot;                                 */
+/*   return STRIP(reverseWords(DELWORD(ARG(1), 1, 1)) WORD(ARG(1), 1))*/
+/* ------------------------------------------------------------------ */
+
+string = &quot;A horse is a horse, of course, of course !&quot;
+
+/* Reverse string using REXX BIF */
+revbytes = REVERSE(string)
+
+/* ----------------------------- */
+
+/* Tokenise 'string', and place each token on stack */
+do while string &lt;&gt; NULL
+  parse var string token string
+  push token
+end
+
+/* Build 'revwords' by extracting tokens from stack */
+revwords = &quot;&quot;
+do while QUEUED() &gt; 0
+  parse pull token
+  revwords = revwords token 
+end
+
+/* ----------------------------- */
+
+string = 'Yoda said, &quot;can you see this?&quot;'
+
+/* Reverse the word order in a string [custom function - see header] */
+revwords = reverseWords(string)
+say revwords
+
+/* ----------------------------- */
+
+word = &quot;reviver&quot;
+
+/* Check whether string is palindrome [custom function - see header] */
+is_palindrome = isPalindrome(word)</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN35"
+>Expanding and Compressing Tabs</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN38"
+>Expanding Variables in User Input</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN41"
+>Controlling Case</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN44"
+>Interpolating Functions and Expressions Within Strings</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN47"
+>Indenting Here Documents</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN50"
+>Reformatting Paragraphs</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN53"
+>Escaping Characters</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN56"
+>Trimming Blanks from the Ends of a String</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN59"
+>Parsing Comma-Separated Data</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN62"
+>Soundex Matching</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN65"
+>Program: fixstyle</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN68"
+>Program: psgrep</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="numbers.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>PLEAC-REXX </TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Numbers</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

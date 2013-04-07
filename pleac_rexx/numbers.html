@@ -1,0 +1,2538 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Numbers</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-REXX "
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Strings"
+HREF="strings.html"><LINK
+REL="NEXT"
+TITLE="Dates and Times"
+HREF="datesandtimes.html"></HEAD
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-REXX </TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="strings.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="datesandtimes.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="NUMBERS"
+>2. Numbers</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN73"
+>Checking Whether a String Is a Valid Number</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* The REXX-idiomatic numeric validation approach is to use the       */
+/* 'DATATYPE' BIF. For more complex validation needs the 'VERIFY' BIF */
+/* may also be used but since it only checks for the presence or the  */
+/* absence of characters it needs to be augmented with other checks.  */
+/*                                                                    */
+/* Regex-based validation [once implemented] requires the least work. */
+/* The examples make use of a REXXToolkit routine, 'match', which     */
+/* uses the 'RxRe' external library. See Appendix for details.        */
+/* ------------------------------------------------------------------ */
+
+/* REXX BIF-based Validation */
+
+/* Accepts: +9 -9 9.0 9.0e+2 9.0E-3 */
+if \DATATYPE(string, 'N') then ; say &quot;not a decimal number&quot;
+
+/* Accepts: +9 -9 Rejects: 9.0 9.0e+2 9.0E-3 */
+if \(DATATYPE(string, 'W') &amp; POS(&quot;.&quot;, string) == 0) then
+  say &quot;not an integer&quot;
+
+/* ----------- */
+
+/*
+   Checks for presence / absence of characters, but does not
+   check position of characters, or presence of patterns. Useful
+   for quick, but not thorough, validation
+*/
+
+if VERIFY(string, &quot;0123456789&quot;) \= 0 then ; say &quot;has nondigits&quot;
+
+if VERIFY(string, &quot;+-.Ee0123456789&quot;) \= 0 then ; say &quot;not a decimal&quot;
+
+/* ----------- */
+
+/*
+   Custom function, 'isDecimal', which uses a combination of the
+   PARSE instruction, and DATATYPE BIF to thoroughly validate a
+   decimal value
+*/
+
+tbl = &quot;+934.521e-2 -934.521 934 &quot;,
+      &quot;+934.521e-a +934.521f-2 +934.!e-2 &quot;,
+      &quot;e934.521e-2&quot;
+
+entries = WORDS(tbl)
+
+do i = 1 for entries
+  entry = WORD(tbl, i)
+  if isDecimal(entry) then ; say entry &quot;is decimal&quot;
+  else ; say entry &quot;is NOT decimal&quot;
+end
+
+exit 0
+
+/* ----------- */
+
+isDecimal : procedure expose (globals)
+  parse upper value ARG(1) with whole &quot;.&quot; frac &quot;E&quot; exp
+  if exp \= NULL then ; if \DATATYPE(exp, 'W') then ; return FALSE
+  if frac \= NULL then ; if \DATATYPE(frac, 'W') then ; return FALSE
+  if whole \= NULL then ; if \DATATYPE(whole, 'W') then ; return FALSE
+  return TRUE
+
+/* ----------------------------- */
+
+/* Regex-based Validation */
+
+if match(string, &quot;PATTERN&quot;) then
+  /* Is a number */
+else
+  /* Is not */
+
+/* ----------- */
+
+/* Also rejects: +9 -9 9.0 */
+if match(string, &quot;[^[:digit:]]&quot;) then ; say &quot;has nondigits&quot;
+
+/* Also rejects: +9 -9 9.0 */
+if \match(string, &quot;^[[:digit:]]+$&quot;) then ; say &quot;not a natural number&quot;
+
+/* Rejects: +9 9.0  Accepts: -9 */
+if \match(string, &quot;^-?[[:digit:]]+$&quot;) then ; say &quot;not an integer&quot;
+
+/* Rejects: 9.0  Accepts: +9 -9 */
+if \match(string, &quot;^[+-]?[[:digit:]]+$&quot;) then ; say &quot;not an integer&quot;
+
+/* Accepts: +9 -9 9.0 9.0e+2 9.0E-3 */
+decimalRE = &quot;^[+-]?[[:digit:]]+\.?[[:digit:]]+[e|E][+-]?[[:digit:]]+$&quot;
+
+if \match(string, decimalRE) then
+  say &quot;not a decimal number&quot;</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN76"
+>Comparing Floating-Point Numbers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* The NUMERIC instruction allows adjustment of:                      */
+/*                                                                    */
+/* * Significant digits used in arithmetic operations [DIGITS]        */
+/* * Digits to be ignored during arithmetic comparisons [FUZZ]        */
+/*                                                                    */
+/* Default values are usually adequate. Increasing DIGITS increases   */
+/* precision, but slows down arithmetic operations. FUZZ is by default*/
+/* 0, so all digits are significant in comparison operations.         */
+/*                                                                    */
+/* The FORMAT BIF may be used like the C-derived, 'sprintf', function */
+/* to compare floating point values as strings.                       */
+/* ------------------------------------------------------------------ */
+
+numeric digits 11
+a = 1234567.8234 ; b = 1234567.8237
+
+/* Compare 'DIGITS - FUZZ' [11] number of digits */
+numeric fuzz 0
+if a = b then ; say &quot;a = b&quot;          /* FALSE */
+
+/* Compare 'DIGITS - FUZZ' [10] number of digits */
+numeric fuzz 1
+if a = b then ; say &quot;a = b&quot;          /* FALSE */
+
+/* Compare 'DIGITS - FUZZ' [9] number of digits */
+numeric fuzz 2
+if a = b then ; say &quot;a = b&quot;          /* TRUE */
+
+/* ----------------------------- */
+
+/*
+   Returns TRUE if 'num1' and 'num2' are equal to 'accuracy' number
+   of decimal places
+*/
+
+isEqual(num1, num2, accuracy)
+
+/* ----------------------------- */
+
+a = 1234567.8234 ; b = 1234567.8237
+
+/*
+   isEqual(a, b, 1) ==&gt; TRUE
+   isEqual(a, b, 2) ==&gt; TRUE
+   isEqual(a, b, 3) ==&gt; TRUE
+   isEqual(a, b, 4) ==&gt; FALSE
+*/
+
+exit 0
+
+/* ----------- */
+
+isEqual : procedure expose (globals)
+  places = ARG(3) ; numeric fuzz 0
+  return FORMAT(ARG(1),, places) == FORMAT(ARG(2),, places)
+
+/* ----------------------------- */
+
+wage = 536                           /* $ 5.36 / hr */
+week = 40 * wage                     /* $ 214.40 */
+
+say &quot;One week's wage is: $&quot; FORMAT(week / 100,, 2)</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN79"
+>Rounding Floating-Point Numbers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* The 'FORMAT' BIF is REXX's equivalent to the much-used, C-derived  */
+/* 'sprintf' function.                                                */
+/* ------------------------------------------------------------------ */
+
+/* Truncate to integer value */
+truncated = TRUNC(value, length)
+
+/* Round value [and possibly justify] */
+rounded = FORMAT(value, n_before_decimal, n_after_decimal)
+
+/* ----------------------------- */
+
+a = 0.255 ; b = FORMAT(a, 1, 2)
+
+say &quot;Unrounded:&quot; a &quot;Rounded:&quot; b
+say &quot;Unrounded:&quot; a &quot;Rounded:&quot; FORMAT(a, 1, 2)
+
+/*
+   Unrounded: 0.255 Rounded: 0.26
+   Unrounded: 0.255 Rounded: 0.26
+*/
+
+/* ----------------------------- */
+
+/*
+   Example illustrating external library routine use. Not, however,
+   that the FORMAT BIF can be used to perform the same tasks as
+   'NInt', 'Floor' and 'Ceil', making library routine use unnecessary
+*/
+
+/* Load [rexxMath] math functions from external library */
+call rxFuncAdd 'mathLoadFuncs', 'rexxMath', 'mathLoadFuncs'
+call mathLoadFuncs
+
+tbl = &quot;3.3 3.5 3.7 -3.3&quot;
+
+say cstr2rxstr(&quot;number\tint\tfloor\tceil&quot;)
+
+do while tbl &lt;&gt; NULL
+  parse var tbl n tbl
+  line = FORMAT(n, 2, 1) || &quot;\t&quot; ||,
+         FORMAT(NInt(n), 2, 1) || &quot;\t&quot; ||,
+         FORMAT(Floor(n), 2, 1) || &quot;\t&quot; ||,
+         FORMAT(Ceil(n), 2, 1)
+  say cstr2rxstr(line)
+end
+
+/*
+   number int floor ceil
+    3.3          3.0     3.0     4.0
+    3.5          4.0     3.0     4.0
+    3.7          4.0     3.0     4.0
+   -3.3         -3.0    -4.0    -3.0
+*/
+
+/* Unload math functions */
+call mathDropFuncs
+
+exit 0
+
+/* ----------- */
+
+cstr2rxstr : procedure expose (globals)
+  s = ARG(1) ; tbl = &quot;\n 0A \r 0D \t 09&quot;
+
+  do while tbl \= NULL
+    parse var tbl esc replc tbl
+    s = CHANGESTR(esc, s, X2C(replc))
+  end
+
+  return s</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN82"
+>Converting Between Binary and Decimal</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* Binary, hexadecimal, decimal interconversion is well-supported via */
+/* the following BIF's:                                               */
+/*                                                                    */
+/* * X2D, D2X [hex-&gt;dec, dec-&gt;hex, respectively]                      */
+/* * X2B, B2X [hex-&gt;bin, bin-&gt;hex, respectively]                      */
+/*                                                                    */
+/* Easily combined to create functions that interconvert binary and   */
+/* decimal.                                                           */
+/* ------------------------------------------------------------------ */
+
+/* Convert binary string to decimal */
+decimal = B2D('0110110')
+
+/* Convert decimal value to binary string */
+binary = D2B(54)
+
+exit 0
+
+/* ----------- */
+
+B2D : procedure expose (globals)
+  return X2D(B2X(ARG(1)))
+
+D2B : procedure expose (globals)
+  return X2B(D2X(ARG(1)))</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN85"
+>Operating on a Series of Integers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* The 'do' loop is the REXX-idiomatic control structure for          */
+/* repetitive tasks such as list traversal. Recursive solutions are   */
+/* possible but less efficient due to argument passing overhead, and  */
+/* lack of tail-call optimisation.                                    */
+/* ------------------------------------------------------------------ */
+
+x = 1 ; y = 5 ; step = 1
+
+/* Number sequence is traversed using 'do' loop */
+
+/* 'i' set from value of 1 through to 5 in 'step' increments */
+do i = x to y by step
+
+  /* do something with 'i' */
+
+end
+
+/* ----------- */
+
+/* 'i' set from value of 1 through to 5; default increment of 1 */
+do i = x to y
+
+  /* do something with 'i' */
+
+end
+
+/* ----------------------------- */
+
+call CHAROUT , &quot;Infancy is: &quot;
+do i = 0 to 2 ; call CHAROUT , i || SPACE ; end
+say NULL
+
+call CHAROUT , &quot;Toddling is: &quot;
+do i = 3 to 4 ; call CHAROUT , i || SPACE ; end
+say NULL
+
+call CHAROUT , &quot;Childhood is: &quot;
+do i = 5 to 12 ; call CHAROUT , i || SPACE ; end
+say NULL
+
+/* ----------------------------- */
+
+/*
+   REXX does not sport a native 'foreach' control structure, but it
+   is possible to implement similar behaviour provided certain
+   conventions are followed such as generating lists of SPACE or
+   COMMA-separated sequences
+*/
+
+/* ----------------------------- */
+
+sequence = makeIntegerSequence(1, 5, 1)
+
+do while sequence &lt;&gt; NULL
+  parse var sequence value sequence
+  call CHAROUT , value || SPACE
+end
+
+/* ----------- */
+
+/* Partial reimplementation of earlier example */
+
+infancy = makeIntegerSequence(0, 2, 1)
+
+call CHAROUT , &quot;Infancy is: &quot;
+do while infancy &lt;&gt; NULL
+  parse var infancy value infancy
+  call CHAROUT , value || SPACE
+end
+
+/* ... */
+
+exit 0
+
+/* ----------- */
+
+/* Iterative ['do' loop-based] */
+makeIntegerSequence : procedure expose (globals)
+  x = ARG(1) ; y = ARG(2) ; step = ARG(3)
+  seq = x ; x = x + 1 ; do i = x to y by step ; seq = seq i ; end
+  return seq
+
+/* Recursive */
+makeIntegerSequenceR : procedure expose (globals)
+  x = ARG(1) ; y = ARG(2) ; step = ARG(3)
+  if x &gt; y then ; return NULL
+  return x makeIntegerSequenceR(x + step, y, step)
+
+/* Iterative [Tail Recursive] */
+makeIntegerSequenceI : procedure expose (globals)
+  x = ARG(1) ; y = ARG(2) ; step = ARG(3) ; seq = ARG(4)
+  if x &gt; y then ; return STRIP(seq)
+  return makeIntegerSequenceI(x + step, y, step, (seq x))</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN88"
+>Working with Roman Numerals</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* REXX sports no inbuilt Roman numeral-handling routines. A custom   */
+/* implementation appears below.                                      */
+/* ------------------------------------------------------------------ */
+
+roman = arabic2roman(arabic)
+arabic = roman2arabic(roaman)
+
+/* ----------------------------- */
+
+roman_fifteen = arabic2roman(15)
+
+say &quot;Roman for fifteen is&quot; roman_fifteen
+
+arabic_fifteen = roman2arabic(roman_fifteen)
+
+say &quot;Converted back&quot; roman_fifteen &quot;is&quot; arabic_fifteen
+
+exit 0
+
+/* ----------- */
+
+roman2arabic : procedure
+  tbl.I = 1 ; tbl.V = 5 ; tbl.X = 10 ; tbl.L = 50
+  tbl.C = 100 ; tbl.D = 500 ; tbl.M = 1000 
+
+  tbl.IV = 4 ; tbl.IX = 9 ; tbl.XL = 40 ; tbl.XC = 90
+  tbl.CD = 400 ; tbl.CM = 900
+
+  roman = &quot; &quot; || TRANSLATE(STRIP(ARG(1))) ; arabic = 0
+
+  do i = LENGTH(roman) - 1 to 1 by -1
+    r = SUBSTR(roman, i, 2)
+
+    if SYMBOL('tbl.r') == 'VAR' then ; i = i - 1
+    else ; r = RIGHT(r, 1)
+
+    arabic = arabic + tbl.r
+  end
+
+  return arabic
+
+/* ----------- */
+
+arabic2roman : procedure
+  arabic = REVERSE(ARG(1)) ; len = LENGTH(arabic) ; roman = &quot;&quot;
+
+  tbl.1 = &quot;I II III IV V VI VII VIII IX&quot;
+  tbl.2 = &quot;X XX XXX XL L LX LXX LXXX XC&quot;
+  tbl.3 = &quot;C CC CCC CD D DC DCC DCCC CM&quot;
+
+  if len &lt; 4 then
+    do i = 1 to len
+      j = SUBSTR(arabic, i, 1) ; if j == 0 then ; iterate 
+      roman = WORD(tbl.i, j) || roman 
+    end
+  else ; do
+    do i = 1 to 3
+      j = SUBSTR(arabic, i, 1) ; if j == 0 then ; iterate 
+      roman = WORD(tbl.i, j) || roman 
+    end
+    roman = COPIES(&quot;M&quot;, REVERSE(SUBSTR(arabic, 4))) || roman
+  end
+
+  return roman</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN91"
+>Generating Random Numbers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* Random number [well, pseudo-random :)] generation is typically     */
+/* performed using the 'RANDOM' BIF.                                  */
+/* ------------------------------------------------------------------ */
+
+random = RANDOM(maxval)              /* 0 - maxval [maxval &lt;= 100000] */
+random = RANDOM(minval, maxval)      /* minval - maxval [as above] */
+
+/* ----------------------------- */
+
+tbl = &quot;abcdefghijklmnop&quot;
+elt = randomChoice(tbl)              /* One of 'a', 'b', ... */
+
+tbl = &quot;12 67 asde cvs +++ &amp;fgt klmnop&quot;
+elt = randomChoice(tbl)              /* One of 12, 67, ... */
+
+/* ----------------------------- */
+
+/* Generate 8 character-length password with randomly chosen chars */
+chars = XRANGE(&quot;A&quot;, &quot;Z&quot;) || XRANGE(&quot;a&quot;, &quot;z&quot;) ||,
+        XRANGE(&quot;0&quot;, &quot;9&quot;) || &quot;!$%#@*&amp;&quot;
+
+password = NULL
+
+do 8
+  password = password || randomChoice(chars)
+end
+
+exit 0
+
+/* ----------- */
+
+randomChoice : procedure expose (globals)
+  tbl = ARG(1) ; items = WORDS(tbl)
+
+  if items == 1 then do
+    items = LENGTH(tbl) ; item = SUBSTR(tbl, RANDOM(1, items), 1)
+  end ; else do
+    item = WORD(tbl, RANDOM(1, items))
+  end
+
+  return item</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN94"
+>Generating Different Random Numbers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* See comments in previous section                                   */
+/* ------------------------------------------------------------------ */
+
+random = RANDOM(,, seed)   /* Each such call reseeds the RNG */</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN97"
+>Making Numbers Even More Random</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* Custom functions for this type of task are easily written in REXX. */
+/* Examples include:                                                  */
+/*                                                                    */
+/* * 'lcg', simple linear-congruential RNG                            */
+/* * 'randomSlice' - see example below                                */
+/* ------------------------------------------------------------------ */
+
+random = 47523 ; reps = 10
+
+do reps
+  random = lcg(random)
+  /* do something with 'random' ... */
+end
+
+/* ----------------------------- */
+
+reps = 10
+
+do reps
+  /*
+     Random length digit sequence; sliced from random position of a
+     default-length 'RANDU'-generated digit sequence
+  */
+  random = randomSlice()
+
+  /* 3 digit sequence; as previous  */
+  random = randomSlice(3)
+
+  /*
+     4 digit sequence; sliced from random position of a 13 digit
+     length 'RANDU'-generated digit sequence
+  */
+  random = randomSlice(4, 13)
+end
+
+/* ----------- */
+
+lgc : procedure expose (globals)
+  numeric digits 17
+  return 16807 * ARG(1) // 2147483647
+
+randomSlice : procedure expose (globals)
+  sizeSlice = ARG(1) ; sizePool = ARG(2)
+  if sizePool == NULL | sizePool &gt; 17 then ; sizePool = 17
+  if sizeSlice == NULL then ; sizeSlice = RANDOM(1, sizePool - 1)
+  if sizeSlice &gt;= sizePool then ; sizeSlice = sizePool - 1;
+  posSlice = RANDOM(1, sizePool - sizeSlice)
+  numeric digits sizePool
+  parse value RANDU() with &quot;.&quot; frac
+  return SUBSTR(frac, posSlice, sizeSlice)</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN100"
+>Generating Biased Random Numbers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* Gaussian RNG                                                       */
+/* ------------------------------------------------------------------ */
+
+/* Need this for access to non-standard, 'RANDU', function */ 
+options 'AREXX_BIFS'
+
+/* Using 'rexxMath' Library Routines */
+
+/* Load [rexxMath] math functions from external library */
+call rxFuncAdd 'mathLoadFuncs', 'rexxMath', 'mathLoadFuncs'
+call mathLoadFuncs
+
+/* ----------- */
+
+mean = 25.0 ; sdev = 2.0 ; salary = gaussian_rand() * mean + sdev
+
+say &quot;You have been hired at:&quot; FORMAT(salary,, 2)
+
+/* ----------- */
+
+/* Unload math functions */
+call mathDropFuncs
+
+exit 0
+
+/* ----------- */
+
+gaussian_rand : procedure
+  w = 2.0
+  
+  do while w &gt; 1.0
+    u1 = 2.0 * RANDU() - 1.0 ; u2 = 2.0 * RANDU() - 1.0
+    w = u1 * u1 + u2 * u2
+  end
+  
+  w = Sqrt((-2.0 * Log10(w)) / w) ; g2 = u1 * w ; g1 = u2 * w
+
+  return g1</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN103"
+>Doing Trigonometry in Degrees, not Radians</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* Aside from supporting the usual arithmetic operations, including   */
+/* exponentiation [via the '**' operator], and a few BIF's including  */
+/* 'MIN', 'MAX', 'SIGN' and 'ABS', REXX offers no built-in support for*/
+/* mathematical operations. Instead the programmer can implement the  */
+/* required functionality themselves, or make use of external library */
+/* routines.                                                          */
+/*                                                                    */
+/* REXX-native mathematical functions are easily implementable, but   */
+/* the string-expressable, arbitrary precision arithmetic model used  */
+/* ensures they will not be as 'high performance' as hardware-based   */
+/* implementations, precluding their use for 'serious' number crunch- */
+/* ing. On the other hand, external library routines are [like the one*/
+/* illustrated here] to be hardware-based, hence offer performance    */
+/* comparable to that of other languages after both function call and */
+/* data conversion overhead is taken into account.                    */
+/* ------------------------------------------------------------------ */
+
+/* Using 'rxMath' Library Routines */
+
+/* Load [rxMath] math functions from external library */
+call rxFuncAdd 'mathLoadFuncs', 'rxMath', 'mathLoadFuncs'
+call mathLoadFuncs
+
+/* Accepts argumets in either degree, radian, or gradian form */
+say rxCalcSin(30, 'D')
+say FORMAT(rxCalcSin(60, 'D'),,3)
+
+/* Unload math functions */
+call mathDropFuncs
+
+exit 0
+
+/* ----------- */
+
+/* Using native REXX Routines [need 'Sin' from external library] */
+
+radians = DEG2RAD(degrees)
+degrees = RAD2DEG(radians)
+
+/* ----------------------------- */
+
+/* Load [rexxMath] math functions from external library */
+call rxFuncAdd 'mathLoadFuncs', 'rexxMath', 'mathLoadFuncs'
+call mathLoadFuncs
+
+say degree_sin(30)
+say FORMAT(degree_sin(60),,3)
+
+/* Unload math functions */
+call mathDropFuncs
+
+exit 0
+
+/* ----------- */
+
+degree_sin : procedure expose (globals)
+  /*
+     ARG(1) - Degrees
+     ---
+     'Sin' [a 'rexxMath' library routine] expects its argument in
+     radians so 'DEG2RAD' used to perform the conversion
+  */
+  return Sin(DEG2RAD(ARG(1)))
+
+DEG2RAD : procedure expose (globals)
+  return ARG(1) / 180 * PI()
+
+RAD2DEG : procedure expose (globals)
+  return ARG(1) / PI() * 180
+
+PI : procedure expose (globals)
+  return 3.14159265358979323846264338327</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN106"
+>Calculating More Trigonometric Functions</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* See comments in previous section header                            */
+/* ------------------------------------------------------------------ */
+
+/* Using 'rxMath' Library Routines */
+
+/* Load [rxMath] math functions from external library */
+call rxFuncAdd 'mathLoadFuncs', 'rxMath', 'mathLoadFuncs'
+call mathLoadFuncs
+
+/* Accepts argumets in either degree, radian, or gradian form */
+theta = 1.7 ; tan = rxCalcSin(theta, 'R') / rxCalcCos(theta, 'R')
+
+say &quot;tan of theta&quot; theta &quot;[radians]:&quot; tan
+say &quot;tan of theta&quot; FORMAT(theta,, 3) &quot;[radians]:&quot; FORMAT(tan,, 3)
+
+/* ----------- */
+
+say &quot;tan of theta&quot; theta &quot;[radians]:&quot; rxCalcTan(theta, 'R')
+say &quot;tan of theta&quot; FORMAT(theta,, 3) &quot;[radians]:&quot;,
+
+/* ----------- */
+
+theta = 0.37 ; say &quot;acos of&quot; theta &quot;[radians]:&quot; rxCalcArcCos(theta, 'R')
+
+/* ----------- */
+
+/* Unload math functions */
+call mathDropFuncs
+
+exit 0
+
+/* ----------------------------- */
+
+/* Using 'rexxMath' Library Routines */
+
+/* Load [rexxMath] math functions from external library */
+call rxFuncAdd 'mathLoadFuncs', 'rexxMath', 'mathLoadFuncs'
+call mathLoadFuncs
+
+theta = 1.7 ; tan = Sin(theta) / Cos(theta)
+
+say &quot;tan of theta&quot; theta &quot;[radians]:&quot; tan
+say &quot;tan of theta&quot; FORMAT(theta,, 3) &quot;[radians]:&quot; FORMAT(tan,, 3)
+
+/* ----------- */
+
+say &quot;tan of theta&quot; theta &quot;[radians]:&quot; Tan(theta)
+say &quot;tan of theta&quot; FORMAT(theta,, 3) &quot;[radians]:&quot; FORMAT(Tan(theta),, 3)
+
+/* ----------- */
+
+theta = 0.37 ; say &quot;acos of&quot; theta &quot;[radians]:&quot; ACos(theta)
+
+/* ----------- */
+
+/* Unload math functions */
+call mathDropFuncs
+
+exit 0</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN109"
+>Taking Logarithms</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* See comments in previous section header                            */
+/* ------------------------------------------------------------------ */
+
+/* Using 'rxMath' Library Routines */
+
+/* Load [rxMath] math functions from external library */
+call rxFuncAdd 'mathLoadFuncs', 'rxMath', 'mathLoadFuncs'
+call mathLoadFuncs
+
+log_e = rxCalcLog(value)
+
+/* ----------- */
+
+log_10 = rxCalcLog10(value)
+
+/* ----------- */
+
+answer = rxlog_base(10, 10000)
+
+say &quot;log_base(10, 10000) ==&gt;&quot; FORMAT(answer,, 2)
+say &quot;log10(10000)        ==&gt;&quot; FORMAT(rxCalcLog10(10000),, 2)
+
+/* ----------- */
+
+/* Unload math functions */
+call mathDropFuncs
+
+exit 0
+
+/* ----------- */
+
+rxlog_base : procedure expose (globals)
+  base = ARG(1) ; value = ARG(2)
+  return rxCalcLog(value) / rxCalcLog(base)
+
+/* ----------------------------- */
+
+/* Using 'rexxMath' Library Routines */
+
+/* Load [rexxMath] math functions from external library */
+call rxFuncAdd 'mathLoadFuncs', 'rexxMath', 'mathLoadFuncs'
+call mathLoadFuncs
+
+log_e = Log(value)
+
+/* ----------- */
+
+log_10 = Log10(value)
+
+/* ----------- */
+
+answer = log_base(10, 10000)
+
+say &quot;log_base(10, 10000) ==&gt;&quot; FORMAT(answer,, 2)
+say &quot;log10(10000)        ==&gt;&quot; FORMAT(Log10(10000),, 2)
+
+/* ----------- */
+
+/* Unload math functions */
+call mathDropFuncs
+
+exit 0
+
+/* ----------- */
+
+log_base : procedure expose (globals)
+  base = ARG(1) ; value = ARG(2)
+  return Log(value) / Log(base)</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN112"
+>Multiplying Matrices</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* REXX offers no matrix-handling BIF's. Below can be found a custom  */
+/* implementation that, perhaps unusually, represents matrices as str-*/
+/* ings. Notes:                                                       */
+/*                                                                    */
+/* * Since strings are immutable, matrix manipulations result in new  */
+/*   strings being created; high performance, therefore, should not be*/
+/*   expected                                                         */
+/*                                                                    */
+/* * Only a smattering of operations are offered, and some of them use*/ 
+/*   rather naive algorithms [e.g. multiplication - Winograd's algori-*/
+/*   thm could instead be used]                                       */
+/*                                                                    */
+/* * There is much code redundancy [e.g. 'madd' and 'msub' are identi-*/
+/*   save for the arithmetic operation performed]. This could have be-*/
+/*   en avoided via use of both the VALUE BIF and INTERPRET instructi-*/
+/*   on [an approach much used in Chapter 4], but it was felt that co-*/
+/*   de would be more readable, and perhaps more easily adapted if ke-*/
+/*   pt simple, despite the repetition.                               */
+/*                                                                    */
+/* * Decision to model matrices as strings was based on two factors:  */
+/*                                                                    */
+/*   - Avoiding global array use                                      */
+/*   - Illustrate how ADT's may be modelled using strings, and showca-*/
+/*     se the REXX PARSE instruction and string manipulation BIF's    */
+/*                                                                    */
+/* Performance can be significantly improved without resorting to the */
+/* use of global arrays by using an external library like T. J. McPhe-*/
+/* e's, 'rxHash', that implements arrays as special strings that may  */
+/* be freely passed around. Chapter 4 makes extensive use of this very*/
+/* versatile library. I hope to provide an expanded version of the    */
+/* present library using this technique as part of the REXXToolkit [to*/
+/* be found in the Appendix] sometime in 2007.                        */
+/* ------------------------------------------------------------------ */
+
+/* Global Constants */
+FALSE = 0 ; TRUE = 1 ; NULL = &quot;&quot; ; NEWLINE = &quot;0A&quot;X ; SPACE = ' '
+NaN = &quot;NaN&quot;
+
+/* Matrix-specific global constants */
+MTAG = &quot;&lt;M&gt;&quot; ; MHSEP = &quot;|&quot; ; MRAWSEP = &quot;; &quot; ; MRSEP = &quot;;&quot;
+
+MTYPE_REGULAR = &quot;R&quot; ; MTYPE_SINGULAR = &quot;S&quot; ; MTYPE_ZERO = &quot;Z&quot;
+MTYPE_IDENTITY = &quot;I&quot; ; MTYPE_VECTOR = &quot;V&quot;
+
+/* -- */
+
+/* Global Roots and 'expose' list */
+globals = &quot;sys. env. args. $. FALSE TRUE NULL NEWLINE SPACE NaN&quot;
+
+/* Matrix-specific 'expose' list */
+matdefs = &quot;MTAG MHSEP MTYPE_REGULAR MTYPE_SINGULAR&quot; ,
+          &quot;MTYPE_ZERO MTYPE_IDENTITY MTYPE_VECTOR&quot; ,
+          &quot;MRSEP&quot; ,
+          &quot;MRAWSEP&quot;
+
+/* ----------------------------- */
+
+x = makeMatrix(&quot;3 2 3;5 9 8;&quot;) ; y = makeMatrix(&quot;4 7;9 3;8 1;&quot;)
+
+z = mmul(x, y)
+
+say &quot;z =&quot; ; call mdump z
+
+/* ----------------------------- */
+
+say &quot;z determinant:&quot; mdet(z)
+
+say &quot;z inverse =&quot; ; call mdump minverse(z), 8
+
+say &quot;trace:      &quot; mtrace(z)
+
+say &quot;z transpose =&quot; ; call mdump mtranspose(z)
+
+exit 0
+
+/* ----------------------------- */
+
+/*
+   * *** IMPORTANT ***
+     Matrix rows and columns numbered from 1, and *not* 0 like so
+     many zero-index-based languages
+
+   * Variable size, delimited strings represent the matrix type.
+     Each such string has a header section followed by a data
+     section; typically, the string is split, metadata extracted
+     from the header, and the data section returned for subsequent
+     processing
+
+   * Easy to view matrix contents: just SAY the string. The 'mdump'
+     routine is available for pretty printing
+
+   * Simple error-handling approach used: a value of, 'NaN', is
+     returned where any error is detected [applies only to routines
+     that do error checking - 'stupid' usage merely sees the script
+     crash]
+
+   * Matrix Format [EBNF]:
+
+     &lt;matrix&gt; ::= &lt;header&gt; &lt;data&gt;
+
+          &lt;header&gt; ::= &lt;type-tag&gt; &lt;rows&gt; &lt;columns&gt; &lt;matrix-type&gt; &lt;EOH&gt;
+            &lt;data&gt; ::= &lt;row&gt;+
+
+        &lt;type-tag&gt; ::= '&lt;M&gt;'
+            &lt;rows&gt; ::= &lt;integer&gt;
+          &lt;colums&gt; ::= &lt;integer&gt;
+     &lt;matrix-type&gt; ::= 'S' | 'R' | 'V' | 'Z' | 'I'
+             &lt;EOH&gt; ::= '|'
+
+             &lt;row&gt; ::= &lt;decimal&gt;+ &lt;EOR&gt;
+             &lt;EOR&gt; ::= ';'
+
+         &lt;integer&gt; ::= digit+
+         &lt;decimal&gt; ::= &lt;integer&gt; | digit+ '.' digit+
+           &lt;digit&gt; ::= '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7'
+                     | '8' | '9'
+
+   * Matrix Format Examples:
+
+     - 1-row matrices considered vectors
+       1x1 -&gt; &quot;&lt;M&gt;1 1 V|7;&quot;
+       1x3 -&gt; &quot;&lt;M&gt;1 3 V|7 8 9;&quot;
+
+     - Square Matrices; regular, zero, or identity
+       2x2 Regular  -&gt; &quot;&lt;M&gt;2 2 R|1 2;4 5;&quot;
+       3x3 Regular  -&gt; &quot;&lt;M&gt;3 3 R|1 2 3;4 5 6;7 8 9;&quot;
+       3x3 Zero     -&gt; &quot;&lt;M&gt;3 3 Z|0 0 0;0 0 0;0 0 0;&quot;
+       3x3 Identity -&gt; &quot;&lt;M&gt;3 3 I|1 0 0;0 1 0;0 0 1;&quot;
+
+     - Singular Matrices
+       2x3 -&gt; &quot;&lt;M&gt;2 3 S|1 2 3;4 5 6;&quot;
+       3x2 -&gt; &quot;&lt;M&gt;3 2 S|1 2;3 4;5 6;&quot;
+
+   * Matrix string contains both metadata and uses a delimiter to
+     mark out rows. Using only one of these items would have allowed
+     determination of the other [i.e. compute metadata by counting
+     delimiters, or tokenise into rows using metadata], but using both
+     allowed for easy type-checking and simplified tokenisation via
+     the PARSE instruction
+
+   * Routines classed as follows:
+
+     - Constructors [makeVector, makeMatrix, makeDiagonal]
+     - Type Checkers [isVector, isMatrix, is1x1, is2x2]
+     - Metadata [mrows, mcols]
+     - Comparators [meql]
+     - Selectors [extractMatrix, mrow, mcol, msubset, mminor]
+     - Matrix Arithmetic [madd, msub, mmul, mdiv]
+     - Matrix OPerations [mtranspose, mcofactor, mdet1x1, mdet2x2,
+       mdet, minv1x1, minverse, mtrace]
+     - Elementary Row / Column Operations [mswapc, mswapr, maddc,
+       maddr, mmulc, mmulr]. These are needed for solving linear
+       equations via Echelon method
+     - Pretty Print [mdump]
+
+   * Routine documentation has the following structure:
+
+       Parameter List
+       ---
+       Description
+       ---
+       Routine Example(s)
+
+       Parameter list conventions include:
+       - x | y | z -&gt; One of x or y or z
+       - [optional arguments ...]
+       - Types:
+         + s, s1, s2 -&gt; string(s)
+         + n, n1, n2 -&gt; numeric
+         + v, v1, v2 -&gt; vector(s)
+         + m, m1, m2 -&gt; matrices
+*/
+
+/* ----------- */
+
+makeVector : procedure expose (globals) (matdefs)
+  /*
+     s | n1 [, n2, ...]
+     ---
+     Returns a vector created by parsing, 's', or assembling, 'n1',
+     'n2' ...
+     ---
+     v = makeVector(&quot;1 2 3;&quot;)
+     v = makeVector(1, 2, 3)
+  */
+  argc = ARG() ; if argc == 0 then ; return NaN
+  if argc == 1 then do
+    v = ARG(1) ; argc = WORDS(v)
+  end ; else do
+    v = NULL ; do i = 1 for argc ; v = v ARG(i) ; end ; v = STRIP(v)
+  end
+  return MTAG || 1 argc MTYPE_VECTOR || MHSEP || v || MRSEP
+
+makeMatrix : procedure expose (globals) (matdefs)
+  /*
+     s | v1 [, v2, ...]
+     ---
+     Returns a matrix created by parsing, 's', or assembling, 'v1',
+     'v2' ...
+     ---
+     m = makeMatrix(&quot;1 2 3;4 5 6;7 8 9;&quot;)
+     m = makeMatrix(makeVector(1, 2, 3))
+     m = makeMatrix(makeVector(1, 2, 3), makeVector(4, 5, 6),,
+         makeVector(7, 8, 9))
+  */
+  argc = ARG() ; if argc == 0 then ; return NaN
+  if argc == 1 then do
+    m = ARG(1) ; if isVector(m) then ; return m
+    rows = COUNTSTR(MRSEP, m)
+    cols = WORDS(SUBSTR(m, 1, POS(MRSEP, m) - 1))
+    rv = NULL ; do i = 1 for rows
+      parse var m row (MRSEP) m ; rv = rv || row || MRSEP
+    end
+  end ; else do
+    rows = argc ; rv = NULL ; do i = 1 for rows
+      parse value ARG(i) with (MTAG) . cols . (MHSEP) data
+      rv = rv || data
+    end
+  end
+  select
+    when cols == rows then ; type = MTYPE_REGULAR
+    otherwise ; type = MTYPE_SINGULAR
+  end
+  return MTAG || rows cols type || MHSEP || STRIP(rv)
+
+makeDiagonal : procedure expose (globals) (matdefs)
+  /*
+     s | v | n1 [, n2, ...]
+     ---
+     Returns a square matrix with a leading diagonal having the values
+     obtained by parsing, 's', assembling, 'v1', 'v2', or from, 'v'
+     ---
+     m = makeDiagonal(&quot;1 2 3;&quot;)
+     m = makeDiagonal(1, 2, 3)
+     m = makeDiagonal(makeVector(1, 2, 3))
+  */
+  argc = ARG() ; if argc == 0 then ; return NaN
+  ONE_ONLY = TRUE ; chksum = 0
+  if argc == 1 then do
+    v = ARG(1) ; if isVector(v) then do
+      parse var v (MTAG) . cols . (MHSEP) data
+    end ; else do
+      cols = WORDS(SUBSTR(v, 1, POS(MRSEP, v) - 1)) ; data = v
+    end
+    parse var data row (MRSEP) .
+    rows = cols ; rv = NULL ; do i = 1 for rows
+      do j = 1 for cols
+        if i == j then do
+          parse var row item row
+          chksum = chksum + item ; rv = rv item
+          if item &gt; 1 then ; ONE_ONLY = FALSE
+        end ; else ; rv = rv 0
+      end
+      rv = rv || MRSEP
+    end
+  end ; else do
+    cols = argc ; rows = cols ; rv = NULL
+    do i = 1 for rows
+      do j = 1 for cols
+        if i == j then do
+          value = ARG(i) ; chksum = chksum + value ; rv = rv value
+          if value &gt; 1 then ; ONE_ONLY = FALSE
+        end ; else ; rv = rv 0
+      end
+      rv = rv || MRSEP
+    end
+  end
+  select
+    when chksum == 0 then ; type = MTYPE_ZERO
+    when chksum == rows &amp; ONE_ONLY then ; type = MTYPE_IDENTITY
+    otherwise ; type = MTYPE_REGULAR
+  end
+  return MTAG || rows cols type || MHSEP ||,
+         STRIP(CHANGESTR(MRAWSEP, rv, MRSEP))
+
+/* -- */
+
+isMatrix : procedure expose (globals) (matdefs)
+  /*
+     m
+     ---
+     TRUE if 'm' determined to be a matrix
+     ---
+     if \isMatrix(m) then ; return NaN
+  */
+  parse value WORD(ARG(1), 1) with marker +3 rows .
+  return marker == MTAG &amp; rows &gt;= 1
+
+isVector : procedure expose (globals) (matdefs)
+  /*
+     m
+     ---
+     TRUE if 'm' determined to be a vector, a 1-row matrix. Note
+     that a vector is still a matrix, merely a more specialised one
+     ---
+     if \isVector(v) then ; return NaN
+  */
+  parse value WORD(ARG(1), 1) with marker +3 rows .
+  return marker == MTAG &amp; rows == 1
+
+is2x2 : procedure expose (globals) (matdefs)
+  /*
+     m
+     ---
+     TRUE if 'm' determined to be a 2x2 matrix. Required in recursive
+     matrix operations like determinant, cofactor and inverse
+     ---
+     if is2x2(m) then ; return mdet2x2(m)
+  */
+  parse value ARG(1) with (MTAG) rows cols . (MHSEP) .
+  return rows == cols &amp; rows == 2
+
+is1x1 : procedure expose (globals) (matdefs)
+  /*
+     m
+     ---
+     TRUE if 'm' determined to be a 1x1 matrix, a single-element,
+     square matrix. Required in recursive matrix operations like
+     determinant, cofactor and inverse
+     ---
+     if is1x1(m) then ; return mdet1x1(m)
+  */
+  parse value ARG(1) with (MTAG) rows cols . (MHSEP) .
+  return rows == cols &amp; rows == 1
+
+/* ----------- */
+
+mrows : procedure expose (globals) (matdefs)
+  /*
+     m
+     ---
+     Returns number of rows matrix, 'm', possesses
+     ---
+     rows = mrows(m)
+  */
+  parse value ARG(1) with (MTAG) rows . . (MHSEP) . ; return rows
+
+mcols : procedure expose (globals) (matdefs)
+  /*
+     m
+     ---
+     Returns number of columns matrix, 'm', possesses
+     ---
+     columns = mcols(m)
+  */
+  parse value ARG(1) with (MTAG) . cols . (MHSEP) . ; return cols
+
+/* -- */
+
+meql : procedure expose (globals) (matdefs)
+  /*
+     m1, m2
+     ---
+     TRUE if 'm1' and 'm2' determined to be equal, that is:
+     * Structurally identical i.e. same number of rows and columns
+     * Same type
+     * Same contents
+     ---
+     if meql(m1, m2) then ; return ...
+  */
+  return ARG(1) == ARG(2)
+
+/* -- */
+
+extractMatrix : procedure expose (globals) (matdefs)
+  /* 
+     m
+     ---
+     Returns matrix data sans header 
+     ---
+     data = extractMatrix(m)
+  */
+  parse value ARG(1) with (MTAG) . . . (MHSEP) data ; return data
+
+mrow : procedure expose (globals) (matdefs)
+  /*
+     m, row
+     ---
+     Extracts specified row number, 'row', from matrix, 'm'
+     ---
+     row = mrow(m, 2)
+  */
+  parse value ARG(1) with (MTAG) rows . . (MHSEP) data ; r = ARG(2)
+  if r &lt; 1 | r &gt; rows then ; return NaN
+  do i = 1 while data &lt;&gt; NULL
+    parse var data row (MRSEP) data ; if i == r then ; leave
+  end ; return row
+
+mcol : procedure expose (globals) (matdefs)
+  /*
+     m, col
+     ---
+     Extracts specified column number, 'col', from matrix, 'm'
+     ---
+     column = mcol(m, 2)
+  */
+  parse value ARG(1) with (MTAG) . cols . (MHSEP) data ; c = ARG(2)
+  if c &lt; 1 | c &gt; cols then ; return NaN
+  col = NULL ; do while data &lt;&gt; NULL
+    parse var data row (MRSEP) data ; col = col WORD(row, c)
+  end ; return STRIP(col)
+
+msubset : procedure expose (globals) (matdefs)
+  /*
+     m, row, col [[, xlen], ylen]
+     ---
+     Returns a matrix extracted from matrix, 'm', data starting from
+     row number, 'row', and column number, 'col'. Entire length of
+     specified items is returned unless an optional length value is
+     specified for each item
+     ---
+     m2 = msubset(m1, 2, 3)
+     m2 = msubset(m1, 2, 3, 5, 5)
+     m2 = msubset(m1, 2, 3, , 5)
+     m2 = msubset(m1, 2, 3, 5)
+  */
+  argc = ARG() ; rv = NaN
+  if argc &lt;&gt; 3 | argc &lt;&gt; 5 then ; return rv
+  x = ARG(2) ; y = ARG(3)
+  parse value ARG(1) with (MTAG) rows cols . (MHSEP) data
+  if x &gt; rows | y &gt; cols then ; return rv
+  xlen = rows ; if ARG(4, 'E') then ; xlen = ARG(4)
+  ylen = cols ; if ARG(5, 'E') then ; ylen = ARG(5)
+
+  /* ... to be completed ... */
+
+  return makeMatrix(STRIP(CHANGESTR(MRAWSEP, rv, MRSEP)))
+
+mminor : procedure expose (globals) (matdefs)
+  /*
+     m, row, col
+     ---
+     Returns a matrix extracted from matrix, 'm', data consisting of
+     all rows and columns except the specified row number, 'row', and
+     column number, 'col'. Such a matrix is known as the 'minor' and
+     is needed for computing a matrix's determinant
+     ---
+     minor = mminor(m, 1, 3)
+  */
+  argc = ARG() ; rv = NaN
+  if argc &lt;&gt; 3 then ; return rv
+  x = ARG(2) ; y = ARG(3)
+  parse value ARG(1) with (MTAG) rows cols . (MHSEP) data
+  if x &gt; rows | y &gt; cols then ; return rv
+
+  rv = NULL ; do i = 1 while data &lt;&gt; NULL
+    parse var data row (MRSEP) data
+    if i == x then ; iterate
+    do j = 1 while row &lt;&gt; NULL
+      parse var row item row
+      if j == y then ; iterate
+      rv = rv item
+    end ; rv = rv || MRSEP
+  end
+  return makeMatrix(STRIP(CHANGESTR(MRAWSEP, rv, MRSEP)))
+
+/* -- */
+
+mdump : procedure expose (globals) (matdefs)
+  /*
+     m [, width]
+     ---
+     Pretty prints matrix, 'm'; default width used unless specified
+     ---
+     call mdump m
+     call mdump m, 8
+  */
+  parse value ARG(1) with (MTAG) . . . (MHSEP) data
+  cellwidth = 4 ; if ARG(2, 'E') then ; cellwidth = ARG(2)
+  do while data &lt;&gt; NULL
+    parse var data row (MRSEP) data
+    out = &quot;|&quot; ; do while row &lt;&gt; NULL
+      parse var row item row ; out = out LEFT(item, cellwidth) &quot;|&quot;
+    end
+    say out
+  end ; return
+
+/* -- */
+
+madd : procedure expose (globals) (matdefs)
+  /*
+     m1, m2 | n
+     ---
+     Returns matrix where:
+     * 'n' added to each element, or
+     * corresponding elements of matrices added together [each matrix
+       must have the same size i.e. m1:RxC == m2:RxC]
+     ---
+     m3 = madd(m1, m2)
+     m3 = madd(m1, 5)
+  */
+  m1 = ARG(1) ; m2 = ARG(2) ; rv = NaN
+  if \isMatrix(m1) then ; return rv
+  parse var m1 (MTAG) m1rows m1cols . (MHSEP) m1data
+  if isMatrix(m2) then do
+    parse var m2 (MTAG) m2rows m2cols . (MHSEP) m2data
+    if m1rows &lt;&gt; m2rows | m1cols &lt;&gt; m2cols then ; return rv
+    rv = NULL ; do while m1data &lt;&gt; NULL
+      parse var m1data m1row (MRSEP) m1data
+      parse var m2data m2row (MRSEP) m2data
+      do while m1row &lt;&gt; NULL
+        parse var m1row m1item m1row ; parse var m2row m2item m2row
+        rv = rv (m1item + m2item)
+      end ; rv = rv || MRSEP
+    end
+  end ; else do
+    rv = NULL ; do while m1data &lt;&gt; NULL
+      parse var m1data m1row (MRSEP) m1data
+      do while m1row &lt;&gt; NULL
+        parse var m1row m1item m1row ; rv = rv (m1item + m2)
+      end ; rv = rv || MRSEP
+    end
+  end
+  return makeMatrix(STRIP(CHANGESTR(MRAWSEP, rv, MRSEP)))
+
+msub : procedure expose (globals) (matdefs)
+  /*
+     m1, m2 | n
+     ---
+     Returns matrix where:
+     * 'n' subtracted from to each element, or
+     * corresponding elements of matrices subtracted [each matrix
+       must have the same size i.e. m1:RxC == m2:RxC]
+     ---
+     m3 = msub(m1, m2)
+     m3 = msub(m1, 5)
+  */
+  m1 = ARG(1) ; m2 = ARG(2) ; rv = NaN
+  if \isMatrix(m1) then ; return rv
+  parse var m1 (MTAG) m1rows m1cols . (MHSEP) m1data
+  if isMatrix(m2) then do
+    parse var m2 (MTAG) m2rows m2cols . (MHSEP) m2data
+    if m1rows &lt;&gt; m2rows | m1cols &lt;&gt; m2cols then ; return rv
+    rv = NULL ; do while m1data &lt;&gt; NULL
+      parse var m1data m1row (MRSEP) m1data
+      parse var m2data m2row (MRSEP) m2data
+      do while m1row &lt;&gt; NULL
+        parse var m1row m1item m1row ; parse var m2row m2item m2row
+        rv = rv (m1item - m2item)
+      end ; rv = rv || MRSEP
+    end
+  end ; else do
+    rv = NULL ; do while m1data &lt;&gt; NULL
+      parse var m1data m1row (MRSEP) m1data
+      do while m1row &lt;&gt; NULL
+        parse var m1row m1item m1row ; rv = rv (m1item - m2)
+      end ; rv = rv || MRSEP
+    end
+  end
+  return makeMatrix(STRIP(CHANGESTR(MRAWSEP, rv, MRSEP)))
+
+mmul : procedure expose (globals) (matdefs)
+  /*
+     m1, m2 | n
+     ---
+     Returns matrix where:
+     * 'n' multiplied with each element, or
+     * corresponding elements of matrices multiplied [matrices
+       must meet condition m1:C == m2:R; m3 -&gt; m1:Rxm2:C]
+     ---
+     m3 = mmul(m1, m2)
+     m3 = mmul(m1, 5)
+  */
+  m1 = ARG(1) ; m2 = ARG(2) ; rv = NaN
+  if \isMatrix(m1) then ; return rv
+  parse var m1 (MTAG) m1rows m1cols . (MHSEP) m1data
+  if isMatrix(m2) then do
+    parse var m2 (MTAG) m2rows m2cols . (MHSEP) m2data
+    if m1cols &lt;&gt; m2rows then ; return rv
+
+    /* Extract matrix data, load into compound variables, 'a' and 'b' */    
+    r = 1 ; c = 1 ; a.0 = m1rows ; a.0.0 = m1cols
+    do while m1data &lt;&gt; NULL
+      parse var m1data m1row (MRSEP) m1data
+      do while m1row &lt;&gt; NULL
+        parse var m1row item m1row ; a.r.c = item
+        c = c + 1
+      end
+      r = r + 1 ; c = 1
+    end
+ 
+    r = 1 ; c = 1 ; b.0 = m2rows ; b.0.0 = m2cols
+    do while m2data &lt;&gt; NULL
+      parse var m2data m2row (MRSEP) m2data
+      do while m2row &lt;&gt; NULL
+        parse var m2row item m2row ; b.r.c = item
+        c = c + 1
+      end
+      r = r + 1 ; c = 1
+    end
+
+    /* Perform multiplication using compound variables */
+    do i = 1 to a.0                      /* m1rows */
+      do j = 1 to b.0.0                  /* m2cols */
+        c.i.j = 0 ; do k = 1 to b.0      /* m2rows */
+          c.i.j = c.i.j + a.i.k * b.k.j 
+        end 
+      end 
+    end 
+
+    /* Return computed values as new matrix */
+    rv = NULL ; do i = 1 to m1rows
+      do j = 1 to m2cols ; rv = rv c.i.j ; end
+      rv = rv || MRSEP
+    end
+
+  end ; else do
+    rv = NULL ; do while m1data &lt;&gt; NULL
+      parse var m1data m1row (MRSEP) m1data
+      do while m1row &lt;&gt; NULL
+        parse var m1row m1item m1row ; rv = rv (m1item * m2)
+      end ; rv = rv || MRSEP
+    end
+  end  
+
+  return makeMatrix(STRIP(CHANGESTR(MRAWSEP, rv, MRSEP)))
+
+mdiv : procedure expose (globals) (matdefs)
+  /*
+     m1, m2 | n
+     ---
+     Returns matrix where:
+     * 'n' divided into each element, or
+     * corresponding elements of matrices divided [matrices
+       must meet condition m1:C == m2:R, and m2 must be square;
+       m3 -&gt; m1:Rxm2:C]
+     ---
+     m3 = mdiv(m1, m2)
+     m3 = mdiv(m1, 5)
+  */
+  m1 = ARG(1) ; m2 = ARG(2) ; rv = NaN
+  if \isMatrix(m1) then ; return rv
+  parse var m1 (MTAG) m1rows m1cols . (MHSEP) m1data
+  if isMatrix(m2) then do
+    parse var m2 (MTAG) m2rows m2cols . (MHSEP) m2data
+    if m1cols &lt;&gt; m2rows | m2cols &lt;&gt; m2rows then ; return rv
+    return mmul(m1, minverse(m2))
+  end ; else do
+    rv = NULL ; do while m1data &lt;&gt; NULL
+      parse var m1data m1row (MRSEP) m1data
+      do while m1row &lt;&gt; NULL
+        parse var m1row m1item m1row ; rv = rv (m1item / m2)
+      end ; rv = rv || MRSEP
+    end
+  end
+  return makeMatrix(STRIP(CHANGESTR(MRAWSEP, rv, MRSEP)))
+
+/* -- */
+
+maddr : procedure expose (globals) (matdefs)
+  /*
+     m, n | v, row
+     ---
+     Returns matrix with all elements of row number, 'row',
+     of matrix, 'm':
+     * Having, 'n' added, or
+     * corresponding elements from, 'v', added [assumes m:R == v:R]
+     ---
+     m2 = maddr(m1, 4, 3)
+     m2 = maddr(m1, makeVector(&quot;1 2 3;&quot;), 3)
+  */
+  m = ARG(1) ; v = ARG(2) ; row = ARG(3) ; rv = NaN ; isVector = FALSE
+  if \isMatrix(m) then ; return rv
+  parse var m (MTAG) mrows mcols . (MHSEP) mdata
+
+  if isVector(v) then do
+    parse var v (MTAG) . vcols . (MHSEP) vrow (MRSEP)
+    if row &gt; mrows | mcols &lt;&gt; vcols then ; return rv
+    isVector = TRUE
+  end
+
+  rv = NULL ; do i = 1 while mdata &lt;&gt; NULL
+    parse var mdata mrow (MRSEP) mdata
+    if i == row then
+      do while mrow &lt;&gt; NULL
+        parse var mrow mitem mrow
+        if isVector then ; parse var vrow vitem vrow ; else ; vitem = v
+        rv = rv (mitem + vitem)
+      end
+    else
+      rv = rv || mrow
+    rv = rv || MRSEP
+  end
+
+  return makeMatrix(STRIP(CHANGESTR(MRAWSEP, rv, MRSEP)))
+
+maddc : procedure expose (globals) (matdefs)
+  /*
+     m, n | v, col
+     ---
+     Returns matrix with all elements of column number, 'col',
+     of matrix, 'm':
+     * Having, 'n' added, or
+     * corresponding elements from, 'v', added [assumes m:C == v:C]
+     ---
+     m2 = maddc(m1, 4, 3)
+     m2 = maddc(m1, makeVector(&quot;1 2 3;&quot;), 3)
+  */
+  m = ARG(1) ; v = ARG(2) ; col = ARG(3) ; rv = NaN ; isVector = FALSE
+  if \isMatrix(m) then ; return rv
+  parse var m (MTAG) mrows mcols . (MHSEP) mdata
+
+  if isVector(v) then do
+    parse var v (MTAG) . vcols . (MHSEP) vrow (MRSEP)
+    if col &gt; mcols | mrows &lt;&gt; vcols then ; return rv
+    isVector = TRUE
+  end
+
+  rv = NULL ; do while mdata &lt;&gt; NULL
+    parse var mdata mrow (MRSEP) mdata
+    do j = 1 while mrow &lt;&gt; NULL
+      parse var mrow mitem mrow
+      if j == col then do
+        if isVector then ; parse var vrow vitem vrow ; else ; vitem = v
+        rv = rv (mitem + vitem)
+      end ; else do
+        rv = rv mitem
+      end
+    end
+    rv = rv || MRSEP
+  end
+
+  return makeMatrix(STRIP(CHANGESTR(MRAWSEP, rv, MRSEP)))
+
+mmulr : procedure expose (globals) (matdefs)
+  /*
+     m, n, row
+     ---
+     Returns matrix with all elements of row number, 'row',
+     of matrix, 'm', multiplied by, 'n'
+     ---
+     m2 = mmulr(m1, 4, 3)
+  */
+  m = ARG(1) ; n = ARG(2) ; row = ARG(3) ; rv = NaN
+  if \isMatrix(m) then ; return rv
+  parse var m (MTAG) mrows mcols . (MHSEP) mdata
+  if row &gt; mrows then ; return rv
+  rv = NULL ; do i = 1 while mdata &lt;&gt; NULL
+    parse var mdata mrow (MRSEP) mdata
+    if i == row then
+      do while mrow &lt;&gt; NULL
+        parse var mrow mitem mrow ; rv = rv (mitem * n)
+      end
+    else
+      rv = rv mrow
+    rv = rv || MRSEP
+  end
+  return makeMatrix(STRIP(CHANGESTR(MRAWSEP, rv, MRSEP)))
+
+mmulc : procedure expose (globals) (matdefs)
+  /*
+     m, n, col
+     ---
+     Returns matrix with all elements of column number, 'col',
+     of matrix, 'm', multiplied by, 'n'
+     ---
+     m2 = mmulc(m1, 4, 3)
+  */
+  m = ARG(1) ; n = ARG(2) ; col = ARG(3) ; rv = NaN
+  if \isMatrix(m) then ; return rv
+  parse var m (MTAG) mrows mcols . (MHSEP) mdata
+  if col &gt; mcols then ; return rv
+  rv = NULL ; do while mdata &lt;&gt; NULL
+    parse var mdata mrow (MRSEP) mdata
+    do j = 1 while mrow &lt;&gt; NULL
+      parse var mrow mitem mrow
+      if j == col then ; rv = rv (mitem * n)
+      else ; rv = rv mitem
+    end
+    rv = rv || MRSEP
+  end
+  return makeMatrix(STRIP(CHANGESTR(MRAWSEP, rv, MRSEP)))
+
+mswapr : procedure expose (globals) (matdefs)
+  /*
+     m, x, y
+     ---
+     Returns matrix with row numbers, 'x', and 'y', of matrix, 'm',
+     swapped
+     ---
+     m2 = mswapr(m1, 1, 3)
+  */
+  m = ARG(1) ; x = ARG(2) ; y = ARG(3) ; rv = NaN
+  if \isMatrix(m) then ; return rv
+  parse var m (MTAG) rows . . (MHSEP) data
+  if x &gt; rows | y &gt; rows then ; return rv
+  xr = mrow(m, x) ; yr = mrow(m, y)
+  rv = NULL ; do i = 1 while data &lt;&gt; NULL
+    parse var data row (MRSEP) data
+    if i == x then ; rv = rv yr
+    else ; if i == y then ; rv = rv xr
+    else ; rv = rv row
+    rv = rv || MRSEP
+  end
+  return makeMatrix(STRIP(CHANGESTR(MRAWSEP, rv, MRSEP)))
+
+mswapc : procedure expose (globals) (matdefs)
+  /*
+     m, x, y
+     ---
+     Returns matrix with column numbers, 'x', and 'y', of matrix, 'm',
+     swapped
+     ---
+     m2 = mswapc(m1, 1, 3)
+  */
+  m = ARG(1) ; x = ARG(2) ; y = ARG(3) ; rv = NaN
+  if \isMatrix(m) then ; return rv
+  parse var m (MTAG) rows cols . (MHSEP) data
+  if x &gt; cols | y &gt; cols then ; return rv
+
+  r = 1 ; c = 1 ; a.0 = rows ; a.0.0 = cols
+  do while data &lt;&gt; NULL
+    parse var data row (MRSEP) data
+    do while row &lt;&gt; NULL
+      parse var row item row ; a.r.c = item
+      c = c + 1
+    end
+    r = r + 1 ; c = 1
+  end
+
+  do i = 1 to a.0
+    tmp = a.i.x ; a.i.x = a.i.y ; a.i.y = tmp
+  end
+
+  rv = NULL ; do i = 1 to a.0
+    do j = 1 to a.0.0 ; rv = rv a.i.j ; end
+    rv = rv || MRSEP
+  end
+
+  return makeMatrix(STRIP(CHANGESTR(MRAWSEP, rv, MRSEP)))
+
+/* -- */
+
+mtranspose : procedure expose (globals) (matdefs)
+  /*
+     m
+     ---
+     Returns matrix consisting of the transpose of 'm' [i.e.
+     corresponding row / column positions swapped]
+     ---
+     transpose = mtranspose(m)
+  */
+  m = ARG(1) ; rv = NaN
+  if \isMatrix(m) then ; return rv
+  parse var m (MTAG) rows cols . (MHSEP) data
+  r = 1 ; c = 1 ; a.0 = rows ; a.0.0 = cols
+  do while data &lt;&gt; NULL
+    parse var data row (MRSEP) data
+    do while row &lt;&gt; NULL
+      parse var row item row ; a.r.c = item
+      c = c + 1
+    end
+    r = r + 1 ; c = 1
+  end
+  rv = NULL ; do j = 1 to a.0.0
+    do i = 1 to a.0 ; rv = rv a.i.j ; end
+    rv = rv || MRSEP
+  end
+  return makeMatrix(STRIP(CHANGESTR(MRAWSEP, rv, MRSEP)))
+
+mcofactor : procedure expose (globals) (matdefs)
+  /*
+     m, i, j
+     ---
+     Returns the cofactor of the matrix; sign determined via values
+     of row and column numbers, 'i', and 'j', respectively
+     ---
+     cofactor = mcofactor(m, i, j)
+  */
+  m = ARG(1) ; i = ARG(2) ; j = ARG(3)
+  if ((i + j) // 2) &lt;&gt; 0 then ; sign = -1 ; else ; sign = 1
+  if is1x1(m) then ; return sign * mdet(m)
+  return sign * mdet(mminor(m, i, j))
+
+mdet1x1 : procedure expose (globals) (matdefs)
+  /*
+     m
+     ---
+     Returns the determinant of a 1x1 square matrix
+     ---
+     determinant = mdet1x1(m)
+  */
+  parse value ARG(1) with (MTAG) . . . (MHSEP) a (MRSEP) .
+  return a
+
+mdet2x2 : procedure expose (globals) (matdefs)
+  /*
+     m
+     ---
+     Returns the determinant of a 2x2 square matrix
+     ---
+     determinant = mdet2x2(m)
+  */
+  parse value ARG(1) with (MTAG) . . . (MHSEP) a b (MRSEP) c d (MRSEP) .
+  return a * d - b * c
+
+mdet : procedure expose (globals) (matdefs)
+  /*
+     m
+     ---
+     Returns the determinant of the square matrix
+     ---
+     determinant = mdet(m)
+  */
+  m = ARG(1)
+  if is1x1(m) then ; return mdet1x1(m)
+  if is2x2(m) then ; return mdet2x2(m)
+  parse var m (MTAG) . cols . (MHSEP) row (MRSEP) .
+  det = 0 ; do j = 1 to cols
+    det = det + WORD(row, j) * mcofactor(m, 1, j)
+  end ; return det
+
+minv1x1 : procedure expose (globals) (matdefs)
+  /*
+     m
+     ---
+     Returns the inverse of the 1x1 matrix
+     ---
+     inverse = minv1x1(m)
+  */
+  parse value ARG(1) with (MTAG) . . . (MHSEP) a (MRSEP) .
+  return 1 / a
+
+minverse : procedure expose (globals) (matdefs)
+  /*
+     m
+     ---
+     Returns the inverse of the square matrix
+     ---
+     inverse = minverse(m)
+  */
+  m = ARG(1) ; if \isMatrix(m) then ; return NaN
+  parse var m (MTAG) rows cols . (MHSEP) data
+  if rows &lt;&gt; cols then ; return NaN
+  if is1x1(m) then ; return makeVector(minv1x1(m))
+  rv = NULL ; det = mdet(m) ; do i = 1 for rows
+    do j = 1 for cols ; rv = rv (mcofactor(m, i, j) / det) ; end
+    rv = rv || MRSEP
+  end
+  return mtranspose(makeMatrix(STRIP(CHANGESTR(MRAWSEP, rv, MRSEP))))
+
+mtrace : procedure expose (globals) (matdefs)
+  /*
+     m
+     ---
+     Returns the trace of the square matrix [i.e. sum of the leading
+     diagonal elements]
+     ---
+     trace = mtrace(m)
+  */
+  m = ARG(1) ; trace = 0
+  if \isMatrix(m) then ; return NaN
+  parse var m (MTAG) rows cols . (MHSEP) data
+  if rows &lt;&gt; cols then ; return NaN
+  do i = 1 while data &lt;&gt; NULL
+    parse var data row (MRSEP) data
+    do j = 1 while row &lt;&gt; NULL
+      parse var row item row ; if i == j then ; trace = trace + item
+    end
+  end
+  return trace</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN115"
+>Using Complex Numbers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* REXX offers no complex number-handling BIF's. However, there are   */
+/* native-REXX implementations available from:                        */
+/*                                                                    */
+/*     http://www.geocities.com/zabrodskyvlada/aat/a_contents.html    */
+/*                                                                    */
+/* just as there are implementations of many other classic algorithms.*/
+/*                                                                    */
+/* The code below, however, is not adapted from the examples at this  */
+/* site, but is instead inspired by a Scheme implementation in the    */
+/* very well known publication, 'Structure and Interpretation of Prog-*/
+/* rams' by Abelson and Sussman. See:                                 */
+/*                                                                    */
+/*     http://mitpress.mit.edu/sicp/full-text/sicp/book/node43.html   */
+/* ------------------------------------------------------------------ */
+
+/* Using 'rexxMath' Library Routines */
+
+/* Load [rexxMath] math functions from external library */
+call rxFuncAdd 'mathLoadFuncs', 'rexxMath', 'mathLoadFuncs'
+call mathLoadFuncs
+
+/* ----------- */
+
+a = makeComplex(3, 5) ; b = makeComplex(2, -2)
+
+c = cmul(a, b)
+
+say &quot;c =&quot; asComplex(c)
+
+/* ----------- */
+
+c = cmul(makeComplex(3, 5), makeComplex(2, -2))
+
+say &quot;c =&quot; asComplex(c)
+
+/* ----------- */
+
+d = makeComplex(3, 4)
+
+say &quot;d =&quot; asComplex(d)
+say &quot;sqrt(d) =&quot; asComplex(csqrt(d))
+
+/* ----------- */
+
+say &quot;Rectangualar Notation:&quot; asComplex(csqrt(makeComplex(3, 4)))
+
+say &quot;Polar Notation:&quot; asPolar(csqrt(makeComplex(3, 4)))
+
+/* ----------- */
+
+/* Unload math functions */
+call mathDropFuncs
+
+exit 0
+
+/* ----------------------------- */
+
+makeComplex : procedure
+  return &quot;&lt;C&gt; &quot; ARG(1) &quot; &quot; ARG(2)
+
+makeFromPolar : procedure
+  r = ARG(1) ; a = ARG(2)
+  return makeComplex(r * Cos(a), r * Sin(a))
+
+real : procedure
+  parse value ARG(1) with &quot;&lt;C&gt;&quot; real . ; return real
+
+imag : procedure
+  parse value ARG(1) with &quot;&lt;C&gt;&quot; . imag . ; return imag
+
+magnitude : procedure
+  parse value ARG(1) with &quot;&lt;C&gt;&quot; real imag .
+  return Sqrt(real * real + imag * imag)
+
+angle : procedure
+  parse value ARG(1) with &quot;&lt;C&gt;&quot; real imag .
+  return ATan(imag, real)
+
+isNaN : procedure
+  return ARG(1) == &quot;NaN&quot;
+
+isComplex : procedure
+  return LEFT(ARG(1), 3) == &quot;&lt;C&gt;&quot;
+
+asComplex : procedure
+  z = ARG(1) ; if \isComplex(z) then ; return &quot;NaN&quot;
+  else ; do
+    parse var z &quot;&lt;C&gt;&quot; real imag .
+    dec = 3 ; if ARG(2, E) then ; dec = ARG(2)
+    sign = &quot;+&quot; ; if imag &lt; 0 then ; sign = &quot;-&quot;
+    return FORMAT(real,, dec) sign FORMAT(ABS(imag),, dec) || &quot;i&quot;
+  end 
+
+asPolar : procedure
+  z = ARG(1) ; if \isComplex(z) then ; return &quot;NaN&quot;
+  else ; do
+    parse var z &quot;&lt;C&gt;&quot; real imag .
+    dec = 3 ; if ARG(2, E) then ; dec = ARG(2)
+    return &quot;(&quot; || FORMAT(magnitude(z),, dec) || &quot;,&quot;,
+           FORMAT(angle(z),, dec) || &quot;)&quot;
+  end 
+
+/* ----------- */
+
+cadd : procedure
+  z1 = ARG(1) ; z2 = ARG(2)
+  if \isComplex(z1) | \isComplex(z1) then ; return &quot;NaN&quot;
+  rz1 = real(z1) ; rz2 = real(z2); iz1 = imag(z1) ; iz2 = imag(z2)
+  return makeComplex((rz1 + rz2), (iz1 + iz2))
+
+csub : procedure
+  z1 = ARG(1) ; z2 = ARG(2)
+  if \isComplex(z1) | \isComplex(z1) then ; return &quot;NaN&quot;
+  rz1 = real(z1) ; rz2 = real(z2); iz1 = imag(z1) ; iz2 = imag(z2)
+  return makeComplex((rz1 - rz2), (iz1 - iz2))
+
+cmul : procedure
+  z1 = ARG(1) ; z2 = ARG(2)
+  if \isComplex(z1) | \isComplex(z1) then ; return &quot;NaN&quot;
+  mz1 = magnitude(z1) ; mz2 = magnitude(z2) ; az1 = angle(z1)
+  az2 = angle(z2)
+  return makeComplex((mz1 * mz2), (az1 + az2))
+
+cdiv : procedure
+  z1 = ARG(1) ; z2 = ARG(2)
+  if \isComplex(z1) | \isComplex(z1) then ; return &quot;NaN&quot;
+  mz1 = magnitude(z1) ; mz2 = magnitude(z2) ; az1 = angle(z1)
+  az2 = angle(z2)
+  return makeComplex((mz1 / mz2), (az1 - az2))
+
+csqrt : procedure
+  z = ARG(1) ; if \isComplex(z) then ; return &quot;NaN&quot;
+  r = magnitude(z) ; a = angle(z)
+  u = makeComplex(Sqrt(r) * Cos(a / 2.0), Sqrt(r) * Sin(a / 2.0))
+  t = makeComplex(-real(u), -imag(u))
+  if \(angle(u) &lt; angle(t)) then ; u = t
+  return u</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN118"
+>Converting Between Octal and Hexadecimal</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* Whilst binary, hexadecimal, decimal interconversion is quite well  */
+/* supported in REXX, octal support is non-existent. This is because  */
+/* of REXX's mainframe heritage: octal is simply not used on these    */
+/* platforms.                                                         */
+/*                                                                    */
+/* It is, however, quite easy to implement suitable custom functions  */
+/* as has been done here.                                             */
+/* ------------------------------------------------------------------ */
+
+  hexadecimal = &quot;2A&quot; ; octal = &quot;10&quot;
+
+  number = X2D(hexadecimal)
+  number = O2D(octal)
+
+  hexadecimal = D2X(number)
+  octal = D2O(number)
+
+/* ----------------------------- */
+
+  /*
+     Assumes following input formats:
+
+       decimal - plain digits
+       octal - leading '0' character
+       hexadecimal - leading '0x' | '0X' character sequence
+
+     e.g.
+
+       14 -&gt; 016 -&gt; 0xE
+  */
+
+  call CHAROUT , &quot;Gimme a number in decimal, octal, or hex: &quot;
+
+  parse value LINEIN() with &quot;0x&quot; hex =1 &quot;0&quot; oct =1 dec
+
+  select
+    when hex \= NULL then ; number = X2D(hex)
+    when oct \= NULL then ; number = O2D(oct)
+    when dec \= NULL then ; number = dec
+  end
+
+  say number &quot;d&quot; D2X(number) &quot;h&quot; D2O(number) &quot;o&quot;
+
+  exit 0
+
+/* ----------- */
+
+D2O : procedure expose (globals)
+  parse arg d, o
+  do until d = 0 ; r = d // 8 ; d = d % 8 ; o = r || o ; end
+  return o
+
+O2D : procedure expose (globals)
+  parse value ARG(1) LENGTH(ARG(1)) 0 with ov sp dv
+  do i = 1 for sp
+    parse var ov =(i) oi +1
+    if oi == &quot;8&quot; | oi == &quot;9&quot; then ; return NULL
+    parse value (dv + ((8 ** (sp - i)) * oi)) with dv
+  end
+  return dv</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN121"
+>Putting Commas in Numbers</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* REXX-idiomatic approach to this task is via 'do' loop and string   */
+/* manipulation BIF since it is cross-platform and guarantees the best*/
+/* performance. However, a recursive solution is easily implementable */
+/* ------------------------------------------------------------------ */
+
+/* REXX-idiomatic 'do' loop and BIF Example */
+
+commified = commify(&quot;12345678&quot;) ; say commified
+
+exit 0
+
+/* ----------- */
+
+commify : procedure expose (globals)
+  s = ARG(1) ; l = LENGTH(s) - 3
+  do i = l by -3 while i &gt; 0 ; s = INSERT(&quot;,&quot;, s, i) ; end
+  return s
+
+/* ----------------------------- */
+
+/* Recursive Implementation */
+
+commified = commify(&quot;12345678&quot;) ; say commified
+
+exit 0
+
+/* ----------- */
+
+commify : procedure expose (globals)
+  return STRIP(commify_(REVERSE(ARG(1))), 'T', &quot;,&quot;)
+
+commify_ : procedure expose (globals)
+  parse value ARG(1) with car +3 cdr
+  if car == NULL then ; return NULL
+  return commify_(cdr) || REVERSE(car) || &quot;,&quot;</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN124"
+>Printing Correct Plurals</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">/* ------------------------------------------------------------------ */
+/* REXX-idiomatic approach to this task is via 'do' loop and the PARSE*/
+/* instruction.                                                       */
+/* ------------------------------------------------------------------ */
+
+duration = 1
+say &quot;It took&quot; duration pluralise(duration, &quot;hour&quot;)
+say duration pluralise(duration, &quot;hour&quot;),
+    pluralise(duration, &quot;&quot;, &quot;is&quot;, &quot;are&quot;),
+    &quot;enough&quot;
+
+duration = 5
+say &quot;It took&quot; duration pluralise(duration, &quot;hour&quot;)
+say duration pluralise(duration, &quot;hour&quot;),
+    pluralise(duration, &quot;&quot;, &quot;is&quot;, &quot;are&quot;),
+   &quot;enough&quot;
+
+exit 0
+
+/* ----------- */
+
+pluralise : procedure
+  value = ARG(1) ; root = ARG(2)
+  singular = &quot;&quot; ; if ARG(3, 'E') then ; singular = ARG(3)
+  plural = &quot;s&quot; ; if ARG(4, 'E') then ; plural = ARG(4)
+  if value == 1 then ; return root || singular
+  return root || plural
+
+/* ----------------------------- */
+
+list = &quot;mess index leaf puppy&quot;
+
+do while list &lt;&gt; &quot;&quot; 
+  parse var list word list
+  say LEFT(word, 6) &quot;-&gt;&quot; plural(word)
+end
+
+exit 0
+
+/* ----------- */
+
+plural : procedure
+  endings = &quot;ss:sses ph:phes sh:shes ch:ches ey:eys ix:ices&quot;,
+            &quot;ff:ffs z:zes f:ves y:ies s:ses x:xes&quot;
+
+  singular = ARG(1) ; plural = singular ; do while endings &lt;&gt; NULL
+    parse var endings key &quot;:&quot; value endings
+
+    /* ===
+       Both approaches below work. First one makes exclusive use of
+       string manipulation BIF's, while the second one uses the PARSE
+       instruction to split a string, and is probably faster
+
+    /* 1 */
+    if RIGHT(singular, LENGTH(key)) == key then do
+      plural = LEFT(singular, LENGTH(singular) - LENGTH(key)) || value
+      leave
+    end
+
+    /* 2 */
+    pos = LENGTH(singular) - LENGTH(key)
+    parse var singular car +(pos) cdr
+    if cdr == key then do ; plural = car || value ; leave ; end
+
+    === */
+
+    pos = LENGTH(singular) - LENGTH(key)
+    parse var singular car +(pos) cdr
+    if cdr == key then do ; plural = car || value ; leave ; end
+
+  end
+
+  return plural</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN127"
+>Program: Calculating Prime Factors</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="strings.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="datesandtimes.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Strings</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Dates and Times</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

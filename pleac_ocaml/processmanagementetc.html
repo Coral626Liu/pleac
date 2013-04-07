@@ -1,0 +1,1852 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Process Management and Communication</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Objective CAML "
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="User Interfaces"
+HREF="userinterfaces.html"><LINK
+REL="NEXT"
+TITLE="Sockets"
+HREF="sockets.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Objective CAML </TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="userinterfaces.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="sockets.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="PROCESSMANAGEMENTETC"
+>16. Process Management and Communication</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN851"
+>Gathering Output from a Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c">(* Process support is mostly in the &quot;unix&quot; library. *)</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+
+<span class="c">(* Run a command and return its results as a string. *)</span>
+<span class="k">let</span> <span class="n">read_process</span> <span class="n">command</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">buffer_size</span> <span class="o">=</span> <span class="mi">2048</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="n">buffer</span> <span class="o">=</span> <span class="nn">Buffer</span><span class="p">.</span><span class="n">create</span> <span class="n">buffer_size</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="kt">string</span> <span class="o">=</span> <span class="nn">String</span><span class="p">.</span><span class="n">create</span> <span class="n">buffer_size</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="n">in_channel</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">open_process_in</span> <span class="n">command</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="n">chars_read</span> <span class="o">=</span> <span class="n">ref</span> <span class="mi">1</span> <span class="k">in</span>
+  <span class="k">while</span> <span class="o">!</span><span class="n">chars_read</span> <span class="o">&lt;&gt;</span> <span class="mi">0</span> <span class="k">do</span>
+    <span class="n">chars_read</span> <span class="o">:=</span> <span class="n">input</span> <span class="n">in_channel</span> <span class="kt">string</span> <span class="mi">0</span> <span class="n">buffer_size</span><span class="o">;</span>
+    <span class="nn">Buffer</span><span class="p">.</span><span class="n">add_substring</span> <span class="n">buffer</span> <span class="kt">string</span> <span class="mi">0</span> <span class="o">!</span><span class="n">chars_read</span>
+  <span class="k">done</span><span class="o">;</span>
+  <span class="n">ignore</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">close_process_in</span> <span class="n">in_channel</span><span class="o">);</span>
+  <span class="nn">Buffer</span><span class="p">.</span><span class="n">contents</span> <span class="n">buffer</span>
+
+<span class="c">(* Run a command and return its results as a list of strings,</span>
+<span class="c">   one per line. *)</span>
+<span class="k">let</span> <span class="n">read_process_lines</span> <span class="n">command</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">lines</span> <span class="o">=</span> <span class="n">ref</span> <span class="bp">[]</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="n">in_channel</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">open_process_in</span> <span class="n">command</span> <span class="k">in</span>
+  <span class="k">begin</span>
+    <span class="k">try</span>
+      <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+        <span class="n">lines</span> <span class="o">:=</span> <span class="n">input_line</span> <span class="n">in_channel</span> <span class="o">::</span> <span class="o">!</span><span class="n">lines</span>
+      <span class="k">done</span><span class="o">;</span>
+    <span class="k">with</span> <span class="nc">End_of_file</span> <span class="o">-&gt;</span>
+      <span class="n">ignore</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">close_process_in</span> <span class="n">in_channel</span><span class="o">)</span>
+  <span class="k">end</span><span class="o">;</span>
+  <span class="nn">List</span><span class="p">.</span><span class="n">rev</span> <span class="o">!</span><span class="n">lines</span>
+
+<span class="c">(* Example: *)</span>
+<span class="k">let</span> <span class="n">output_string</span> <span class="o">=</span> <span class="n">read_process</span> <span class="s2">&quot;program args&quot;</span>
+<span class="k">let</span> <span class="n">output_lines</span> <span class="o">=</span> <span class="n">read_process_lines</span> <span class="s2">&quot;program args&quot;</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* Create a pipe for the subprocess output. *)</span>
+<span class="k">let</span> <span class="n">readme</span><span class="o">,</span> <span class="n">writeme</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">pipe</span> <span class="bp">()</span>
+
+<span class="c">(* Launch the program, redirecting its stdout to the pipe.</span>
+<span class="c">   By calling Unix.create_process, we can avoid running the</span>
+<span class="c">   command through the shell. *)</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">pid</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">create_process</span>
+    <span class="n">program</span> <span class="o">[|</span> <span class="n">program</span><span class="o">;</span> <span class="n">arg1</span><span class="o">;</span> <span class="n">arg2</span> <span class="o">|]</span>
+    <span class="nn">Unix</span><span class="p">.</span><span class="n">stdin</span> <span class="n">writeme</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">stderr</span> <span class="k">in</span>
+  <span class="nn">Unix</span><span class="p">.</span><span class="n">close</span> <span class="n">writeme</span><span class="o">;</span>
+  <span class="k">let</span> <span class="n">in_channel</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">in_channel_of_descr</span> <span class="n">readme</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="n">lines</span> <span class="o">=</span> <span class="n">ref</span> <span class="bp">[]</span> <span class="k">in</span>
+  <span class="k">begin</span>
+    <span class="k">try</span>
+      <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+        <span class="n">lines</span> <span class="o">:=</span> <span class="n">input_line</span> <span class="n">in_channel</span> <span class="o">::</span> <span class="o">!</span><span class="n">lines</span>
+      <span class="k">done</span>
+    <span class="k">with</span> <span class="nc">End_of_file</span> <span class="o">-&gt;</span> <span class="bp">()</span>
+  <span class="k">end</span><span class="o">;</span>
+  <span class="nn">Unix</span><span class="p">.</span><span class="n">close</span> <span class="n">readme</span><span class="o">;</span>
+  <span class="nn">List</span><span class="p">.</span><span class="n">iter</span> <span class="n">print_endline</span> <span class="o">(</span><span class="nn">List</span><span class="p">.</span><span class="n">rev</span> <span class="o">!</span><span class="n">lines</span><span class="o">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN854"
+>Running Another Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c">(* Run a simple command and retrieve its result code. *)</span>
+<span class="k">let</span> <span class="n">status</span> <span class="o">=</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">command</span> <span class="o">(</span><span class="s2">&quot;vi &quot;</span> <span class="o">^</span> <span class="n">myfile</span><span class="o">)</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* Use the shell to perform redirection. *)</span>
+<span class="k">let</span> <span class="o">_</span> <span class="o">=</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">command</span> <span class="s2">&quot;cmd1 args | cmd2 | cmd3 &gt;outfile&quot;</span>
+<span class="k">let</span> <span class="o">_</span> <span class="o">=</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">command</span> <span class="s2">&quot;cmd args &lt;infile &gt;outfile 2&gt;errfile&quot;</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* Run a command, handling its result code or signal. *)</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">match</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">system</span> <span class="n">command</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">WEXITED</span> <span class="n">status</span> <span class="o">-&gt;</span>
+        <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;program exited with status %d</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="n">status</span>
+    <span class="o">|</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">WSIGNALED</span> <span class="n">signal</span> <span class="o">-&gt;</span>
+        <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;program killed by signal %d</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="n">signal</span>
+    <span class="o">|</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">WSTOPPED</span> <span class="n">signal</span> <span class="o">-&gt;</span>
+        <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;program stopped by signal %d</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="n">signal</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* Run a command while blocking interrupt signals. *)</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">match</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">fork</span> <span class="bp">()</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="mi">0</span> <span class="o">-&gt;</span>
+        <span class="c">(* child ignores INT and does its thing *)</span>
+        <span class="nn">Sys</span><span class="p">.</span><span class="n">set_signal</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigint</span> <span class="nn">Sys</span><span class="p">.</span><span class="nc">Signal_ignore</span><span class="o">;</span>
+        <span class="nn">Unix</span><span class="p">.</span><span class="n">execv</span> <span class="s2">&quot;/bin/sleep&quot;</span> <span class="o">[|</span> <span class="s2">&quot;/bin/sleep&quot;</span><span class="o">;</span> <span class="s2">&quot;10&quot;</span> <span class="o">|]</span>
+    <span class="o">|</span> <span class="n">pid</span> <span class="o">-&gt;</span>
+        <span class="c">(* parent catches INT and berates user *)</span>
+        <span class="nn">Sys</span><span class="p">.</span><span class="n">set_signal</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigint</span>
+          <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="nc">Signal_handle</span>
+            <span class="o">(</span><span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="n">print_endline</span> <span class="s2">&quot;Tsk tsk, no process interruptus&quot;</span><span class="o">));</span>
+        <span class="k">let</span> <span class="n">running</span> <span class="o">=</span> <span class="n">ref</span> <span class="bp">true</span> <span class="k">in</span>
+        <span class="k">while</span> <span class="o">!</span><span class="n">running</span> <span class="k">do</span>
+          <span class="k">try</span> <span class="o">(</span><span class="n">ignore</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">waitpid</span> <span class="bp">[]</span> <span class="n">pid</span><span class="o">);</span> <span class="n">running</span> <span class="o">:=</span> <span class="bp">false</span><span class="o">)</span>
+          <span class="k">with</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">Unix_error</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">()</span>
+        <span class="k">done</span><span class="o">;</span>
+        <span class="nn">Sys</span><span class="p">.</span><span class="n">set_signal</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigint</span> <span class="nn">Sys</span><span class="p">.</span><span class="nc">Signal_default</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* Run a command with a different name in the process table. *)</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+<span class="k">let</span> <span class="n">shell</span> <span class="o">=</span> <span class="s2">&quot;/bin/tcsh&quot;</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">match</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">fork</span> <span class="bp">()</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="mi">0</span> <span class="o">-&gt;</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">execv</span> <span class="n">shell</span> <span class="o">[|</span> <span class="s2">&quot;-csh&quot;</span> <span class="o">|]</span> <span class="c">(* pretend it&#39;s a login shell *)</span>
+    <span class="o">|</span> <span class="n">pid</span> <span class="o">-&gt;</span> <span class="n">ignore</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">waitpid</span> <span class="bp">[]</span> <span class="n">pid</span><span class="o">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN857"
+>Replacing the Current Program with a Different One</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+<span class="c">(* Transfer control to the shell to run another program. *)</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">execv</span> <span class="s2">&quot;/bin/sh&quot;</span> <span class="o">[|</span> <span class="s2">&quot;/bin/sh&quot;</span><span class="o">;</span> <span class="s2">&quot;-c&quot;</span><span class="o">;</span> <span class="s2">&quot;archive *.data&quot;</span> <span class="o">|]</span>
+<span class="c">(* Transfer control directly to another program in the path. *)</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">execvp</span> <span class="s2">&quot;archive&quot;</span> <span class="o">[|</span> <span class="s2">&quot;archive&quot;</span><span class="o">;</span> <span class="s2">&quot;accounting.data&quot;</span> <span class="o">|]</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN860"
+>Reading or Writing to Another Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* Handle each line in the output of a process. *)</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">readme</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">open_process_in</span> <span class="s2">&quot;program arguments&quot;</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="k">rec</span> <span class="n">loop</span> <span class="n">line</span> <span class="o">=</span>
+    <span class="c">(* ... *)</span>
+    <span class="n">loop</span> <span class="o">(</span><span class="n">input_line</span> <span class="n">readme</span><span class="o">)</span> <span class="k">in</span>
+  <span class="k">try</span> <span class="n">loop</span> <span class="o">(</span><span class="n">input_line</span> <span class="n">readme</span><span class="o">)</span>
+  <span class="k">with</span> <span class="nc">End_of_file</span> <span class="o">-&gt;</span> <span class="n">ignore</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">close_process_in</span> <span class="n">readme</span><span class="o">)</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* Write to the input of a process. *)</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">writeme</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">open_process_out</span> <span class="s2">&quot;program arguments&quot;</span> <span class="k">in</span>
+  <span class="n">output_string</span> <span class="n">writeme</span> <span class="s2">&quot;data</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">;</span>
+  <span class="n">ignore</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">close_process_out</span> <span class="n">writeme</span><span class="o">)</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* Wait for a process to complete. *)</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="c">(* child goes to sleep *)</span>
+  <span class="k">let</span> <span class="n">f</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">open_process_in</span> <span class="s2">&quot;sleep 100000&quot;</span> <span class="k">in</span>
+  <span class="c">(* and parent goes to lala land *)</span>
+  <span class="n">ignore</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">close_process_in</span> <span class="n">f</span><span class="o">);</span>
+  <span class="n">ignore</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">wait</span> <span class="bp">()</span><span class="o">)</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">writeme</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">open_process_out</span> <span class="s2">&quot;program args&quot;</span> <span class="k">in</span>
+  <span class="c">(* program will get hello\n on STDIN *)</span>
+  <span class="n">output_string</span> <span class="n">writeme</span> <span class="s2">&quot;hello</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">;</span>
+  <span class="c">(* program will get EOF on STDIN *)</span>
+  <span class="n">ignore</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">close_process_out</span> <span class="n">writeme</span><span class="o">)</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* Redirect standard output to the pager. *)</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">pager</span> <span class="o">=</span>
+    <span class="k">try</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">getenv</span> <span class="s2">&quot;PAGER&quot;</span> <span class="c">(* XXX: might not exist *)</span>
+    <span class="k">with</span> <span class="nc">Not_found</span> <span class="o">-&gt;</span> <span class="s2">&quot;/usr/bin/less&quot;</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="n">reader</span><span class="o">,</span> <span class="n">writer</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">pipe</span> <span class="bp">()</span> <span class="k">in</span>
+  <span class="k">match</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">fork</span> <span class="bp">()</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="mi">0</span> <span class="o">-&gt;</span>
+        <span class="nn">Unix</span><span class="p">.</span><span class="n">close</span> <span class="n">writer</span><span class="o">;</span>
+        <span class="nn">Unix</span><span class="p">.</span><span class="n">dup2</span> <span class="n">reader</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">stdin</span><span class="o">;</span>
+        <span class="nn">Unix</span><span class="p">.</span><span class="n">close</span> <span class="n">reader</span><span class="o">;</span>
+        <span class="nn">Unix</span><span class="p">.</span><span class="n">execvp</span> <span class="n">pager</span> <span class="o">[|</span> <span class="n">pager</span> <span class="o">|]</span>
+    <span class="o">|</span> <span class="n">pid</span> <span class="o">-&gt;</span>
+        <span class="nn">Unix</span><span class="p">.</span><span class="n">close</span> <span class="n">reader</span><span class="o">;</span>
+        <span class="nn">Unix</span><span class="p">.</span><span class="n">dup2</span> <span class="n">writer</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">stdout</span><span class="o">;</span>
+        <span class="nn">Unix</span><span class="p">.</span><span class="n">close</span> <span class="n">writer</span>
+
+<span class="c">(* Do something useful that writes to standard output, then</span>
+<span class="c">   close the stream and wait for the pager to finish. *)</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="c">(* ... *)</span>
+  <span class="n">close_out</span> <span class="n">stdout</span><span class="o">;</span>
+  <span class="n">ignore</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">wait</span> <span class="bp">()</span><span class="o">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN863"
+>Filtering Your Own Output</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+
+<span class="c">(* Fork a process that calls f to post-process standard output. *)</span>
+<span class="k">let</span> <span class="n">push_output_filter</span> <span class="n">f</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">reader</span><span class="o">,</span> <span class="n">writer</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">pipe</span> <span class="bp">()</span> <span class="k">in</span>
+  <span class="k">match</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">fork</span> <span class="bp">()</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="mi">0</span> <span class="o">-&gt;</span>
+        <span class="nn">Unix</span><span class="p">.</span><span class="n">close</span> <span class="n">writer</span><span class="o">;</span>
+        <span class="nn">Unix</span><span class="p">.</span><span class="n">dup2</span> <span class="n">reader</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">stdin</span><span class="o">;</span>
+        <span class="nn">Unix</span><span class="p">.</span><span class="n">close</span> <span class="n">reader</span><span class="o">;</span>
+        <span class="n">f</span> <span class="bp">()</span><span class="o">;</span>
+        <span class="n">exit</span> <span class="mi">0</span>
+    <span class="o">|</span> <span class="n">pid</span> <span class="o">-&gt;</span>
+        <span class="nn">Unix</span><span class="p">.</span><span class="n">close</span> <span class="n">reader</span><span class="o">;</span>
+        <span class="nn">Unix</span><span class="p">.</span><span class="n">dup2</span> <span class="n">writer</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">stdout</span><span class="o">;</span>
+        <span class="nn">Unix</span><span class="p">.</span><span class="n">close</span> <span class="n">writer</span>
+
+<span class="c">(* Only display a certain number of lines of output. *)</span>
+<span class="k">let</span> <span class="n">head</span> <span class="o">?(</span><span class="n">lines</span><span class="o">=</span><span class="mi">20</span><span class="o">)</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="n">push_output_filter</span>
+    <span class="o">(</span><span class="k">fun</span> <span class="bp">()</span> <span class="o">-&gt;</span>
+       <span class="k">let</span> <span class="n">lines</span> <span class="o">=</span> <span class="n">ref</span> <span class="n">lines</span> <span class="k">in</span>
+       <span class="k">try</span>
+         <span class="k">while</span> <span class="o">!</span><span class="n">lines</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">do</span>
+           <span class="n">print_endline</span> <span class="o">(</span><span class="n">read_line</span> <span class="bp">()</span><span class="o">);</span>
+           <span class="n">decr</span> <span class="n">lines</span>
+         <span class="k">done</span>
+       <span class="k">with</span> <span class="nc">End_of_file</span> <span class="o">-&gt;</span> <span class="bp">()</span><span class="o">)</span>
+
+<span class="c">(* Prepend line numbers to each line of output. *)</span>
+<span class="k">let</span> <span class="n">number</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="n">push_output_filter</span>
+    <span class="o">(</span><span class="k">fun</span> <span class="bp">()</span> <span class="o">-&gt;</span>
+       <span class="k">let</span> <span class="n">line_number</span> <span class="o">=</span> <span class="n">ref</span> <span class="mi">0</span> <span class="k">in</span>
+       <span class="k">try</span>
+         <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+           <span class="k">let</span> <span class="n">line</span> <span class="o">=</span> <span class="n">read_line</span> <span class="bp">()</span> <span class="k">in</span>
+           <span class="n">incr</span> <span class="n">line_number</span><span class="o">;</span>
+           <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;%d: %s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">!</span><span class="n">line_number</span> <span class="n">line</span>
+         <span class="k">done</span>
+       <span class="k">with</span> <span class="nc">End_of_file</span> <span class="o">-&gt;</span> <span class="bp">()</span><span class="o">)</span>
+
+<span class="c">(* Prepend &quot;&gt; &quot; to each line of output. *)</span>
+<span class="k">let</span> <span class="n">quote</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="n">push_output_filter</span>
+    <span class="o">(</span><span class="k">fun</span> <span class="bp">()</span> <span class="o">-&gt;</span>
+       <span class="k">try</span>
+         <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+           <span class="k">let</span> <span class="n">line</span> <span class="o">=</span> <span class="n">read_line</span> <span class="bp">()</span> <span class="k">in</span>
+           <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;&gt; %s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="n">line</span>
+         <span class="k">done</span>
+       <span class="k">with</span> <span class="nc">End_of_file</span> <span class="o">-&gt;</span> <span class="bp">()</span><span class="o">)</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="n">head</span> <span class="o">~</span><span class="n">lines</span><span class="o">:</span><span class="mi">100</span> <span class="bp">()</span><span class="o">;</span>  <span class="c">(* push head filter on STDOUT *)</span>
+  <span class="n">number</span> <span class="bp">()</span><span class="o">;</span>           <span class="c">(* push number filter on STDOUT *)</span>
+  <span class="n">quote</span> <span class="bp">()</span><span class="o">;</span>            <span class="c">(* push quote filter on STDOUT *)</span>
+
+  <span class="c">(* act like /bin/cat *)</span>
+  <span class="k">begin</span>
+    <span class="k">try</span>
+      <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+        <span class="n">print_endline</span> <span class="o">(</span><span class="n">read_line</span> <span class="bp">()</span><span class="o">)</span>
+      <span class="k">done</span>
+    <span class="k">with</span> <span class="nc">End_of_file</span> <span class="o">-&gt;</span> <span class="bp">()</span>
+  <span class="k">end</span><span class="o">;</span>
+
+  <span class="c">(* tell kids we&#39;re done--politely *)</span>
+  <span class="n">close_out</span> <span class="n">stdout</span><span class="o">;</span>
+  <span class="n">ignore</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">waitpid</span> <span class="bp">[]</span> <span class="o">(-</span><span class="mi">1</span><span class="o">));</span>
+  <span class="n">exit</span> <span class="mi">0</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN866"
+>Preprocessing Input</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;str.cma&quot;</span><span class="o">;;</span>
+
+<span class="c">(* Tagged filename or URL type. *)</span>
+<span class="k">type</span> <span class="n">filename</span> <span class="o">=</span>
+  <span class="o">|</span> <span class="nc">Uncompressed</span> <span class="k">of</span> <span class="kt">string</span>
+  <span class="o">|</span> <span class="nc">Compressed</span> <span class="k">of</span> <span class="kt">string</span>
+  <span class="o">|</span> <span class="nc">URL</span> <span class="k">of</span> <span class="kt">string</span>
+
+<span class="c">(* try/finally-like construct to ensure we dispose of resources properly. *)</span>
+<span class="k">let</span> <span class="n">finally</span> <span class="n">handler</span> <span class="n">f</span> <span class="n">x</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">result</span> <span class="o">=</span> <span class="k">try</span> <span class="n">f</span> <span class="n">x</span> <span class="k">with</span> <span class="n">e</span> <span class="o">-&gt;</span> <span class="n">handler</span> <span class="bp">()</span><span class="o">;</span> <span class="k">raise</span> <span class="n">e</span> <span class="k">in</span> <span class="n">handler</span> <span class="bp">()</span><span class="o">;</span> <span class="n">result</span>
+
+<span class="c">(* Call f with an in_channel given a tagged filename. If the filename is</span>
+<span class="c">   tagged Uncompressed, open it normally. If it is tagged Compressed then</span>
+<span class="c">   pipe it through gzip. If it is tagged URL, pipe it through &quot;lynx -dump&quot;.</span>
+<span class="c">   Ensure that the channel is closed and any created processes have</span>
+<span class="c">   terminated before returning. As a special case, a filename of</span>
+<span class="c">   Uncompressed &quot;-&quot; will result in stdin being passed, and no channel</span>
+<span class="c">   will be closed. *)</span>
+<span class="k">let</span> <span class="n">with_in_channel</span> <span class="n">filename</span> <span class="n">f</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">pipe_input</span> <span class="n">args</span> <span class="n">f</span> <span class="o">=</span>
+    <span class="k">let</span> <span class="n">reader</span><span class="o">,</span> <span class="n">writer</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">pipe</span> <span class="bp">()</span> <span class="k">in</span>
+    <span class="k">let</span> <span class="n">pid</span> <span class="o">=</span>
+      <span class="nn">Unix</span><span class="p">.</span><span class="n">create_process</span> <span class="n">args</span><span class="o">.(</span><span class="mi">0</span><span class="o">)</span> <span class="n">args</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">stdin</span> <span class="n">writer</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">stderr</span> <span class="k">in</span>
+    <span class="nn">Unix</span><span class="p">.</span><span class="n">close</span> <span class="n">writer</span><span class="o">;</span>
+    <span class="k">let</span> <span class="n">in_channel</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">in_channel_of_descr</span> <span class="n">reader</span> <span class="k">in</span>
+    <span class="n">finally</span>
+      <span class="o">(</span><span class="k">fun</span> <span class="bp">()</span> <span class="o">-&gt;</span> <span class="n">close_in</span> <span class="n">in_channel</span><span class="o">;</span> <span class="n">ignore</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">waitpid</span> <span class="bp">[]</span> <span class="n">pid</span><span class="o">))</span>
+      <span class="n">f</span> <span class="n">in_channel</span> <span class="k">in</span>
+  <span class="k">match</span> <span class="n">filename</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="nc">Uncompressed</span> <span class="s2">&quot;-&quot;</span> <span class="o">-&gt;</span>
+        <span class="n">f</span> <span class="n">stdin</span>
+    <span class="o">|</span> <span class="nc">Uncompressed</span> <span class="n">filename</span> <span class="o">-&gt;</span>
+        <span class="k">let</span> <span class="n">in_channel</span> <span class="o">=</span> <span class="n">open_in</span> <span class="n">filename</span> <span class="k">in</span>
+        <span class="n">finally</span>
+          <span class="o">(</span><span class="k">fun</span> <span class="bp">()</span> <span class="o">-&gt;</span> <span class="n">close_in</span> <span class="n">in_channel</span><span class="o">)</span>
+          <span class="n">f</span> <span class="n">in_channel</span>
+    <span class="o">|</span> <span class="nc">Compressed</span> <span class="n">filename</span> <span class="o">-&gt;</span>
+        <span class="n">pipe_input</span> <span class="o">[|</span> <span class="s2">&quot;gzip&quot;</span><span class="o">;</span> <span class="s2">&quot;-dc&quot;</span><span class="o">;</span> <span class="n">filename</span> <span class="o">|]</span> <span class="n">f</span>
+    <span class="o">|</span> <span class="nc">URL</span> <span class="n">url</span> <span class="o">-&gt;</span>
+        <span class="n">pipe_input</span> <span class="o">[|</span> <span class="s2">&quot;lynx&quot;</span><span class="o">;</span> <span class="s2">&quot;-dump&quot;</span><span class="o">;</span> <span class="n">url</span> <span class="o">|]</span> <span class="n">f</span>
+
+<span class="c">(* Return true if the string s starts with the given prefix. *)</span>
+<span class="k">let</span> <span class="n">starts_with</span> <span class="n">s</span> <span class="n">prefix</span> <span class="o">=</span>
+  <span class="k">try</span> <span class="nn">Str</span><span class="p">.</span><span class="n">first_chars</span> <span class="n">s</span> <span class="o">(</span><span class="nn">String</span><span class="p">.</span><span class="n">length</span> <span class="n">prefix</span><span class="o">)</span> <span class="o">=</span> <span class="n">prefix</span>
+  <span class="k">with</span> <span class="nc">Invalid_argument</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">false</span>
+
+<span class="c">(* Return true if the string s ends with the given suffix. *)</span>
+<span class="k">let</span> <span class="n">ends_with</span> <span class="n">s</span> <span class="n">suffix</span> <span class="o">=</span>
+  <span class="k">try</span> <span class="nn">Str</span><span class="p">.</span><span class="n">last_chars</span> <span class="n">s</span> <span class="o">(</span><span class="nn">String</span><span class="p">.</span><span class="n">length</span> <span class="n">suffix</span><span class="o">)</span> <span class="o">=</span> <span class="n">suffix</span>
+  <span class="k">with</span> <span class="nc">Invalid_argument</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">false</span>
+
+<span class="c">(* Return true if the string s contains the given substring. *)</span>
+<span class="k">let</span> <span class="n">contains</span> <span class="n">s</span> <span class="n">substring</span> <span class="o">=</span>
+  <span class="k">try</span> <span class="n">ignore</span> <span class="o">(</span><span class="nn">Str</span><span class="p">.</span><span class="n">search_forward</span> <span class="o">(</span><span class="nn">Str</span><span class="p">.</span><span class="n">regexp_string</span> <span class="n">substring</span><span class="o">)</span> <span class="n">s</span> <span class="mi">0</span><span class="o">);</span> <span class="bp">true</span>
+  <span class="k">with</span> <span class="nc">Not_found</span> <span class="o">-&gt;</span> <span class="bp">false</span>
+
+<span class="c">(* Tag the filename depending on its contents or extension. *)</span>
+<span class="k">let</span> <span class="n">tag_filename</span> <span class="n">filename</span> <span class="o">=</span>
+  <span class="k">if</span> <span class="n">contains</span> <span class="n">filename</span> <span class="s2">&quot;://&quot;</span>
+  <span class="k">then</span> <span class="nc">URL</span> <span class="n">filename</span>
+  <span class="k">else</span> <span class="k">if</span> <span class="nn">List</span><span class="p">.</span><span class="n">exists</span> <span class="o">(</span><span class="n">ends_with</span> <span class="n">filename</span><span class="o">)</span> <span class="o">[</span><span class="s2">&quot;.gz&quot;</span><span class="o">;</span> <span class="s2">&quot;.Z&quot;</span><span class="o">]</span>
+  <span class="k">then</span> <span class="nc">Compressed</span> <span class="n">filename</span>
+  <span class="k">else</span> <span class="nc">Uncompressed</span> <span class="n">filename</span>
+
+<span class="c">(* Process a tagged filename. *)</span>
+<span class="k">let</span> <span class="n">process</span> <span class="n">filename</span> <span class="o">=</span>
+  <span class="n">with_in_channel</span>
+    <span class="n">filename</span>
+    <span class="o">(</span><span class="k">fun</span> <span class="n">in_channel</span> <span class="o">-&gt;</span>
+       <span class="k">try</span>
+         <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+           <span class="k">let</span> <span class="n">line</span> <span class="o">=</span> <span class="n">input_line</span> <span class="n">in_channel</span> <span class="k">in</span>
+           <span class="c">(* ... *)</span>
+           <span class="bp">()</span>
+         <span class="k">done</span>
+       <span class="k">with</span> <span class="nc">End_of_file</span> <span class="o">-&gt;</span> <span class="bp">()</span><span class="o">)</span>
+
+<span class="c">(* Parse the command-line arguments and process each file or URL. *)</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">args</span> <span class="o">=</span>
+    <span class="k">if</span> <span class="nn">Array</span><span class="p">.</span><span class="n">length</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span> <span class="o">&gt;</span> <span class="mi">1</span>
+    <span class="k">then</span> <span class="o">(</span><span class="nn">List</span><span class="p">.</span><span class="n">tl</span> <span class="o">(</span><span class="nn">Array</span><span class="p">.</span><span class="n">to_list</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span><span class="o">))</span>
+    <span class="k">else</span> <span class="o">[</span><span class="s2">&quot;-&quot;</span><span class="o">]</span> <span class="k">in</span>
+  <span class="nn">List</span><span class="p">.</span><span class="n">iter</span> <span class="n">process</span> <span class="o">(</span><span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="n">tag_filename</span> <span class="n">args</span><span class="o">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN869"
+>Reading STDERR from a Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+
+<span class="c">(* Read STDERR and STDOUT at the same time. *)</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">ph</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">open_process_in</span> <span class="s2">&quot;cmd 2&gt;&amp;1&quot;</span> <span class="k">in</span>
+  <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+    <span class="k">let</span> <span class="n">line</span> <span class="o">=</span> <span class="n">input_line</span> <span class="n">ph</span> <span class="k">in</span>
+    <span class="c">(* ... *)</span>
+    <span class="bp">()</span>
+  <span class="k">done</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* Read STDOUT and discard STDERR. *)</span>
+<span class="k">let</span> <span class="n">output</span> <span class="o">=</span> <span class="n">read_process</span> <span class="s2">&quot;cmd 2&gt;/dev/null&quot;</span>
+<span class="c">(* or *)</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">ph</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">open_process_in</span> <span class="s2">&quot;cmd 2&gt;/dev/null&quot;</span> <span class="k">in</span>
+  <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+    <span class="k">let</span> <span class="n">line</span> <span class="o">=</span> <span class="n">input_line</span> <span class="n">ph</span> <span class="k">in</span>
+    <span class="c">(* ... *)</span>
+    <span class="bp">()</span>
+  <span class="k">done</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* Read STDERR and discard STDOUT. *)</span>
+<span class="k">let</span> <span class="n">output</span> <span class="o">=</span> <span class="n">read_process</span> <span class="s2">&quot;cmd 2&gt;&amp;1 1&gt;/dev/null&quot;</span>
+<span class="c">(* or *)</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">ph</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">open_process_in</span> <span class="s2">&quot;cmd 2&gt;&amp;1 1&gt;/dev/null&quot;</span> <span class="k">in</span>
+  <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+    <span class="k">let</span> <span class="n">line</span> <span class="o">=</span> <span class="n">input_line</span> <span class="n">ph</span> <span class="k">in</span>
+    <span class="c">(* ... *)</span>
+    <span class="bp">()</span>
+  <span class="k">done</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* Swap STDOUT with STDERR and read original STDERR. *)</span>
+<span class="k">let</span> <span class="n">output</span> <span class="o">=</span> <span class="n">read_process</span> <span class="s2">&quot;cmd 3&gt;&amp;1 1&gt;&amp;2 2&gt;&amp;3 3&gt;&amp;-&quot;</span>
+<span class="c">(* or *)</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">ph</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">open_process_in</span> <span class="s2">&quot;cmd 3&gt;&amp;1 1&gt;&amp;2 2&gt;&amp;3 3&gt;&amp;-&quot;</span> <span class="k">in</span>
+  <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+    <span class="k">let</span> <span class="n">line</span> <span class="o">=</span> <span class="n">input_line</span> <span class="n">ph</span> <span class="k">in</span>
+    <span class="c">(* ... *)</span>
+    <span class="bp">()</span>
+  <span class="k">done</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* Redirect STDOUT and STDERR to temporary files. *)</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="n">ignore</span>
+    <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="n">command</span>
+       <span class="s2">&quot;program args 1&gt;/tmp/program.stdout 2&gt;/tmp/program.stderr&quot;</span><span class="o">)</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* If the following redirections were done in OCaml... *)</span>
+<span class="k">let</span> <span class="n">output</span> <span class="o">=</span> <span class="n">read_process</span> <span class="s2">&quot;cmd 3&gt;&amp;1 1&gt;&amp;2 2&gt;&amp;3 3&gt;&amp;-&quot;</span>
+
+<span class="c">(* ...they would look something like this: *)</span>
+<span class="k">let</span> <span class="n">fd3</span> <span class="o">=</span> <span class="n">fd1</span>
+<span class="k">let</span> <span class="n">fd1</span> <span class="o">=</span> <span class="n">fd2</span>
+<span class="k">let</span> <span class="n">fd2</span> <span class="o">=</span> <span class="n">fd3</span>
+<span class="k">let</span> <span class="n">fd3</span> <span class="o">=</span> <span class="n">undef</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* Send STDOUT and STDERR to a temporary file. *)</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span> <span class="n">ignore</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="n">command</span> <span class="s2">&quot;prog args 1&gt;tmpfile 2&gt;&amp;1&quot;</span><span class="o">)</span>
+
+<span class="c">(* Send STDOUT to a temporary file and redirect STDERR to STDOUT. *)</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span> <span class="n">ignore</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="n">command</span> <span class="s2">&quot;prog args 2&gt;&amp;1 1&gt;tmpfile&quot;</span><span class="o">)</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* If the following redirections were done in OCaml... *)</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span> <span class="n">ignore</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="n">command</span> <span class="s2">&quot;prog args 1&gt;tmpfile 2&gt;&amp;1&quot;</span><span class="o">)</span>
+
+<span class="c">(* ...they would look something like this: *)</span>
+<span class="k">let</span> <span class="n">fd1</span> <span class="o">=</span> <span class="s2">&quot;tmpfile&quot;</span>       <span class="c">(* change stdout destination first *)</span>
+<span class="k">let</span> <span class="n">fd2</span> <span class="o">=</span> <span class="n">fd1</span>             <span class="c">(* now point stderr there, too *)</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* If the following redirections were done in OCaml... *)</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span> <span class="n">ignore</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="n">command</span> <span class="s2">&quot;prog args 2&gt;&amp;1 1&gt;tmpfile&quot;</span><span class="o">)</span>
+
+<span class="c">(* ...they would look something like this: *)</span>
+<span class="k">let</span> <span class="n">fd2</span> <span class="o">=</span> <span class="n">fd1</span>             <span class="c">(* stderr same destination as stdout *)</span>
+<span class="k">let</span> <span class="n">fd1</span> <span class="o">=</span> <span class="s2">&quot;tmpfile&quot;</span>       <span class="c">(* but change stdout destination  *)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN872"
+>Controlling Input and Output of Another Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="o">(</span><span class="n">readme</span><span class="o">,</span> <span class="n">writeme</span><span class="o">)</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">open_process</span> <span class="n">program</span> <span class="k">in</span>
+  <span class="n">output_string</span> <span class="n">writeme</span> <span class="s2">&quot;here&#39;s your input</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">;</span>
+  <span class="n">close_out</span> <span class="n">writeme</span><span class="o">;</span>
+  <span class="k">let</span> <span class="n">output</span> <span class="o">=</span> <span class="n">input_line</span> <span class="n">readme</span> <span class="k">in</span>
+  <span class="n">ignore</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">close_process</span> <span class="o">(</span><span class="n">readme</span><span class="o">,</span> <span class="n">writeme</span><span class="o">))</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN875"
+>Controlling the Input, Output, and Error of Another Program</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">proc</span> <span class="o">=</span>
+    <span class="nn">Unix</span><span class="p">.</span><span class="n">open_process_in</span>
+      <span class="o">(</span><span class="s2">&quot;(&quot;</span> <span class="o">^</span> <span class="n">cmd</span> <span class="o">^</span> <span class="s2">&quot; | sed -e &#39;s/^/stdout: /&#39; ) 2&gt;&amp;1&quot;</span><span class="o">)</span> <span class="k">in</span>
+  <span class="k">try</span>
+    <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+      <span class="k">let</span> <span class="n">line</span> <span class="o">=</span> <span class="n">input_line</span> <span class="n">proc</span> <span class="k">in</span>
+      <span class="k">if</span> <span class="nn">String</span><span class="p">.</span><span class="n">length</span> <span class="n">line</span> <span class="o">&gt;=</span> <span class="mi">8</span>
+        <span class="o">&amp;&amp;</span> <span class="nn">String</span><span class="p">.</span><span class="n">sub</span> <span class="n">line</span> <span class="mi">0</span> <span class="mi">8</span> <span class="o">=</span> <span class="s2">&quot;stdout: &quot;</span>
+      <span class="k">then</span> <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;STDOUT: %s</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="o">(</span><span class="nn">String</span><span class="p">.</span><span class="n">sub</span> <span class="n">line</span> <span class="mi">8</span> <span class="o">(</span><span class="nn">String</span><span class="p">.</span><span class="n">length</span> <span class="n">line</span> <span class="o">-</span> <span class="mi">8</span><span class="o">))</span>
+      <span class="k">else</span> <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;STDERR: %s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="n">line</span>
+    <span class="k">done</span>
+  <span class="k">with</span> <span class="nc">End_of_file</span> <span class="o">-&gt;</span>
+    <span class="n">ignore</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">close_process_in</span> <span class="n">proc</span><span class="o">)</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="o">#!/</span><span class="n">usr</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">ocaml</span>
+<span class="c">(* cmd3sel - control all three of kids in, out, and error. *)</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+
+<span class="k">let</span> <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;grep vt33 /none/such - /etc/termcap&quot;</span>
+<span class="k">let</span> <span class="n">cmd_out</span><span class="o">,</span> <span class="n">cmd_in</span><span class="o">,</span> <span class="n">cmd_err</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">open_process_full</span> <span class="n">cmd</span> <span class="o">[|</span> <span class="o">|]</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="n">output_string</span> <span class="n">cmd_in</span> <span class="s2">&quot;This line has a vt33 lurking in it</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">;</span>
+  <span class="n">close_out</span> <span class="n">cmd_in</span><span class="o">;</span>
+  <span class="k">let</span> <span class="n">cmd_out_descr</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">descr_of_in_channel</span> <span class="n">cmd_out</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="n">cmd_err_descr</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">descr_of_in_channel</span> <span class="n">cmd_err</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="n">selector</span> <span class="o">=</span> <span class="n">ref</span> <span class="o">[</span><span class="n">cmd_err_descr</span><span class="o">;</span> <span class="n">cmd_out_descr</span><span class="o">]</span> <span class="k">in</span>
+  <span class="k">while</span> <span class="o">!</span><span class="n">selector</span> <span class="o">&lt;&gt;</span> <span class="bp">[]</span> <span class="k">do</span>
+    <span class="k">let</span> <span class="n">can_read</span><span class="o">,</span> <span class="o">_,</span> <span class="o">_</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">select</span> <span class="o">!</span><span class="n">selector</span> <span class="bp">[]</span> <span class="bp">[]</span> <span class="mi">1</span><span class="o">.</span><span class="mi">0</span> <span class="k">in</span>
+    <span class="nn">List</span><span class="p">.</span><span class="n">iter</span>
+      <span class="o">(</span><span class="k">fun</span> <span class="n">fh</span> <span class="o">-&gt;</span>
+         <span class="k">try</span>
+           <span class="k">if</span> <span class="n">fh</span> <span class="o">=</span> <span class="n">cmd_err_descr</span>
+           <span class="k">then</span> <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;STDERR: %s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">(</span><span class="n">input_line</span> <span class="n">cmd_err</span><span class="o">)</span>
+           <span class="k">else</span> <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;STDOUT: %s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">(</span><span class="n">input_line</span> <span class="n">cmd_out</span><span class="o">)</span>
+         <span class="k">with</span> <span class="nc">End_of_file</span> <span class="o">-&gt;</span>
+           <span class="n">selector</span> <span class="o">:=</span> <span class="nn">List</span><span class="p">.</span><span class="n">filter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">fh&#39;</span> <span class="o">-&gt;</span> <span class="n">fh</span> <span class="o">&lt;&gt;</span> <span class="n">fh&#39;</span><span class="o">)</span> <span class="o">!</span><span class="n">selector</span><span class="o">)</span>
+      <span class="n">can_read</span>
+  <span class="k">done</span><span class="o">;</span>
+  <span class="n">ignore</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">close_process_full</span> <span class="o">(</span><span class="n">cmd_out</span><span class="o">,</span> <span class="n">cmd_in</span><span class="o">,</span> <span class="n">cmd_err</span><span class="o">))</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN878"
+>Communicating Between Related Processes</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c">(* pipe1 - use pipe and fork so parent can send to child *)</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span>
+<span class="k">open</span> <span class="nc">Unix</span>
+
+<span class="k">let</span> <span class="n">reader</span><span class="o">,</span> <span class="n">writer</span> <span class="o">=</span> <span class="n">pipe</span> <span class="bp">()</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">match</span> <span class="n">fork</span> <span class="bp">()</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="mi">0</span> <span class="o">-&gt;</span>
+        <span class="n">close</span> <span class="n">writer</span><span class="o">;</span>
+        <span class="k">let</span> <span class="n">input</span> <span class="o">=</span> <span class="n">in_channel_of_descr</span> <span class="n">reader</span> <span class="k">in</span>
+        <span class="k">let</span> <span class="n">line</span> <span class="o">=</span> <span class="n">input_line</span> <span class="n">input</span> <span class="k">in</span>
+        <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;Child Pid %d just read this: `%s&#39;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">(</span><span class="n">getpid</span> <span class="bp">()</span><span class="o">)</span> <span class="n">line</span><span class="o">;</span>
+        <span class="n">close</span> <span class="n">reader</span><span class="o">;</span>  <span class="c">(* this will happen anyway *)</span>
+        <span class="n">exit</span> <span class="mi">0</span>
+    <span class="o">|</span> <span class="n">pid</span> <span class="o">-&gt;</span>
+        <span class="n">close</span> <span class="n">reader</span><span class="o">;</span>
+        <span class="k">let</span> <span class="n">output</span> <span class="o">=</span> <span class="n">out_channel_of_descr</span> <span class="n">writer</span> <span class="k">in</span>
+        <span class="nn">Printf</span><span class="p">.</span><span class="n">fprintf</span> <span class="n">output</span> <span class="s2">&quot;Parent Pid %d is sending this</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">(</span><span class="n">getpid</span> <span class="bp">()</span><span class="o">);</span>
+        <span class="n">flush</span> <span class="n">output</span><span class="o">;</span>
+        <span class="n">close</span> <span class="n">writer</span><span class="o">;</span>
+        <span class="n">ignore</span> <span class="o">(</span><span class="n">waitpid</span> <span class="bp">[]</span> <span class="n">pid</span><span class="o">)</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* pipe2 - use pipe and fork so child can send to parent *)</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span>
+<span class="k">open</span> <span class="nc">Unix</span>
+
+<span class="k">let</span> <span class="n">reader</span><span class="o">,</span> <span class="n">writer</span> <span class="o">=</span> <span class="n">pipe</span> <span class="bp">()</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">match</span> <span class="n">fork</span> <span class="bp">()</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="mi">0</span> <span class="o">-&gt;</span>
+        <span class="n">close</span> <span class="n">reader</span><span class="o">;</span>
+        <span class="k">let</span> <span class="n">output</span> <span class="o">=</span> <span class="n">out_channel_of_descr</span> <span class="n">writer</span> <span class="k">in</span>
+        <span class="nn">Printf</span><span class="p">.</span><span class="n">fprintf</span> <span class="n">output</span> <span class="s2">&quot;Child Pid %d is sending this</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">(</span><span class="n">getpid</span> <span class="bp">()</span><span class="o">);</span>
+        <span class="n">flush</span> <span class="n">output</span><span class="o">;</span>
+        <span class="n">close</span> <span class="n">writer</span><span class="o">;</span>  <span class="c">(* this will happen anyway *)</span>
+        <span class="n">exit</span> <span class="mi">0</span>
+    <span class="o">|</span> <span class="n">pid</span> <span class="o">-&gt;</span>
+        <span class="n">close</span> <span class="n">writer</span><span class="o">;</span>
+        <span class="k">let</span> <span class="n">input</span> <span class="o">=</span> <span class="n">in_channel_of_descr</span> <span class="n">reader</span> <span class="k">in</span>
+        <span class="k">let</span> <span class="n">line</span> <span class="o">=</span> <span class="n">input_line</span> <span class="n">input</span> <span class="k">in</span>
+        <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;Parent Pid %d just read this: `%s&#39;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">(</span><span class="n">getpid</span> <span class="bp">()</span><span class="o">)</span> <span class="n">line</span><span class="o">;</span>
+        <span class="n">close</span> <span class="n">reader</span><span class="o">;</span>
+        <span class="n">ignore</span> <span class="o">(</span><span class="n">waitpid</span> <span class="bp">[]</span> <span class="n">pid</span><span class="o">)</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* pipe3 and pipe4 demonstrate the use of perl&#39;s &quot;forking open&quot; feature to</span>
+<span class="c"> * reimplement pipe1 and pipe2. Since OCaml does not support such a feature,</span>
+<span class="c"> * these are skipped here. *)</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* pipe5 - bidirectional communication using two pipe pairs</span>
+<span class="c">           designed for the socketpair-challenged *)</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span>
+<span class="k">open</span> <span class="nc">Unix</span>
+
+<span class="k">let</span> <span class="n">parent_rdr</span><span class="o">,</span> <span class="n">child_wtr</span> <span class="o">=</span> <span class="n">pipe</span> <span class="bp">()</span>
+<span class="k">let</span> <span class="n">child_rdr</span><span class="o">,</span> <span class="n">parent_wtr</span> <span class="o">=</span> <span class="n">pipe</span> <span class="bp">()</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">match</span> <span class="n">fork</span> <span class="bp">()</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="mi">0</span> <span class="o">-&gt;</span>
+        <span class="n">close</span> <span class="n">child_rdr</span><span class="o">;</span>
+        <span class="n">close</span> <span class="n">child_wtr</span><span class="o">;</span>
+        <span class="k">let</span> <span class="n">input</span> <span class="o">=</span> <span class="n">in_channel_of_descr</span> <span class="n">parent_rdr</span> <span class="k">in</span>
+        <span class="k">let</span> <span class="n">output</span> <span class="o">=</span> <span class="n">out_channel_of_descr</span> <span class="n">parent_wtr</span> <span class="k">in</span>
+        <span class="k">let</span> <span class="n">line</span> <span class="o">=</span> <span class="n">input_line</span> <span class="n">input</span> <span class="k">in</span>
+        <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;Child Pid %d just read this: `%s&#39;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">(</span><span class="n">getpid</span> <span class="bp">()</span><span class="o">)</span> <span class="n">line</span><span class="o">;</span>
+        <span class="nn">Printf</span><span class="p">.</span><span class="n">fprintf</span> <span class="n">output</span> <span class="s2">&quot;Child Pid %d is sending this</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">(</span><span class="n">getpid</span> <span class="bp">()</span><span class="o">);</span>
+        <span class="n">flush</span> <span class="n">output</span><span class="o">;</span>
+        <span class="n">close</span> <span class="n">parent_rdr</span><span class="o">;</span>
+        <span class="n">close</span> <span class="n">parent_wtr</span><span class="o">;</span>
+        <span class="n">exit</span> <span class="mi">0</span>
+    <span class="o">|</span> <span class="n">pid</span> <span class="o">-&gt;</span>
+        <span class="n">close</span> <span class="n">parent_rdr</span><span class="o">;</span>
+        <span class="n">close</span> <span class="n">parent_wtr</span><span class="o">;</span>
+        <span class="k">let</span> <span class="n">input</span> <span class="o">=</span> <span class="n">in_channel_of_descr</span> <span class="n">child_rdr</span> <span class="k">in</span>
+        <span class="k">let</span> <span class="n">output</span> <span class="o">=</span> <span class="n">out_channel_of_descr</span> <span class="n">child_wtr</span> <span class="k">in</span>
+        <span class="nn">Printf</span><span class="p">.</span><span class="n">fprintf</span> <span class="n">output</span> <span class="s2">&quot;Parent Pid %d is sending this</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">(</span><span class="n">getpid</span><span class="bp">()</span><span class="o">);</span>
+        <span class="n">flush</span> <span class="n">output</span><span class="o">;</span>
+        <span class="k">let</span> <span class="n">line</span> <span class="o">=</span> <span class="n">input_line</span> <span class="n">input</span> <span class="k">in</span>
+        <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;Parent Pid %d just read this: `%s&#39;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">(</span><span class="n">getpid</span> <span class="bp">()</span><span class="o">)</span> <span class="n">line</span><span class="o">;</span>
+        <span class="n">close</span> <span class="n">child_rdr</span><span class="o">;</span>
+        <span class="n">close</span> <span class="n">child_wtr</span><span class="o">;</span>
+        <span class="n">ignore</span> <span class="o">(</span><span class="n">waitpid</span> <span class="bp">[]</span> <span class="n">pid</span><span class="o">)</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* pipe6 - bidirectional communication using socketpair</span>
+<span class="c">           &quot;the best ones always go both ways&quot; *)</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span>
+<span class="k">open</span> <span class="nc">Unix</span>
+
+<span class="k">let</span> <span class="n">child</span><span class="o">,</span> <span class="n">parent</span> <span class="o">=</span> <span class="n">socketpair</span> <span class="nc">PF_UNIX</span> <span class="nc">SOCK_STREAM</span> <span class="mi">0</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">match</span> <span class="n">fork</span> <span class="bp">()</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="mi">0</span> <span class="o">-&gt;</span>
+        <span class="n">close</span> <span class="n">child</span><span class="o">;</span>
+        <span class="k">let</span> <span class="n">input</span> <span class="o">=</span> <span class="n">in_channel_of_descr</span> <span class="n">parent</span> <span class="k">in</span>
+        <span class="k">let</span> <span class="n">output</span> <span class="o">=</span> <span class="n">out_channel_of_descr</span> <span class="n">parent</span> <span class="k">in</span>
+        <span class="k">let</span> <span class="n">line</span> <span class="o">=</span> <span class="n">input_line</span> <span class="n">input</span> <span class="k">in</span>
+        <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;Child Pid %d just read this: `%s&#39;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">(</span><span class="n">getpid</span> <span class="bp">()</span><span class="o">)</span> <span class="n">line</span><span class="o">;</span>
+        <span class="nn">Printf</span><span class="p">.</span><span class="n">fprintf</span> <span class="n">output</span> <span class="s2">&quot;Child Pid %d is sending this</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">(</span><span class="n">getpid</span> <span class="bp">()</span><span class="o">);</span>
+        <span class="n">flush</span> <span class="n">output</span><span class="o">;</span>
+        <span class="n">close</span> <span class="n">parent</span><span class="o">;</span>
+        <span class="n">exit</span> <span class="mi">0</span>
+    <span class="o">|</span> <span class="n">pid</span> <span class="o">-&gt;</span>
+        <span class="n">close</span> <span class="n">parent</span><span class="o">;</span>
+        <span class="k">let</span> <span class="n">input</span> <span class="o">=</span> <span class="n">in_channel_of_descr</span> <span class="n">child</span> <span class="k">in</span>
+        <span class="k">let</span> <span class="n">output</span> <span class="o">=</span> <span class="n">out_channel_of_descr</span> <span class="n">child</span> <span class="k">in</span>
+        <span class="nn">Printf</span><span class="p">.</span><span class="n">fprintf</span> <span class="n">output</span> <span class="s2">&quot;Parent Pid %d is sending this</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">(</span><span class="n">getpid</span> <span class="bp">()</span><span class="o">);</span>
+        <span class="n">flush</span> <span class="n">output</span><span class="o">;</span>
+        <span class="k">let</span> <span class="n">line</span> <span class="o">=</span> <span class="n">input_line</span> <span class="n">input</span> <span class="k">in</span>
+        <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;Parent Pid %d just read this: `%s&#39;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">(</span><span class="n">getpid</span> <span class="bp">()</span><span class="o">)</span> <span class="n">line</span><span class="o">;</span>
+        <span class="n">close</span> <span class="n">child</span><span class="o">;</span>
+        <span class="n">ignore</span> <span class="o">(</span><span class="n">waitpid</span> <span class="bp">[]</span> <span class="n">pid</span><span class="o">)</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* Simulating a pipe using a socketpair. *)</span>
+<span class="k">let</span> <span class="n">reader</span><span class="o">,</span> <span class="n">writer</span> <span class="o">=</span> <span class="n">socketpair</span> <span class="nc">PF_UNIX</span> <span class="nc">SOCK_STREAM</span> <span class="mi">0</span> <span class="k">in</span>
+<span class="n">shutdown</span> <span class="n">reader</span> <span class="nc">SHUTDOWN_SEND</span><span class="o">;</span>      <span class="c">(* no more writing for reader *)</span>
+<span class="n">shutdown</span> <span class="n">writer</span> <span class="nc">SHUTDOWN_RECEIVE</span><span class="o">;</span>   <span class="c">(* no more reading for writer *)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN881"
+>Making a Process Look Like a File with Named Pipes</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="o">%</span> <span class="n">mkfifo</span> <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="k">to</span><span class="o">/</span><span class="n">named</span><span class="o">.</span><span class="n">pipe</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">fifo</span> <span class="o">=</span> <span class="n">open_in</span> <span class="s2">&quot;/path/to/named.pipe&quot;</span> <span class="k">in</span>
+  <span class="k">try</span>
+    <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+      <span class="k">let</span> <span class="n">line</span> <span class="o">=</span> <span class="n">input_line</span> <span class="n">fifo</span> <span class="k">in</span>
+      <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;Got: %s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="n">line</span>
+    <span class="k">done</span>
+  <span class="k">with</span> <span class="nc">End_of_file</span> <span class="o">-&gt;</span>
+    <span class="n">close_in</span> <span class="n">fifo</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">fifo</span> <span class="o">=</span> <span class="n">open_out</span> <span class="s2">&quot;/path/to/named.pipe&quot;</span> <span class="k">in</span>
+  <span class="n">output_string</span> <span class="n">fifo</span> <span class="s2">&quot;Smoke this.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">;</span>
+  <span class="n">close_out</span> <span class="n">fifo</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="o">%</span> <span class="n">mkfifo</span> <span class="o">~/.</span><span class="n">plan</span>                    <span class="o">#</span> <span class="n">isn&#39;t</span> <span class="n">this</span> <span class="n">everywhere</span> <span class="n">yet</span><span class="o">?</span>
+<span class="o">%</span> <span class="n">mknod</span>  <span class="o">~/.</span><span class="n">plan</span> <span class="n">p</span>                  <span class="o">#</span> <span class="k">in</span> <span class="n">case</span> <span class="n">you</span> <span class="n">don&#39;t</span> <span class="n">have</span> <span class="n">mkfifo</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* dateplan - place current date and time in .plan file *)</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+    <span class="k">let</span> <span class="n">home</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">getenv</span> <span class="s2">&quot;HOME&quot;</span> <span class="k">in</span>
+    <span class="k">let</span> <span class="n">fifo</span> <span class="o">=</span> <span class="n">open_out</span> <span class="o">(</span><span class="n">home</span> <span class="o">^</span> <span class="s2">&quot;/.plan&quot;</span><span class="o">)</span> <span class="k">in</span>
+    <span class="nn">Printf</span><span class="p">.</span><span class="n">fprintf</span> <span class="n">fifo</span> <span class="s2">&quot;The current time is %s</span><span class="se">\n</span><span class="s2">&quot;</span>
+      <span class="o">(</span><span class="n">format_time</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">time</span> <span class="bp">()</span><span class="o">));</span>
+    <span class="n">close_out</span> <span class="n">fifo</span><span class="o">;</span>
+    <span class="nn">Unix</span><span class="p">.</span><span class="n">sleep</span> <span class="mi">1</span>
+  <span class="k">done</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="o">#!/</span><span class="n">usr</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">ocaml</span>
+<span class="c">(* fifolog - read and record log msgs from fifo *)</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+
+<span class="k">let</span> <span class="n">fifo</span> <span class="o">=</span> <span class="n">ref</span> <span class="nc">None</span>
+
+<span class="k">let</span> <span class="n">handle_alarm</span> <span class="n">signal</span> <span class="o">=</span>
+  <span class="k">match</span> <span class="o">!</span><span class="n">fifo</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="nc">Some</span> <span class="n">channel</span> <span class="o">-&gt;</span>
+        <span class="c">(* move on to the next queued process *)</span>
+        <span class="n">close_in</span> <span class="n">channel</span><span class="o">;</span>
+        <span class="n">fifo</span> <span class="o">:=</span> <span class="nc">None</span>
+    <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="bp">()</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="nn">Sys</span><span class="p">.</span><span class="n">set_signal</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigalrm</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="nc">Signal_handle</span> <span class="n">handle_alarm</span><span class="o">)</span>
+
+<span class="k">let</span> <span class="n">read_fifo</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">try</span>
+    <span class="k">match</span> <span class="o">!</span><span class="n">fifo</span> <span class="k">with</span>
+      <span class="o">|</span> <span class="nc">Some</span> <span class="n">channel</span> <span class="o">-&gt;</span> <span class="nc">Some</span> <span class="o">(</span><span class="n">input_line</span> <span class="n">channel</span><span class="o">)</span>
+      <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="nc">None</span>
+  <span class="k">with</span>
+    <span class="o">|</span> <span class="nc">End_of_file</span> <span class="o">-&gt;</span>
+        <span class="nc">None</span>
+    <span class="o">|</span> <span class="nc">Sys_error</span> <span class="n">e</span> <span class="o">-&gt;</span>
+        <span class="nn">Printf</span><span class="p">.</span><span class="n">eprintf</span> <span class="s2">&quot;Error reading fifo: %s</span><span class="se">\n</span><span class="s2">%!&quot;</span> <span class="n">e</span><span class="o">;</span>
+        <span class="n">fifo</span> <span class="o">:=</span> <span class="nc">None</span><span class="o">;</span>
+        <span class="nc">None</span>
+
+<span class="k">let</span> <span class="n">days</span> <span class="o">=</span> <span class="o">[|</span> <span class="s2">&quot;Sun&quot;</span><span class="o">;</span> <span class="s2">&quot;Mon&quot;</span><span class="o">;</span> <span class="s2">&quot;Tue&quot;</span><span class="o">;</span> <span class="s2">&quot;Wed&quot;</span><span class="o">;</span> <span class="s2">&quot;Thu&quot;</span><span class="o">;</span> <span class="s2">&quot;Fri&quot;</span><span class="o">;</span> <span class="s2">&quot;Sat&quot;</span> <span class="o">|]</span>
+<span class="k">let</span> <span class="n">months</span> <span class="o">=</span> <span class="o">[|</span> <span class="s2">&quot;Jan&quot;</span><span class="o">;</span> <span class="s2">&quot;Feb&quot;</span><span class="o">;</span> <span class="s2">&quot;Mar&quot;</span><span class="o">;</span> <span class="s2">&quot;Apr&quot;</span><span class="o">;</span> <span class="s2">&quot;May&quot;</span><span class="o">;</span> <span class="s2">&quot;Jun&quot;</span><span class="o">;</span>
+                <span class="s2">&quot;Jul&quot;</span><span class="o">;</span> <span class="s2">&quot;Aug&quot;</span><span class="o">;</span> <span class="s2">&quot;Sep&quot;</span><span class="o">;</span> <span class="s2">&quot;Oct&quot;</span><span class="o">;</span> <span class="s2">&quot;Nov&quot;</span><span class="o">;</span> <span class="s2">&quot;Dec&quot;</span> <span class="o">|]</span>
+
+<span class="k">let</span> <span class="n">format_time</span> <span class="n">time</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">tm</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">localtime</span> <span class="n">time</span> <span class="k">in</span>
+  <span class="nn">Printf</span><span class="p">.</span><span class="n">sprintf</span> <span class="s2">&quot;%s %s %2d %02d:%02d:%02d %04d&quot;</span>
+    <span class="n">days</span><span class="o">.(</span><span class="n">tm</span><span class="o">.</span><span class="nn">Unix</span><span class="p">.</span><span class="n">tm_wday</span><span class="o">)</span>
+    <span class="n">months</span><span class="o">.(</span><span class="n">tm</span><span class="o">.</span><span class="nn">Unix</span><span class="p">.</span><span class="n">tm_mon</span><span class="o">)</span>
+    <span class="n">tm</span><span class="o">.</span><span class="nn">Unix</span><span class="p">.</span><span class="n">tm_mday</span>
+    <span class="n">tm</span><span class="o">.</span><span class="nn">Unix</span><span class="p">.</span><span class="n">tm_hour</span>
+    <span class="n">tm</span><span class="o">.</span><span class="nn">Unix</span><span class="p">.</span><span class="n">tm_min</span>
+    <span class="n">tm</span><span class="o">.</span><span class="nn">Unix</span><span class="p">.</span><span class="n">tm_sec</span>
+    <span class="o">(</span><span class="n">tm</span><span class="o">.</span><span class="nn">Unix</span><span class="p">.</span><span class="n">tm_year</span> <span class="o">+</span> <span class="mi">1900</span><span class="o">)</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+    <span class="c">(* turn off alarm for blocking open *)</span>
+    <span class="n">ignore</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">alarm</span> <span class="mi">0</span><span class="o">);</span>
+    <span class="k">begin</span>
+      <span class="k">try</span> <span class="n">fifo</span> <span class="o">:=</span> <span class="nc">Some</span> <span class="o">(</span><span class="n">open_in</span> <span class="s2">&quot;/tmp/log&quot;</span><span class="o">)</span>
+      <span class="k">with</span> <span class="nc">Sys_error</span> <span class="n">e</span> <span class="o">-&gt;</span>
+        <span class="nn">Printf</span><span class="p">.</span><span class="n">eprintf</span> <span class="s2">&quot;Can&#39;t open /tmp/log: %s</span><span class="se">\n</span><span class="s2">%!&quot;</span> <span class="n">e</span><span class="o">;</span>
+        <span class="n">exit</span> <span class="mi">1</span>
+    <span class="k">end</span><span class="o">;</span>
+
+    <span class="c">(* you have 1 second to log *)</span>
+    <span class="n">ignore</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">alarm</span> <span class="mi">1</span><span class="o">);</span>
+
+    <span class="k">let</span> <span class="n">service</span> <span class="o">=</span> <span class="n">read_fifo</span> <span class="bp">()</span> <span class="k">in</span>
+    <span class="k">let</span> <span class="n">message</span> <span class="o">=</span> <span class="n">read_fifo</span> <span class="bp">()</span> <span class="k">in</span>
+
+    <span class="c">(* turn off alarms for message processing *)</span>
+    <span class="n">ignore</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">alarm</span> <span class="mi">0</span><span class="o">);</span>
+
+    <span class="k">begin</span>
+      <span class="k">match</span> <span class="n">service</span><span class="o">,</span> <span class="n">message</span> <span class="k">with</span>
+        <span class="o">|</span> <span class="nc">None</span><span class="o">,</span> <span class="o">_</span> <span class="o">|</span> <span class="o">_,</span> <span class="nc">None</span> <span class="o">-&gt;</span>
+            <span class="c">(* interrupted or nothing logged *)</span>
+            <span class="bp">()</span>
+        <span class="o">|</span> <span class="nc">Some</span> <span class="n">service</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">message</span> <span class="o">-&gt;</span>
+            <span class="k">if</span> <span class="n">service</span> <span class="o">=</span> <span class="s2">&quot;http&quot;</span>
+            <span class="k">then</span> <span class="bp">()</span> <span class="c">(* ignoring *)</span>
+            <span class="k">else</span> <span class="k">if</span> <span class="n">service</span> <span class="o">=</span> <span class="s2">&quot;login&quot;</span>
+            <span class="k">then</span>
+              <span class="k">begin</span>
+                <span class="c">(* log to /tmp/login *)</span>
+                <span class="k">try</span>
+                  <span class="k">let</span> <span class="n">log</span> <span class="o">=</span>
+                    <span class="n">open_out_gen</span>
+                      <span class="o">[</span><span class="nc">Open_wronly</span><span class="o">;</span> <span class="nc">Open_creat</span><span class="o">;</span> <span class="nc">Open_append</span><span class="o">]</span>
+                      <span class="mo">0o666</span>
+                      <span class="s2">&quot;/tmp/login&quot;</span> <span class="k">in</span>
+                  <span class="nn">Printf</span><span class="p">.</span><span class="n">fprintf</span> <span class="n">log</span> <span class="s2">&quot;%s %s %s</span><span class="se">\n</span><span class="s2">%!&quot;</span>
+                    <span class="o">(</span><span class="n">format_time</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">time</span> <span class="bp">()</span><span class="o">))</span> <span class="n">service</span> <span class="n">message</span><span class="o">;</span>
+                  <span class="n">close_out</span> <span class="n">log</span>
+                <span class="k">with</span> <span class="nc">Sys_error</span> <span class="n">e</span> <span class="o">-&gt;</span>
+                  <span class="nn">Printf</span><span class="p">.</span><span class="n">eprintf</span> <span class="s2">&quot;Couldn&#39;t log %s %s to /tmp/login: %s</span><span class="se">\n</span><span class="s2">%!&quot;</span>
+                    <span class="n">service</span> <span class="n">message</span> <span class="n">e</span>
+              <span class="k">end</span>
+    <span class="k">end</span>
+  <span class="k">done</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN884"
+>Sharing Variables in Different Processes</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="c">(* OCaml does not currently support SysV IPC. *)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN887"
+>Listing Available Signals</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="o">%</span> <span class="n">echo</span> <span class="k">&#39;module</span> <span class="nc">M</span> <span class="o">=</span> <span class="nc">Sys</span><span class="o">;;</span><span class="k">&#39;</span> <span class="o">|</span> <span class="n">ocaml</span> <span class="o">|</span> <span class="n">grep</span> <span class="k">&#39;val</span> <span class="k">sig&#39;</span>
+    <span class="k">val</span> <span class="n">sigabrt</span> <span class="o">:</span> <span class="kt">int</span>
+    <span class="k">val</span> <span class="n">sigalrm</span> <span class="o">:</span> <span class="kt">int</span>
+    <span class="k">val</span> <span class="n">sigfpe</span> <span class="o">:</span> <span class="kt">int</span>
+    <span class="k">val</span> <span class="n">sighup</span> <span class="o">:</span> <span class="kt">int</span>
+    <span class="k">val</span> <span class="n">sigill</span> <span class="o">:</span> <span class="kt">int</span>
+    <span class="k">val</span> <span class="n">sigint</span> <span class="o">:</span> <span class="kt">int</span>
+    <span class="k">val</span> <span class="n">sigkill</span> <span class="o">:</span> <span class="kt">int</span>
+    <span class="k">val</span> <span class="n">sigpipe</span> <span class="o">:</span> <span class="kt">int</span>
+    <span class="k">val</span> <span class="n">sigquit</span> <span class="o">:</span> <span class="kt">int</span>
+    <span class="k">val</span> <span class="n">sigsegv</span> <span class="o">:</span> <span class="kt">int</span>
+    <span class="k">val</span> <span class="n">sigterm</span> <span class="o">:</span> <span class="kt">int</span>
+    <span class="k">val</span> <span class="n">sigusr1</span> <span class="o">:</span> <span class="kt">int</span>
+    <span class="k">val</span> <span class="n">sigusr2</span> <span class="o">:</span> <span class="kt">int</span>
+    <span class="k">val</span> <span class="n">sigchld</span> <span class="o">:</span> <span class="kt">int</span>
+    <span class="k">val</span> <span class="n">sigcont</span> <span class="o">:</span> <span class="kt">int</span>
+    <span class="k">val</span> <span class="n">sigstop</span> <span class="o">:</span> <span class="kt">int</span>
+    <span class="k">val</span> <span class="n">sigtstp</span> <span class="o">:</span> <span class="kt">int</span>
+    <span class="k">val</span> <span class="n">sigttin</span> <span class="o">:</span> <span class="kt">int</span>
+    <span class="k">val</span> <span class="n">sigttou</span> <span class="o">:</span> <span class="kt">int</span>
+    <span class="k">val</span> <span class="n">sigvtalrm</span> <span class="o">:</span> <span class="kt">int</span>
+    <span class="k">val</span> <span class="n">sigprof</span> <span class="o">:</span> <span class="kt">int</span>
+
+<span class="o">%</span> <span class="n">grep</span> <span class="o">-</span><span class="nc">A1</span> <span class="k">&#39;val</span> <span class="k">sig&#39;</span> <span class="n">sys</span><span class="o">.</span><span class="n">mli</span>
+<span class="k">val</span> <span class="n">sigabrt</span> <span class="o">:</span> <span class="kt">int</span>
+<span class="c">(** Abnormal termination *)</span>
+<span class="o">--</span>
+<span class="k">val</span> <span class="n">sigalrm</span> <span class="o">:</span> <span class="kt">int</span>
+<span class="c">(** Timeout *)</span>
+<span class="o">--</span>
+<span class="k">val</span> <span class="n">sigfpe</span> <span class="o">:</span> <span class="kt">int</span>
+<span class="c">(** Arithmetic exception *)</span>
+<span class="o">--</span>
+<span class="k">val</span> <span class="n">sighup</span> <span class="o">:</span> <span class="kt">int</span>
+<span class="c">(** Hangup on controlling terminal *)</span>
+<span class="o">--</span>
+<span class="k">val</span> <span class="n">sigill</span> <span class="o">:</span> <span class="kt">int</span>
+<span class="c">(** Invalid hardware instruction *)</span>
+<span class="o">--</span>
+<span class="k">val</span> <span class="n">sigint</span> <span class="o">:</span> <span class="kt">int</span>
+<span class="c">(** Interactive interrupt (ctrl-C) *)</span>
+<span class="o">--</span>
+<span class="k">val</span> <span class="n">sigkill</span> <span class="o">:</span> <span class="kt">int</span>
+<span class="c">(** Termination (cannot be ignored) *)</span>
+<span class="o">--</span>
+<span class="k">val</span> <span class="n">sigpipe</span> <span class="o">:</span> <span class="kt">int</span>
+<span class="c">(** Broken pipe *)</span>
+<span class="o">--</span>
+<span class="k">val</span> <span class="n">sigquit</span> <span class="o">:</span> <span class="kt">int</span>
+<span class="c">(** Interactive termination *)</span>
+<span class="o">--</span>
+<span class="k">val</span> <span class="n">sigsegv</span> <span class="o">:</span> <span class="kt">int</span>
+<span class="c">(** Invalid memory reference *)</span>
+<span class="o">--</span>
+<span class="k">val</span> <span class="n">sigterm</span> <span class="o">:</span> <span class="kt">int</span>
+<span class="c">(** Termination *)</span>
+<span class="o">--</span>
+<span class="k">val</span> <span class="n">sigusr1</span> <span class="o">:</span> <span class="kt">int</span>
+<span class="c">(** Application-defined signal 1 *)</span>
+<span class="o">--</span>
+<span class="k">val</span> <span class="n">sigusr2</span> <span class="o">:</span> <span class="kt">int</span>
+<span class="c">(** Application-defined signal 2 *)</span>
+<span class="o">--</span>
+<span class="k">val</span> <span class="n">sigchld</span> <span class="o">:</span> <span class="kt">int</span>
+<span class="c">(** Child process terminated *)</span>
+<span class="o">--</span>
+<span class="k">val</span> <span class="n">sigcont</span> <span class="o">:</span> <span class="kt">int</span>
+<span class="c">(** Continue *)</span>
+<span class="o">--</span>
+<span class="k">val</span> <span class="n">sigstop</span> <span class="o">:</span> <span class="kt">int</span>
+<span class="c">(** Stop *)</span>
+<span class="o">--</span>
+<span class="k">val</span> <span class="n">sigtstp</span> <span class="o">:</span> <span class="kt">int</span>
+<span class="c">(** Interactive stop *)</span>
+<span class="o">--</span>
+<span class="k">val</span> <span class="n">sigttin</span> <span class="o">:</span> <span class="kt">int</span>
+<span class="c">(** Terminal read from background process *)</span>
+<span class="o">--</span>
+<span class="k">val</span> <span class="n">sigttou</span> <span class="o">:</span> <span class="kt">int</span>
+<span class="c">(** Terminal write from background process *)</span>
+<span class="o">--</span>
+<span class="k">val</span> <span class="n">sigvtalrm</span> <span class="o">:</span> <span class="kt">int</span>
+<span class="c">(** Timeout in virtual time *)</span>
+<span class="o">--</span>
+<span class="k">val</span> <span class="n">sigprof</span> <span class="o">:</span> <span class="kt">int</span>
+<span class="c">(** Profiling interrupt *)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN890"
+>Sending a Signal</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="c">(* send pid a signal 9 *)</span>
+  <span class="nn">Unix</span><span class="p">.</span><span class="n">kill</span> <span class="n">pid</span> <span class="mi">9</span><span class="o">;</span>
+  <span class="c">(* send whole job a signal 1 *)</span>
+  <span class="nn">Unix</span><span class="p">.</span><span class="n">kill</span> <span class="n">pgrp</span> <span class="o">(-</span><span class="mi">1</span><span class="o">);</span>
+  <span class="c">(* send myself a SIGUSR1 *)</span>
+  <span class="nn">Unix</span><span class="p">.</span><span class="n">kill</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">getpid</span> <span class="bp">()</span><span class="o">)</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigusr1</span><span class="o">;</span>
+  <span class="c">(* send a SIGHUP to processes in pids *)</span>
+  <span class="nn">List</span><span class="p">.</span><span class="n">iter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">pid</span> <span class="o">-&gt;</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">kill</span> <span class="n">pid</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sighup</span><span class="o">)</span> <span class="n">pids</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="c">(* Use kill with pseudo-signal 0 to see if process is alive. *)</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">try</span>
+    <span class="nn">Unix</span><span class="p">.</span><span class="n">kill</span> <span class="n">minion</span> <span class="mi">0</span><span class="o">;</span>
+    <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;%d is alive!</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="n">minion</span>
+  <span class="k">with</span>
+    <span class="o">|</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">Unix_error</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="nc">EPERM</span><span class="o">,</span> <span class="o">_,</span> <span class="o">_)</span> <span class="o">-&gt;</span> <span class="c">(* changed uid *)</span>
+        <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;%d has escaped my control!</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="n">minion</span>
+    <span class="o">|</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">Unix_error</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="nc">ESRCH</span><span class="o">,</span> <span class="o">_,</span> <span class="o">_)</span> <span class="o">-&gt;</span>
+        <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;%d is deceased.</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="c">(* or zombied *)</span> <span class="n">minion</span>
+    <span class="o">|</span> <span class="n">e</span> <span class="o">-&gt;</span>
+        <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;Odd; I couldn&#39;t check on the status of %d: %s</span><span class="se">\n</span><span class="s2">&quot;</span>
+          <span class="n">minion</span>
+          <span class="o">(</span><span class="nn">Printexc</span><span class="p">.</span><span class="n">to_string</span> <span class="n">e</span><span class="o">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN893"
+>Installing a Signal Handler</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="c">(* call got_sig_quit for every SIGQUIT *)</span>
+  <span class="nn">Sys</span><span class="p">.</span><span class="n">set_signal</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigquit</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="nc">Signal_handle</span> <span class="n">got_sig_quit</span><span class="o">);</span>
+  <span class="c">(* call got_sig_pipe for every SIGPIPE *)</span>
+  <span class="nn">Sys</span><span class="p">.</span><span class="n">set_signal</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigpipe</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="nc">Signal_handle</span> <span class="n">got_sig_pipe</span><span class="o">);</span>
+  <span class="c">(* increment ouch for every SIGINT *)</span>
+  <span class="nn">Sys</span><span class="p">.</span><span class="n">set_signal</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigint</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="nc">Signal_handle</span> <span class="o">(</span><span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="n">incr</span> <span class="n">ouch</span><span class="o">));</span>
+  <span class="c">(* ignore the signal INT *)</span>
+  <span class="nn">Sys</span><span class="p">.</span><span class="n">set_signal</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigint</span> <span class="nn">Sys</span><span class="p">.</span><span class="nc">Signal_ignore</span><span class="o">;</span>
+  <span class="c">(* restore default STOP signal handling *)</span>
+  <span class="nn">Sys</span><span class="p">.</span><span class="n">set_signal</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigstop</span> <span class="nn">Sys</span><span class="p">.</span><span class="nc">Signal_default</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN896"
+>Temporarily Overriding a Signal Handler</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="k">let</span> <span class="n">finally</span> <span class="n">handler</span> <span class="n">f</span> <span class="n">x</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">result</span> <span class="o">=</span> <span class="k">try</span> <span class="n">f</span> <span class="n">x</span> <span class="k">with</span> <span class="n">e</span> <span class="o">-&gt;</span> <span class="n">handler</span> <span class="bp">()</span><span class="o">;</span> <span class="k">raise</span> <span class="n">e</span> <span class="k">in</span> <span class="n">handler</span> <span class="bp">()</span><span class="o">;</span> <span class="n">result</span>
+
+<span class="c">(* call f with signal behavior temporarily set *)</span>
+<span class="k">let</span> <span class="n">local_set_signal</span> <span class="n">signal</span> <span class="n">behavior</span> <span class="n">f</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">old_behavior</span> <span class="o">=</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">signal</span> <span class="n">signal</span> <span class="n">behavior</span> <span class="k">in</span>
+  <span class="n">finally</span> <span class="o">(</span><span class="k">fun</span> <span class="bp">()</span> <span class="o">-&gt;</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">set_signal</span> <span class="n">signal</span> <span class="n">old_behavior</span><span class="o">)</span> <span class="n">f</span> <span class="bp">()</span>
+
+<span class="c">(* the signal handler *)</span>
+<span class="k">let</span> <span class="k">rec</span> <span class="n">ding</span> <span class="o">_</span> <span class="o">=</span>
+  <span class="nn">Sys</span><span class="p">.</span><span class="n">set_signal</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigint</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="nc">Signal_handle</span> <span class="n">ding</span><span class="o">);</span>
+  <span class="n">prerr_endline</span> <span class="s2">&quot;</span><span class="se">\x07</span><span class="s2">Enter your name!&quot;</span>
+
+<span class="c">(* prompt for name, overriding SIGINT *)</span>
+<span class="k">let</span> <span class="n">get_name</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="n">local_set_signal</span>
+    <span class="nn">Sys</span><span class="p">.</span><span class="n">sigint</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="nc">Signal_handle</span> <span class="n">ding</span><span class="o">)</span>
+    <span class="o">(</span><span class="k">fun</span> <span class="bp">()</span> <span class="o">-&gt;</span>
+       <span class="n">print_string</span> <span class="s2">&quot;Kindly Stranger, please enter your name: &quot;</span><span class="o">;</span>
+       <span class="n">read_line</span> <span class="bp">()</span><span class="o">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN899"
+>Writing a Signal Handler</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="k">let</span> <span class="k">rec</span> <span class="n">got_int</span> <span class="o">_</span> <span class="o">=</span>
+  <span class="nn">Sys</span><span class="p">.</span><span class="n">set_signal</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigint</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="nc">Signal_handle</span> <span class="n">got_int</span><span class="o">);</span>
+  <span class="c">(* but not for SIGCHLD! *)</span>
+  <span class="c">(* ... *)</span>
+  <span class="bp">()</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="k">let</span> <span class="k">rec</span> <span class="n">got_int</span> <span class="o">_</span> <span class="o">=</span>
+  <span class="nn">Sys</span><span class="p">.</span><span class="n">set_signal</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigint</span> <span class="nn">Sys</span><span class="p">.</span><span class="nc">Signal_default</span><span class="o">;</span> <span class="c">(* or Signal_ignore *)</span>
+  <span class="n">failwith</span> <span class="s2">&quot;interrupted&quot;</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="nn">Sys</span><span class="p">.</span><span class="n">set_signal</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigint</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="nc">Signal_handle</span> <span class="n">got_int</span><span class="o">);</span>
+  <span class="k">try</span>
+    <span class="c">(* ... long-running code that you don&#39;t want to restart *)</span>
+    <span class="bp">()</span>
+  <span class="k">with</span> <span class="nc">Failure</span> <span class="s2">&quot;interrupted&quot;</span> <span class="o">-&gt;</span>
+    <span class="c">(* deal with the signal *)</span>
+    <span class="bp">()</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN902"
+>Catching Ctrl-C</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="c">(* ignore signal INT *)</span>
+  <span class="nn">Sys</span><span class="p">.</span><span class="n">set_signal</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigint</span> <span class="nn">Sys</span><span class="p">.</span><span class="nc">Signal_ignore</span><span class="o">;</span>
+
+  <span class="c">(* install signal handler *)</span>
+  <span class="k">let</span> <span class="k">rec</span> <span class="n">tsktsk</span> <span class="n">signal</span> <span class="o">=</span>
+    <span class="nn">Sys</span><span class="p">.</span><span class="n">set_signal</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigint</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="nc">Signal_handle</span> <span class="n">tsktsk</span><span class="o">);</span>
+    <span class="n">print_endline</span> <span class="s2">&quot;</span><span class="se">\x07</span><span class="s2">The long habit of living indisposeth us for dying.&quot;</span> <span class="k">in</span>
+  <span class="nn">Sys</span><span class="p">.</span><span class="n">set_signal</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigint</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="nc">Signal_handle</span> <span class="n">tsktsk</span><span class="o">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN905"
+>Avoiding Zombie Processes</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="nn">Sys</span><span class="p">.</span><span class="n">set_signal</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigchld</span> <span class="nn">Sys</span><span class="p">.</span><span class="nc">Signal_ignore</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="k">let</span> <span class="k">rec</span> <span class="n">reaper</span> <span class="n">signal</span> <span class="o">=</span>
+  <span class="k">try</span> <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span> <span class="n">ignore</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">waitpid</span> <span class="o">[</span><span class="nn">Unix</span><span class="p">.</span><span class="nc">WNOHANG</span><span class="o">]</span> <span class="o">(-</span><span class="mi">1</span><span class="o">))</span> <span class="k">done</span>
+  <span class="k">with</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">Unix_error</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="nc">ECHILD</span><span class="o">,</span> <span class="o">_,</span> <span class="o">_)</span> <span class="o">-&gt;</span> <span class="bp">()</span><span class="o">;</span>
+  <span class="nn">Sys</span><span class="p">.</span><span class="n">set_signal</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigchld</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="nc">Signal_handle</span> <span class="n">reaper</span><span class="o">)</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="nn">Sys</span><span class="p">.</span><span class="n">set_signal</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigchld</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="nc">Signal_handle</span> <span class="n">reaper</span><span class="o">)</span>
+
+<span class="c">(*-----------------------------*)</span>
+
+<span class="k">let</span> <span class="k">rec</span> <span class="n">reaper</span> <span class="n">signal</span> <span class="o">=</span>
+  <span class="k">begin</span> <span class="k">try</span>
+    <span class="k">let</span> <span class="n">pid</span><span class="o">,</span> <span class="n">status</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">waitpid</span> <span class="o">[</span><span class="nn">Unix</span><span class="p">.</span><span class="nc">WNOHANG</span><span class="o">]</span> <span class="o">(-</span><span class="mi">1</span><span class="o">)</span> <span class="k">in</span> <span class="k">begin</span>
+      <span class="k">match</span> <span class="n">status</span> <span class="k">with</span>
+        <span class="o">|</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">WEXITED</span> <span class="o">_</span> <span class="o">-&gt;</span>
+            <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;Process %d exited.</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="n">pid</span>
+        <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span>
+            <span class="nn">Printf</span><span class="p">.</span><span class="n">printf</span> <span class="s2">&quot;False alarm on %d.</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="n">pid</span><span class="o">;</span>
+    <span class="k">end</span><span class="o">;</span>
+    <span class="n">reaper</span> <span class="n">signal</span>
+  <span class="k">with</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">Unix_error</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="nc">ECHILD</span><span class="o">,</span> <span class="o">_,</span> <span class="o">_)</span> <span class="o">-&gt;</span>
+    <span class="bp">()</span> <span class="c">(* No child waiting. Ignore it. *)</span>
+  <span class="k">end</span><span class="o">;</span>
+  <span class="nn">Sys</span><span class="p">.</span><span class="n">set_signal</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigchld</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="nc">Signal_handle</span> <span class="n">reaper</span><span class="o">)</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="nn">Sys</span><span class="p">.</span><span class="n">set_signal</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigchld</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="nc">Signal_handle</span> <span class="n">reaper</span><span class="o">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN908"
+>Blocking Signals</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+
+<span class="c">(* define the signals to block *)</span>
+<span class="k">let</span> <span class="n">sigset</span> <span class="o">=</span> <span class="o">[</span><span class="nn">Sys</span><span class="p">.</span><span class="n">sigint</span><span class="o">;</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigkill</span><span class="o">]</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="c">(* block signals *)</span>
+  <span class="k">let</span> <span class="n">old_sigset</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">sigprocmask</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">SIG_BLOCK</span> <span class="n">sigset</span> <span class="k">in</span>
+
+  <span class="c">(* ... *)</span>
+
+  <span class="c">(* unblock signals *)</span>
+  <span class="c">(* the original recipe uses SIG_UNBLOCK, but that doesn&#39;t seem right... *)</span>
+  <span class="n">ignore</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">sigprocmask</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">SIG_SETMASK</span> <span class="n">old_sigset</span><span class="o">)</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN911"
+>Timing Out an Operation</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="nn">Sys</span><span class="p">.</span><span class="n">set_signal</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigalrm</span>
+    <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="nc">Signal_handle</span> <span class="o">(</span><span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="n">failwith</span> <span class="s2">&quot;timeout&quot;</span><span class="o">));</span>
+
+  <span class="n">ignore</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">alarm</span> <span class="mi">3600</span><span class="o">);</span>
+  <span class="k">try</span>
+    <span class="c">(* long-time operations here *)</span>
+    <span class="n">ignore</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">alarm</span> <span class="mi">0</span><span class="o">)</span>
+  <span class="k">with</span>
+    <span class="o">|</span> <span class="nc">Failure</span> <span class="s2">&quot;timeout&quot;</span> <span class="o">-&gt;</span>
+        <span class="c">(* timed out; do what you will here *)</span>
+        <span class="bp">()</span>
+    <span class="o">|</span> <span class="n">e</span> <span class="o">-&gt;</span>
+        <span class="c">(* clear the still-pending alarm *)</span>
+        <span class="n">ignore</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">alarm</span> <span class="mi">0</span><span class="o">);</span>
+        <span class="c">(* propagate unexpected exception *)</span>
+        <span class="k">raise</span> <span class="n">e</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN914"
+>Program: sigrand</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c"></span><span class="o">#!/</span><span class="n">usr</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">ocaml</span>
+<span class="c">(* sigrand - supply random fortunes for .signature file *)</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;str.cma&quot;</span><span class="o">;;</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;unix.cma&quot;</span><span class="o">;;</span>
+
+<span class="c">(* globals *)</span>
+
+<span class="k">let</span> <span class="n">pwd</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">getpwuid</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">getuid</span> <span class="bp">()</span><span class="o">)</span>
+
+<span class="k">let</span> <span class="n">home</span> <span class="o">=</span>
+  <span class="k">try</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">getenv</span> <span class="s2">&quot;HOME&quot;</span> <span class="k">with</span> <span class="nc">Not_found</span> <span class="o">-&gt;</span>
+    <span class="k">try</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">getenv</span> <span class="s2">&quot;LOGDIR&quot;</span> <span class="k">with</span> <span class="nc">Not_found</span> <span class="o">-&gt;</span>
+      <span class="n">pwd</span><span class="o">.</span><span class="nn">Unix</span><span class="p">.</span><span class="n">pw_dir</span>
+
+<span class="k">let</span> <span class="n">fortune_path</span> <span class="o">=</span> <span class="n">ref</span> <span class="s2">&quot;&quot;</span>
+
+<span class="c">(**************************************************************)</span>
+<span class="c">(* begin configuration section *)</span>
+
+<span class="c">(* for rec/humor/funny instead of rec.humor.funny *)</span>
+<span class="k">let</span> <span class="n">ng_is_dir</span>      <span class="o">=</span> <span class="bp">true</span>
+
+<span class="k">let</span> <span class="n">fullname</span>       <span class="o">=</span> <span class="n">home</span> <span class="o">^</span> <span class="s2">&quot;/.fullname&quot;</span>
+<span class="k">let</span> <span class="n">fifo</span>           <span class="o">=</span> <span class="n">home</span> <span class="o">^</span> <span class="s2">&quot;/.signature&quot;</span>
+<span class="k">let</span> <span class="n">art</span>            <span class="o">=</span> <span class="n">home</span> <span class="o">^</span> <span class="s2">&quot;/.article&quot;</span>
+<span class="k">let</span> <span class="n">news</span>           <span class="o">=</span> <span class="n">home</span> <span class="o">^</span> <span class="s2">&quot;/News&quot;</span>
+<span class="k">let</span> <span class="n">sigs</span>           <span class="o">=</span> <span class="n">news</span> <span class="o">^</span> <span class="s2">&quot;/SIGNATURES&quot;</span>
+<span class="k">let</span> <span class="n">sema</span>           <span class="o">=</span> <span class="n">home</span> <span class="o">^</span> <span class="s2">&quot;/.sigrandpid&quot;</span>
+<span class="k">let</span> <span class="n">globrand</span>       <span class="o">=</span> <span class="mi">0</span><span class="o">.</span><span class="mi">25</span>  <span class="c">(* chance to use global sigs anyway *)</span>
+
+<span class="c">(* name should be (1) left None to have program guess</span>
+<span class="c">   read address for signature maybe looking in ~/.fullname,</span>
+<span class="c">   (2) set to an exact address, or (3) set to empty string</span>
+<span class="c">   to be omitted entirely. *)</span>
+
+<span class="c">(* let name        = ref None *)</span>
+<span class="c">(* let name        = ref (Some (&quot;me@home.org&quot;)) *)</span>
+<span class="k">let</span> <span class="n">name</span>           <span class="o">=</span> <span class="n">ref</span> <span class="o">(</span><span class="nc">Some</span> <span class="s2">&quot;&quot;</span><span class="o">)</span>
+
+<span class="c">(* end configuration section *)</span>
+<span class="c">(**************************************************************)</span>
+
+<span class="k">let</span> <span class="n">read_process_lines</span> <span class="n">command</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">lines</span> <span class="o">=</span> <span class="n">ref</span> <span class="bp">[]</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="n">in_channel</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">open_process_in</span> <span class="n">command</span> <span class="k">in</span>
+  <span class="k">begin</span>
+    <span class="k">try</span>
+      <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+        <span class="n">lines</span> <span class="o">:=</span> <span class="n">input_line</span> <span class="n">in_channel</span> <span class="o">::</span> <span class="o">!</span><span class="n">lines</span>
+      <span class="k">done</span><span class="o">;</span>
+    <span class="k">with</span> <span class="nc">End_of_file</span> <span class="o">-&gt;</span>
+      <span class="n">ignore</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">close_process_in</span> <span class="n">in_channel</span><span class="o">)</span>
+  <span class="k">end</span><span class="o">;</span>
+  <span class="nn">List</span><span class="p">.</span><span class="n">rev</span> <span class="o">!</span><span class="n">lines</span>
+
+<span class="k">let</span> <span class="n">line_stream_of_channel</span> <span class="n">channel</span> <span class="o">=</span>
+  <span class="nn">Stream</span><span class="p">.</span><span class="n">from</span>
+    <span class="o">(</span><span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="k">try</span> <span class="nc">Some</span> <span class="o">(</span><span class="n">input_line</span> <span class="n">channel</span><span class="o">)</span> <span class="k">with</span> <span class="nc">End_of_file</span> <span class="o">-&gt;</span> <span class="nc">None</span><span class="o">)</span>
+
+<span class="k">let</span> <span class="n">delimited_stream_of_channel</span> <span class="n">delim</span> <span class="n">channel</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">lines</span> <span class="o">=</span> <span class="n">line_stream_of_channel</span> <span class="n">channel</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="k">rec</span> <span class="n">next</span> <span class="n">para_lines</span> <span class="n">i</span> <span class="o">=</span>
+    <span class="k">match</span> <span class="nn">Stream</span><span class="p">.</span><span class="n">peek</span> <span class="n">lines</span><span class="o">,</span> <span class="n">para_lines</span> <span class="k">with</span>
+      <span class="o">|</span> <span class="nc">None</span><span class="o">,</span> <span class="bp">[]</span> <span class="o">-&gt;</span> <span class="nc">None</span>
+      <span class="o">|</span> <span class="nc">Some</span> <span class="n">delim&#39;</span><span class="o">,</span> <span class="bp">[]</span> <span class="k">when</span> <span class="n">delim&#39;</span> <span class="o">=</span> <span class="n">delim</span> <span class="o">-&gt;</span>
+          <span class="nn">Stream</span><span class="p">.</span><span class="n">junk</span> <span class="n">lines</span><span class="o">;</span> <span class="n">next</span> <span class="n">para_lines</span> <span class="n">i</span>
+      <span class="o">|</span> <span class="nc">Some</span> <span class="n">delim&#39;</span><span class="o">,</span> <span class="o">_</span> <span class="k">when</span> <span class="n">delim&#39;</span> <span class="o">=</span> <span class="n">delim</span> <span class="o">-&gt;</span>
+          <span class="nc">Some</span> <span class="o">(</span><span class="nn">String</span><span class="p">.</span><span class="n">concat</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">(</span><span class="nn">List</span><span class="p">.</span><span class="n">rev</span> <span class="n">para_lines</span><span class="o">))</span>
+      <span class="o">|</span> <span class="nc">None</span><span class="o">,</span> <span class="o">_</span> <span class="o">-&gt;</span>
+          <span class="nc">Some</span> <span class="o">(</span><span class="nn">String</span><span class="p">.</span><span class="n">concat</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">(</span><span class="nn">List</span><span class="p">.</span><span class="n">rev</span> <span class="n">para_lines</span><span class="o">))</span>
+      <span class="o">|</span> <span class="nc">Some</span> <span class="n">line</span><span class="o">,</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="nn">Stream</span><span class="p">.</span><span class="n">junk</span> <span class="n">lines</span><span class="o">;</span> <span class="n">next</span> <span class="o">(</span><span class="n">line</span> <span class="o">::</span> <span class="n">para_lines</span><span class="o">)</span> <span class="n">i</span> <span class="k">in</span>
+  <span class="nn">Stream</span><span class="p">.</span><span class="n">from</span> <span class="o">(</span><span class="n">next</span> <span class="bp">[]</span><span class="o">)</span>
+
+<span class="c">(* Make sure there&#39;s a fortune program.  Search</span>
+<span class="c">   for its full path and set global to that. *)</span>
+<span class="k">let</span> <span class="n">check_fortunes</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">if</span> <span class="o">!</span><span class="n">fortune_path</span> <span class="o">&lt;&gt;</span> <span class="s2">&quot;&quot;</span>
+  <span class="k">then</span> <span class="bp">()</span>  <span class="c">(* already set *)</span>
+  <span class="k">else</span>
+    <span class="k">let</span> <span class="n">path</span> <span class="o">=</span> <span class="nn">Str</span><span class="p">.</span><span class="n">split</span> <span class="o">(</span><span class="nn">Str</span><span class="p">.</span><span class="n">regexp</span> <span class="s2">&quot;:&quot;</span><span class="o">)</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">getenv</span> <span class="s2">&quot;PATH&quot;</span><span class="o">)</span> <span class="k">in</span>
+    <span class="k">let</span> <span class="k">rec</span> <span class="n">check</span> <span class="o">=</span> <span class="k">function</span>
+      <span class="o">|</span> <span class="bp">[]</span> <span class="o">-&gt;</span>
+          <span class="nn">Printf</span><span class="p">.</span><span class="n">eprintf</span>
+            <span class="s2">&quot;Need either %s or a fortune program, bailing out</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">sigs</span><span class="o">;</span>
+          <span class="n">exit</span> <span class="mi">1</span>
+      <span class="o">|</span> <span class="n">dir</span> <span class="o">::</span> <span class="n">dirs</span> <span class="o">-&gt;</span>
+          <span class="k">let</span> <span class="n">p</span> <span class="o">=</span> <span class="nn">Filename</span><span class="p">.</span><span class="n">concat</span> <span class="n">dir</span> <span class="s2">&quot;fortune&quot;</span> <span class="k">in</span>
+          <span class="k">if</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">file_exists</span> <span class="n">p</span> <span class="k">then</span> <span class="n">p</span> <span class="k">else</span> <span class="n">check</span> <span class="n">dirs</span> <span class="k">in</span>
+    <span class="n">fortune_path</span> <span class="o">:=</span> <span class="n">check</span> <span class="o">(</span><span class="n">path</span> <span class="o">@</span> <span class="o">[</span><span class="s2">&quot;/usr/games&quot;</span><span class="o">])</span>
+
+<span class="c">(* Call the fortune program with -s for short flag until</span>
+<span class="c">   we get a small enough fortune or ask too much. *)</span>
+<span class="k">let</span> <span class="n">fortune</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">cmd</span> <span class="o">=</span> <span class="o">!</span><span class="n">fortune_path</span> <span class="o">^</span> <span class="s2">&quot; -s&quot;</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="k">rec</span> <span class="n">loop</span> <span class="n">tries</span> <span class="o">=</span>
+    <span class="k">let</span> <span class="n">lines</span> <span class="o">=</span> <span class="n">read_process_lines</span> <span class="n">cmd</span> <span class="k">in</span>
+    <span class="k">if</span> <span class="nn">List</span><span class="p">.</span><span class="n">length</span> <span class="n">lines</span> <span class="o">&lt;</span> <span class="mi">5</span> <span class="k">then</span> <span class="n">lines</span>
+    <span class="k">else</span> <span class="k">if</span> <span class="n">tries</span> <span class="o">&lt;</span> <span class="mi">20</span> <span class="k">then</span> <span class="n">loop</span> <span class="o">(</span><span class="n">tries</span> <span class="o">+</span> <span class="mi">1</span><span class="o">)</span>
+    <span class="k">else</span> <span class="bp">[]</span> <span class="k">in</span>
+  <span class="k">match</span> <span class="n">loop</span> <span class="mi">0</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="bp">[]</span> <span class="o">-&gt;</span>
+        <span class="o">[</span><span class="s2">&quot; SIGRAND: deliver random signals to all processes.&quot;</span><span class="o">]</span>
+    <span class="o">|</span> <span class="n">lines</span> <span class="o">-&gt;</span>
+        <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="o">((</span> <span class="o">^</span> <span class="o">)</span> <span class="s2">&quot; &quot;</span><span class="o">)</span> <span class="n">lines</span>
+
+<span class="c">(* See whether ~/.article contains a Newsgroups line. if so, see the</span>
+<span class="c">   first group posted to and find out whether it has a dedicated set of</span>
+<span class="c">   fortunes. otherwise return the global one. Also, return the global</span>
+<span class="c">   one randomly now and then to spice up the sigs. *)</span>
+<span class="k">let</span> <span class="n">signame</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">if</span> <span class="nn">Random</span><span class="p">.</span><span class="n">float</span> <span class="mi">1</span><span class="o">.</span><span class="mi">0</span> <span class="o">&gt;</span> <span class="n">globrand</span>
+  <span class="k">then</span>
+    <span class="k">begin</span>
+      <span class="k">try</span>
+        <span class="k">let</span> <span class="n">channel</span> <span class="o">=</span> <span class="n">open_in</span> <span class="n">art</span> <span class="k">in</span>
+        <span class="k">let</span> <span class="n">regexp</span> <span class="o">=</span> <span class="nn">Str</span><span class="p">.</span><span class="n">regexp</span> <span class="s2">&quot;Newsgroups:[ </span><span class="se">\t</span><span class="s2">]*</span><span class="se">\\</span><span class="s2">([^, </span><span class="se">\r\n\t</span><span class="s2">]*</span><span class="se">\\</span><span class="s2">)&quot;</span> <span class="k">in</span>
+        <span class="k">let</span> <span class="n">ng</span> <span class="o">=</span> <span class="n">ref</span> <span class="s2">&quot;&quot;</span> <span class="k">in</span>
+        <span class="k">begin</span>
+          <span class="k">try</span>
+            <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+              <span class="k">let</span> <span class="n">line</span> <span class="o">=</span> <span class="n">input_line</span> <span class="n">channel</span> <span class="k">in</span>
+              <span class="k">if</span> <span class="nn">Str</span><span class="p">.</span><span class="n">string_match</span> <span class="n">regexp</span> <span class="n">line</span> <span class="mi">0</span>
+              <span class="k">then</span> <span class="n">ng</span> <span class="o">:=</span> <span class="nn">Str</span><span class="p">.</span><span class="n">matched_group</span> <span class="mi">1</span> <span class="n">line</span>
+            <span class="k">done</span>
+          <span class="k">with</span> <span class="nc">End_of_file</span> <span class="o">-&gt;</span>
+            <span class="n">close_in</span> <span class="n">channel</span>
+        <span class="k">end</span><span class="o">;</span>
+        <span class="k">if</span> <span class="n">ng_is_dir</span>
+        <span class="k">then</span> <span class="n">ng</span> <span class="o">:=</span> <span class="nn">Str</span><span class="p">.</span><span class="n">global_replace</span> <span class="o">(</span><span class="nn">Str</span><span class="p">.</span><span class="n">regexp</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">.&quot;</span><span class="o">)</span> <span class="s2">&quot;/&quot;</span> <span class="o">!</span><span class="n">ng</span><span class="o">;</span>
+        <span class="n">ng</span> <span class="o">:=</span> <span class="n">news</span> <span class="o">^</span> <span class="s2">&quot;/&quot;</span> <span class="o">^</span> <span class="o">!</span><span class="n">ng</span> <span class="o">^</span> <span class="s2">&quot;/&quot;</span> <span class="o">^</span> <span class="s2">&quot;SIGNATURES&quot;</span><span class="o">;</span>
+        <span class="k">if</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">file_exists</span> <span class="o">!</span><span class="n">ng</span> <span class="k">then</span> <span class="o">!</span><span class="n">ng</span> <span class="k">else</span> <span class="n">sigs</span>
+      <span class="k">with</span> <span class="nc">Sys_error</span> <span class="n">e</span> <span class="o">-&gt;</span>
+        <span class="n">sigs</span>
+    <span class="k">end</span>
+  <span class="k">else</span> <span class="n">sigs</span>
+
+<span class="c">(* choose a random signature *)</span>
+<span class="k">let</span> <span class="n">pick_quote</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">sigfile</span> <span class="o">=</span> <span class="n">signame</span> <span class="bp">()</span> <span class="k">in</span>
+  <span class="k">if</span> <span class="n">not</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="n">file_exists</span> <span class="n">sigfile</span><span class="o">)</span>
+  <span class="k">then</span> <span class="n">fortune</span> <span class="bp">()</span>
+  <span class="k">else</span>
+    <span class="k">begin</span>
+      <span class="k">let</span> <span class="n">channel</span> <span class="o">=</span> <span class="n">open_in</span> <span class="n">sigfile</span> <span class="k">in</span>
+      <span class="k">let</span> <span class="n">stream</span> <span class="o">=</span> <span class="n">delimited_stream_of_channel</span> <span class="s2">&quot;%%&quot;</span> <span class="n">channel</span> <span class="k">in</span>
+      <span class="k">let</span> <span class="n">quip</span> <span class="o">=</span> <span class="n">ref</span> <span class="bp">[]</span> <span class="k">in</span>
+      <span class="k">let</span> <span class="n">num</span> <span class="o">=</span> <span class="n">ref</span> <span class="mi">1</span> <span class="k">in</span>
+      <span class="nn">Stream</span><span class="p">.</span><span class="n">iter</span>
+        <span class="o">(</span><span class="k">fun</span> <span class="n">chunk</span> <span class="o">-&gt;</span>
+           <span class="k">if</span> <span class="nn">Random</span><span class="p">.</span><span class="n">int</span> <span class="o">!</span><span class="n">num</span> <span class="o">=</span> <span class="mi">0</span>
+           <span class="k">then</span> <span class="n">quip</span> <span class="o">:=</span> <span class="nn">Str</span><span class="p">.</span><span class="n">split</span> <span class="o">(</span><span class="nn">Str</span><span class="p">.</span><span class="n">regexp</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">)</span> <span class="n">chunk</span><span class="o">;</span>
+           <span class="n">incr</span> <span class="n">num</span><span class="o">)</span>
+        <span class="n">stream</span><span class="o">;</span>
+      <span class="n">close_in</span> <span class="n">channel</span><span class="o">;</span>
+      <span class="k">if</span> <span class="o">!</span><span class="n">quip</span> <span class="o">&lt;&gt;</span> <span class="bp">[]</span>
+      <span class="k">then</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="o">((</span> <span class="o">^</span> <span class="o">)</span> <span class="s2">&quot; &quot;</span><span class="o">)</span> <span class="o">!</span><span class="n">quip</span>
+      <span class="k">else</span> <span class="o">[</span><span class="s2">&quot; ENOSIG: This signature file is empty.&quot;</span><span class="o">]</span>
+    <span class="k">end</span>
+
+<span class="c">(* Ignore SIGPIPE in case someone opens us up and then closes the fifo</span>
+<span class="c">   without reading it; look in a .fullname file for their login name.</span>
+<span class="c">   Try to determine the fully qualified hostname. Make sure we have</span>
+<span class="c">   signatures or fortunes. Build a fifo if we need to. *)</span>
+
+<span class="k">let</span> <span class="n">setup</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="nn">Sys</span><span class="p">.</span><span class="n">set_signal</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">sigpipe</span> <span class="nn">Sys</span><span class="p">.</span><span class="nc">Signal_ignore</span><span class="o">;</span>
+
+  <span class="k">if</span> <span class="o">!</span><span class="n">name</span> <span class="o">=</span> <span class="nc">Some</span> <span class="s2">&quot;&quot;</span> <span class="k">then</span>
+    <span class="k">begin</span>
+      <span class="k">try</span>
+        <span class="k">let</span> <span class="n">channel</span> <span class="o">=</span> <span class="n">open_in</span> <span class="n">fullname</span> <span class="k">in</span>
+        <span class="n">name</span> <span class="o">:=</span> <span class="nc">Some</span> <span class="o">(</span><span class="n">input_line</span> <span class="n">channel</span><span class="o">);</span>
+        <span class="n">close_in</span> <span class="n">channel</span>
+      <span class="k">with</span> <span class="nc">Sys_error</span> <span class="o">_</span> <span class="o">-&gt;</span>
+        <span class="n">name</span> <span class="o">:=</span> <span class="nc">Some</span> <span class="o">(</span><span class="nn">Str</span><span class="p">.</span><span class="n">global_replace</span> <span class="o">(</span><span class="nn">Str</span><span class="p">.</span><span class="n">regexp</span> <span class="s2">&quot;,.*&quot;</span><span class="o">)</span> <span class="s2">&quot;&quot;</span>
+                        <span class="n">pwd</span><span class="o">.</span><span class="nn">Unix</span><span class="p">.</span><span class="n">pw_gecos</span><span class="o">)</span>
+    <span class="k">end</span><span class="o">;</span>
+
+  <span class="k">if</span> <span class="n">not</span> <span class="o">(</span><span class="nn">Sys</span><span class="p">.</span><span class="n">file_exists</span> <span class="n">sigs</span><span class="o">)</span> <span class="k">then</span> <span class="n">check_fortunes</span> <span class="bp">()</span><span class="o">;</span>
+
+  <span class="k">if</span> <span class="nn">Sys</span><span class="p">.</span><span class="n">file_exists</span> <span class="n">fifo</span>
+  <span class="k">then</span> <span class="o">(</span><span class="k">if</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">stat</span> <span class="n">fifo</span><span class="o">).</span><span class="nn">Unix</span><span class="p">.</span><span class="n">st_kind</span> <span class="o">=</span> <span class="nn">Unix</span><span class="p">.</span><span class="nc">S_FIFO</span>
+        <span class="k">then</span> <span class="o">(</span><span class="nn">Printf</span><span class="p">.</span><span class="n">eprintf</span> <span class="s2">&quot;%s: using existing named pipe %s</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span><span class="o">.(</span><span class="mi">0</span><span class="o">)</span> <span class="n">fifo</span><span class="o">)</span>
+        <span class="k">else</span> <span class="o">(</span><span class="nn">Printf</span><span class="p">.</span><span class="n">eprintf</span> <span class="s2">&quot;%s: won&#39;t overwrite file %s</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span><span class="o">.(</span><span class="mi">0</span><span class="o">)</span> <span class="n">fifo</span><span class="o">;</span>
+              <span class="n">exit</span> <span class="mi">1</span><span class="o">))</span>
+  <span class="k">else</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">mkfifo</span> <span class="n">fifo</span> <span class="mo">0o666</span><span class="o">;</span>
+        <span class="nn">Printf</span><span class="p">.</span><span class="n">eprintf</span> <span class="s2">&quot;%s: created %s as a named pipe</span><span class="se">\n</span><span class="s2">&quot;</span>
+          <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span><span class="o">.(</span><span class="mi">0</span><span class="o">)</span> <span class="n">fifo</span><span class="o">);</span>
+
+  <span class="nn">Random</span><span class="p">.</span><span class="n">self_init</span> <span class="bp">()</span>
+
+<span class="c">(* &quot;There can be only one.&quot;  --the Highlander *)</span>
+<span class="k">let</span> <span class="n">justme</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">channel</span> <span class="o">=</span>
+    <span class="k">try</span> <span class="nc">Some</span> <span class="o">(</span><span class="n">open_in</span> <span class="n">sema</span><span class="o">)</span>
+    <span class="k">with</span> <span class="nc">Sys_error</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="nc">None</span> <span class="k">in</span>
+  <span class="k">match</span> <span class="n">channel</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="nc">Some</span> <span class="n">channel</span> <span class="o">-&gt;</span>
+        <span class="k">begin</span>
+          <span class="k">let</span> <span class="n">pid</span> <span class="o">=</span> <span class="n">int_of_string</span> <span class="o">(</span><span class="n">input_line</span> <span class="n">channel</span><span class="o">)</span> <span class="k">in</span>
+          <span class="k">try</span>
+            <span class="nn">Unix</span><span class="p">.</span><span class="n">kill</span> <span class="n">pid</span> <span class="mi">0</span><span class="o">;</span>
+            <span class="nn">Printf</span><span class="p">.</span><span class="n">eprintf</span> <span class="s2">&quot;%s already running (pid %d), bailing out</span><span class="se">\n</span><span class="s2">&quot;</span>
+              <span class="nn">Sys</span><span class="p">.</span><span class="n">argv</span><span class="o">.(</span><span class="mi">0</span><span class="o">)</span> <span class="n">pid</span><span class="o">;</span>
+            <span class="n">exit</span> <span class="mi">1</span>
+          <span class="k">with</span> <span class="o">_</span> <span class="o">-&gt;</span>
+            <span class="n">close_in</span> <span class="n">channel</span>
+        <span class="k">end</span>
+    <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="bp">()</span>
+
+<span class="k">let</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="n">setup</span> <span class="bp">()</span><span class="o">;</span>                <span class="c">(* pull in inits *)</span>
+  <span class="n">justme</span> <span class="bp">()</span><span class="o">;</span>               <span class="c">(* make sure program not already running *)</span>
+  <span class="k">match</span> <span class="nn">Unix</span><span class="p">.</span><span class="n">fork</span> <span class="bp">()</span> <span class="k">with</span>  <span class="c">(* background ourself and go away *)</span>
+    <span class="o">|</span> <span class="mi">0</span> <span class="o">-&gt;</span>
+        <span class="k">let</span> <span class="n">channel</span> <span class="o">=</span> <span class="n">open_out</span> <span class="n">sema</span> <span class="k">in</span>
+        <span class="n">output_string</span> <span class="n">channel</span> <span class="o">(</span><span class="n">string_of_int</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">getpid</span> <span class="bp">()</span><span class="o">));</span>
+        <span class="n">output_string</span> <span class="n">channel</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">;</span>
+        <span class="n">close_out</span> <span class="n">channel</span><span class="o">;</span>
+
+        <span class="c">(* now loop forever, writing a signature into the</span>
+<span class="c">           fifo file.  if you don&#39;t have real fifos, change</span>
+<span class="c">           sleep time at bottom of loop to like 10 to update</span>
+<span class="c">           only every 10 seconds. *)</span>
+
+        <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+          <span class="k">let</span> <span class="n">channel</span> <span class="o">=</span> <span class="n">open_out</span> <span class="n">fifo</span> <span class="k">in</span>
+          <span class="k">let</span> <span class="k">sig&#39;</span> <span class="o">=</span> <span class="n">pick_quote</span> <span class="bp">()</span> <span class="k">in</span>
+          <span class="k">let</span> <span class="k">sig&#39;</span> <span class="o">=</span> <span class="nn">Array</span><span class="p">.</span><span class="n">of_list</span> <span class="k">sig&#39;</span> <span class="k">in</span>
+
+          <span class="c">(* trunc to 4 lines *)</span>
+          <span class="k">let</span> <span class="k">sig&#39;</span> <span class="o">=</span>
+            <span class="k">if</span> <span class="nn">Array</span><span class="p">.</span><span class="n">length</span> <span class="k">sig&#39;</span> <span class="o">&gt;</span> <span class="mi">4</span>
+            <span class="k">then</span> <span class="nn">Array</span><span class="p">.</span><span class="n">sub</span> <span class="k">sig&#39;</span> <span class="mi">0</span> <span class="mi">4</span>
+            <span class="k">else</span> <span class="k">sig&#39;</span> <span class="k">in</span>
+
+          <span class="c">(* trunc long lines *)</span>
+          <span class="k">let</span> <span class="k">sig&#39;</span> <span class="o">=</span>
+            <span class="nn">Array</span><span class="p">.</span><span class="n">map</span>
+              <span class="o">(</span><span class="k">fun</span> <span class="n">line</span> <span class="o">-&gt;</span>
+                 <span class="k">if</span> <span class="nn">String</span><span class="p">.</span><span class="n">length</span> <span class="n">line</span> <span class="o">&gt;</span> <span class="mi">80</span>
+                 <span class="k">then</span> <span class="nn">String</span><span class="p">.</span><span class="n">sub</span> <span class="n">line</span> <span class="mi">0</span> <span class="mi">80</span>
+                 <span class="k">else</span> <span class="n">line</span><span class="o">)</span>
+              <span class="k">sig&#39;</span> <span class="k">in</span>
+
+          <span class="c">(* print sig, with name if present, padded to four lines *)</span>
+          <span class="k">begin</span>
+            <span class="k">match</span> <span class="o">!</span><span class="n">name</span> <span class="k">with</span>
+              <span class="o">|</span> <span class="nc">None</span> <span class="o">|</span> <span class="nc">Some</span> <span class="s2">&quot;&quot;</span> <span class="o">-&gt;</span>
+                  <span class="nn">Array</span><span class="p">.</span><span class="n">iter</span>
+                    <span class="o">(</span><span class="k">fun</span> <span class="n">line</span> <span class="o">-&gt;</span>
+                       <span class="n">output_string</span> <span class="n">channel</span> <span class="n">line</span><span class="o">;</span>
+                       <span class="n">output_string</span> <span class="n">channel</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">)</span>
+                    <span class="k">sig&#39;</span>
+              <span class="o">|</span> <span class="nc">Some</span> <span class="n">name</span> <span class="o">-&gt;</span>
+                  <span class="n">output_string</span> <span class="n">channel</span> <span class="n">name</span><span class="o">;</span>
+                  <span class="k">for</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">4</span> <span class="k">downto</span> <span class="nn">Array</span><span class="p">.</span><span class="n">length</span> <span class="k">sig&#39;</span> <span class="k">do</span>
+                    <span class="n">output_string</span> <span class="n">channel</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">;</span>
+                  <span class="k">done</span><span class="o">;</span>
+                  <span class="nn">Array</span><span class="p">.</span><span class="n">iter</span>
+                    <span class="o">(</span><span class="k">fun</span> <span class="n">line</span> <span class="o">-&gt;</span>
+                       <span class="n">output_string</span> <span class="n">channel</span> <span class="n">line</span><span class="o">;</span>
+                       <span class="n">output_string</span> <span class="n">channel</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">)</span>
+                    <span class="k">sig&#39;</span>
+          <span class="k">end</span><span class="o">;</span>
+          <span class="n">close_out</span> <span class="n">channel</span><span class="o">;</span>
+
+          <span class="c">(* Without a microsleep, the reading process doesn&#39;t finish</span>
+<span class="c">             before the writer tries to open it again, which since the</span>
+<span class="c">             reader exists, succeeds. They end up with multiple</span>
+<span class="c">             signatures. Sleep a tiny bit between opens to give readers</span>
+<span class="c">             a chance to finish reading and close our pipe so we can</span>
+<span class="c">             block when opening it the next time. *)</span>
+
+          <span class="n">ignore</span> <span class="o">(</span><span class="nn">Unix</span><span class="p">.</span><span class="n">select</span> <span class="bp">[]</span> <span class="bp">[]</span> <span class="bp">[]</span> <span class="mi">0</span><span class="o">.</span><span class="mi">2</span><span class="o">)</span>  <span class="c">(* sleep 1/5 second *)</span>
+        <span class="k">done</span>
+    <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span>
+        <span class="n">exit</span> <span class="mi">0</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="userinterfaces.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="sockets.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>User Interfaces</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Sockets</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

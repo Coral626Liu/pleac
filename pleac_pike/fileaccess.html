@@ -1,0 +1,801 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>File Access</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Pike"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Pattern Matching"
+HREF="patternmatching.html"><LINK
+REL="NEXT"
+TITLE="File Contents"
+HREF="filecontents.html"></HEAD
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Pike</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="patternmatching.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="filecontents.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="FILEACCESS"
+>7. File Access</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN359"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// if you are going to read the whole file, the most common way is to use 
+// Stdio.read_file()
+
+string INPUT = Stdio.read_file(&quot;/usr/local/widgets/data&quot;);
+if(!INPUT)
+{
+  werror(&quot;Couldn't open /usr/local/widgets/data for reading\n&quot;);
+  exit(1);
+}
+
+foreach(INPUT/&quot;\n&quot;;; string line)
+{
+  if(search(line, &quot;blue&quot;)!=-1)
+    write(line+&quot;\n&quot;);
+}
+
+// if you need more control over the process you can get a filehandle with
+// Stdio.File()
+
+Stdio.File INPUT = Stdio.File(&quot;/usr/local/widgets/data&quot;, &quot;r&quot;);
+if(!INPUT)
+{
+  werror(&quot;Couldn't open /usr/local/widgets/data for reading\n&quot;);
+  exit(1);
+}
+
+foreach(INPUT-&gt;line_iterator();; string line)
+{
+  if(search(line, &quot;blue&quot;)!=-1)
+    write(line+&quot;\n&quot;);
+}
+INPUT-&gt;close();
+
+//---------------------------------------------------------
+
+foreach(Stdio.stdin;; string line)            // reads from STDIN
+{
+  if(!sizeof(array_sscanf(line, &quot;%*s%d&quot;)))
+    werror(&quot;No digit found.\n&quot;);              // writes to STDERR
+  write(&quot;Read: %s\n&quot;, line);                  // writes ot STDOUT
+}
+Stdio.stdout-&gt;close() || werror(&quot;couldn't close STDOUT\n&quot;) &amp;&amp; exit(1);
+
+// just as with Stdio.read_file(), there are convenience functions for writing:
+// Stdio.write_file() and Stdio.append_file()
+
+Stdio.File logfile = Stdio.File(&quot;/tmp/log&quot;, &quot;w&quot;);
+
+// access modes are &quot;r&quot; for reading, &quot;w&quot; for writing and &quot;a&quot; for append
+// default mode is &quot;rw&quot;
+
+// to read a line you may use Stdio.File()-&gt;gets() or get a line_iterator() and
+// read lines from it.
+
+object LOGFILE = logfile-&gt;line_iterator();
+do
+{
+  string line=LOGFILE-&gt;value();
+}
+while(LOGFILE-&gt;next())
+logfile-&gt;close();
+
+// or use foreach as shown above.
+
+// write() is actually a shortcut for Stdio.stdout-&gt;write()
+// you could get yourself a different shortcut by assigning that to a variable:
+
+function write = logfile-&gt;write;     //  switch to LOGFILE for write();
+write(&quot;Countdown initiated ...\n&quot;);
+write = Stdio.stdout-&gt;write;         //  return to stdout
+write(&quot;You have 30 seconds to reach minimum safety distance.\n&quot;);
+
+// Stdio.File is unbuffered. a buffered version is provided by Stdio.FILE</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN362"
+>Opening a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// use Stdio.read_file(), Stdio.write_file() and Stdio.append_file() for
+// convenience, or Stdio.File for precision and to get a filehandle.
+
+string path;
+
+// open file for reading
+string file = Stdio.read_file(path);
+Stdio.File file = Stdio.File(path, &quot;r&quot;);
+
+// open file for writing, create new file if needed, or else truncate old file
+Stdio.write_file(path, &quot;content&quot;);
+Stdio.File file = Stdio.File(path, &quot;wc&quot;);
+
+// same with setting access permissions
+Stdio.write_file(path, &quot;content&quot;, 0600);
+Stdio.File file = Stdio.File(path, &quot;wc&quot;, 0600);
+
+// open file for writing, create new file, file must not exist
+if(!file_stat(path))
+  Stdio.write_file(path, &quot;content&quot;);
+Stdio.File file = Stdio.File(path, &quot;wcx&quot;);
+
+if(!file_stat(path))
+  Stdio.write_file(path, &quot;content&quot;, 0600);
+Stdio.File file = Stdio.File(path, &quot;wcx&quot;, 0600);
+
+// open file for appending, create if necessary
+Stdio.append_file(path, &quot;content&quot;);
+Stdio.File file = Stdio.File(path, &quot;wac&quot;);
+
+Stdio.append_file(path, &quot;content&quot;, 0600);
+Stdio.File file = Stdio.File(path, &quot;wac&quot;, 0600);
+
+// open file for appending, file must exist
+Stdio.File file = Stdio.File(path, &quot;wacx&quot;);
+
+// open file for update, file must exist
+string file = Stdio.read_file(path);
+string updated = file+&quot;foo&quot;  // update contents of file
+Stdio.write_file(path, updated);
+
+Stdio.File file = Stdio.File(path);          // this is the default operation
+
+// open file for update, file must not exist
+Stdio.File file = Stdio.File(path, &quot;rwcx&quot;);</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN365"
+>Opening Files with Unusual Filenames</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// since the filename is contained in a string, this problem does not apply</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN368"
+>Expanding Tildes in Filenames</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">string filename;
+
+if(filename[0] == &quot;~&quot;)
+{
+  string user, path, home;
+  [ user, path ] = array_sscanf(filename, &quot;~%[^/]%s&quot;);
+  if(user == &quot;&quot;)
+    home = getenv(&quot;HOME&quot;) || getenv(&quot;LOGDIR&quot;) || getpwuid(geteuid())[5];
+  else
+    home = getpwnam(user)[5];
+  filename = home+path;
+}</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN371"
+>Making Perl Report Filenames in Errors</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">string path = &quot;/tmp/fooo&quot;;
+mixed error = catch
+{
+  Stdio.File file = Stdio.File(path, &quot;r&quot;);
+};
+
+if(error)
+{
+  werror(&quot;Couldn't open %s for reading:\n&quot;, path);
+  werror(error[0]);
+}
+// Couldn't open /tmp/fooo for reading: 
+// Failed to open &quot;/tmp/fooo&quot; mode &quot;r&quot; : No such file or directory</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN374"
+>Creating Temporary Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">
+Stdio.File fh;
+string name;
+do
+{
+  name = &quot;/tmp/&quot;+MIME.encode_base64(random_string(10));
+  fh = Stdio.File(name, &quot;rwcx&quot;);
+}
+while(!fh)
+
+atexit(lambda(){ fh-&gt;close(); rm(name); });
+
+
+// if you don't really need the file to be on disk (or if /tmp is a ramdisk)
+// but you need an object that behaves like a file, then use Stdio.FakeFile
+
+fh = Stdio.FakeFile();
+
+// and use fh like any other filehandle.</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN377"
+>Storing Files Inside Your Program Text</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1">// since the usual way to handle files is to read them into a string, then just
+// assign your data to a string and work from there:
+
+string data = &quot;your data goes here&quot;;
+
+
+// or for convenient multiline data:
+
+string data = #&quot;your data goes here
+and here
+and ends here&quot;;
+
+
+// or use Stdio.FakeFile for a Stdio.File compatible interface
+// see 7.5
+
+//-----------------------------------------------------------------
+
+object stat = file_stat(__FILE__);
+int raw_time = stat-&gt;ctime;
+int size     = stat-&gt;size;
+int kilosize = size/1024;
+
+write(&quot;&lt;P&gt;Script size is %dk\n&quot;, kilosize);
+write(&quot;&lt;P&gt;Last script update: %s\n&quot;, Calendar.Second(raw_time)-&gt;format_nicez());</PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN380"
+>Writing a Filter</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN383"
+>Modifying a File in Place with Temporary File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN386"
+>Modifying a File in Place with -i Switch</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN389"
+>Modifying a File in Place Without a Temporary File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN392"
+>Locking a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN395"
+>Flushing Output</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN398"
+>Reading from Many Filehandles Without Blocking</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN401"
+>Doing Non-Blocking I/O</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN404"
+>Determining the Number of Bytes to Read</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN407"
+>Storing Filehandles in Variables</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN410"
+>Caching Open Output Filehandles</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN413"
+>Printing to Many Filehandles Simultaneously</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN416"
+>Opening and Closing File Descriptors by Number</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN419"
+>Copying Filehandles</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN422"
+>Program: netlock</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN425"
+>Program: lockarea</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="patternmatching.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="filecontents.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Pattern Matching</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>File Contents</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

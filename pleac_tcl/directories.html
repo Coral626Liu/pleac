@@ -1,0 +1,974 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Directories</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Tcl"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="File Contents"
+HREF="filecontents.html"><LINK
+REL="NEXT"
+TITLE="Subroutines"
+HREF="subroutines.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Tcl</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="filecontents.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="subroutines.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="DIRECTORIES"
+>9. Directories</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN495"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2"># feat. Bob Techentin</span>
+<span class="s2">#-----------------------------</span>
+<span class="s2">if {[catch {file stat /usr/bin/vi entry} err]} {error &quot;Couldn&#39;t stat /usr/bin/vi : $err&quot;}</span>
+<span class="s2">#-----------------------------</span>
+<span class="s2">if {[catch {file stat /usr/bin entry} err]} {error &quot;Couldn&#39;t stat /usr/bin : $err&quot;}</span>
+<span class="s2">#-----------------------------</span>
+<span class="s2"># can&#39;t [file stat] a filehandle</span>
+<span class="s2">#-----------------------------</span>
+<span class="s2">file stat /usr/bin/vi inode</span>
+<span class="s2">set ctime $inode(ctime)</span>
+<span class="s2">set size $inode(size)</span>
+
+<span class="s2"># or you can use specific [file] subcommands</span>
+<span class="s2">set size [file size /usr/bin/vi]</span>
+<span class="s2">#-----------------------------</span>
+<span class="s2">#  You have to read the file to test for binary data</span>
+<span class="s2">if {![catch {open $filename r} F]} {</span>
+<span class="s2">	set data [read $F]</span>
+<span class="s2">	close $F</span>
+<span class="s2">	if {![string is ascii $data]} {</span>
+<span class="s2">		error &quot;$filename doesn&#39;t have text in it.&quot;</span>
+<span class="s2">	}</span>
+<span class="s2">} else {</span>
+<span class="s2">	error &quot;Opening $filename: $F&quot;</span>
+<span class="s2">}</span>
+<span class="s2">#-----------------------------</span>
+<span class="s2">set files [glob /usr/bin/*]</span>
+<span class="s2">foreach f $files {</span>
+<span class="s2">    puts &quot;Inside /usr/bin is something called [file tail $f]&quot;</span>
+<span class="s2">}</span>
+<span class="s2">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN498"
+>Getting and Setting Timestamps</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2"># feat. Bob Techentin</span>
+<span class="s2">#-----------------------------</span>
+<span class="s2">set READTIME [file atime $filename]</span>
+<span class="s2">set WRITETIME [file mtime $filename]</span>
+
+<span class="s2">file atime $filename $NEWREADTIME</span>
+<span class="s2">file mtime $filename $NEWWRITETIME</span>
+<span class="s2">#-----------------------------</span>
+<span class="s2">set atime [file atime $filename]</span>
+<span class="s2">set mtime [file mtime $filename]</span>
+
+<span class="s2">set atime [clock scan &quot;- 1 week&quot; -base $atime]</span>
+<span class="s2">set mtime [clock scan &quot;- 1 week&quot; -base $mtime]</span>
+
+<span class="s2">if {[catch {</span>
+<span class="s2">	file atime $filename $atime</span>
+<span class="s2">	file mtime $filename $mtime</span>
+<span class="s2">} err]} {</span>
+<span class="s2">	error &quot;couldn&#39;t backdate $filename by a week w/ file (a|m)time: $err&quot;</span>
+<span class="s2">}</span>
+<span class="s2">#-----------------------------</span>
+<span class="s2">file atime $file [clock seconds]</span>
+<span class="s2">#-----------------------------</span>
+<span class="s2">#!/bin/sh</span>
+<span class="s2"># uvi - vi a file without changing its access times</span>
+<span class="s2"># the next line restarts using tclsh \</span>
+<span class="s2">exec tclsh &quot;$0&quot; &quot;$@&quot;</span>
+<span class="s2">if {[llength $argv] != 1} {</span>
+<span class="s2">	error &quot;usage: uvi filename&quot;</span>
+<span class="s2">}</span>
+<span class="s2">set file [lindex $argv 0]</span>
+<span class="s2">file stat $file statinfo</span>
+<span class="s2">if {[info exists env(EDITOR)]} {</span>
+<span class="s2">	exec $env(EDITOR) $file</span>
+<span class="s2">} else {</span>
+<span class="s2">	exec vi $file</span>
+<span class="s2">}</span>
+<span class="s2">file atime $file $statinfo(atime)</span>
+<span class="s2">file mtime $file $statinfo(mtime)</span>
+<span class="s2">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN501"
+>Deleting a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2"># feat. Bob Techentin</span>
+<span class="s2">#-----------------------------</span>
+<span class="s2">file delete $filename</span>
+<span class="s2">eval file delete $filenames</span>
+<span class="s2">#-----------------------------</span>
+<span class="s2">if {[catch {file delete $file}]} {</span>
+<span class="s2">	error &quot;Can&#39;t unlink $file&quot;</span>
+<span class="s2">}</span>
+<span class="s2">#-----------------------------</span>
+
+<span class="s2">#  Tcl&#39;s [file delete] command doesn&#39;t return a count,</span>
+<span class="s2">#  so we have to count files before and after deletion.</span>
+<span class="s2">set existing 0</span>
+<span class="s2">foreach f $filelist {</span>
+<span class="s2">	if {[file exists $f]} {incr existing}</span>
+<span class="s2">}</span>
+<span class="s2">catch {eval file delete $filelist}</span>
+<span class="s2">set remaining 0</span>
+<span class="s2">foreach f $filelist {</span>
+<span class="s2">	if {[file exists $f]} {incr remaining}</span>
+<span class="s2">}</span>
+<span class="s2">if {$remaining &gt; 0} {</span>
+<span class="s2">	set count [expr {$existing-$remaining}]</span>
+<span class="s2">	puts stderr &quot;could only delete $count of $existing files&quot;</span>
+<span class="s2">}</span>
+<span class="s2">#-----------------------------</span><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2"># feat. Bob Techentin</span>
+<span class="s2">#-----------------------------</span>
+<span class="s2">file delete $filename</span>
+<span class="s2">eval file delete $filenames</span>
+<span class="s2">#-----------------------------</span>
+<span class="s2">if {[catch {file delete $file}]} {</span>
+<span class="s2">	error &quot;Can&#39;t unlink $file&quot;</span>
+<span class="s2">}</span>
+<span class="s2">#-----------------------------</span>
+
+<span class="s2">if {[catch {eval file delete $filelist}]} {</span>
+<span class="s2">	set remaining 0</span>
+<span class="s2">	foreach f $filelist {</span>
+<span class="s2">		if {[file exists $f]} {incr remaining}</span>
+<span class="s2">	}</span>
+<span class="s2">	set count [expr {[llength $filelist] - $remaining}]</span>
+<span class="s2">	puts stderr &quot;could only delete $count of $existing files&quot;</span>
+<span class="s2">}</span>
+<span class="s2">#  Tcl&#39;s [file delete] command doesn&#39;t return a count,</span>
+<span class="s2">#  so we have to count files before and after deletion.</span>
+<span class="s2">set existing 0</span>
+<span class="s2">foreach f $filelist {</span>
+<span class="s2">	if {[file exists $f]} {incr existing}</span>
+<span class="s2">}</span>
+<span class="s2">catch {eval file delete $filelist}</span>
+<span class="s2">set remaining 0</span>
+<span class="s2">foreach f $filelist {</span>
+<span class="s2">	if {[file exists $f]} {incr remaining}</span>
+<span class="s2">}</span>
+<span class="s2">if {$remaining &gt; 0} {</span>
+<span class="s2">	set count [expr {$existing-$remaining}]</span>
+<span class="s2">	puts stderr &quot;could only delete $count of $existing files&quot;</span>
+<span class="s2">}</span>
+<span class="s2">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN504"
+>Copying or Moving a File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2"># feat. Bob Techentin</span>
+<span class="s2">#-----------------------------</span>
+<span class="s2">file copy $oldfile $newfile</span>
+<span class="s2">#-----------------------------</span>
+<span class="s2">if {[catch {open $oldfile &quot;r&quot;} IN]}  {error &quot;can&#39;t open $oldfile: $IN&quot;}</span>
+<span class="s2">if {[catch {open $newfile &quot;w&quot;} OUT]} {error &quot;can&#39;t open $newfile: $OUT&quot;}</span>
+
+<span class="s2">set blksize [fconfigure $IN -buffersize]</span>
+<span class="s2">fcopy $IN $OUT -size $blksize</span>
+<span class="s2">close $IN</span>
+<span class="s2">close $OUT</span>
+
+<span class="s2">#-----------------------------</span>
+<span class="s2">#  Tcl file operations are portable</span>
+<span class="s2">file copy $oldfile $newfile</span>
+<span class="s2">#-----------------------------</span>
+<span class="s2">file copy datafile.dat datafile.bak</span>
+<span class="s2">file rename -force datafile.new datafile.dat</span>
+<span class="s2">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN507"
+>Recognizing Two Names for the Same File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2"># feat. Bob Techentin</span>
+<span class="s2">#-----------------------------</span>
+
+<span class="s2">unset seen</span>
+<span class="s2">foreach filename $argv {</span>
+<span class="s2">	file stat $filename statinfo</span>
+<span class="s2">	set dev $statinfo(dev)</span>
+<span class="s2">	set ino $statinfo(ino)</span>
+<span class="s2">	if {![info exists seen($dev,$ino)]} {</span>
+<span class="s2">		#  do something with $filename because</span>
+<span class="s2">		#  we haven&#39;t seen it before</span>
+
+<span class="s2">		lappend seen($dev,$ino) $filename</span>
+<span class="s2">		#  seen($dev,$ino) is a list of filenames for the same file</span>
+<span class="s2">	}</span>
+<span class="s2">}</span>
+
+<span class="s2">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN510"
+>Processing All Files in a Directory</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2"># feat. Bob Techentin</span>
+<span class="s2">#-----------------------------</span>
+<span class="s2">foreach file [glob [file join $dirname &quot;*&quot;]] {</span>
+<span class="s2">	# do something with $file</span>
+<span class="s2">}</span>
+<span class="s2">#-----------------------------</span>
+<span class="s2">set dir /usr/local/bin</span>
+<span class="s2">puts &quot;Text files in $dir are:&quot;</span>
+<span class="s2">foreach file [glob [file join $dir &quot;*&quot;]] {</span>
+<span class="s2">	set fp [open $file &quot;r&quot;]</span>
+<span class="s2">	if {[string is ascii [read $fp]]} {</span>
+<span class="s2">		puts $file</span>
+<span class="s2">	}</span>
+<span class="s2">	close $fp</span>
+<span class="s2">}</span>
+<span class="s2">#-----------------------------</span>
+<span class="s2">foreach file [glob [file join $dir &quot;*&quot;]] {</span>
+<span class="s2">	if {$file eq &quot;..&quot; || $file eq &quot;.&quot;} continue</span>
+<span class="s2">	# ...</span>
+<span class="s2">}</span>
+<span class="s2">#-----------------------------</span>
+<span class="s2">proc plainfiles {dir} {</span>
+<span class="s2">	set result [list]</span>
+<span class="s2">	foreach file [lsort [glob [file join $dir &quot;*&quot;]]] {</span>
+<span class="s2">		if {[string index [file tail $file] 0] eq &quot;.&quot;} continue</span>
+<span class="s2">		if {[file type $file] eq &quot;file&quot;} {</span>
+<span class="s2">			lappend result $file</span>
+<span class="s2">		}</span>
+<span class="s2">	}</span>
+<span class="s2">	return $result</span>
+<span class="s2">}</span>
+<span class="s2">#-----------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN513"
+>Globbing, or Getting a List of Filenames Matching a Pattern</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2"># List of regular files in current directory - file names only in list</span>
+<span class="s2">set files [glob -nocomplain -type f -- *.c]</span>
+
+<span class="s2"># -------------</span>
+
+<span class="s2"># As above, but with full path</span>
+<span class="s2">set files [glob -directory [pwd] -nocomplain -type f -- *.c]</span>
+
+<span class="s2"># -------------</span>
+
+<span class="s2"># As previous [which is more compact, so preferred], showing use of &#39;file&#39; to build file names</span>
+<span class="s2">set pwd [pwd] ; set files [glob -nocomplain -type f -- *.c]</span>
+
+<span class="s2"># Assemble full path names from list entries</span>
+<span class="s2">foreach f $files {</span>
+<span class="s2">  puts [file nativename [file join &quot;$pwd&quot; &quot;$f&quot;]]</span>
+<span class="s2">}</span>
+
+<span class="s2"># -------------</span>
+
+<span class="s2"># Variants of the *NIX, &#39;find&#39;, command from the &#39;fileutil&#39; package</span>
+<span class="s2">package require fileutil</span>
+
+<span class="s2"># Set search path to current directory. Could have also have used either of ~,</span>
+<span class="s2"># for the user&#39;s HOME directory, or a relative / absolute path</span>
+<span class="s2">set path .</span>
+
+<span class="s2"># -----</span>
+
+<span class="s2"># 1. Similar to, &#39;glob&#39;, but also allows &#39;regexp&#39;-based globbing</span>
+<span class="s2">set files [fileutil::findByPattern $path -glob -- *.c]</span>
+
+<span class="s2"># -----</span>
+
+<span class="s2"># 2. Makes use of a &#39;filter&#39; procedure</span>
+<span class="s2">proc is_c {name} { return [string match *.c $name] }</span>
+
+<span class="s2">set files [fileutil::find $path is_c]</span>
+
+<span class="s2"># -----</span>
+
+<span class="s2"># In both cases:</span>
+<span class="s2"># * Search is recursive</span>
+<span class="s2"># * Full path names printed</span>
+<span class="s2">foreach f $files {</span>
+<span class="s2">  puts $f</span>
+<span class="s2">}</span>
+
+<span class="s2"># -----------------------------</span>
+
+<span class="s2"># Two lists generated, first one filtered by file extension, second one by file type</span>
+<span class="s2">package require fileutil</span>
+
+<span class="s2">proc is_c_or_h {name} { return [string match -nocase *.\[ch\] $name] }</span>
+
+<span class="s2">set path . ; set files [fileutil::find $path is_c_or_h]</span>
+
+<span class="s2">foreach f $files {</span>
+<span class="s2">  if {[string match &quot;text&quot; [fileutil::fileType $f]]} { lappend textfiles $f }</span>
+<span class="s2">}</span>
+
+<span class="s2">foreach f $textfiles {</span>
+<span class="s2">  puts $f</span>
+<span class="s2">}</span>
+
+<span class="s2"># -------------</span>
+
+<span class="s2"># As above, but both file extension and file type considered in filter procedure, so</span>
+<span class="s2"># only a single list is generated</span>
+<span class="s2">package require fileutil</span>
+
+<span class="s2">proc is_c_or_h_and_text {name} {</span>
+<span class="s2">  if {[string match -nocase *.\[ch\] $name] &amp;&amp; ![catch {fileutil::fileType $name} filetype]} {</span>
+<span class="s2">    return [expr [string compare &quot;text&quot; $filetype] == 0]</span>
+<span class="s2">  }</span>
+<span class="s2">  return 0</span>
+<span class="s2">}</span>
+
+<span class="s2">set path . ; set files [fileutil::find $path is_c_or_h_and_text]</span>
+
+<span class="s2">foreach f $files {</span>
+<span class="s2">  puts $f</span>
+<span class="s2">}</span>
+
+<span class="s2"># -----------------------------</span>
+
+<span class="s2"># Sorted list of all subdirectories in the current directory which commence with the</span>
+<span class="s2"># digits 0-9</span>
+<span class="s2">set dirs [lsort [glob -directory [pwd] -nocomplain -type d -- \[0-9\]*]]</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN516"
+>Processing All Files in a Directory Recursively</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2"># Minimal-code approach to this problem is to generate a list of paths using the</span>
+<span class="s2"># &#39;find&#39; or &#39;findByPattern&#39; commands of the &#39;fileutil&#39; package, then traverse that</span>
+<span class="s2"># list processing each file in turn. A variation is to write a filter procedure for</span>
+<span class="s2"># &#39;find&#39; that processes each selected file whilst still retaining its expected </span>
+<span class="s2"># behaviour. Whilst the latter is likely to be better-performing, it isn&#39;t generally</span>
+<span class="s2"># recommended to have a filter procedure possess side-effecting behaviour</span>
+
+<span class="s2">package require fileutil</span>
+
+<span class="s2"># Conventional filter procedures for use with, fileutil::find</span>
+<span class="s2">proc is_dir {name} { return [expr [fileutil::test $name {d}] != 0] }</span>
+
+<span class="s2"># -----</span>
+
+<span class="s2"># Generate list of directories in a directory</span>
+<span class="s2">set path . ; set files [fileutil::find $path is_dir]</span>
+
+<span class="s2"># -------------</span>
+
+<span class="s2"># Side-effecting filter procedures</span>
+<span class="s2">proc accum_filesize {name} {</span>
+<span class="s2">  global filesize</span>
+<span class="s2">  if [fileutil::test $name {f}] { set filesize [expr $filesize + [file size $name]] }</span>
+<span class="s2">  return 0</span>
+<span class="s2">}</span>
+
+<span class="s2">proc biggest_file {name} {</span>
+<span class="s2">  global biggest</span>
+<span class="s2">  if {[fileutil::test $name {f}] &amp;&amp; [file size $name] &gt; $biggest} {</span>
+<span class="s2">    set biggest [file size $name]</span>
+<span class="s2">  }</span>
+<span class="s2">  return 0</span>
+<span class="s2">}</span>
+
+<span class="s2">proc youngest_file {name} {</span>
+<span class="s2">  global youngest</span>
+<span class="s2">  if {[fileutil::test $name {f}] &amp;&amp; [file mtime $name] &lt; $youngest} {</span>
+<span class="s2">    set youngest [file mtime $name]</span>
+<span class="s2">  }</span>
+<span class="s2">  return 0</span>
+<span class="s2">}</span>
+
+<span class="s2"># -----</span>
+
+<span class="s2"># Obtain total size of all files in a directory and its subdirectories</span>
+<span class="s2">set path . ; set filesize 0 ; set files [fileutil::find $path accum_filesize]</span>
+<span class="s2">puts $filesize</span>
+
+<span class="s2"># Find biggest size file in a directory and its subdirectories</span>
+<span class="s2">set path . ; set biggest 0 ; set files [fileutil::find $path biggest_file]</span>
+<span class="s2">puts $biggest</span>
+
+<span class="s2"># Find most recent file in a directory and its subdirectories</span>
+<span class="s2">set youngest 2147483647 ; set files [fileutil::find $path youngest_file]</span>
+<span class="s2">puts [clock format $youngest -format %D]</span>
+
+<span class="s2"># Alternatively, one could implement a procedure that actually recurses through</span>
+<span class="s2"># directories performing required processing. One approach would see the intermixing</span>
+<span class="s2"># of recursing and processing code; another would see a generic recursing procedure</span>
+<span class="s2"># passed the name of a processing procedure which is then applied to each selected</span>
+<span class="s2"># file via the &#39;eval&#39; command. The latter approach has the advanatage of being flexible,</span>
+<span class="s2"># though performance is hampered due to the use of &#39;eval&#39;; the former approach is more</span>
+<span class="s2"># &#39;one-shot&#39;, but most likely, better performing</span>
+
+<span class="s2">proc processDirectory {baseDir proc} {</span>
+<span class="s2">  set pwd [pwd] ; if [catch {cd $baseDir} result] { return }</span>
+
+<span class="s2">  foreach dir [glob -nocomplain -type d -- *] {</span>
+<span class="s2">    processDirectory $dir $proc</span>
+<span class="s2">  }</span>
+
+<span class="s2">  eval &quot;$proc [pwd]&quot; ; cd $pwd</span>
+<span class="s2">}</span>
+
+<span class="s2"># -------------</span>
+
+<span class="s2">proc show {dir} { puts $dir }</span>
+
+<span class="s2">proc accum_filesize {dir} {</span>
+<span class="s2">  global filesize</span>
+<span class="s2">  foreach file [glob -directory $dir -nocomplain -type f -- *] {</span>
+<span class="s2">    set filesize [expr $filesize + [file size $file]]</span>
+<span class="s2">  }</span>
+<span class="s2">}</span>
+
+<span class="s2">proc biggest_file {dir} {</span>
+<span class="s2">  global biggest</span>
+<span class="s2">  foreach file [glob -directory $dir -nocomplain -type f -- *] {</span>
+<span class="s2">    if {[file size $file] &gt; $biggest} { set biggest [file size $file]}</span>
+<span class="s2">  }</span>
+<span class="s2">}</span>
+
+<span class="s2">proc youngest_file {dir} {</span>
+<span class="s2">  global youngest</span>
+<span class="s2">  foreach file [glob -directory $dir -nocomplain -type f -- *] {</span>
+<span class="s2">    if {[file mtime $file] &lt; $youngest} { set youngest [file mtime $file]}</span>
+<span class="s2">  }</span>
+<span class="s2">}</span>
+
+<span class="s2"># -------------</span>
+
+<span class="s2"># Obtain total size of all files in a directory and its subdirectories</span>
+<span class="s2">set filesize 0 ; processDirectory [pwd] &quot;accum_filesize&quot; ; puts $filesize</span>
+
+<span class="s2"># Find biggest size file in a directory and its subdirectories</span>
+<span class="s2">set biggest 0 ; processDirectory [pwd] &quot;biggest_file&quot; ; puts $biggest</span>
+
+<span class="s2"># Find most recent file in a directory and its subdirectories</span>
+<span class="s2">set youngest 2147483647 ; processDirectory [pwd] &quot;youngest_file&quot;</span>
+<span class="s2">puts [clock format $youngest -format %D]</span>
+
+<span class="s2"># -----------------------------</span>
+
+<span class="s2"># Generate list of directories in a list of directories</span>
+
+<span class="s2">if {$argc &lt; 1} { puts stderr &quot;usage: $argv0 dir...&quot; ; exit 1 }</span>
+
+<span class="s2">foreach dirname $argv {</span>
+<span class="s2">  processDirectory $dirname &quot;show&quot;</span>
+<span class="s2">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN519"
+>Removing a Directory and Its Contents</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2"># The &#39;file delete&#39; command can:</span>
+<span class="s2"># * Delete both files and subdirectories</span>
+<span class="s2"># * Recursively delete the latter</span>
+<span class="s2"># Therefore, it is not necessary to construct a tree-traversing [recursive or otherwise]</span>
+<span class="s2"># procedure in order to remove a directory tree. It may be, however, useful to use such</span>
+<span class="s2"># an approach should it be necessary to implement special processing [e.g. interactive</span>
+<span class="s2"># prompting]. The use of a custom procedure that intermixes recursing and processing code</span>
+<span class="s2"># [as shown in the previous section] is probably the simplest, best performing approach,</span>
+<span class="s2"># to this latter task.</span>
+
+<span class="s2"># &#39;rmtree1&#39; - straightforward implementation </span>
+
+<span class="s2">if {$argc &lt; 1} { puts stderr &quot;usage: $argv0 dir...&quot; ; exit 1 }</span>
+
+<span class="s2">foreach dirname $argv {</span>
+<span class="s2">  if [catch {file delete -force -- $dirname} result] {</span>
+<span class="s2">    puts &quot;Error deleting $dirname \[$result\]&quot;</span>
+<span class="s2">  }</span>
+<span class="s2">}</span>
+
+<span class="s2"># -----------------------------</span>
+
+<span class="s2"># &#39;rmtree2&#39; - recursive, tree-traversing implementation </span>
+
+<span class="s2"># Recurser - recursively traverses directory tree</span>
+<span class="s2">proc rmtree_ {baseDir} {</span>
+<span class="s2">  set pwd [pwd] ; if [catch {cd $baseDir} result] { return }</span>
+
+<span class="s2">  foreach dir [glob -nocomplain -type d -- *] {</span>
+<span class="s2">    rmtree_ $dir</span>
+<span class="s2">  }</span>
+
+<span class="s2">  # Let&#39;s delete the regular files in, &#39;baseDir&#39;</span>
+<span class="s2">  foreach filename [glob -nocomplain -type f -- *] {</span>
+<span class="s2">    if [catch {file delete -force -- $filename} result] {</span>
+<span class="s2">      puts &quot;Error deleting $filename \[$result\]&quot;</span>
+<span class="s2">    }</span>
+<span class="s2">  }</span>
+
+<span class="s2">  # Let&#39;s move up, out of, &#39;baseDir&#39;, so as to allow it&#39;s deletion</span>
+<span class="s2">  cd $pwd</span>
+
+<span class="s2">  # Let&#39;s delete, &#39;baseDir&#39;</span>
+<span class="s2">  set dirname [file join $pwd $baseDir]</span>
+
+<span class="s2">  if [catch {file delete -force -- $dirname} result] {</span>
+<span class="s2">    puts &quot;Error deleting $dirname \[$result\]&quot;</span>
+<span class="s2">  }</span>
+<span class="s2">}</span>
+
+<span class="s2"># -----</span>
+
+<span class="s2"># Launcher - performs validation, then starts recursive routine</span>
+<span class="s2">proc rmtree {baseDir} {</span>
+<span class="s2">  if {![file exists $baseDir]} {</span>
+<span class="s2">    puts stderr &quot;Directory does not exist&quot; ; return</span>
+<span class="s2">  }</span>
+
+<span class="s2">  if [string match $baseDir* [pwd]] {</span>
+<span class="s2">    puts stderr &quot;Cannot remove current directory or its parent&quot; ; return</span>
+<span class="s2">  }</span>
+
+<span class="s2">  # Validation passed, so start recursing through subdirectories </span>
+<span class="s2">  return [rmtree_ $baseDir]</span>
+<span class="s2">}</span>
+
+<span class="s2"># -------------</span>
+
+<span class="s2">if {$argc &lt; 1} { puts stderr &quot;usage: $argv0 dir...&quot; ; exit 1 }</span>
+
+<span class="s2">foreach dirname $argv {</span>
+<span class="s2">  rmtree $dirname</span>
+<span class="s2">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN522"
+>Renaming Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">set names [list x y z]</span>
+
+<span class="s2">foreach file $names {</span>
+<span class="s2">  # This deliberately atempts to rename an existing file to it&#39;s own, same name,</span>
+<span class="s2">  # thus forcing an error [unless the -force option is used]</span>
+<span class="s2">  set newname file</span>
+
+<span class="s2">  # Error display mimics Perl example</span>
+<span class="s2">  ## if [catch {file rename $file $newname} result] {</span>
+<span class="s2">  ##   puts stderr &quot;Couldn&#39;t rename $file to $newname&quot;</span>
+<span class="s2">  ## }</span>
+
+<span class="s2">  # However, approach shown here is preferable as it furnishes more relevant</span>
+<span class="s2">  # diagnostic message(s)</span>
+<span class="s2">  if [catch {file rename $file $newname} result] {</span>
+<span class="s2">    puts stderr $result</span>
+<span class="s2">  }</span>
+<span class="s2">}</span>
+
+<span class="s2"># -----------------------------</span>
+
+<span class="s2">#</span>
+<span class="s2"># A modified implementation of Larry&#39;s Filename Fixer. Rather than passing</span>
+<span class="s2"># a single expression, a &#39;from&#39; regexp is passed; each match in the file</span>
+<span class="s2"># name(s) is changed to the value of &#39;to&#39;. It otherwise behaves the same</span>
+<span class="s2"># </span>
+<span class="s2">if {$argc &lt; 2} { puts stderr &quot;usage: $argv0 from to \[files...\]&quot; ; exit 1 }</span>
+
+<span class="s2">set from [lrange $argv 0 0] ; set to [lrange $argv 1 1]</span>
+<span class="s2">set argv [lrange $argv 2 [llength $argv]]</span>
+
+<span class="s2">if {$argv == {}} {</span>
+<span class="s2">  while {[gets stdin line] &gt;= 0} {lappend argv $line}</span>
+<span class="s2">} </span>
+
+<span class="s2">foreach f $argv {</span>
+<span class="s2">  set was $f ; regsub $from $f $to file</span>
+<span class="s2">  if {[string compare $was $file] != 0} {</span>
+<span class="s2">    if [catch {file rename $was $file} result] {</span>
+<span class="s2">      puts stderr $result</span>
+<span class="s2">    }</span>
+<span class="s2">  }</span>
+<span class="s2">}</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN525"
+>Splitting a Filename into Its Component Parts</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2">set path {/usr/lib/libc.a}</span>
+
+<span class="s2"># -----</span>
+
+<span class="s2">set basename [file tail $path]</span>
+<span class="s2">set dirname [file dirname $path]</span>
+
+<span class="s2"># No equivalent to Perl&#39;s, &#39;fileparse&#39;, so must do:</span>
+<span class="s2">set base [file tail $path]</span>
+<span class="s2">set dir [file dirname $path]</span>
+<span class="s2">set ext [file extension $path]</span>
+
+<span class="s2"># -------------</span>
+
+<span class="s2">set path {/usr/lib/libc.a}</span>
+
+<span class="s2"># -----</span>
+
+<span class="s2">set file [file tail $path]</span>
+<span class="s2">set dir [file dirname $path]</span>
+
+<span class="s2">puts &quot;dir is $dir, file is $file&quot;</span>
+
+<span class="s2"># -----</span>
+
+<span class="s2">set name [file tail $path]</span>
+<span class="s2">set dir [file dirname $path]</span>
+<span class="s2">set ext [file extension $path]</span>
+
+<span class="s2">puts &quot;dir is $dir, name is $name, extension is $ext&quot;</span>
+
+<span class="s2"># -------------</span>
+
+<span class="s2"># According to the Tcl documentation, the &#39;file&#39; command is platform-independant, so</span>
+<span class="s2"># should correctly work for platforms such as MacOS. Code below assumes this, but is</span>
+<span class="s2"># otherwise untested</span>
+<span class="s2">set path {Hard%20Drive:System%20Folder:README.txt}</span>
+
+<span class="s2"># -----</span>
+
+<span class="s2">set name [file tail $path]</span>
+<span class="s2">set dir [file dirname $path]</span>
+<span class="s2">set ext [file extension $path]</span>
+
+<span class="s2">puts &quot;dir is $dir, name is $name, extension is $ext&quot;</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN528"
+>Program: symirror</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2"># @@INCOMPLETE@@</span>
+<span class="s2"># @@INCOMPLETE@@</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN531"
+>Program: lst</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="s2"></span><span class="s2"># @@INCOMPLETE@@</span>
+<span class="s2"># @@INCOMPLETE@@</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="filecontents.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="subroutines.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>File Contents</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Subroutines</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

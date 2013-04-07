@@ -1,0 +1,763 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Database Access</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PLEAC-Groovy"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Classes, Objects, and Ties"
+HREF="classesetc.html"><LINK
+REL="NEXT"
+TITLE="User Interfaces"
+HREF="userinterfaces.html"><style type="text/css">td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+
+  </style></head
+><BODY TEXT="#cecece" BGCOLOR="#4f6f6f" LINK="#f5deb3" VLINK="#d5ae83"
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PLEAC-Groovy</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="classesetc.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="userinterfaces.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="DBACCESS"
+>14. Database Access</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN754"
+>Introduction</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="n">As</span> <span class="n">discussed</span> <span class="k">in</span> <span class="mf">14.1</span><span class="o">,</span> <span class="n">many</span> <span class="n">database</span> <span class="n">options</span> <span class="n">exist</span><span class="o">,</span> <span class="n">one</span> <span class="n">of</span> <span class="n">which</span> <span class="n">is</span> <span class="n">JDBC</span><span class="o">.</span>
+<span class="n">Over</span> <span class="mi">200</span> <span class="n">JDBC</span> <span class="n">drivers</span> <span class="n">are</span> <span class="n">listed</span> <span class="n">at</span> <span class="n">the</span> <span class="n">following</span> <span class="nl">URL:</span>
+<span class="nl">http:</span><span class="c1">//developers.sun.com/product/jdbc/drivers/browse_all.jsp</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN757"
+>Making and Using a DBM File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="c1">// Groovy can make use of various Java persistence libraries and has special</span>
+<span class="c1">// support built-in (e.g. datasets) for interacting wth RDBMS systems.</span>
+<span class="c1">// Some of the options include:</span>
+<span class="c1">//   object serialization (built in to Java)</span>
+<span class="c1">//   pbeans: pbeans.sf.net</span>
+<span class="c1">//   prevayler: http://www.prevayler.org</span>
+<span class="c1">//   Berkeley DB Java edition: http://www.oracle.com/database/berkeley-db/je/</span>
+<span class="c1">//   JDBC: Over 200 drivers are listed at http://developers.sun.com/product/jdbc/drivers</span>
+<span class="c1">//   Datasets (special Groovy support)</span>
+<span class="c1">//   XML via e.g. xstream or JAXB or XmlBeans or ...</span>
+<span class="c1">//   ORM: over 20 are listed at http://java-source.net/open-source/persistence</span>
+<span class="c1">//   JNI: can be used directly on a platform that supports e.g. DBM or via</span>
+<span class="c1">//     a cross platform API such as Apache APR which includes DBM routines:</span>
+<span class="c1">//     http://apr.apache.org/docs/apr-util/0.9/group__APR__Util__DBM.html</span>
+<span class="c1">//   jmork: used for Firefox/Thunderbird databases, e.g. address books, history files</span>
+<span class="c1">// JDBC or Datasets would normally be most common for all examples in this chapter.</span>
+
+
+<span class="c1">// Example shown using berkeley db Java edition - not quite as transparent as</span>
+<span class="c1">// cookbook example as Berkeley DB Java addition makes transactions visible.</span>
+<span class="kn">import</span> <span class="nn">com.sleepycat.je.*</span>
+<span class="n">tx</span> <span class="o">=</span> <span class="kc">null</span>
+<span class="n">envHome</span> <span class="o">=</span> <span class="k">new</span> <span class="n">File</span><span class="o">(</span><span class="s2">&quot;D:/Projects/GroovyExamples/Pleac/data/db&quot;</span><span class="o">)</span>
+
+<span class="n">myEnvConfig</span> <span class="o">=</span> <span class="k">new</span> <span class="n">EnvironmentConfig</span><span class="o">()</span>
+<span class="n">myEnvConfig</span><span class="o">.</span><span class="na">setAllowCreate</span><span class="o">(</span><span class="kc">true</span><span class="o">)</span>
+<span class="n">myEnv</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Environment</span><span class="o">(</span><span class="n">envHome</span><span class="o">,</span> <span class="n">myEnvConfig</span><span class="o">)</span>
+
+<span class="n">myDbConfig</span> <span class="o">=</span> <span class="k">new</span> <span class="n">DatabaseConfig</span><span class="o">()</span>
+<span class="n">myDbConfig</span><span class="o">.</span><span class="na">setAllowCreate</span><span class="o">(</span><span class="kc">true</span><span class="o">)</span>
+<span class="n">myDb</span> <span class="o">=</span> <span class="n">myEnv</span><span class="o">.</span><span class="na">openDatabase</span><span class="o">(</span><span class="n">tx</span><span class="o">,</span> <span class="s2">&quot;vendorDB&quot;</span><span class="o">,</span> <span class="n">myDbConfig</span><span class="o">)</span>
+
+<span class="n">theKey</span> <span class="o">=</span> <span class="k">new</span> <span class="n">DatabaseEntry</span><span class="o">(</span><span class="s2">&quot;key&quot;</span><span class="o">.</span><span class="na">getBytes</span><span class="o">(</span><span class="s2">&quot;UTF-8&quot;</span><span class="o">))</span>
+<span class="n">theData</span> <span class="o">=</span> <span class="k">new</span> <span class="n">DatabaseEntry</span><span class="o">(</span><span class="s2">&quot;data&quot;</span><span class="o">.</span><span class="na">getBytes</span><span class="o">(</span><span class="s2">&quot;UTF-8&quot;</span><span class="o">))</span>
+<span class="n">myDb</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">tx</span><span class="o">,</span> <span class="n">theKey</span><span class="o">,</span> <span class="n">theData</span><span class="o">)</span>
+<span class="k">if</span> <span class="o">(</span><span class="n">myDb</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="n">tx</span><span class="o">,</span> <span class="n">theKey</span><span class="o">,</span> <span class="n">theData</span><span class="o">,</span> <span class="n">LockMode</span><span class="o">.</span><span class="na">DEFAULT</span><span class="o">)</span> <span class="o">==</span> <span class="n">OperationStatus</span><span class="o">.</span><span class="na">SUCCESS</span><span class="o">)</span> <span class="o">{</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="k">new</span> <span class="n">String</span><span class="o">(</span><span class="n">theKey</span><span class="o">.</span><span class="na">data</span><span class="o">,</span> <span class="s2">&quot;UTF-8&quot;</span><span class="o">)</span>
+    <span class="n">foundData</span> <span class="o">=</span> <span class="k">new</span> <span class="n">String</span><span class="o">(</span><span class="n">theData</span><span class="o">.</span><span class="na">data</span><span class="o">,</span> <span class="s2">&quot;UTF-8&quot;</span><span class="o">)</span>
+    <span class="n">println</span> <span class="s2">&quot;For key: &#39;$key&#39; found data: &#39;$foundData&#39;.&quot;</span>
+<span class="o">}</span>
+<span class="n">myDb</span><span class="o">.</span><span class="na">delete</span><span class="o">(</span><span class="n">tx</span><span class="o">,</span> <span class="n">theKey</span><span class="o">)</span>
+<span class="n">myDb</span><span class="o">.</span><span class="na">close</span><span class="o">()</span>
+<span class="n">myEnv</span><span class="o">.</span><span class="na">close</span><span class="o">()</span>
+
+
+<span class="c1">// userstats using pbeans</span>
+<span class="kn">import</span> <span class="nn">net.sourceforge.pbeans.*</span>
+<span class="c1">// on *nix use: whotext = &quot;who&quot;.execute().text</span>
+<span class="n">whotext</span> <span class="o">=</span> <span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">gnat ttyp1 May 29 15:39 (coprolith.frii.com)</span>
+<span class="s1">bill ttyp1 May 28 15:38 (hilary.com)</span>
+<span class="s1">gnit ttyp1 May 27 15:37 (somewhere.org)</span>
+<span class="s1">&#39;&#39;&#39;</span>
+
+<span class="kd">class</span> <span class="nc">LoginInfo</span> <span class="kd">implements</span> <span class="n">Persistent</span> <span class="o">{</span>
+    <span class="n">LoginInfo</span><span class="o">()</span> <span class="o">{}</span>
+    <span class="n">LoginInfo</span><span class="o">(</span><span class="n">name</span><span class="o">)</span> <span class="o">{</span> <span class="k">this</span><span class="o">.</span><span class="na">name</span> <span class="o">=</span> <span class="n">name</span><span class="o">;</span> <span class="n">loginCount</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">}</span>
+    <span class="n">String</span> <span class="n">name</span>
+    <span class="kt">int</span> <span class="n">loginCount</span>
+<span class="o">}</span>
+
+<span class="kt">def</span> <span class="nf">printAllUsers</span><span class="o">(</span><span class="n">store</span><span class="o">)</span> <span class="o">{</span>
+    <span class="n">printUsers</span><span class="o">(</span><span class="n">store</span><span class="o">,</span> <span class="n">store</span><span class="o">.</span><span class="na">select</span><span class="o">(</span><span class="n">LoginInfo</span><span class="o">.</span><span class="na">class</span><span class="o">).</span><span class="na">collect</span><span class="o">{</span><span class="n">it</span><span class="o">.</span><span class="na">name</span><span class="o">}.</span><span class="na">sort</span><span class="o">())</span>
+<span class="o">}</span>
+
+<span class="kt">def</span> <span class="nf">printUsers</span><span class="o">(</span><span class="n">store</span><span class="o">,</span> <span class="n">list</span><span class="o">)</span> <span class="o">{</span>
+    <span class="n">list</span><span class="o">.</span><span class="na">each</span><span class="o">{</span>
+        <span class="n">println</span> <span class="s2">&quot;$it  ${store.selectSingle(LoginInfo.class, &#39;name&#39;, it).loginCount}&quot;</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+
+<span class="kt">def</span> <span class="nf">addUsers</span><span class="o">(</span><span class="n">store</span><span class="o">)</span> <span class="o">{</span>
+    <span class="n">whotext</span><span class="o">.</span><span class="na">trim</span><span class="o">().</span><span class="na">split</span><span class="o">(</span><span class="s1">&#39;\n&#39;</span><span class="o">).</span><span class="na">each</span><span class="o">{</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="n">it</span> <span class="o">=~</span> <span class="s">/^(\S+)/</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">m</span><span class="o">[</span><span class="mi">0</span><span class="o">][</span><span class="mi">1</span><span class="o">]</span>
+        <span class="n">item</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="na">selectSingle</span><span class="o">(</span><span class="n">LoginInfo</span><span class="o">.</span><span class="na">class</span><span class="o">,</span> <span class="s1">&#39;name&#39;</span><span class="o">,</span> <span class="n">name</span><span class="o">)</span>
+        <span class="k">if</span> <span class="o">(</span><span class="n">item</span><span class="o">)</span> <span class="o">{</span>
+            <span class="n">item</span><span class="o">.</span><span class="na">loginCount</span><span class="o">++</span>
+            <span class="n">store</span><span class="o">.</span><span class="na">save</span><span class="o">(</span><span class="n">item</span><span class="o">)</span>
+        <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+            <span class="n">store</span><span class="o">.</span><span class="na">insert</span><span class="o">(</span><span class="k">new</span> <span class="n">LoginInfo</span><span class="o">(</span><span class="n">name</span><span class="o">))</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+
+<span class="kt">def</span> <span class="n">ds</span> <span class="o">=</span> <span class="k">new</span> <span class="n">org</span><span class="o">.</span><span class="na">hsqldb</span><span class="o">.</span><span class="na">jdbc</span><span class="o">.</span><span class="na">jdbcDataSource</span><span class="o">()</span>
+<span class="n">ds</span><span class="o">.</span><span class="na">database</span> <span class="o">=</span> <span class="s1">&#39;jdbc:hsqldb:hsql://localhost/mydb&#39;</span>
+<span class="n">ds</span><span class="o">.</span><span class="na">user</span> <span class="o">=</span> <span class="s1">&#39;sa&#39;</span>
+<span class="n">ds</span><span class="o">.</span><span class="na">password</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+<span class="n">store</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Store</span><span class="o">(</span><span class="n">ds</span><span class="o">)</span>
+<span class="k">if</span> <span class="o">(</span><span class="n">args</span><span class="o">.</span><span class="na">size</span><span class="o">()</span> <span class="o">==</span> <span class="mi">0</span><span class="o">)</span> <span class="o">{</span>
+    <span class="n">addUsers</span><span class="o">(</span><span class="n">store</span><span class="o">)</span>
+<span class="o">}</span> <span class="k">else</span> <span class="k">if</span> <span class="o">(</span><span class="n">args</span> <span class="o">==</span> <span class="o">[</span><span class="s1">&#39;ALL&#39;</span><span class="o">])</span> <span class="o">{</span>
+    <span class="n">printAllUsers</span><span class="o">(</span><span class="n">store</span><span class="o">)</span>
+<span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+    <span class="n">printUsers</span><span class="o">(</span><span class="n">store</span><span class="o">,</span> <span class="n">args</span><span class="o">)</span>
+<span class="o">}</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN760"
+>Emptying a DBM File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="c1">// Groovy would normally use JDBC here (see 14.1 for details)</span>
+<span class="kn">import</span> <span class="nn">com.sleepycat.je.*</span>
+<span class="n">tx</span> <span class="o">=</span> <span class="kc">null</span>
+<span class="n">envHome</span> <span class="o">=</span> <span class="k">new</span> <span class="n">File</span><span class="o">(</span><span class="s2">&quot;D:/Projects/GroovyExamples/Pleac/data/db&quot;</span><span class="o">)</span>
+
+<span class="n">myEnvConfig</span> <span class="o">=</span> <span class="k">new</span> <span class="n">EnvironmentConfig</span><span class="o">()</span>
+<span class="n">myEnvConfig</span><span class="o">.</span><span class="na">setAllowCreate</span><span class="o">(</span><span class="kc">true</span><span class="o">)</span>
+<span class="n">myEnv</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Environment</span><span class="o">(</span><span class="n">envHome</span><span class="o">,</span> <span class="n">myEnvConfig</span><span class="o">)</span>
+
+<span class="n">myDbConfig</span> <span class="o">=</span> <span class="k">new</span> <span class="n">DatabaseConfig</span><span class="o">()</span>
+<span class="n">myDbConfig</span><span class="o">.</span><span class="na">setAllowCreate</span><span class="o">(</span><span class="kc">true</span><span class="o">)</span>
+<span class="n">myDb</span> <span class="o">=</span> <span class="n">myEnv</span><span class="o">.</span><span class="na">openDatabase</span><span class="o">(</span><span class="n">tx</span><span class="o">,</span> <span class="s2">&quot;vendorDB&quot;</span><span class="o">,</span> <span class="n">myDbConfig</span><span class="o">)</span>
+
+<span class="n">theKey</span> <span class="o">=</span> <span class="k">new</span> <span class="n">DatabaseEntry</span><span class="o">(</span><span class="s2">&quot;key&quot;</span><span class="o">.</span><span class="na">getBytes</span><span class="o">(</span><span class="s2">&quot;UTF-8&quot;</span><span class="o">))</span>
+<span class="n">theData</span> <span class="o">=</span> <span class="k">new</span> <span class="n">DatabaseEntry</span><span class="o">(</span><span class="s2">&quot;data&quot;</span><span class="o">.</span><span class="na">getBytes</span><span class="o">(</span><span class="s2">&quot;UTF-8&quot;</span><span class="o">))</span>
+<span class="n">myDb</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">tx</span><span class="o">,</span> <span class="n">theKey</span><span class="o">,</span> <span class="n">theData</span><span class="o">)</span>
+<span class="n">myDb</span><span class="o">.</span><span class="na">close</span><span class="o">()</span>
+<span class="c1">// clear out database</span>
+<span class="n">returnCount</span> <span class="o">=</span> <span class="kc">true</span>
+<span class="n">println</span> <span class="n">myEnv</span><span class="o">.</span><span class="na">truncateDatabase</span><span class="o">(</span><span class="n">tx</span><span class="o">,</span> <span class="s2">&quot;vendorDB&quot;</span><span class="o">,</span> <span class="n">returnCount</span><span class="o">)</span> <span class="o">+</span> <span class="s1">&#39; records deleted&#39;</span>
+<span class="c1">// remove database</span>
+<span class="n">myEnv</span><span class="o">.</span><span class="na">removeDatabase</span><span class="o">(</span><span class="n">tx</span><span class="o">,</span> <span class="s2">&quot;vendorDB&quot;</span><span class="o">)</span>
+<span class="n">myEnv</span><span class="o">.</span><span class="na">close</span><span class="o">()</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN763"
+>Converting Between DBM Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="c1">// Original cookbook example not likely in Groovy.</span>
+<span class="c1">// Here is a more realistic example, copying pbeans -&gt; jdbc</span>
+<span class="c1">// Creation of pbeans database not strictly needed but shown for completion</span>
+
+<span class="kn">import</span> <span class="nn">net.sourceforge.pbeans.*</span>
+<span class="kn">import</span> <span class="nn">groovy.sql.Sql</span>
+
+<span class="kt">def</span> <span class="n">ds</span> <span class="o">=</span> <span class="k">new</span> <span class="n">org</span><span class="o">.</span><span class="na">hsqldb</span><span class="o">.</span><span class="na">jdbc</span><span class="o">.</span><span class="na">jdbcDataSource</span><span class="o">()</span>
+<span class="n">ds</span><span class="o">.</span><span class="na">database</span> <span class="o">=</span> <span class="s1">&#39;jdbc:hsqldb:hsql://localhost/mydb&#39;</span>
+<span class="n">ds</span><span class="o">.</span><span class="na">user</span> <span class="o">=</span> <span class="s1">&#39;sa&#39;</span>
+<span class="n">ds</span><span class="o">.</span><span class="na">password</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+<span class="n">store</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Store</span><span class="o">(</span><span class="n">ds</span><span class="o">)</span>
+
+<span class="kd">class</span> <span class="nc">Person</span> <span class="kd">implements</span> <span class="n">Persistent</span> <span class="o">{</span>
+    <span class="n">String</span> <span class="n">name</span>
+    <span class="n">String</span> <span class="n">does</span>
+    <span class="n">String</span> <span class="n">email</span>
+<span class="o">}</span>
+
+<span class="c1">// populate with test data</span>
+<span class="n">store</span><span class="o">.</span><span class="na">insert</span><span class="o">(</span><span class="k">new</span> <span class="n">Person</span><span class="o">(</span><span class="nl">name:</span><span class="s1">&#39;Tom Christiansen&#39;</span><span class="o">,</span> <span class="nl">does:</span><span class="s1">&#39;book author&#39;</span><span class="o">,</span> <span class="nl">email:</span><span class="s1">&#39;tchrist@perl.com&#39;</span><span class="o">))</span>
+<span class="n">store</span><span class="o">.</span><span class="na">insert</span><span class="o">(</span><span class="k">new</span> <span class="n">Person</span><span class="o">(</span><span class="nl">name:</span><span class="s1">&#39;Tom Boutell&#39;</span><span class="o">,</span> <span class="nl">does:</span><span class="s1">&#39;Poet Programmer&#39;</span><span class="o">,</span> <span class="nl">email:</span><span class="s1">&#39;boutell@boutell.com&#39;</span><span class="o">))</span>
+
+<span class="n">people</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="na">select</span><span class="o">(</span><span class="n">Person</span><span class="o">.</span><span class="na">class</span><span class="o">)</span>
+
+<span class="n">db</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Sql</span><span class="o">(</span><span class="n">ds</span><span class="o">)</span>
+
+<span class="n">db</span><span class="o">.</span><span class="na">execute</span> <span class="s1">&#39;CREATE TABLE people ( name VARCHAR, does VARCHAR, email VARCHAR );&#39;</span>
+<span class="n">people</span><span class="o">.</span><span class="na">each</span><span class="o">{</span> <span class="n">p</span> <span class="o">-&gt;</span>
+    <span class="n">db</span><span class="o">.</span><span class="na">execute</span> <span class="s2">&quot;INSERT INTO people ( name, does, email ) VALUES ($p.name,$p.does,$p.email);&quot;</span>
+<span class="o">}</span>
+<span class="n">db</span><span class="o">.</span><span class="na">eachRow</span><span class="o">(</span><span class="s2">&quot;SELECT * FROM people where does like &#39;book%&#39;&quot;</span><span class="o">){</span>
+    <span class="n">println</span> <span class="s2">&quot;$it.name, $it.does, $it.email&quot;</span>
+<span class="o">}</span>
+<span class="n">db</span><span class="o">.</span><span class="na">execute</span> <span class="s1">&#39;DROP TABLE people;&#39;</span>
+<span class="c1">// =&gt; Tom Christiansen, book author, tchrist@perl.com</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN766"
+>Merging DBM Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="c1">// Groovy would normally use JDBC here (see 14.1 for details)</span>
+<span class="kn">import</span> <span class="nn">com.sleepycat.je.*</span>
+
+<span class="kt">def</span> <span class="nf">copyEntries</span><span class="o">(</span><span class="n">indb</span><span class="o">,</span> <span class="n">outdb</span><span class="o">)</span> <span class="o">{</span>
+    <span class="n">cursor</span> <span class="o">=</span> <span class="n">indb1</span><span class="o">.</span><span class="na">openCursor</span><span class="o">(</span><span class="kc">null</span><span class="o">,</span> <span class="kc">null</span><span class="o">)</span>
+    <span class="k">while</span> <span class="o">(</span><span class="n">cursor</span><span class="o">.</span><span class="na">getNext</span><span class="o">(</span><span class="n">foundKey</span><span class="o">,</span> <span class="n">foundData</span><span class="o">,</span> <span class="n">LockMode</span><span class="o">.</span><span class="na">DEFAULT</span><span class="o">)</span> <span class="o">==</span> <span class="n">OperationStatus</span><span class="o">.</span><span class="na">SUCCESS</span><span class="o">)</span>
+        <span class="n">outdb</span><span class="o">.</span><span class="na">out</span><span class="o">(</span><span class="n">tx</span><span class="o">,</span> <span class="n">foundKey</span><span class="o">,</span> <span class="n">foundData</span><span class="o">)</span>
+    <span class="n">cursor</span><span class="o">.</span><span class="na">close</span><span class="o">()</span>
+<span class="o">}</span>
+
+<span class="n">tx</span> <span class="o">=</span> <span class="kc">null</span>
+<span class="n">envHome</span> <span class="o">=</span> <span class="k">new</span> <span class="n">File</span><span class="o">(</span><span class="s2">&quot;D:/Projects/GroovyExamples/Pleac/data/db&quot;</span><span class="o">)</span>
+
+<span class="n">myEnvConfig</span> <span class="o">=</span> <span class="k">new</span> <span class="n">EnvironmentConfig</span><span class="o">()</span>
+<span class="n">myEnvConfig</span><span class="o">.</span><span class="na">setAllowCreate</span><span class="o">(</span><span class="kc">true</span><span class="o">)</span>
+<span class="n">myEnv</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Environment</span><span class="o">(</span><span class="n">envHome</span><span class="o">,</span> <span class="n">myEnvConfig</span><span class="o">)</span>
+
+<span class="n">myDbConfig</span> <span class="o">=</span> <span class="k">new</span> <span class="n">DatabaseConfig</span><span class="o">()</span>
+<span class="n">myDbConfig</span><span class="o">.</span><span class="na">setAllowCreate</span><span class="o">(</span><span class="kc">true</span><span class="o">)</span>
+<span class="n">indb1</span> <span class="o">=</span> <span class="n">myEnv</span><span class="o">.</span><span class="na">openDatabase</span><span class="o">(</span><span class="n">tx</span><span class="o">,</span> <span class="s2">&quot;db1&quot;</span><span class="o">,</span> <span class="n">myDbConfig</span><span class="o">)</span>
+<span class="n">indb2</span> <span class="o">=</span> <span class="n">myEnv</span><span class="o">.</span><span class="na">openDatabase</span><span class="o">(</span><span class="n">tx</span><span class="o">,</span> <span class="s2">&quot;db2&quot;</span><span class="o">,</span> <span class="n">myDbConfig</span><span class="o">)</span>
+<span class="n">outdb</span> <span class="o">=</span> <span class="n">myEnv</span><span class="o">.</span><span class="na">openDatabase</span><span class="o">(</span><span class="n">tx</span><span class="o">,</span> <span class="s2">&quot;db3&quot;</span><span class="o">,</span> <span class="n">myDbConfig</span><span class="o">)</span>
+<span class="n">foundKey</span> <span class="o">=</span> <span class="k">new</span> <span class="n">DatabaseEntry</span><span class="o">()</span>
+<span class="n">foundData</span> <span class="o">=</span> <span class="k">new</span> <span class="n">DatabaseEntry</span><span class="o">()</span>
+<span class="n">copyEntries</span><span class="o">(</span><span class="n">indb1</span><span class="o">,</span> <span class="n">outdb</span><span class="o">)</span>
+<span class="n">copyEntries</span><span class="o">(</span><span class="n">indb2</span><span class="o">,</span> <span class="n">outdb</span><span class="o">)</span>
+<span class="n">cursor</span> <span class="o">=</span> <span class="n">indb2</span><span class="o">.</span><span class="na">openCursor</span><span class="o">(</span><span class="kc">null</span><span class="o">,</span> <span class="kc">null</span><span class="o">)</span>
+<span class="k">while</span> <span class="o">(</span><span class="n">cursor</span><span class="o">.</span><span class="na">getNext</span><span class="o">(</span><span class="n">foundKey</span><span class="o">,</span> <span class="n">foundData</span><span class="o">,</span> <span class="n">LockMode</span><span class="o">.</span><span class="na">DEFAULT</span><span class="o">)</span> <span class="o">==</span> <span class="n">OperationStatus</span><span class="o">.</span><span class="na">SUCCESS</span><span class="o">)</span>
+    <span class="n">outdb</span><span class="o">.</span><span class="na">out</span><span class="o">(</span><span class="n">tx</span><span class="o">,</span> <span class="n">foundKey</span><span class="o">,</span> <span class="n">foundData</span><span class="o">)</span>
+<span class="n">cursor</span><span class="o">.</span><span class="na">close</span><span class="o">()</span>
+<span class="n">indb1</span><span class="o">.</span><span class="na">close</span><span class="o">()</span>
+<span class="n">indb2</span><span class="o">.</span><span class="na">close</span><span class="o">()</span>
+<span class="n">outdb</span><span class="o">.</span><span class="na">close</span><span class="o">()</span>
+<span class="n">myEnv</span><span class="o">.</span><span class="na">close</span><span class="o">()</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN769"
+>Locking DBM Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="c1">// If you are using a single file based persistence mechanism you can</span>
+<span class="c1">// use the file locking mechanisms mentioned in 7.11 otherwise the</span>
+<span class="c1">// database itself or the ORM layer will provide locking mechanisms.</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN772"
+>Sorting Large DBM Files</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="c1">// N/A for most Java/Groovy persistent technologies.</span>
+<span class="c1">// Use indexes for RDBMS systems.</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN775"
+>Treating a Text File as a Database Array</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+ <span class="c1">// We can write a category that allows the ArrayList class</span>
+ <span class="c1">// to be persisted as required.</span>
+ <span class="kd">class</span> <span class="nc">ArrayListCategory</span> <span class="o">{</span>
+     <span class="kd">static</span> <span class="n">file</span> <span class="o">=</span> <span class="k">new</span> <span class="n">File</span><span class="o">(</span><span class="s1">&#39;/temp.txt&#39;</span><span class="o">)</span>
+     <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">save</span><span class="o">(</span><span class="n">ArrayList</span> <span class="n">self</span><span class="o">)</span> <span class="o">{</span>
+         <span class="kt">def</span> <span class="n">LS</span> <span class="o">=</span> <span class="n">System</span><span class="o">.</span><span class="na">getProperty</span><span class="o">(</span><span class="s1">&#39;line.separator&#39;</span><span class="o">)</span>
+         <span class="n">file</span><span class="o">.</span><span class="na">withWriter</span><span class="o">{</span> <span class="n">w</span> <span class="o">-&gt;</span>
+             <span class="n">self</span><span class="o">.</span><span class="na">each</span><span class="o">{</span> <span class="n">w</span><span class="o">.</span><span class="na">write</span><span class="o">(</span><span class="n">it</span> <span class="o">+</span> <span class="n">LS</span><span class="o">)</span>  <span class="o">}</span>
+         <span class="o">}</span>
+     <span class="o">}</span>
+ <span class="o">}</span>
+
+ <span class="n">lines</span> <span class="o">=</span> <span class="s1">&#39;&#39;&#39;</span>
+<span class="s1"> zero</span>
+<span class="s1"> one</span>
+<span class="s1"> two</span>
+<span class="s1"> three</span>
+<span class="s1"> four</span>
+<span class="s1"> &#39;&#39;&#39;</span><span class="o">.</span><span class="na">trim</span><span class="o">().</span><span class="na">split</span><span class="o">(</span><span class="s1">&#39;\n&#39;</span><span class="o">)</span> <span class="k">as</span> <span class="n">ArrayList</span>
+
+ <span class="n">use</span><span class="o">(</span><span class="n">ArrayListCategory</span><span class="o">)</span> <span class="o">{</span>
+     <span class="n">println</span> <span class="s2">&quot;ORIGINAL&quot;</span>
+     <span class="k">for</span> <span class="o">(</span><span class="n">i</span> <span class="k">in</span> <span class="mi">0</span><span class="o">..&lt;</span><span class="n">lines</span><span class="o">.</span><span class="na">size</span><span class="o">())</span>
+         <span class="n">println</span> <span class="s2">&quot;${i}: ${lines[i]}&quot;</span>
+
+     <span class="n">a</span> <span class="o">=</span> <span class="n">lines</span><span class="o">[-</span><span class="mi">1</span><span class="o">]</span>
+     <span class="n">lines</span><span class="o">[-</span><span class="mi">1</span><span class="o">]</span> <span class="o">=</span> <span class="s2">&quot;last&quot;</span>
+     <span class="n">println</span> <span class="s2">&quot;The last line was [$a]&quot;</span>
+
+     <span class="n">a</span> <span class="o">=</span> <span class="n">lines</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span>
+     <span class="n">lines</span> <span class="o">=</span> <span class="o">[</span><span class="s2">&quot;first&quot;</span><span class="o">]</span> <span class="o">+</span> <span class="n">lines</span><span class="o">[</span><span class="mi">1</span><span class="o">..-</span><span class="mi">1</span><span class="o">]</span>
+     <span class="n">println</span> <span class="s2">&quot;The first line was [$a]&quot;</span>
+
+     <span class="n">lines</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="mi">3</span><span class="o">,</span> <span class="s1">&#39;Newbie&#39;</span><span class="o">)</span>
+     <span class="n">lines</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="mi">1</span><span class="o">,</span> <span class="s1">&#39;New One&#39;</span><span class="o">)</span>
+
+     <span class="n">lines</span><span class="o">.</span><span class="na">remove</span><span class="o">(</span><span class="mi">3</span><span class="o">)</span>
+
+     <span class="n">println</span> <span class="s2">&quot;REVERSE&quot;</span>
+     <span class="o">(</span><span class="n">lines</span><span class="o">.</span><span class="na">size</span><span class="o">()</span> <span class="o">-</span> <span class="mi">1</span><span class="o">).</span><span class="na">downto</span><span class="o">(</span><span class="mi">0</span><span class="o">){</span> <span class="n">i</span> <span class="o">-&gt;</span>
+         <span class="n">println</span> <span class="s2">&quot;${i}: ${lines[i]}&quot;</span>
+     <span class="o">}</span>
+     <span class="n">lines</span><span class="o">.</span><span class="na">save</span><span class="o">()</span>
+ <span class="o">}</span>
+ <span class="c1">// =&gt;</span>
+ <span class="c1">// ORIGINAL</span>
+ <span class="c1">// 0: zero</span>
+ <span class="c1">// 1: one</span>
+ <span class="c1">// 2: two</span>
+ <span class="c1">// 3: three</span>
+ <span class="c1">// 4: four</span>
+ <span class="c1">// The last line was [four]</span>
+ <span class="c1">// The first line was [zero]</span>
+ <span class="c1">// REVERSE</span>
+ <span class="c1">// 5: last</span>
+ <span class="c1">// 4: three</span>
+ <span class="c1">// 3: Newbie</span>
+ <span class="c1">// 2: one</span>
+ <span class="c1">// 1: New One</span>
+ <span class="c1">// 0: first</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN778"
+>Storing Complex Data in a DBM File</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="c1">// example using pbeans</span>
+<span class="kn">import</span> <span class="nn">net.sourceforge.pbeans.*</span>
+<span class="kt">def</span> <span class="n">ds</span> <span class="o">=</span> <span class="k">new</span> <span class="n">org</span><span class="o">.</span><span class="na">hsqldb</span><span class="o">.</span><span class="na">jdbc</span><span class="o">.</span><span class="na">jdbcDataSource</span><span class="o">()</span>
+<span class="n">ds</span><span class="o">.</span><span class="na">database</span> <span class="o">=</span> <span class="s1">&#39;jdbc:hsqldb:hsql://localhost/mydb&#39;</span>
+<span class="n">ds</span><span class="o">.</span><span class="na">user</span> <span class="o">=</span> <span class="s1">&#39;sa&#39;</span>
+<span class="n">ds</span><span class="o">.</span><span class="na">password</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+<span class="n">store</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Store</span><span class="o">(</span><span class="n">ds</span><span class="o">)</span>
+
+<span class="kd">class</span> <span class="nc">Person</span> <span class="kd">implements</span> <span class="n">Persistent</span> <span class="o">{</span>
+    <span class="n">String</span> <span class="n">name</span>
+    <span class="n">String</span> <span class="n">does</span>
+    <span class="n">String</span> <span class="n">email</span>
+<span class="o">}</span>
+
+<span class="n">name1</span> <span class="o">=</span> <span class="s1">&#39;Tom Christiansen&#39;</span>
+<span class="n">name2</span> <span class="o">=</span> <span class="s1">&#39;Tom Boutell&#39;</span>
+
+<span class="n">store</span><span class="o">.</span><span class="na">insert</span><span class="o">(</span><span class="k">new</span> <span class="n">Person</span><span class="o">(</span><span class="nl">name:</span><span class="n">name1</span><span class="o">,</span> <span class="nl">does:</span><span class="s1">&#39;book author&#39;</span><span class="o">,</span> <span class="nl">email:</span><span class="s1">&#39;tchrist@perl.com&#39;</span><span class="o">))</span>
+<span class="n">store</span><span class="o">.</span><span class="na">insert</span><span class="o">(</span><span class="k">new</span> <span class="n">Person</span><span class="o">(</span><span class="nl">name:</span><span class="n">name2</span><span class="o">,</span> <span class="nl">does:</span><span class="s1">&#39;shareware author&#39;</span><span class="o">,</span> <span class="nl">email:</span><span class="s1">&#39;boutell@boutell.com&#39;</span><span class="o">))</span>
+
+<span class="n">tom1</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="na">selectSingle</span><span class="o">(</span><span class="n">Person</span><span class="o">.</span><span class="na">class</span><span class="o">,</span> <span class="s1">&#39;name&#39;</span><span class="o">,</span> <span class="n">name1</span><span class="o">)</span>
+<span class="n">tom2</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="na">selectSingle</span><span class="o">(</span><span class="n">Person</span><span class="o">.</span><span class="na">class</span><span class="o">,</span> <span class="s1">&#39;name&#39;</span><span class="o">,</span> <span class="n">name2</span><span class="o">)</span>
+
+<span class="n">println</span> <span class="s2">&quot;Two Toming: $tom1 $tom2&quot;</span>
+
+<span class="k">if</span> <span class="o">(</span><span class="n">tom1</span><span class="o">.</span><span class="na">name</span> <span class="o">==</span> <span class="n">tom2</span><span class="o">.</span><span class="na">name</span> <span class="o">&amp;&amp;</span> <span class="n">tom1</span><span class="o">.</span><span class="na">does</span> <span class="o">==</span> <span class="n">tom2</span><span class="o">.</span><span class="na">does</span> <span class="o">&amp;&amp;</span> <span class="n">tom1</span><span class="o">.</span><span class="na">email</span> <span class="o">==</span> <span class="n">tom2</span><span class="o">.</span><span class="na">email</span><span class="o">)</span>
+    <span class="n">println</span> <span class="s2">&quot;You&#39;re having runtime fun with one Tom made two.&quot;</span>
+<span class="k">else</span>
+    <span class="n">println</span> <span class="s2">&quot;No two Toms are ever alike&quot;</span>
+
+<span class="n">tom2</span><span class="o">.</span><span class="na">does</span> <span class="o">=</span> <span class="s1">&#39;Poet Programmer&#39;</span>
+<span class="n">store</span><span class="o">.</span><span class="na">save</span><span class="o">(</span><span class="n">tom2</span><span class="o">)</span>
+<span class="c1">// =&gt;</span>
+<span class="c1">// Two Toming: Person@12884e0 Person@8ab708</span>
+<span class="c1">// No two Toms are ever alike</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN781"
+>Persistent Data</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="c1">// Use one of the mechanisms mentioned in 14.1 to load variables at the start</span>
+<span class="c1">// of the script and save them at the end. You can save the binding, individual</span>
+<span class="c1">// variables, maps of variables or composite objects.</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN784"
+>Executing an SQL Command Using DBI and DBD</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="kn">import</span> <span class="nn">groovy.sql.Sql</span>
+
+<span class="n">users</span> <span class="o">=</span> <span class="o">[</span><span class="s1">&#39;20&#39;</span><span class="o">:</span><span class="s1">&#39;Joe Bloggs&#39;</span><span class="o">,</span> <span class="s1">&#39;40&#39;</span><span class="o">:</span><span class="s1">&#39;Bill Clinton&#39;</span><span class="o">,</span> <span class="s1">&#39;60&#39;</span><span class="o">:</span><span class="s1">&#39;Ben Franklin&#39;</span><span class="o">]</span>
+
+<span class="kt">def</span> <span class="n">source</span> <span class="o">=</span> <span class="k">new</span> <span class="n">org</span><span class="o">.</span><span class="na">hsqldb</span><span class="o">.</span><span class="na">jdbc</span><span class="o">.</span><span class="na">jdbcDataSource</span><span class="o">()</span>
+<span class="n">source</span><span class="o">.</span><span class="na">database</span> <span class="o">=</span> <span class="s1">&#39;jdbc:hsqldb:mem:PLEAC&#39;</span>
+<span class="n">source</span><span class="o">.</span><span class="na">user</span> <span class="o">=</span> <span class="s1">&#39;sa&#39;</span>
+<span class="n">source</span><span class="o">.</span><span class="na">password</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+<span class="n">db</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Sql</span><span class="o">(</span><span class="n">source</span><span class="o">)</span>
+
+<span class="n">db</span><span class="o">.</span><span class="na">execute</span> <span class="s1">&#39;CREATE TABLE users ( uid INT, login CHAR(8) );&#39;</span>
+<span class="n">users</span><span class="o">.</span><span class="na">each</span><span class="o">{</span> <span class="n">uid</span><span class="o">,</span> <span class="n">login</span> <span class="o">-&gt;</span>
+    <span class="n">db</span><span class="o">.</span><span class="na">execute</span> <span class="s2">&quot;INSERT INTO users ( uid, login ) VALUES ($uid,$login);&quot;</span>
+<span class="o">}</span>
+<span class="n">db</span><span class="o">.</span><span class="na">eachRow</span><span class="o">(</span><span class="s1">&#39;SELECT uid, login FROM users WHERE uid &lt; 50&#39;</span><span class="o">){</span>
+    <span class="n">println</span> <span class="s2">&quot;$it.uid $it.login&quot;</span>
+<span class="o">}</span>
+<span class="n">db</span><span class="o">.</span><span class="na">execute</span> <span class="s1">&#39;DROP TABLE users;&#39;</span>
+<span class="c1">// =&gt;</span>
+<span class="c1">// 20 Joe Bloggs</span>
+<span class="c1">// 40 Bill Clinton</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN787"
+>Program: ggh - Grep Netscape Global History</A
+></H2
+><TABLE
+BORDER="0"
+BGCOLOR="#2F4F4F"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="SCREEN"
+><font color="#f5deb3" size="+1"><span class="c1"></span><span class="c1">//----------------------------------------------------------------------------------</span>
+<span class="c1">// variation to cookbook: uses Firefox instead of Netscape, always assumes</span>
+<span class="c1">// argument is a regex, has some others args, retains no args to list all</span>
+
+<span class="c1">// uses jmork mork dbm reading library:</span>
+<span class="c1">//     http://www.smartwerkz.com/projects/jmork/index.html</span>
+<span class="kn">import</span> <span class="nn">mork.*</span>
+<span class="kt">def</span> <span class="n">cli</span> <span class="o">=</span> <span class="k">new</span> <span class="n">CliBuilder</span><span class="o">()</span>
+<span class="n">cli</span><span class="o">.</span><span class="na">h</span><span class="o">(</span><span class="nl">longOpt:</span> <span class="s1">&#39;help&#39;</span><span class="o">,</span> <span class="s1">&#39;print this message&#39;</span><span class="o">)</span>
+<span class="n">cli</span><span class="o">.</span><span class="na">e</span><span class="o">(</span><span class="nl">longOpt:</span> <span class="s1">&#39;exclude&#39;</span><span class="o">,</span> <span class="s1">&#39;exclude hidden history entries (js, css, ads and images)&#39;</span><span class="o">)</span>
+<span class="n">cli</span><span class="o">.</span><span class="na">c</span><span class="o">(</span><span class="nl">longOpt:</span> <span class="s1">&#39;clean&#39;</span><span class="o">,</span> <span class="s1">&#39;clean off url query string when reporting urls&#39;</span><span class="o">)</span>
+<span class="n">cli</span><span class="o">.</span><span class="na">v</span><span class="o">(</span><span class="nl">longOpt:</span> <span class="s1">&#39;verbose&#39;</span><span class="o">,</span> <span class="s1">&#39;show referrer and first visit date&#39;</span><span class="o">)</span>
+<span class="kt">def</span> <span class="n">options</span> <span class="o">=</span> <span class="n">cli</span><span class="o">.</span><span class="na">parse</span><span class="o">(</span><span class="n">args</span><span class="o">)</span>
+<span class="k">if</span> <span class="o">(</span><span class="n">options</span><span class="o">.</span><span class="na">h</span><span class="o">)</span> <span class="o">{</span> <span class="n">cli</span><span class="o">.</span><span class="na">usage</span><span class="o">();</span> <span class="n">System</span><span class="o">.</span><span class="na">exit</span><span class="o">(</span><span class="mi">0</span><span class="o">)</span> <span class="o">}</span>
+<span class="n">regex</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="na">arguments</span><span class="o">()</span>
+<span class="k">if</span> <span class="o">(</span><span class="n">regex</span><span class="o">)</span> <span class="n">regex</span> <span class="o">=</span> <span class="n">regex</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span>
+<span class="n">reader</span> <span class="o">=</span> <span class="k">new</span> <span class="n">FileReader</span><span class="o">(</span><span class="s1">&#39;Pleac/data/history.dat&#39;</span><span class="o">)</span>
+<span class="n">morkDocument</span> <span class="o">=</span> <span class="k">new</span> <span class="n">MorkDocument</span><span class="o">(</span><span class="n">reader</span><span class="o">)</span>
+<span class="n">tables</span> <span class="o">=</span> <span class="n">morkDocument</span><span class="o">.</span><span class="na">tables</span>
+<span class="n">tables</span><span class="o">.</span><span class="na">each</span><span class="o">{</span> <span class="n">table</span> <span class="o">-&gt;</span>
+    <span class="n">table</span><span class="o">.</span><span class="na">rows</span><span class="o">.</span><span class="na">each</span> <span class="o">{</span> <span class="n">row</span> <span class="o">-&gt;</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="na">getValue</span><span class="o">(</span><span class="s1">&#39;URL&#39;</span><span class="o">)</span>
+        <span class="k">if</span> <span class="o">(</span><span class="n">options</span><span class="o">.</span><span class="na">c</span><span class="o">)</span> <span class="n">url</span> <span class="o">=</span> <span class="n">url</span><span class="o">.</span><span class="na">tokenize</span><span class="o">(</span><span class="s1">&#39;?&#39;</span><span class="o">)[</span><span class="mi">0</span><span class="o">]</span>
+        <span class="k">if</span> <span class="o">(!</span><span class="n">regex</span> <span class="o">||</span> <span class="n">url</span> <span class="o">=~</span> <span class="n">regex</span><span class="o">)</span> <span class="o">{</span>
+            <span class="k">if</span> <span class="o">(!</span><span class="n">options</span><span class="o">.</span><span class="na">e</span> <span class="o">||</span> <span class="n">row</span><span class="o">.</span><span class="na">getValue</span><span class="o">(</span><span class="s1">&#39;Hidden&#39;</span><span class="o">)</span> <span class="o">!=</span> <span class="s1">&#39;1&#39;</span><span class="o">)</span> <span class="o">{</span>
+                <span class="n">println</span> <span class="s2">&quot;$url\n    Last Visited: ${date(row,&#39;LastVisitDate&#39;)}&quot;</span>
+                <span class="k">if</span> <span class="o">(</span><span class="n">options</span><span class="o">.</span><span class="na">v</span><span class="o">)</span> <span class="o">{</span>
+                    <span class="n">println</span> <span class="s2">&quot;    First Visited: ${date(row,&#39;FirstVisitDate&#39;)}&quot;</span>
+                    <span class="n">println</span> <span class="s2">&quot;    Referrer: ${row.getValue(&#39;Referrer&#39;)}&quot;</span>
+                <span class="o">}</span>
+            <span class="o">}</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+<span class="kt">def</span> <span class="nf">date</span><span class="o">(</span><span class="n">row</span><span class="o">,</span> <span class="n">key</span><span class="o">)</span> <span class="o">{</span>
+    <span class="k">return</span> <span class="k">new</span> <span class="nf">Date</span><span class="o">((</span><span class="kt">long</span><span class="o">)(</span><span class="n">row</span><span class="o">.</span><span class="na">getValue</span><span class="o">(</span><span class="n">key</span><span class="o">).</span><span class="na">toLong</span><span class="o">()</span><span class="s">/1000))</span>
+<span class="s">}</span>
+<span class="s">// $ groovy gfh -ev oracle&#39; =&gt;</span>
+<span class="s">// http://www.oracle.com/</span><span class="n">technology</span><span class="s">/products/</span><span class="n">jdev</span><span class="s">/index.html</span>
+<span class="s">//     Last Visited: Thu Feb 15 20:20:36 EST 2007</span>
+<span class="s">//     First Visited: Thu Feb 15 20:20:36 EST 2007</span>
+<span class="s">//     Referrer: http://docs.codehaus.org/</span><span class="n">display</span><span class="s">/GROOVY/</span><span class="n">Oracle</span><span class="o">+</span><span class="n">JDeveloper</span><span class="o">+</span><span class="n">Plugin</span>
+<span class="c1">//----------------------------------------------------------------------------------</span></PRE
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="classesetc.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="userinterfaces.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Classes, Objects, and Ties</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>User Interfaces</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>
