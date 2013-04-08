@@ -14,8 +14,9 @@ import codecs
 
 def conv2utf8(input_file,target_file,source_encoding):
     with codecs.open(input_file,'r',source_encoding) as sf:
+        cont = sf.read()
+        sf.close()
         with codecs.open(target_file,'w','utf-8') as tf:
-            cont = sf.read()
             tf.write(cont)
 
 def arg_parse(no_backup=False,files=None):
@@ -25,7 +26,7 @@ def arg_parse(no_backup=False,files=None):
             shutil.copy2(f, f + backup_ext )
         char_en = chardet.detect(open(f).read())
         print(f + ": " + char_en['encoding'])
-        conv2utf8(f+backup_ext, f, char_en['encoding'])
+        conv2utf8(f, f, char_en['encoding'])
 
 def main(args=None):
     import argparse
